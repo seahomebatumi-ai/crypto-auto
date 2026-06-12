@@ -1,10 +1,16 @@
-      - name: Run script
-        env:
-          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+name: Debug
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: List files
         run: |
-          echo "--- ГДЕ МЫ СЕЙЧАС ---"
+          echo "--- ГДЕ МЫ ---"
           pwd
-          echo "--- ЧТО ТУТ ЛЕЖИТ ---"
+          echo "--- ЧТО В ПАПКЕ ---"
           ls -R
-          echo "--- ЗАПУСК С КОРНЯ ---"
-          python3 main.py
