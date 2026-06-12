@@ -1,31 +1,27 @@
-import os
-import json
-import requests
+name: Crypto Update
 
-def main():
-    # Получаем токен из секретов GitHub
-    token = os.getenv('GIST_TOKEN')
-    if not token:
-        print("Ошибка: GIST_TOKEN не найден!")
-        return
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
-    # Твои данные
-    data = {"SUI": {"up": 1.48, "down": 1.35}, "ONDO": {"up": 0.95, "down": 0.85}}
-    
-    # ID твоего публичного Gist
-    gist_id = '3f50574a29bc37434c18cc8480779ccb'
-    
-    headers = {'Authorization': f'token {token}'}
-    # Обновляем файл coeffs.json
-    payload = {"files": {"coeffs.json": {"content": json.dumps(data)}}}
-    
-    # Отправляем запрос на обновление
-    response = requests.patch(f'https://api.github.com/gists/{gist_id}', headers=headers, json=payload)
-    
-    if response.status_code == 200:
-        print("Успешно: публичный Gist обновлен!")
-    else:
-        print(f"Ошибка при обновлении: {response.status_code} - {response.text}")
-
-if __name__ == "__main__":
-    main()
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run script
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: python main.py
