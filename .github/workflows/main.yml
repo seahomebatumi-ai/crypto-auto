@@ -6,6 +6,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Это самое важное - мы говорим системе, где искать файлы
+    defaults:
+      run:
+        working-directory: ./
+        
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -15,10 +20,10 @@ jobs:
         with:
           python-version: '3.9'
 
+      - name: Install dependencies
+        run: pip install requests pycoingecko numpy
+
       - name: Run script
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-        run: |
-          # Переходим в папку с кодом
-          cd crypto-auto || cd .
-          python3 main.py
+        run: python3 main.py
