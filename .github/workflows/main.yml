@@ -19,8 +19,9 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+      # Здесь прописаны все нужные библиотеки:
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests pycoingecko numpy
       - name: Run script
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
