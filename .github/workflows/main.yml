@@ -19,5 +19,6 @@ jobs:
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
-          # Находим путь к файлу и запускаем его
-          find . -name "main.py" -exec python3 {} \;
+          # Переходим в папку с кодом
+          cd crypto-auto || cd .
+          python3 main.py
