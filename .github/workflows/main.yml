@@ -24,6 +24,8 @@ jobs:
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
-          echo "Listing files:"
-          ls -R
+          # Переходим в нужную папку, если мы не в ней, или запускаем из корня
+          if [ -d "crypto-auto" ]; then
+            cd crypto-auto
+          fi
           python3 main.py
