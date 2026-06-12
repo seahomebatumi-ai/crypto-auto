@@ -10,18 +10,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug and Execute
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install requests pycoingecko numpy
+
+      - name: Run script
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
-          echo "--- ТЕКУЩАЯ ПАПКА ---"
+          # 1. Выводим текущую директорию для диагностики
+          echo "Текущая директория:"
           pwd
-          echo "--- СПИСОК ВСЕХ ФАЙЛОВ ---"
-          find . -maxdepth 3 -not -path '*/.*'
-          echo "--- ПОИСК main.py ---"
-          FILE_PATH=$(find . -name "main.py" | head -n 1)
+          # 2. Ищем, где физически лежит main.py
+          FILE_PATH=$(find . -maxdepth 2 -name "main.py")
+          echo "Найденный путь: $FILE_PATH"
+          # 3. Запускаем файл, используя найденный путь
           if [ -f "$FILE_PATH" ]; then
-            echo "Файл найден здесь: $FILE_PATH"
             python3 "$FILE_PATH"
           else
-            echo "ФАЙЛ НЕ НАЙДЕН!"
+            echo "Ошибка: файл main.py не найден в текущей директории"
             exit 1
           fi
