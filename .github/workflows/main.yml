@@ -1,28 +1,10 @@
-name: Update Crypto Data
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-
-      - name: Install dependencies
-        run: pip install requests pycoingecko numpy
-
       - name: Run script
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
-          # Переходим в директорию, куда GitHub скачал твой репозиторий
-          cd $GITHUB_WORKSPACE
-          # Теперь запускаем скрипт
+          echo "--- ГДЕ МЫ СЕЙЧАС ---"
+          pwd
+          echo "--- ЧТО ТУТ ЛЕЖИТ ---"
+          ls -R
+          echo "--- ЗАПУСК С КОРНЯ ---"
           python3 main.py
