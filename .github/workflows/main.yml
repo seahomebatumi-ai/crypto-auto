@@ -22,16 +22,7 @@ jobs:
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
-          # 1. Выводим текущую директорию для диагностики
-          echo "Текущая директория:"
-          pwd
-          # 2. Ищем, где физически лежит main.py
-          FILE_PATH=$(find . -maxdepth 2 -name "main.py")
-          echo "Найденный путь: $FILE_PATH"
-          # 3. Запускаем файл, используя найденный путь
-          if [ -f "$FILE_PATH" ]; then
-            python3 "$FILE_PATH"
-          else
-            echo "Ошибка: файл main.py не найден в текущей директории"
-            exit 1
-          fi
+          # Переходим в директорию, куда GitHub скачал твой репозиторий
+          cd $GITHUB_WORKSPACE
+          # Теперь запускаем скрипт
+          python3 main.py
