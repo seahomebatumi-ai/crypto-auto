@@ -2,7 +2,7 @@ import json, requests, numpy as np, os
 from pycoingecko import CoinGeckoAPI
 
 cg = CoinGeckoAPI()
-GIST_ID = '9d8c8acf467c76de582faebd77a91820'
+GIST_ID = '3f50574a29bc37434c18cc8480779ccb'
 GITHUB_TOKEN = os.environ.get('GIST_TOKEN')
 
 coins = {
