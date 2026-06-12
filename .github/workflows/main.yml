@@ -1,16 +1,23 @@
-name: Debug
+name: Run Crypto Script
 
 on:
   workflow_dispatch:
 
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: List files
-        run: |
-          echo "--- ГДЕ МЫ ---"
-          pwd
-          echo "--- ЧТО В ПАПКЕ ---"
-          ls -R
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install requests pycoingecko numpy
+
+      - name: Run main.py
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: python3 main.py
