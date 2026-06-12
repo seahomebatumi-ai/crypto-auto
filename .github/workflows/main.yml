@@ -1,8 +1,6 @@
 name: Update Crypto Data
 
 on:
-  schedule:
-    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -17,15 +15,9 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install dependencies
-        run: pip install requests pycoingecko numpy
-
       - name: Run script
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
-          # Переходим в нужную папку, если мы не в ней, или запускаем из корня
-          if [ -d "crypto-auto" ]; then
-            cd crypto-auto
-          fi
+          ls -R
           python3 main.py
