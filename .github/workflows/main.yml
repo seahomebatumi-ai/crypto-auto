@@ -25,5 +25,3 @@ jobs:
 
       - name: Run script
         env:
-          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-        run: python3 main.py
