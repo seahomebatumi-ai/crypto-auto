@@ -1,8 +1,9 @@
 name: Crypto Update
 
 on:
-  schedule:
-    - cron: '0 * * * *'
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -15,7 +16,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install dependencies
-        run: pip install requests pycoingecko
+        run: pip install requests pycoingecko numpy
       - name: Run script
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
