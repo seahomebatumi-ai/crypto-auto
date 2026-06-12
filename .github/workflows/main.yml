@@ -19,5 +19,5 @@ jobs:
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
-          ls -R
-          python3 main.py
+          # Находим путь к файлу и запускаем его
+          find . -name "main.py" -exec python3 {} \;
