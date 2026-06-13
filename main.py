@@ -13,6 +13,7 @@ coins = {
 }
 
 def update_gist():
+    # Получаем данные
     btc_data = cg.get_coin_market_chart_by_id('bitcoin', 'usd', 30)
     b_prices = np.array([x[1] for x in btc_data['prices']])
     b_ret = np.diff(b_prices) / b_prices[:-1]
@@ -25,30 +26,29 @@ def update_gist():
             t_prices = np.array([x[1] for x in data['prices']])
             t_ret = np.diff(t_prices) / t_prices[:-1]
             
+            # Синхронизация
             min_len = min(len(t_ret), len(b_ret))
             b_s, t_s = b_ret[-min_len:], t_ret[-min_len:]
+            
+            # Разделение на фазы: рост BTC и падение BTC
             up_m, down_m = b_s > 0, b_s <= 0
             
-            # Расчет сырой беты
-            raw_up = np.cov(t_s[up_m], b_s[up_m])[0,1] / np.var(b_s[up_m]) if np.sum(up_m) > 1 else 1.0
-            raw_down = np.cov(t_s[down_m], b_s[down_m])[0,1] / np.var(b_s[down_m]) if np.sum(down_m) > 1 else -1.0
-            
-            # ЖЕСТКАЯ ФИЛЬТРАЦИЯ:
-            # При росте BTC (up) коэффициент не может быть меньше 0.2
-            beta_up = max(0.2, float(raw_up))
-            # При падении BTC (down) коэффициент не может быть больше -0.2
-            beta_down = min(-0.2, float(raw_down))
+            # Четкий расчет беты: ковариация / дисперсия BTC
+            # Это дает коэффициент, показывающий, на сколько % меняется альт при изменении BTC на 1%
+            beta_up = np.cov(t_s[up_m], b_s[up_m])[0,1] / np.var(b_s[up_m]) if np.sum(up_m) > 1 else 1.0
+            beta_down = np.cov(t_s[down_m], b_s[down_m])[0,1] / np.var(b_s[down_m]) if np.sum(down_m) > 1 else 1.0
             
             results["analysis_data"].append({
                 "symbol": sym, 
-                "up": round(beta_up, 2), 
-                "down": round(beta_down, 2)
+                "up": round(float(beta_up), 2), 
+                "down": round(float(beta_down), 2)
             })
         except: continue
 
+    # Отправка в Gist
     payload = {'files': {'coeffs.json': {'content': json.dumps(results, indent=2)}}}
     requests.patch(f'https://api.github.com/gists/{GIST_ID}', headers={'Authorization': f'token {TOKEN}'}, json=payload)
-    print("Данные обновлены с жестким фильтром")
+    print("Данные успешно рассчитаны и отправлены в Gist")
 
 if __name__ == '__main__':
     update_gist()
