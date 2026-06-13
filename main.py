@@ -5,9 +5,8 @@ cg = CoinGeckoAPI()
 GIST_ID = '3f50574a29bc37434c18cc8480779ccb'
 TOKEN = os.environ.get('GIST_TOKEN') or os.environ.get('GITHUB_TOKEN')
 
-# Полный список из 14 монет. Проверено: LINK на месте.
 coins = {
-    'SUI': 'sui', 'ONDO': 'ondo-finance', 'LINK': 'link', 'RENDER': 'render-token', 
+    'SUI': 'sui', 'ONDO': 'ondo-finance', 'LINK': 'chainlink', 'RENDER': 'render-token', 
     'NEAR': 'near', 'YFI': 'yearn-finance', 'AAVE': 'aave', 'AVAX': 'avalanche-2', 
     'FET': 'fetch-ai', 'ENA': 'ethena', 'TAO': 'bittensor', 'TON': 'the-open-network', 
     'XRP': 'ripple', 'ADA': 'cardano'
@@ -35,18 +34,17 @@ def update_gist():
             r2 = np.corrcoef(t_s, b_s)[0, 1]**2
             
             results["analysis_data"].append({
-                "symbol": sym,
-                "price": round(t_prices[-1], 4),
-                "up": round(float(beta_up), 2),
-                "down": round(float(beta_down), 2),
-                "r2": round(float(r2), 2)
+                "symbol": sym, "price": round(t_prices[-1], 4), 
+                "up": round(float(beta_up), 2), "down": round(float(beta_down), 2), 
+                "r2": round(float(r2), 2), "status": "OK"
             })
         except Exception as e:
-            print(f"Ошибка сбора данных по {sym}: {e}")
+            # Если ошибка, добавляем запись с пометкой ERROR
+            results["analysis_data"].append({"symbol": sym, "status": f"ERROR: {str(e)}"})
 
     payload = {'files': {'coeffs.json': {'content': json.dumps(results, indent=2)}}}
     requests.patch(f'https://api.github.com/gists/{GIST_ID}', headers={'Authorization': f'token {TOKEN}'}, json=payload)
-    print(f"Готово. Обработано монет: {len(results['analysis_data'])}")
+    print(f"Обработка завершена. Всего элементов: {len(results['analysis_data'])}")
 
 if __name__ == '__main__':
     update_gist()
