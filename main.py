@@ -5,15 +5,26 @@ cg = CoinGeckoAPI()
 GIST_ID = '3f50574a29bc37434c18cc8480779ccb'
 TOKEN = os.environ.get('GIST_TOKEN') or os.environ.get('GITHUB_TOKEN')
 
+# Здесь ровно 14 элементов
 coins = {
-    'SUI': 'sui', 'ONDO': 'ondo-finance', 'LINK': 'link', 'RENDER': 'render-token', 
-    'NEAR': 'near', 'YFI': 'yearn-finance', 'AAVE': 'aave', 'AVAX': 'avalanche-2', 
-    'FET': 'fetch-ai', 'ENA': 'ethena', 'TAO': 'bittensor', 'TON': 'the-open-network', 
-    'XRP': 'ripple', 'ADA': 'cardano'
+    'SUI': 'sui', 
+    'ONDO': 'ondo-finance', 
+    'LINK': 'link', 
+    'RENDER': 'render-token', 
+    'NEAR': 'near', 
+    'YFI': 'yearn-finance', 
+    'AAVE': 'aave', 
+    'AVAX': 'avalanche-2', 
+    'FET': 'fetch-ai', 
+    'ENA': 'ethena', 
+    'TAO': 'bittensor', 
+    'TON': 'the-open-network', 
+    'XRP': 'ripple', 
+    'ADA': 'cardano'
 }
 
 def update_gist():
-    btc_data = cg.get_coin_market_chart_by_id('bitcoin', 'usd', 60)
+    btc_data = cg.get_coin_market_chart_by_id('bitcoin', 'usd', 30)
     b_prices = np.array([x[1] for x in btc_data['prices']])
     b_ret = np.diff(b_prices) / b_prices[:-1]
     
@@ -24,7 +35,7 @@ def update_gist():
     
     for sym, coin_id in coins.items():
         try:
-            data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=60)
+            data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=30)
             t_prices = np.array([x[1] for x in data['prices']])
             t_ret = np.diff(t_prices) / t_prices[:-1]
             
@@ -35,7 +46,6 @@ def update_gist():
             up_m = b_s > 0
             down_m = b_s <= 0
             
-            # Точный расчет рычага (Beta)
             beta_up = np.cov(t_s[up_m], b_s[up_m])[0,1] / np.var(b_s[up_m]) if np.sum(up_m) > 1 else 1.0
             beta_down = np.cov(t_s[down_m], b_s[down_m])[0,1] / np.var(b_s[down_m]) if np.sum(down_m) > 1 else 1.0
             
