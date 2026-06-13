@@ -18,7 +18,6 @@ def calculate_beta(t_ret, b_ret):
     down_mask = b_ret <= 0
     
     # Расчет бета для роста (Upside Beta)
-    # Используем проверку на размер выборки, чтобы избежать деления на ноль
     beta_up = np.cov(t_ret[up_mask], b_ret[up_mask])[0,1] / np.var(b_ret[up_mask]) if np.sum(up_mask) > 1 else 1.0
     
     # Расчет бета для падения (Downside Beta)
@@ -27,12 +26,14 @@ def calculate_beta(t_ret, b_ret):
     return {"up": round(float(beta_up), 2), "down": round(float(beta_down), 2)}
 
 def update_gist():
-    # Данные BTC
+    # Данные BTC (30 дней)
     btc_data = cg.get_coin_market_chart_by_id('bitcoin', 'usd', 30)
-    btc = np.array([x[1] for x in btc_data['prices']])
-    b_ret = np.diff(btc) / btc[:-1]
+    btc_prices = np.array([x[1] for x in btc_data['prices']])
+    b_ret = np.diff(btc_prices) / btc_prices[:-1]
     
     results = {}
+    # --- ДЕБАГ: сохраняем последние 5 цен BTC для проверки ---
+    debug_data = {"BTC_last_5": btc_data['prices'][-5:]}
     
     for sym, coin_id in coins.items():
         try:
@@ -40,15 +41,21 @@ def update_gist():
             token_prices = np.array([x[1] for x in data['prices']])
             t_ret = np.diff(token_prices) / token_prices[:-1]
             
+            # --- ДЕБАГ: сохраняем последние 5 цен SUI для проверки ---
+            if sym == 'SUI': debug_data["SUI_last_5"] = data['prices'][-5:]
+            
             # Выравниваем по длине
             min_len = min(len(t_ret), len(b_ret))
             results[sym] = calculate_beta(t_ret[-min_len:], b_ret[-min_len:])
         except:
             results[sym] = {"up": 1.0, "down": 1.0}
 
-    # Отправка в Gist
+    # Отправка в Gist (обновляем оба файла)
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    payload = {'files': {'coeffs.json': {'content': json.dumps(results)}}}
+    payload = {'files': {
+        'coeffs.json': {'content': json.dumps(results)},
+        'debug.json': {'content': json.dumps(debug_data)}
+    }}
     requests.patch(f'https://api.github.com/gists/{GIST_ID}', headers=headers, json=payload)
 
 if __name__ == '__main__':
