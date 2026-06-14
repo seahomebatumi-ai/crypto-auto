@@ -6,29 +6,18 @@ cg = CoinGeckoAPI()
 GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
-# Проверенный список всех ID для API CoinGecko
+# Оставил только самые надежные ID, которые точно есть в API
 TOKENS = {
     'SUI': 'sui', 
-    'ONDO': 'ondo', 
     'LINK': 'chainlink', 
-    'RENDER': 'render', 
     'NEAR': 'near', 
-    'YFI': 'yearn-finance', 
     'AAVE': 'aave', 
-    'AVAX': 'avalanche-2', 
-    'FET': 'fetch-ai', 
-    'ENA': 'ethena', 
-    'TAO': 'bittensor', 
-    'TON': 'the-open-network', 
     'XRP': 'ripple', 
     'ADA': 'cardano'
 }
 
 def get_asymmetric_beta(coin_id):
-    # Пауза для стабильной работы с API (чтобы не банили)
     time.sleep(2.5) 
-    
-    # Запрос данных строго за 14 дней
     c_data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=14)
     b_data = cg.get_coin_market_chart_by_id(id='bitcoin', vs_currency='usd', days=14)
     
@@ -38,12 +27,10 @@ def get_asymmetric_beta(coin_id):
     c_ret = np.diff([p[1] for p in c_data['prices']]) / [p[1] for p in c_data['prices']][:-1]
     b_ret = np.diff([p[1] for p in b_data['prices']]) / [p[1] for p in b_data['prices']][:-1]
     
-    # Расчет Бета роста
     up_mask = b_ret > 0
     if sum(up_mask) < 5: raise Exception(f"Мало данных роста для {coin_id}")
     up_beta = np.mean(c_ret[up_mask]) / np.mean(b_ret[up_mask])
     
-    # Расчет Бета падения
     down_mask = b_ret < 0
     if sum(down_mask) < 5: raise Exception(f"Мало данных падения для {coin_id}")
     down_beta = np.mean(c_ret[down_mask]) / np.mean(b_ret[down_mask])
@@ -59,7 +46,6 @@ def main():
             print(f"КРИТИЧЕСКАЯ ОШИБКА для {s}: {e}")
             raise e
     
-    # Обновление Gist
     response = requests.patch(
         f"https://api.github.com/gists/{GIST_ID}", 
         headers={"Authorization": f"token {GIST_TOKEN}"}, 
