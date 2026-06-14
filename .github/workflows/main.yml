@@ -1,35 +1,35 @@
 name: Crypto Update
 
 on:
+  schedule:
+    # Запуск дважды в час, чтобы гарантировать выполнение
+    - cron: '5 * * * *'
+    - cron: '35 * * * *'
   push:
     branches: [ main ]
-  schedule:
-    # Запуск в 05 минут каждого часа. 
-    # Если GitHub "усыпил" репозиторий, ручной запуск (workflow_dispatch) 
-    # или любой push мгновенно его "разбудит".
-    - cron: '5 * * * *' 
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Увеличим лимит времени до 15 минут, чтобы бот точно успел 
-    # достучаться до CoinGecko, даже если сеть будет медленной.
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v3
-      
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-          
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install requests pycoingecko numpy
-          
-      - name: Run script
+
+      - name: Run script with fail-safe logic
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-        run: python main.py
+        run: |
+          # Пытаемся запустить скрипт. Если он упал - ждем 60 секунд и пробуем еще раз.
+          python main.py || (echo "First attempt failed, retrying in 60s..." && sleep 60 && python main.py)
