@@ -6,12 +6,11 @@ cg = CoinGeckoAPI()
 GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
-# Полный список из 14 монет
 TOKENS = {
     'SUI': 'sui', 'LINK': 'chainlink', 'NEAR': 'near', 'AAVE': 'aave', 
     'XRP': 'ripple', 'ADA': 'cardano', 'YFI': 'yearn-finance', 'TAO': 'bittensor',
     'FET': 'fetch-ai', 'ENA': 'ethena', 'TON': 'the-open-network', 
-    'AVAX': 'avalanche-2', 'ONDO': 'ondo-finance', 'RENDER': 'render'
+    'AVAX': 'avalanche-2', 'RENDER': 'render'
 }
 
 def get_asymmetric_beta(coin_id):
@@ -50,9 +49,7 @@ def main():
         json={"files": {"coeffs.json": {"content": json.dumps({"analysis_data": results})}}}
     )
     
-    if response.status_code == 200:
-        print("Полный список из 14 монет успешно обновлен.")
-    else:
+    if response.status_code != 200:
         raise Exception(f"Ошибка GitHub {response.status_code}")
 
 if __name__ == "__main__":
