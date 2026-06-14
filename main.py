@@ -6,14 +6,16 @@ cg = CoinGeckoAPI()
 GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
-# Оставил только самые надежные ID, которые точно есть в API
+# Базовый список + YFI и TAO для проверки
 TOKENS = {
     'SUI': 'sui', 
     'LINK': 'chainlink', 
     'NEAR': 'near', 
     'AAVE': 'aave', 
     'XRP': 'ripple', 
-    'ADA': 'cardano'
+    'ADA': 'cardano',
+    'YFI': 'yearn-finance',
+    'TAO': 'bittensor'
 }
 
 def get_asymmetric_beta(coin_id):
