@@ -1,8 +1,10 @@
 name: Crypto Update
 on:
+  push:
+    branches: [ main ]  # Теперь бот будет запускаться сам при каждом сохранении кода!
   schedule:
-    - cron: '0 * * * *' # Запуск ровно в 00 минут каждого часа
-  workflow_dispatch:
+    - cron: '0 * * * *' # Запуск каждый час
+  workflow_dispatch:     # Кнопка ручного запуска
 
 jobs:
   build:
