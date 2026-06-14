@@ -6,11 +6,26 @@ cg = CoinGeckoAPI()
 GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
-# Ваш список монет
-TOKENS = {'SUI': 'sui', 'ONDO': 'ondo', 'LINK': 'chainlink', 'RENDER': 'render', 'NEAR': 'near', 'YFI': 'yearn-finance', 'AAVE': 'aave', 'AVAX': 'avalanche-2', 'FET': 'fetch-ai', 'ENA': 'ethena', 'TAO': 'bittensor', 'TON': 'the-open-network', 'XRP': 'ripple', 'ADA': 'ada'}
+# Проверенный список всех ID для API CoinGecko
+TOKENS = {
+    'SUI': 'sui', 
+    'ONDO': 'ondo', 
+    'LINK': 'chainlink', 
+    'RENDER': 'render', 
+    'NEAR': 'near', 
+    'YFI': 'yearn-finance', 
+    'AAVE': 'aave', 
+    'AVAX': 'avalanche-2', 
+    'FET': 'fetch-ai', 
+    'ENA': 'ethena', 
+    'TAO': 'bittensor', 
+    'TON': 'the-open-network', 
+    'XRP': 'ripple', 
+    'ADA': 'cardano'
+}
 
 def get_asymmetric_beta(coin_id):
-    # Пауза для стабильной работы с CoinGecko
+    # Пауза для стабильной работы с API (чтобы не банили)
     time.sleep(2.5) 
     
     # Запрос данных строго за 14 дней
@@ -41,11 +56,10 @@ def main():
         try:
             results.append({"symbol": s, **get_asymmetric_beta(i)})
         except Exception as e:
-            # Если возникла ошибка, мы выбрасываем её, чтобы Actions остановились и показали причину
             print(f"КРИТИЧЕСКАЯ ОШИБКА для {s}: {e}")
             raise e
     
-    # Обновляем Gist
+    # Обновление Gist
     response = requests.patch(
         f"https://api.github.com/gists/{GIST_ID}", 
         headers={"Authorization": f"token {GIST_TOKEN}"}, 
