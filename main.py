@@ -6,54 +6,41 @@ cg = CoinGeckoAPI()
 GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
-def run_render_production():
-    # 1. Запрос данных для RENDER (используем точный ID)
-    c_data = cg.get_coin_market_chart_by_id(id='render-token', vs_currency='usd', days=14)
-    b_data = cg.get_coin_market_chart_by_id(id='bitcoin', vs_currency='usd', days=14)
-    
-    # 2. Математика (расчет реальной beta)
+TOKENS = {
+    'SUI': 'sui', 'LINK': 'chainlink', 'NEAR': 'near', 'AAVE': 'aave', 
+    'XRP': 'ripple', 'ADA': 'cardano', 'YFI': 'yearn-finance', 'TAO': 'bittensor',
+    'FET': 'fetch-ai', 'ENA': 'ethena', 'TON': 'the-open-network', 
+    'AVAX': 'avalanche-2', 'ONDO': 'ondo-finance', 'RENDER': 'render-token'
+}
+
+def get_beta(coin_id, b_prices):
+    time.sleep(2)
+    c_data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=14)
     c_prices = np.array([float(p[1]) for p in c_data['prices']])
-    b_prices = np.array([float(p[1]) for p in b_data['prices']])
     
     min_len = min(len(c_prices), len(b_prices))
     c_ret = np.diff(c_prices[-min_len:]) / c_prices[-min_len-1:-1]
     b_ret = np.diff(b_prices[-min_len:]) / b_prices[-min_len-1:-1]
     
-    up_mask = b_ret > 0
-    down_mask = b_ret < 0
+    up_beta = np.mean(c_ret[b_ret > 0]) if np.any(b_ret > 0) else 0.0
+    down_beta = np.mean(c_ret[b_ret < 0]) if np.any(b_ret < 0) else 0.0
     
-    # Расчет с защитой от пустых массивов
-    up_beta = np.mean(c_ret[up_mask]) if np.any(up_mask) else 0.0
-    down_beta = np.mean(c_ret[down_mask]) if np.any(down_mask) else 0.0
+    return float(np.nan_to_num(up_beta, nan=0.0)), float(np.nan_to_num(down_beta, nan=0.0))
+
+def main():
+    b_data = cg.get_coin_market_chart_by_id(id='bitcoin', vs_currency='usd', days=14)
+    b_prices = np.array([float(p[1]) for p in b_data['prices']])
     
-    # Формируем данные
-    data = {
-        "analysis_data": [{
-            "symbol": "RENDER",
-            "up_beta": float(np.nan_to_num(up_beta, nan=0.0)),
-            "down_beta": float(np.nan_to_num(down_beta, nan=0.0))
-        }]
-    }
+    results = []
+    for symbol, coin_id in TOKENS.items():
+        u_b, d_b = get_beta(coin_id, b_prices)
+        results.append({"symbol": symbol, "up_beta": u_b, "down_beta": d_b})
     
-    # 3. Отправка в Gist (структура, которая точно работает)
-    payload = {
-        "files": {
-            "coeffs.json": {
-                "content": json.dumps(data)
-            }
-        }
-    }
+    payload = {"files": {"coeffs.json": {"content": json.dumps({"analysis_data": results})}}}
     
-    response = requests.patch(
-        f"https://api.github.com/gists/{GIST_ID}", 
-        headers={"Authorization": f"token {GIST_TOKEN}", "Content-Type": "application/json"}, 
-        json=payload
-    )
-    
-    if response.status_code == 200:
-        print("УСПЕХ! Данные RENDER обновлены.")
-    else:
-        print(f"ОШИБКА {response.status_code}: {response.text}")
+    requests.patch(f"https://api.github.com/gists/{GIST_ID}", 
+                   headers={"Authorization": f"token {GIST_TOKEN}", "Content-Type": "application/json"}, 
+                   json=payload)
 
 if __name__ == "__main__":
-    run_render_production()
+    main()
