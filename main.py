@@ -6,6 +6,7 @@ cg = CoinGeckoAPI()
 GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
+# Используем правильный ID 'render-token'
 TOKENS = {
     'SUI': 'sui', 'LINK': 'chainlink', 'NEAR': 'near', 'AAVE': 'aave', 
     'XRP': 'ripple', 'ADA': 'cardano', 'YFI': 'yearn-finance', 'TAO': 'bittensor',
@@ -13,30 +14,38 @@ TOKENS = {
     'AVAX': 'avalanche-2', 'ONDO': 'ondo-finance', 'RENDER': 'render-token'
 }
 
-def get_beta(coin_id, b_prices):
-    time.sleep(2)
-    c_data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=14)
-    c_prices = np.array([float(p[1]) for p in c_data['prices']])
-    
-    min_len = min(len(c_prices), len(b_prices))
-    c_ret = np.diff(c_prices[-min_len:]) / c_prices[-min_len-1:-1]
-    b_ret = np.diff(b_prices[-min_len:]) / b_prices[-min_len-1:-1]
-    
-    up_beta = np.mean(c_ret[b_ret > 0]) if np.any(b_ret > 0) else 0.0
-    down_beta = np.mean(c_ret[b_ret < 0]) if np.any(b_ret < 0) else 0.0
-    
-    return float(np.nan_to_num(up_beta, nan=0.0)), float(np.nan_to_num(down_beta, nan=0.0))
+def get_asymmetric_beta(coin_id, b_prices, b_ret):
+    time.sleep(2.5)
+    try:
+        c_data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=14)
+        c_prices = np.array([p[1] for p in c_data['prices']])
+        c_ret = np.diff(c_prices) / c_prices[:-1]
+        
+        # Подгоняем длину, если данные CoinGecko немного отличаются
+        min_len = min(len(c_ret), len(b_ret))
+        c_r = c_ret[-min_len:]
+        b_r = b_ret[-min_len:]
+        
+        up_mask = b_r > 0
+        up_beta = np.mean(c_r[up_mask]) / np.mean(b_r[up_mask]) if sum(up_mask) > 5 else 1.2
+        
+        down_mask = b_r < 0
+        down_beta = np.mean(c_r[down_mask]) / np.mean(b_r[down_mask]) if sum(down_mask) > 5 else 1.5
+        
+        return {"up_beta": float(up_beta), "down_beta": float(down_beta)}
+    except:
+        return {"up_beta": 1.2, "down_beta": 1.5}
 
 def main():
+    # Предварительно берем Биткоин
     b_data = cg.get_coin_market_chart_by_id(id='bitcoin', vs_currency='usd', days=14)
-    b_prices = np.array([float(p[1]) for p in b_data['prices']])
+    b_prices = np.array([p[1] for p in b_data['prices']])
+    b_ret = np.diff(b_prices) / b_prices[:-1]
     
-    results = []
-    for symbol, coin_id in TOKENS.items():
-        u_b, d_b = get_beta(coin_id, b_prices)
-        results.append({"symbol": symbol, "up_beta": u_b, "down_beta": d_b})
+    # ВОЗВРАЩАЕМ СТРУКТУРУ analysis_data
+    data = [{"symbol": s, **get_asymmetric_beta(i, b_prices, b_ret)} for s, i in TOKENS.items()]
     
-    payload = {"files": {"coeffs.json": {"content": json.dumps({"analysis_data": results})}}}
+    payload = {"files": {"coeffs.json": {"content": json.dumps({"analysis_data": data})}}}
     
     requests.patch(f"https://api.github.com/gists/{GIST_ID}", 
                    headers={"Authorization": f"token {GIST_TOKEN}", "Content-Type": "application/json"}, 
