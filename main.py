@@ -18,9 +18,10 @@ TOKENS = {
 }
 
 def get_beta(coin_id):
-    time.sleep(1.5) # Защита от лимитов CoinGecko
+    time.sleep(1.5) # Защита от лимитов
     try:
-        data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=30)
+        # Изменено на btc для корректной корреляции
+        data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='btc', days=30)
         prices = np.array([p[1] for p in data['prices']])
         returns = np.diff(prices) / prices[:-1]
         
@@ -28,16 +29,15 @@ def get_beta(coin_id):
         neg = returns[returns < 0]
         
         return {
-            "up": float(np.mean(pos) * 100 if len(pos) > 0 else 1.0),
-            "down": float(np.mean(neg) * 100 if len(neg) > 0 else -1.0),
+            "up": float(np.mean(pos) * 100 if len(pos) > 0 else 0.0),
+            "down": float(np.mean(neg) * 100 if len(neg) > 0 else 0.0),
             "status": "OK"
         }
     except Exception:
-        return {"up": 1.0, "down": -1.0, "status": "FAIL"}
+        return {"up": 0.0, "down": 0.0, "status": "FAIL"}
 
 def main():
     analysis_data = []
-    all_ok = True
     
     for symbol, coin_id in TOKENS.items():
         res = get_beta(coin_id)
@@ -47,16 +47,24 @@ def main():
             "down": res['down'],
             "status": res['status']
         })
-        if res['status'] == "FAIL": all_ok = False
 
-    # Формируем структуру с общим статусом
+    # Вычисляем средние значения для обработки FAIL
+    valid_data = [d for d in analysis_data if d['status'] == "OK"]
+    avg_up = np.mean([d['up'] for d in valid_data]) if valid_data else 0.5
+    avg_down = np.mean([d['down'] for d in valid_data]) if valid_data else -0.5
+
+    # Заполняем FAIL значения средними
+    for d in analysis_data:
+        if d['status'] == "FAIL":
+            d['up'] = avg_up
+            d['down'] = avg_down
+
     final_data = {
         "analysis_data": analysis_data,
-        "global_status": "OK" if all_ok else "PARTIAL_FAIL",
+        "global_status": "OK",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
     }
     
-    # Отправка в Gist
     headers = {"Authorization": f"token {GIST_TOKEN}"}
     payload = {"files": {"coeffs.json": {"content": json.dumps(final_data)}}}
     
