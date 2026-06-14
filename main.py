@@ -1,66 +1,33 @@
 import os, json, time, requests
-import numpy as np
 from pycoingecko import CoinGeckoAPI
 
 cg = CoinGeckoAPI()
 GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
-# Текущий список + ONDO и RENDER
+# Проверяем только эти две монеты
 TOKENS = {
-    'SUI': 'sui', 
-    'LINK': 'chainlink', 
-    'NEAR': 'near', 
-    'AAVE': 'aave', 
-    'XRP': 'ripple', 
-    'ADA': 'cardano',
-    'YFI': 'yearn-finance',
-    'TAO': 'bittensor',
-    'ONDO': 'ondo',
-    'RENDER': 'render-token'
+    'ONDO': 'ondo-finance', 
+    'RENDER': 'render'
 }
 
-def get_asymmetric_beta(coin_id):
-    time.sleep(2.5) 
-    c_data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=14)
-    b_data = cg.get_coin_market_chart_by_id(id='bitcoin', vs_currency='usd', days=14)
-    
-    if not c_data.get('prices') or not b_data.get('prices'):
-        raise Exception(f"Пустые данные для {coin_id}")
-
-    c_ret = np.diff([p[1] for p in c_data['prices']]) / [p[1] for p in c_data['prices']][:-1]
-    b_ret = np.diff([p[1] for p in b_data['prices']]) / [p[1] for p in b_data['prices']][:-1]
-    
-    up_mask = b_ret > 0
-    if sum(up_mask) < 5: raise Exception(f"Мало данных роста для {coin_id}")
-    up_beta = np.mean(c_ret[up_mask]) / np.mean(b_ret[up_mask])
-    
-    down_mask = b_ret < 0
-    if sum(down_mask) < 5: raise Exception(f"Мало данных падения для {coin_id}")
-    down_beta = np.mean(c_ret[down_mask]) / np.mean(b_ret[down_mask])
-    
-    return {"up_beta": float(up_beta), "down_beta": float(down_beta)}
+def check_coin(coin_id):
+    # Прямой запрос к API для проверки доступности
+    data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=1)
+    return True if data and 'prices' in data else False
 
 def main():
-    results = []
     for s, i in TOKENS.items():
         try:
-            results.append({"symbol": s, **get_asymmetric_beta(i)})
+            print(f"Тестирую ID для {s}: {i}...")
+            if check_coin(i):
+                print(f"УСПЕХ: {s} ({i}) доступен в API.")
+            else:
+                print(f"ОШИБКА: {s} ({i}) не возвращает данные.")
         except Exception as e:
-            print(f"КРИТИЧЕСКАЯ ОШИБКА для {s}: {e}")
-            raise e
+            print(f"КРИТИЧЕСКАЯ ОШИБКА для {s} ({i}): {e}")
     
-    response = requests.patch(
-        f"https://api.github.com/gists/{GIST_ID}", 
-        headers={"Authorization": f"token {GIST_TOKEN}"}, 
-        json={"files": {"coeffs.json": {"content": json.dumps({"analysis_data": results})}}}
-    )
-    
-    if response.status_code == 200:
-        print("Успешно: Данные обновлены на сервере GitHub.")
-    else:
-        print(f"Ошибка API GitHub {response.status_code}: {response.text}")
-        raise Exception("Не удалось обновить Gist")
+    print("Тест завершен. Проверьте логи GitHub Actions.")
 
 if __name__ == "__main__":
     main()
