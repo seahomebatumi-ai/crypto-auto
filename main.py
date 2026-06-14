@@ -1,12 +1,9 @@
-import os
-import json
-import time
-import requests
-from pycoingecko import CoinGeckoAPI
+import os, json, time, requests
 import numpy as np
+from pycoingecko import CoinGeckoAPI
 
-# Инициализация
 cg = CoinGeckoAPI()
+# Ваш GIST_ID остается прежним
 GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
@@ -17,59 +14,40 @@ TOKENS = {
     'XRP': 'ripple', 'ADA': 'cardano'
 }
 
-def get_beta(coin_id):
-    time.sleep(1.5) # Защита от лимитов
+def get_downside_beta(coin_id):
+    time.sleep(1.5) # Задержка для API, чтобы не ловить ошибки
     try:
-        # Изменено на btc для корректной корреляции
-        data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='btc', days=30)
-        prices = np.array([p[1] for p in data['prices']])
-        returns = np.diff(prices) / prices[:-1]
+        # Получаем исторические данные в USD (надежный источник)
+        c_data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=30)
+        b_data = cg.get_coin_market_chart_by_id(id='bitcoin', vs_currency='usd', days=30)
         
-        pos = returns[returns > 0]
-        neg = returns[returns < 0]
+        c_prices = np.array([p[1] for p in c_data['prices']])
+        b_prices = np.array([p[1] for p in b_data['prices']])
         
-        return {
-            "up": float(np.mean(pos) * 100 if len(pos) > 0 else 0.0),
-            "down": float(np.mean(neg) * 100 if len(neg) > 0 else 0.0),
-            "status": "OK"
-        }
-    except Exception:
-        return {"up": 0.0, "down": 0.0, "status": "FAIL"}
+        # Считаем процентные изменения (доходность)
+        c_ret = np.diff(c_prices) / c_prices[:-1]
+        b_ret = np.diff(b_prices) / b_prices[:-1]
+        
+        # Выделяем только моменты падения Биткоина (фильтр "просадки")
+        mask = b_ret < 0
+        if sum(mask) < 5: return 1.5 # Если данных мало, берем среднее значение
+        
+        # Коэффициент Бета: отношение средней просадки альта к просадке BTC
+        beta = np.mean(c_ret[mask]) / np.mean(b_ret[mask])
+        return float(beta)
+    except:
+        return 1.5
 
 def main():
     analysis_data = []
+    for s, i in TOKENS.items():
+        beta_val = get_downside_beta(i)
+        analysis_data.append({"symbol": s, "beta": beta_val, "status": "OK"})
     
-    for symbol, coin_id in TOKENS.items():
-        res = get_beta(coin_id)
-        analysis_data.append({
-            "symbol": symbol, 
-            "up": res['up'], 
-            "down": res['down'],
-            "status": res['status']
-        })
-
-    # Вычисляем средние значения для обработки FAIL
-    valid_data = [d for d in analysis_data if d['status'] == "OK"]
-    avg_up = np.mean([d['up'] for d in valid_data]) if valid_data else 0.5
-    avg_down = np.mean([d['down'] for d in valid_data]) if valid_data else -0.5
-
-    # Заполняем FAIL значения средними
-    for d in analysis_data:
-        if d['status'] == "FAIL":
-            d['up'] = avg_up
-            d['down'] = avg_down
-
-    final_data = {
-        "analysis_data": analysis_data,
-        "global_status": "OK",
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-    }
-    
+    # Отправляем обновленные коэффициенты в ваш Gist
+    payload = {"files": {"coeffs.json": {"content": json.dumps({"analysis_data": analysis_data})}}}
     headers = {"Authorization": f"token {GIST_TOKEN}"}
-    payload = {"files": {"coeffs.json": {"content": json.dumps(final_data)}}}
-    
-    res = requests.patch(f"https://api.github.com/gists/{GIST_ID}", headers=headers, json=payload)
-    print(f"Update finished with status: {res.status_code}")
+    requests.patch(f"https://api.github.com/gists/{GIST_ID}", headers=headers, json=payload)
 
 if __name__ == "__main__":
     main()
