@@ -6,6 +6,7 @@ cg = CoinGeckoAPI()
 GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
+# Используем правильный ID 'render-token'
 TOKENS = {
     'SUI': 'sui', 'LINK': 'chainlink', 'NEAR': 'near', 'AAVE': 'aave', 
     'XRP': 'ripple', 'ADA': 'cardano', 'YFI': 'yearn-finance', 'TAO': 'bittensor',
@@ -17,14 +18,10 @@ def get_asymmetric_beta(coin_id, b_prices, b_ret):
     time.sleep(2.5)
     try:
         c_data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=14)
-        
-        # DEBUG: Вывод информации о полученных данных
-        prices = c_data.get('prices', [])
-        print(f"DEBUG: [{coin_id.upper()}] Получено точек: {len(prices)}")
-        
-        c_prices = np.array([p[1] for p in prices])
+        c_prices = np.array([p[1] for p in c_data['prices']])
         c_ret = np.diff(c_prices) / c_prices[:-1]
         
+        # Подгоняем длину, если данные CoinGecko немного отличаются
         min_len = min(len(c_ret), len(b_ret))
         c_r = c_ret[-min_len:]
         b_r = b_ret[-min_len:]
@@ -36,30 +33,23 @@ def get_asymmetric_beta(coin_id, b_prices, b_ret):
         down_beta = np.mean(c_r[down_mask]) / np.mean(b_r[down_mask]) if sum(down_mask) > 5 else 1.5
         
         return {"up_beta": float(up_beta), "down_beta": float(down_beta)}
-    except Exception as e:
-        print(f"DEBUG: Ошибка при обработке {coin_id}: {e}")
+    except:
         return {"up_beta": 1.2, "down_beta": 1.5}
 
 def main():
-    print("DEBUG: Запрос данных Биткоина (рыночный бенчмарк)...")
+    # Предварительно берем Биткоин
     b_data = cg.get_coin_market_chart_by_id(id='bitcoin', vs_currency='usd', days=14)
     b_prices = np.array([p[1] for p in b_data['prices']])
-    print(f"DEBUG: [BITCOIN] Получено точек: {len(b_prices)}")
-    
     b_ret = np.diff(b_prices) / b_prices[:-1]
     
+    # ВОЗВРАЩАЕМ СТРУКТУРУ analysis_data
     data = [{"symbol": s, **get_asymmetric_beta(i, b_prices, b_ret)} for s, i in TOKENS.items()]
     
     payload = {"files": {"coeffs.json": {"content": json.dumps({"analysis_data": data})}}}
     
-    response = requests.patch(f"https://api.github.com/gists/{GIST_ID}", 
+    requests.patch(f"https://api.github.com/gists/{GIST_ID}", 
                    headers={"Authorization": f"token {GIST_TOKEN}", "Content-Type": "application/json"}, 
                    json=payload)
-    
-    if response.status_code == 200:
-        print("DEBUG: Данные успешно обновлены в Gist.")
-    else:
-        print(f"DEBUG: Ошибка обновления Gist: {response.status_code} - {response.text}")
 
 if __name__ == "__main__":
     main()
