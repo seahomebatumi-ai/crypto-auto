@@ -1,4 +1,4 @@
-Name: Crypto Update
+name: Crypto Update
 
 on:
   push:
@@ -27,6 +27,5 @@ jobs:
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
-          # Скрипт будет запускаться ТОЛЬКО когда ты вызываешь его с iPhone (workflow_dispatch)
-          # или при пуше в репозиторий. GitHub сам больше не будет его «дергать».
+          # Пытаемся запустить скрипт. Если он упал - ждем 60 секунд и пробуем еще раз.
           python main.py || (echo "First attempt failed, retrying in 60s..." && sleep 60 && python main.py)
