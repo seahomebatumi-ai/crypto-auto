@@ -1,13 +1,18 @@
 name: Crypto Update
 
 on:
-  workflow_dispatch:
+  schedule:
+    # Запуск дважды в час, чтобы гарантировать выполнение
+    - cron: '5 * * * *'
+    - cron: '35 * * * *'
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -22,7 +27,9 @@ jobs:
           pip install --upgrade pip
           pip install requests pycoingecko numpy
 
-      - name: Run script
+      - name: Run script with fail-safe logic
         env:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-        run: python main.py
+        run: |
+          # Пытаемся запустить скрипт. Если он упал - ждем 60 секунд и пробуем еще раз.
+          python main.py || (echo "First attempt failed, retrying in 60s..." && sleep 60 && python main.py)
