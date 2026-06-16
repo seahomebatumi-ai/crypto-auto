@@ -3,9 +3,10 @@ import json
 import time
 import requests
 import numpy as np
+from datetime import datetime
 from pycoingecko import CoinGeckoAPI
 
-# Инициализация с ключом из GitHub Secrets
+# Инициализация
 api_key = os.environ.get('COINGECKO_API_KEY')
 cg = CoinGeckoAPI(api_key=api_key)
 
@@ -22,7 +23,6 @@ TOKENS = {
 }
 
 def get_asymmetric_beta(coin_id, b_prices, b_ret):
-    # С демо-ключом пауза 0.6с — это безопасно и быстро
     time.sleep(0.6) 
     try:
         c_data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=14)
@@ -39,10 +39,15 @@ def get_asymmetric_beta(coin_id, b_prices, b_ret):
         up_beta = np.mean(c_r[up_mask]) / np.mean(b_r[up_mask]) if sum(up_mask) > 5 else None
         down_beta = np.mean(c_r[down_mask]) / np.mean(b_r[down_mask]) if sum(down_mask) > 5 else None
         
-        return {"up_beta": up_beta, "down_beta": down_beta, "error": False}
+        return {
+            "beta": {"up_beta": up_beta, "down_beta": down_beta, "error": False},
+            "debug": {"candles_used": min_len}
+        }
     except Exception as e:
-        print(f"Ошибка при обработке {coin_id}: {e}")
-        return {"up_beta": None, "down_beta": None, "error": True}
+        return {
+            "beta": {"up_beta": None, "down_beta": None, "error": True},
+            "debug": {"candles_used": 0, "error": str(e)}
+        }
 
 def main():
     try:
@@ -50,9 +55,21 @@ def main():
         b_prices = np.array([p[1] for p in b_data['prices']])
         b_ret = np.diff(b_prices) / b_prices[:-1]
         
-        data = [{"symbol": s, **get_asymmetric_beta(i, b_prices, b_ret)} for s, i in TOKENS.items()]
+        results = []
+        debug_info = {"timestamp": datetime.utcnow().isoformat(), "details": {}}
         
-        payload = {"files": {"coeffs.json": {"content": json.dumps({"analysis_data": data})}}}
+        for s, i in TOKENS.items():
+            res = get_asymmetric_beta(i, b_prices, b_ret)
+            results.append({"symbol": s, **res["beta"]})
+            debug_info["details"][s] = res["debug"]
+        
+        # Готовим два файла для отправки
+        payload = {
+            "files": {
+                "coeffs.json": {"content": json.dumps({"analysis_data": results})},
+                "debug.json": {"content": json.dumps(debug_info, indent=4)}
+            }
+        }
         
         response = requests.patch(
             f"https://api.github.com/gists/{GIST_ID}", 
@@ -61,7 +78,7 @@ def main():
         )
         
         if not response.ok:
-            print(f"Ошибка GitHub Gist: {response.status_code} - {response.text}")
+            print(f"Ошибка GitHub Gist: {response.status_code}")
             
     except Exception as e:
         print(f"Критическая ошибка: {e}")
