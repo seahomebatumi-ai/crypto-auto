@@ -29,28 +29,31 @@ def get_asymmetric_beta(coin_id, b_prices, b_ret):
         c_prices = np.array([p[1] for p in c_data['prices']])
         c_ret = np.diff(c_prices) / c_prices[:-1]
         
-        # Новый расчет для аналитики
-        volatility = np.std(c_ret)
-        min_price = float(np.min(c_prices))
-        max_price = float(np.max(c_prices))
-        
         min_len = min(len(c_ret), len(b_ret))
         c_r = c_ret[-min_len:]
         b_r = b_ret[-min_len:]
         
+        # Метод наименьших квадратов для расчета беты (Linear Regression)
+        def fit_beta(x, y):
+            if len(x) < 5: return None
+            # Аппроксимация: y = beta * x + intercept
+            A = np.vstack([x, np.ones(len(x))]).T
+            beta, _ = np.linalg.lstsq(A, y, rcond=None)[0]
+            return float(beta)
+
         up_mask = b_r > 0
         down_mask = b_r < 0
         
-        up_beta = np.mean(c_r[up_mask]) / np.mean(b_r[up_mask]) if sum(up_mask) > 5 else None
-        down_beta = np.mean(c_r[down_mask]) / np.mean(b_r[down_mask]) if sum(down_mask) > 5 else None
+        up_beta = fit_beta(b_r[up_mask], c_r[up_mask])
+        down_beta = fit_beta(b_r[down_mask], c_r[down_mask])
         
         return {
             "beta": {
                 "up_beta": up_beta, 
                 "down_beta": down_beta, 
-                "volatility": float(volatility),
-                "min_price": min_price,
-                "max_price": max_price,
+                "volatility": float(np.std(c_r)),
+                "min_price": float(np.min(c_prices)),
+                "max_price": float(np.max(c_prices)),
                 "error": False
             },
             "debug": {"candles_used": min_len}
