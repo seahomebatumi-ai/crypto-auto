@@ -33,34 +33,46 @@ def get_asymmetric_beta(coin_id, b_prices, b_ret):
         c_r = c_ret[-min_len:]
         b_r = b_ret[-min_len:]
         
-        # Метод наименьших квадратов для расчета беты (Linear Regression)
-        def fit_beta(x, y):
-            if len(x) < 5: return None
-            # Аппроксимация: y = beta * x + intercept
+        # Улучшенный расчет: бета + R-squared
+        def fit_stats(x, y):
+            if len(x) < 5: return None, None
             A = np.vstack([x, np.ones(len(x))]).T
-            beta, _ = np.linalg.lstsq(A, y, rcond=None)[0]
-            return float(beta)
+            beta, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
+            
+            # Расчет R^2
+            y_pred = beta * x + intercept
+            ss_res = np.sum((y - y_pred)**2)
+            ss_tot = np.sum((y - np.mean(y))**2)
+            r2 = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
+            
+            return float(beta), float(r2)
 
         up_mask = b_r > 0
         down_mask = b_r < 0
         
-        up_beta = fit_beta(b_r[up_mask], c_r[up_mask])
-        down_beta = fit_beta(b_r[down_mask], c_r[down_mask])
+        up_beta, up_r2 = fit_stats(b_r[up_mask], c_r[up_mask])
+        down_beta, down_r2 = fit_stats(b_r[down_mask], c_r[down_mask])
+        
+        # Расчет положения цены в процентах
+        curr_price = c_prices[-1]
+        min_p, max_p = np.min(c_prices), np.max(c_prices)
+        price_pos = ((curr_price - min_p) / (max_p - min_p)) * 100 if max_p != min_p else 0
         
         return {
             "beta": {
-                "up_beta": up_beta, 
-                "down_beta": down_beta, 
+                "up_beta": up_beta, "up_r2": up_r2,
+                "down_beta": down_beta, "down_r2": down_r2,
+                "price_pos": float(price_pos),
                 "volatility": float(np.std(c_r)),
-                "min_price": float(np.min(c_prices)),
-                "max_price": float(np.max(c_prices)),
+                "min_price": float(min_p),
+                "max_price": float(max_p),
                 "error": False
             },
             "debug": {"candles_used": min_len}
         }
     except Exception as e:
         return {
-            "beta": {"up_beta": None, "down_beta": None, "volatility": 0, "min_price": 0, "max_price": 0, "error": True},
+            "beta": {"up_beta": None, "up_r2": None, "down_beta": None, "down_r2": None, "price_pos": 0, "volatility": 0, "min_price": 0, "max_price": 0, "error": True},
             "debug": {"candles_used": 0, "error": str(e)}
         }
 
@@ -91,11 +103,9 @@ def main():
             json=payload
         )
         
-        if not response.ok:
-            print(f"Ошибка GitHub Gist: {response.status_code}")
+        if not response.ok: print(f"Ошибка GitHub Gist: {response.status_code}")
             
-    except Exception as e:
-        print(f"Критическая ошибка: {e}")
+    except Exception as e: print(f"Критическая ошибка: {e}")
 
 if __name__ == "__main__":
     main()
