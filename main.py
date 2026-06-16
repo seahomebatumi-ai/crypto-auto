@@ -29,6 +29,11 @@ def get_asymmetric_beta(coin_id, b_prices, b_ret):
         c_prices = np.array([p[1] for p in c_data['prices']])
         c_ret = np.diff(c_prices) / c_prices[:-1]
         
+        # Новый расчет для аналитики
+        volatility = np.std(c_ret)
+        min_price = float(np.min(c_prices))
+        max_price = float(np.max(c_prices))
+        
         min_len = min(len(c_ret), len(b_ret))
         c_r = c_ret[-min_len:]
         b_r = b_ret[-min_len:]
@@ -40,12 +45,19 @@ def get_asymmetric_beta(coin_id, b_prices, b_ret):
         down_beta = np.mean(c_r[down_mask]) / np.mean(b_r[down_mask]) if sum(down_mask) > 5 else None
         
         return {
-            "beta": {"up_beta": up_beta, "down_beta": down_beta, "error": False},
+            "beta": {
+                "up_beta": up_beta, 
+                "down_beta": down_beta, 
+                "volatility": float(volatility),
+                "min_price": min_price,
+                "max_price": max_price,
+                "error": False
+            },
             "debug": {"candles_used": min_len}
         }
     except Exception as e:
         return {
-            "beta": {"up_beta": None, "down_beta": None, "error": True},
+            "beta": {"up_beta": None, "down_beta": None, "volatility": 0, "min_price": 0, "max_price": 0, "error": True},
             "debug": {"candles_used": 0, "error": str(e)}
         }
 
@@ -63,7 +75,6 @@ def main():
             results.append({"symbol": s, **res["beta"]})
             debug_info["details"][s] = res["debug"]
         
-        # Готовим два файла для отправки
         payload = {
             "files": {
                 "coeffs.json": {"content": json.dumps({"analysis_data": results})},
