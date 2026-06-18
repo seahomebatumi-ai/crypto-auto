@@ -13,9 +13,12 @@
             background-color: var(--bg); 
             color: var(--text); 
             font-family: -apple-system, sans-serif; 
-            padding: 10px; 
-            padding-bottom: env(safe-area-inset-bottom); 
-            margin: 0; 
+            margin: 0;
+            /* Исправление отступа сверху для выреза iPhone */
+            padding-top: calc(env(safe-area-inset-top) + 10px);
+            padding-left: 10px; 
+            padding-right: 10px; 
+            padding-bottom: calc(env(safe-area-inset-bottom) + 10px);
         }
         .control { background: var(--card); padding: 15px; border-radius: 16px; border: 1px solid #333; margin-bottom: 15px; }
         .btc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
