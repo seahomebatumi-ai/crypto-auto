@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="image.PNG">
     <title>Pro Crypto Engine</title>
     <style>
         :root { --bg: #0f0f12; --card: #1a1a20; --accent: #f3ba2f; --lilac: #bf5af2; --cyan: #0ad1c8; --red: #ff453a; --green: #30d158; --text: #ffffff; }
@@ -148,7 +149,6 @@
         }
 
         function move(idx, dir) { let n = idx + dir; if (n >= 0 && n < tokens.length) { let temp = tokens[idx]; tokens[idx] = tokens[n]; tokens[n] = temp; saveOrder(); update(); } }
-        
         function renderButtons() { 
             const container = document.getElementById('levContainer');
             [2,3,4,5,6,8,10].forEach(l => { 
@@ -224,7 +224,7 @@
                 const pred = Math.max(rawPred, 0.00000001); 
                 const predText = pred < 0.0001 ? "<0.0001" : "$" + pred.toFixed(4);
                 
-                const liq = ratio >= 0 ? cur * (1 - (1 / currentLev)) : cur * (1 + (1 / currentLev));
+                const liq = ratio >= 0 ? pred * (1 - (1 / currentLev)) : pred * (1 + (1 / currentLev));
                 const liqText = liq < 0.0001 ? "<0.0001" : "$" + liq.toFixed(4);
                 
                 const p24hColor = p24h >= 0 ? 'var(--green)' : 'var(--red)';
