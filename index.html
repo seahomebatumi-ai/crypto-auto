@@ -231,7 +231,7 @@
                 const liqText = liq < 0.0001 ? "<0.0001" : "$" + liq.toFixed(4);
                 
                 const p24hColor = p24h >= 0 ? 'var(--green)' : 'var(--red)';
-                let r2Color = r2 < 0.20 ? 'var(--red)' : (r2 < 0.70 ? '#f3ba2f' : 'var(--green)');
+                let r2Color = r2 < 0.25 ? 'var(--red)' : (r2 < 0.60 ? '#f3ba2f' : 'var(--green)');
 
                 html += `<div class="card" style="border-left: 4px solid ${p24hColor};">
                     <div class="row">
