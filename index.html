@@ -2,11 +2,20 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Pro Crypto Engine</title>
     <style>
         :root { --bg: #0f0f12; --card: #1a1a20; --accent: #f3ba2f; --lilac: #bf5af2; --cyan: #0ad1c8; --red: #ff453a; --green: #30d158; --text: #ffffff; }
-        body { background-color: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; padding: 10px; margin: 0; }
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            font-family: -apple-system, sans-serif; 
+            padding: 10px; 
+            padding-bottom: env(safe-area-inset-bottom); 
+            margin: 0; 
+        }
         .control { background: var(--card); padding: 15px; border-radius: 16px; border: 1px solid #333; margin-bottom: 15px; }
         .btc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
         @keyframes rainbow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
@@ -53,11 +62,8 @@
         let cachedMarketData = [];
         let sliderInitialized = false;
         const GIST_URL = 'https://gist.githubusercontent.com/seahomebatumi-ai/3f50574a29bc37434c18cc8480779ccb/raw/coeffs.json';
-
-        // Бот обновляет coeffs.json раз в час. Используем это, чтобы оценивать
-        // свежесть данных и явно сигнализировать, если автоматика на GitHub забуксовала.
-        const STALE_WARN_MIN = 75;   // дольше обычного цикла — подозрительно
-        const STALE_CRIT_MIN = 130;  // больше двух циклов — бот почти наверняка не отработал
+        const STALE_WARN_MIN = 75;
+        const STALE_CRIT_MIN = 130;
 
         let tokens = [
             {name: 'SUI', s: 'SUIUSDT'}, {name: 'ONDO', s: 'ONDOUSDT'}, {name: 'LINK', s: 'LINKUSDT'}, 
@@ -71,9 +77,6 @@
 
         const ORDER_KEY = 'cryptoEngineTokenOrder';
 
-        // Восстанавливает порядок карточек, сохранённый в прошлый визит.
-        // Токены, которых нет в сохранённом списке (например, добавленные позже
-        // в код), дописываются в конец — порядок никогда не "теряет" токены.
         function applySavedOrder() {
             try {
                 const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
@@ -85,11 +88,11 @@
                 });
                 byName.forEach(t => reordered.push(t));
                 tokens = reordered;
-            } catch (e) { /* повреждённые/недоступные данные — остаёмся на дефолтном порядке */ }
+            } catch (e) {}
         }
 
         function saveOrder() {
-            try { localStorage.setItem(ORDER_KEY, JSON.stringify(tokens.map(t => t.name))); } catch (e) { /* localStorage недоступен — порядок просто не сохранится в этой сессии */ }
+            try { localStorage.setItem(ORDER_KEY, JSON.stringify(tokens.map(t => t.name))); } catch (e) {}
         }
         
         document.addEventListener("visibilitychange", () => {
@@ -111,13 +114,10 @@
             }
         }
 
-        // Показывает реальный возраст КОЭФФИЦИЕНТОВ (generated_at из coeffs.json),
-        // а не время последнего успешного fetch — это разные вещи: gist можно
-        // успешно скачать и через 3 часа после того, как бот на GitHub перестал отрабатывать.
         function updateFreshnessDisplay() {
             const el = document.getElementById('last-update');
             if (!botData.generated_at) {
-                el.innerText = 'Данные бота: нет timestamp (старый формат coeffs.json)';
+                el.innerText = 'Данные бота: нет timestamp';
                 el.style.color = '#888';
                 return;
             }
@@ -148,6 +148,7 @@
         }
 
         function move(idx, dir) { let n = idx + dir; if (n >= 0 && n < tokens.length) { let temp = tokens[idx]; tokens[idx] = tokens[n]; tokens[n] = temp; saveOrder(); update(); } }
+        
         function renderButtons() { 
             const container = document.getElementById('levContainer');
             [2,3,4,5,6,8,10].forEach(l => { 
@@ -165,13 +166,13 @@
         }
 
         function init() {
-            applySavedOrder();   // восстановить порядок карточек, сохранённый в прошлый визит
+            applySavedOrder();
             renderButtons();
             fetchBotData();
             refreshMarketData();
-            setInterval(refreshMarketData, 30000);       // живые цены Binance
-            setInterval(fetchBotData, 5 * 60 * 1000);     // данные бота — раз в 5 мин, даже если вкладка не сворачивалась
-            setInterval(updateFreshnessDisplay, 30000);   // тикает "X мин назад" даже между фетчами
+            setInterval(refreshMarketData, 30000);
+            setInterval(fetchBotData, 5 * 60 * 1000);
+            setInterval(updateFreshnessDisplay, 30000);
         }
 
         function update() { 
@@ -200,29 +201,20 @@
 
                 const coinData = botData.analysis_data.find(x => x.symbol === t.name);
 
-                // Раньше при отсутствии токена подставлялась придуманная бета (1.2/1.5).
-                // Теперь явно показываем "NO DATA" — и при отсутствии записи, И при
-                // error:true от бота (например, не набралось MIN_MATCHED_CANDLES) —
-                // в обоих случаях up_beta/down_beta могут быть null, и считать на них
-                // дальше нельзя.
                 if (!coinData || coinData.error) {
                     html += `<div class="no-data-card">
                         <div class="token-name">${t.name} <span style="color:var(--red); font-size:0.7em;">NO DATA</span></div>
-                        <div style="font-size:0.85em; color:#888; margin-top:4px;">Бот не дал валидной беты для этого токена в последнем прогоне</div>
+                        <div style="font-size:0.85em; color:#888; margin-top:4px;">Бот не дал валидной беты</div>
                     </div>`;
                     return;
                 }
 
                 const beta = ratio >= 0 ? coinData.up_beta : coinData.down_beta; 
                 const r2 = ratio >= 0 ? coinData.up_r2 : coinData.down_r2;
-                
                 const cur = parseFloat(coin.lastPrice); 
                 const p24h = parseFloat(coin.priceChangePercent);
                 const pPct = ratio * beta * 100; 
                 
-                // Динамический price_pos: считаем по живой цене с Binance относительно
-                // 14-дневного min/max от бота, а не берём статичный снимок — иначе
-                // позиция в диапазоне "зависает" на час между прогонами бота.
                 const minP = coinData.min_price;
                 const maxP = coinData.max_price;
                 const posRange = maxP - minP;
@@ -232,10 +224,7 @@
                 const pred = Math.max(rawPred, 0.00000001); 
                 const predText = pred < 0.0001 ? "<0.0001" : "$" + pred.toFixed(4);
                 
-                // Ликвидация теперь зависит от направления сценария:
-                // ratio>=0 (рост BTC, режим up_beta) -> лонг-логика, ликвидация ниже входа.
-                // ratio<0  (падение BTC, режим down_beta) -> шорт-логика, ликвидация выше входа.
-                const liq = ratio >= 0 ? pred * (1 - (1 / currentLev)) : pred * (1 + (1 / currentLev));
+                const liq = ratio >= 0 ? cur * (1 - (1 / currentLev)) : cur * (1 + (1 / currentLev));
                 const liqText = liq < 0.0001 ? "<0.0001" : "$" + liq.toFixed(4);
                 
                 const p24hColor = p24h >= 0 ? 'var(--green)' : 'var(--red)';
