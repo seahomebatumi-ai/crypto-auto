@@ -12,17 +12,22 @@ from pycoingecko import CoinGeckoAPI
 api_key = os.environ.get('COINGECKO_API_KEY')
 cg = CoinGeckoAPI(api_key=api_key)
 
-GIST_ID = "3f50574a29bc37434c18cc8480779ccb"
+GIST_ID    = "3f50574a29bc37434c18cc8480779ccb"
 GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
-DAYS_WINDOW = 14          # глубина истории (дней) — не менялась, как договорились
-BUCKET_SECONDS = 3600     # размер тайм-бакета для синхронизации BTC <-> альт (1 час)
-MIN_MATCHED_CANDLES = 24  # минимум синхронных точек, чтобы регрессия имела смысл
-REQUEST_GAP_SEC = 1.0     # пауза между запросами к CoinGecko
-MAX_RETRIES = 3           # попыток на каждый запрос при ошибке/рейт-лимите
-RETRY_BACKOFF_BASE = 3.0  # секунд, растёт экспоненциально (3s, 6s, 12s)
+# Один запрос за 90 дней даёт оба таймфрейма:
+# • 14-дневная бета  — последние 336 часовых бакетов (как раньше)
+# • 90-дневная бета  — все ~2160 бакетов (новый таймфрейм)
+DAYS_WINDOW      = 90
+BUCKET_SECONDS   = 3600
+MIN_MATCHED_14D  = 24    # минимум синхронных точек для 14d-беты
+MIN_MATCHED_90D  = 120   # минимум для 90d-беты (5 дней)
+REQUEST_GAP_SEC  = 1.0
+MAX_RETRIES      = 3
+RETRY_BACKOFF    = 3.0
 
 TOKENS = {
+    'ETH': 'ethereum',
     'SUI': 'sui', 'LINK': 'chainlink', 'NEAR': 'near', 'AAVE': 'aave',
     'XRP': 'ripple', 'ADA': 'cardano', 'YFI': 'yearn-finance', 'TAO': 'bittensor',
     'FET': 'fetch-ai', 'ENA': 'ethena', 'TON': 'the-open-network',
@@ -31,181 +36,165 @@ TOKENS = {
     'SKY': 'sky'
 }
 
-
 # ============================================================
 # Вспомогательные функции
 # ============================================================
 
-def fetch_market_chart_with_retry(coin_id):
-    """Запрос к CoinGecko с retry/backoff на случай rate-limit / временных сбоев."""
+def fetch_with_retry(coin_id):
     last_err = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            data = cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=DAYS_WINDOW)
+            data = cg.get_coin_market_chart_by_id(
+                id=coin_id, vs_currency='usd', days=DAYS_WINDOW)
             if not data or 'prices' not in data or len(data['prices']) < 5:
-                raise ValueError("Пустой или некорректный ответ CoinGecko (нет 'prices')")
+                raise ValueError("Пустой или некорректный ответ CoinGecko")
             return data, None
         except Exception as e:
             last_err = str(e)
             if attempt < MAX_RETRIES:
-                time.sleep(RETRY_BACKOFF_BASE * (2 ** (attempt - 1)))
+                time.sleep(RETRY_BACKOFF * (2 ** (attempt - 1)))
     return None, last_err
 
 
-def bucket_prices_by_time(price_list, bucket_seconds=BUCKET_SECONDS):
-    """
-    Превращает [[ts_ms, price], ...] в {bucket_index: price}.
-    Бакетизация по времени — ключевой фикс: раньше ряды BTC и альта
-    выравнивались по индексу/длине массива, что давало рассинхрон,
-    если у CoinGecko где-то была пропущена или сдвинута точка.
-    Теперь сопоставление идёт по фактическому времени свечи.
-    """
+def bucket_prices(price_list):
+    """[[ts_ms, price], ...] → {bucket_index: price}  (часовые бакеты)"""
     buckets = {}
     for ts_ms, price in price_list:
-        bucket = int(ts_ms // (bucket_seconds * 1000))
-        buckets[bucket] = price  # данные идут хронологически, последняя точка в бакете побеждает
+        b = int(ts_ms // (BUCKET_SECONDS * 1000))
+        buckets[b] = price
     return buckets
 
 
 def fit_stats(x, y):
-    """OLS-регрессия y = beta*x + intercept, возвращает (beta, R^2)."""
+    """OLS y = beta*x + c → (beta, R²)"""
     if len(x) < 5:
         return None, None
     A = np.vstack([x, np.ones(len(x))]).T
-    beta, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
-
-    y_pred = beta * x + intercept
+    beta, c = np.linalg.lstsq(A, y, rcond=None)[0]
+    y_pred = beta * x + c
     ss_res = np.sum((y - y_pred) ** 2)
     ss_tot = np.sum((y - np.mean(y)) ** 2)
-    r2 = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
-
+    r2 = 1 - ss_res / ss_tot if ss_tot != 0 else 0
     return float(beta), float(r2)
 
 
-def get_asymmetric_beta(coin_id, btc_buckets):
+def asymmetric_beta(btc_arr, coin_arr):
+    """Up-бета и down-бета из пары выровненных ценовых рядов."""
+    b_r = np.diff(btc_arr)  / btc_arr[:-1]
+    c_r = np.diff(coin_arr) / coin_arr[:-1]
+    up_b,   up_r2   = fit_stats(b_r[b_r > 0], c_r[b_r > 0])
+    down_b, down_r2 = fit_stats(b_r[b_r < 0], c_r[b_r < 0])
+    return up_b, up_r2, down_b, down_r2
+
+
+def get_token_betas(coin_id, btc_buckets, cutoff_14d):
     """
-    Считает up/down beta и R^2 для одной монеты относительно BTC.
-    btc_buckets — уже посчитанный {bucket_index: price} для BTC (считается один раз в main()).
+    Считает 14d-бету и 90d-бету за один запрос к CoinGecko.
+    cutoff_14d — минимальный bucket_index, соответствующий 14 дням назад.
     """
     time.sleep(REQUEST_GAP_SEC)
 
-    debug = {"candles_total_coin": 0, "candles_matched": 0, "error": None}
+    debug = {"candles_total": 0, "matched_90d": 0, "matched_14d": 0, "error": None}
 
-    c_data, err = fetch_market_chart_with_retry(coin_id)
+    def err_result(msg):
+        debug["error"] = msg
+        empty = dict(up_beta=None, up_r2=None, down_beta=None, down_r2=None,
+                     up_beta_90=None, up_r2_90=None, down_beta_90=None, down_r2_90=None,
+                     price_pos=0, volatility=0, min_price=0, max_price=0, error=True)
+        return empty, debug
+
+    c_data, err = fetch_with_retry(coin_id)
     if c_data is None:
-        debug["error"] = err
-        return {
-            "beta": {
-                "up_beta": None, "up_r2": None, "down_beta": None, "down_r2": None,
-                "price_pos": 0, "volatility": 0, "min_price": 0, "max_price": 0,
-                "error": True
-            },
-            "debug": debug
-        }
+        return err_result(err)
 
     try:
-        c_prices_full = np.array([p[1] for p in c_data['prices']])
-        debug["candles_total_coin"] = len(c_prices_full)
+        c_prices = np.array([p[1] for p in c_data['prices']])
+        debug["candles_total"] = len(c_prices)
 
-        # --- Собственные метрики монеты (не требуют синхронизации с BTC) ---
-        curr_price = c_prices_full[-1]
-        min_p, max_p = float(np.min(c_prices_full)), float(np.max(c_prices_full))
-        price_pos = ((curr_price - min_p) / (max_p - min_p)) * 100 if max_p != min_p else 0
+        # Собственные метрики монеты (по всем 90 дням, не зависят от BTC)
+        cur   = c_prices[-1]
+        min_p = float(np.min(c_prices))
+        max_p = float(np.max(c_prices))
+        price_pos  = ((cur - min_p) / (max_p - min_p) * 100) if max_p != min_p else 0
+        volatility = float(np.std(np.diff(c_prices) / c_prices[:-1])) if len(c_prices) > 1 else 0
 
-        own_returns = np.diff(c_prices_full) / c_prices_full[:-1]
-        volatility = float(np.std(own_returns)) if len(own_returns) > 1 else 0.0
+        coin_buckets = bucket_prices(c_data['prices'])
+        common_90    = sorted(set(btc_buckets) & set(coin_buckets))
+        debug["matched_90d"] = len(common_90)
 
-        # --- Синхронизация с BTC по времени (ключевой фикс) ---
-        coin_buckets = bucket_prices_by_time(c_data['prices'])
-        common_keys = sorted(set(btc_buckets.keys()) & set(coin_buckets.keys()))
-        debug["candles_matched"] = len(common_keys)
+        # ── 90-дневная бета ────────────────────────────────────────────────
+        up_b90 = ur90 = dn_b90 = dr90 = None
+        if len(common_90) >= MIN_MATCHED_90D:
+            btc90  = np.array([btc_buckets[k]  for k in common_90])
+            coin90 = np.array([coin_buckets[k] for k in common_90])
+            up_b90, ur90, dn_b90, dr90 = asymmetric_beta(btc90, coin90)
 
-        if len(common_keys) < MIN_MATCHED_CANDLES:
-            debug["error"] = f"Недостаточно синхронных точек с BTC: {len(common_keys)}"
-            return {
-                "beta": {
-                    "up_beta": None, "up_r2": None, "down_beta": None, "down_r2": None,
-                    "price_pos": float(price_pos), "volatility": volatility,
-                    "min_price": min_p, "max_price": max_p, "error": True
-                },
-                "debug": debug
-            }
+        # ── 14-дневная бета (срез последних 14 дней из тех же данных) ─────
+        common_14 = [k for k in common_90 if k >= cutoff_14d]
+        debug["matched_14d"] = len(common_14)
 
-        btc_aligned = np.array([btc_buckets[k] for k in common_keys])
-        coin_aligned = np.array([coin_buckets[k] for k in common_keys])
+        up_b = ur = dn_b = dr = None
+        has_error_14 = len(common_14) < MIN_MATCHED_14D
+        if not has_error_14:
+            btc14  = np.array([btc_buckets[k]  for k in common_14])
+            coin14 = np.array([coin_buckets[k] for k in common_14])
+            up_b, ur, dn_b, dr = asymmetric_beta(btc14, coin14)
+        else:
+            debug["error"] = f"Мало 14d-точек: {len(common_14)}"
 
-        b_r = np.diff(btc_aligned) / btc_aligned[:-1]
-        c_r = np.diff(coin_aligned) / coin_aligned[:-1]
-
-        up_mask = b_r > 0
-        down_mask = b_r < 0
-
-        up_beta, up_r2 = fit_stats(b_r[up_mask], c_r[up_mask])
-        down_beta, down_r2 = fit_stats(b_r[down_mask], c_r[down_mask])
-
-        return {
-            "beta": {
-                "up_beta": up_beta, "up_r2": up_r2,
-                "down_beta": down_beta, "down_r2": down_r2,
-                "price_pos": float(price_pos),
-                "volatility": volatility,
-                "min_price": min_p,
-                "max_price": max_p,
-                "error": False
-            },
-            "debug": debug
-        }
+        return (
+            dict(up_beta=up_b,   up_r2=ur,   down_beta=dn_b,   down_r2=dr,
+                 up_beta_90=up_b90, up_r2_90=ur90,
+                 down_beta_90=dn_b90, down_r2_90=dr90,
+                 price_pos=float(price_pos), volatility=volatility,
+                 min_price=min_p, max_price=max_p, error=has_error_14),
+            debug
+        )
 
     except Exception as e:
-        debug["error"] = str(e)
-        return {
-            "beta": {"up_beta": None, "up_r2": None, "down_beta": None, "down_r2": None,
-                      "price_pos": 0, "volatility": 0, "min_price": 0, "max_price": 0, "error": True},
-            "debug": debug
-        }
+        return err_result(str(e))
 
 
+# ============================================================
+# Главный прогон
+# ============================================================
 def main():
     try:
-        b_data, err = fetch_market_chart_with_retry('bitcoin')
+        b_data, err = fetch_with_retry('bitcoin')
         if b_data is None:
-            print(f"Критическая ошибка: не удалось получить данные BTC ({err})")
+            print(f"Критическая ошибка BTC: {err}")
             return
 
-        btc_buckets = bucket_prices_by_time(b_data['prices'])
-
-        results = []
+        btc_buckets  = bucket_prices(b_data['prices'])
+        cutoff_14d   = int((time.time() - 14 * 24 * 3600) * 1000 // (BUCKET_SECONDS * 1000))
         generated_at = datetime.now(timezone.utc).isoformat()
+
+        results    = []
         debug_info = {"timestamp": generated_at, "details": {}}
 
         for symbol, coin_id in TOKENS.items():
-            res = get_asymmetric_beta(coin_id, btc_buckets)
-            results.append({"symbol": symbol, **res["beta"]})
-            debug_info["details"][symbol] = res["debug"]
-
-        # "generated_at" добавлен на верхний уровень coeffs.json — это нужно для
-        # будущей проверки свежести данных в калькуляторе (текущий формат
-        # analysis_data не меняется, совместимость с фронтендом сохранена)
-        coeffs_payload = {
-            "generated_at": generated_at,
-            "analysis_data": results
-        }
+            beta_data, dbg = get_token_betas(coin_id, btc_buckets, cutoff_14d)
+            results.append({"symbol": symbol, **beta_data})
+            debug_info["details"][symbol] = dbg
 
         payload = {
             "files": {
-                "coeffs.json": {"content": json.dumps(coeffs_payload)},
+                "coeffs.json": {"content": json.dumps({
+                    "generated_at": generated_at,
+                    "analysis_data": results
+                })},
                 "debug.json": {"content": json.dumps(debug_info, indent=4)}
             }
         }
 
-        response = requests.patch(
+        r = requests.patch(
             f"https://api.github.com/gists/{GIST_ID}",
-            headers={"Authorization": f"token {GIST_TOKEN}", "Content-Type": "application/json"},
+            headers={"Authorization": f"token {GIST_TOKEN}",
+                     "Content-Type": "application/json"},
             json=payload
         )
-
-        if not response.ok:
-            print(f"Ошибка GitHub Gist: {response.status_code} {response.text}")
+        if not r.ok:
+            print(f"Ошибка Gist: {r.status_code} {r.text}")
 
     except Exception as e:
         print(f"Критическая ошибка: {e}")
