@@ -8,260 +8,355 @@
     <link rel="apple-touch-icon" href="image.PNG">
     <title>Pro Crypto Engine</title>
     <style>
-        :root { --bg: #0f0f12; --card: #1a1a20; --accent: #f3ba2f; --lilac: #bf5af2; --cyan: #0ad1c8; --red: #ff453a; --green: #30d158; --text: #ffffff; }
-        body { 
-            background-color: var(--bg); 
-            color: var(--text); 
-            font-family: -apple-system, sans-serif; 
-            margin: 0;
-            /* Исправление отступа сверху для выреза iPhone */
-            padding-top: calc(env(safe-area-inset-top) + 10px);
-            padding-left: 10px; 
-            padding-right: 10px; 
-            padding-bottom: calc(env(safe-area-inset-bottom) + 10px);
+        :root { --bg:#0f0f12; --card:#1a1a20; --accent:#f3ba2f; --lilac:#bf5af2; --cyan:#0ad1c8; --red:#ff453a; --green:#30d158; --text:#ffffff; }
+        body {
+            background-color:var(--bg); color:var(--text);
+            font-family:-apple-system,sans-serif; margin:0;
+            padding-top:calc(env(safe-area-inset-top) + 10px);
+            padding-left:10px; padding-right:10px;
+            padding-bottom:calc(env(safe-area-inset-bottom) + 10px);
         }
-        .control { background: var(--card); padding: 15px; border-radius: 16px; border: 1px solid #333; margin-bottom: 15px; }
-        .btc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-        @keyframes rainbow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
-        .btc-logo { font-size: 2.4em; color: var(--accent); font-weight: bold; transition: 0.3s; }
-        .btc-logo.loading { animation: rainbow 1s linear infinite; }
-        .btc-price { color: var(--accent); font-size: 1.6em; font-weight: 800; }
-        .card { background: var(--card); padding: 14px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #333; position: relative; }
-        .token-name { font-size: 1.2em; font-weight: 800; color: var(--lilac); }
-        .row { display: flex; justify-content: space-between; align-items: center; }
-        #slider { width: 100%; margin: 10px 0; transition: accent-color 0.3s ease; }
-        .lev-container { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .lev-btn { background: #2c2c31; border: none; color: white; padding: 8px 0; border-radius: 6px; font-size: 12px; cursor: pointer; }
-        .lev-btn.active { background: var(--accent); color: #000; font-weight: bold; }
-        .nav-btn { background: #444; border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .pct-24h { font-size: 0.6em; font-weight: bold; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
-        .blink-text { animation: blink 1s linear infinite; font-weight: 900; }
-        @keyframes lightBlink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .light-blink { animation: lightBlink 1.5s ease-in-out infinite; }
-        .extra-data { font-size: 0.85em; color: var(--accent); margin-top: 8px; font-style: italic; }
-        .vol-value { position: absolute; bottom: 42px; right: 14px; font-size: 0.9em; font-weight: bold; font-style: italic; }
-        .no-data-card { background: var(--card); padding: 14px; border-radius: 12px; margin-bottom: 8px; border: 1px solid #333; border-left: 4px solid var(--red); }
+        .control { background:var(--card); padding:15px; border-radius:16px; border:1px solid #333; margin-bottom:15px; }
+        .btc-header { display:flex; align-items:center; gap:10px; margin-bottom:5px; }
+        @keyframes rainbow { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
+        .btc-logo { font-size:2.4em; color:var(--accent); font-weight:bold; transition:0.3s; }
+        .btc-logo.loading { animation:rainbow 1s linear infinite; }
+        .btc-price { color:var(--accent); font-size:1.6em; font-weight:800; }
+        .card { background:var(--card); padding:14px; border-radius:12px; margin-bottom:8px; border:1px solid #333; position:relative; }
+        .token-name { font-size:1.2em; font-weight:800; color:var(--lilac); }
+        .row { display:flex; justify-content:space-between; align-items:center; }
+        #slider { width:100%; margin:10px 0; transition:accent-color 0.3s ease; }
+        .lev-container { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:6px; }
+        .lev-btn { background:#2c2c31; border:none; color:white; padding:8px 0; border-radius:6px; font-size:12px; cursor:pointer; }
+        .lev-btn.active { background:var(--accent); color:#000; font-weight:bold; }
+        .stress-container { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
+        .stress-btn { border:none; color:#aaa; padding:7px 0; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; background:#2c2c31; transition:all 0.2s; }
+        .stress-btn.s-normal { color:#000; background:var(--green); }
+        .stress-btn.s-panic  { color:#000; background:var(--accent); }
+        .stress-btn.s-crash  { color:#fff; background:var(--red); }
+        .nav-btn { background:#444; border:none; color:#fff; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:12px; }
+        .pct-24h { font-size:0.6em; font-weight:bold; }
+        @keyframes blink { 0%{opacity:1} 50%{opacity:0.2} 100%{opacity:1} }
+        .blink-text { animation:blink 1s linear infinite; font-weight:900; }
+        @keyframes lightBlink { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
+        .light-blink { animation:lightBlink 1.5s ease-in-out infinite; }
+        .extra-data { font-size:0.85em; color:var(--accent); margin-top:8px; font-style:italic; }
+        .vol-value { position:absolute; bottom:42px; right:14px; font-size:0.9em; font-weight:bold; font-style:italic; }
+        .no-data-card { background:var(--card); padding:14px; border-radius:12px; margin-bottom:8px; border:1px solid #333; border-left:4px solid var(--red); }
     </style>
 </head>
 <body>
-    <div class="control">
-        <div class="btc-header">
-            <span id="btc-logo" class="btc-logo">₿</span>
-            <span id="btc-cur" class="btc-price">...</span>
-            <span id="btc-24h" style="font-weight:bold;">0.00%</span>
-            <div id="status-dot" style="width:12px; height:12px; border-radius:50%; background:#666; margin-left:auto;"></div>
-        </div>
-        <div class="row" style="margin-bottom: 5px;">
-            <div id="btc-target" style="font-weight: 600;">Прогноз BTC: ...</div>
-            <div id="btc-pct" style="font-weight:bold; color: #ffffff;">0.00%</div>
-        </div>
-        <div id="last-update" style="font-size: 0.7em; color: #888; margin-bottom: 10px;">Данные бота: ожидание...</div>
-        <input type="range" id="slider" min="20000" max="150000" step="100">
-        <div class="lev-container" id="levContainer"></div>
+<div class="control">
+    <div class="btc-header">
+        <span id="btc-logo" class="btc-logo">₿</span>
+        <span id="btc-cur" class="btc-price">...</span>
+        <span id="btc-24h" style="font-weight:bold;">0.00%</span>
+        <div id="status-dot" style="width:12px;height:12px;border-radius:50%;background:#666;margin-left:auto;"></div>
     </div>
-    <div id="results">Загрузка данных...</div>
+    <div class="row" style="margin-bottom:5px;">
+        <div id="btc-target" style="font-weight:600;">Прогноз BTC: ...</div>
+        <div id="btc-pct" style="font-weight:bold;color:#ffffff;">0.00%</div>
+    </div>
+    <div id="last-update" style="font-size:0.7em;color:#888;margin-bottom:10px;">Данные бота: ожидание...</div>
+    <input type="range" id="slider" min="20000" max="150000" step="100">
+    <div class="lev-container" id="levContainer"></div>
+    <div class="stress-container" id="stressContainer"></div>
+</div>
+<div id="results">Загрузка данных...</div>
 
-    <script>
-        let currentLev = 3;
-        let botData = { analysis_data: [], generated_at: null };
-        let cachedMarketData = [];
-        let sliderInitialized = false;
-        const GIST_URL = 'https://gist.githubusercontent.com/seahomebatumi-ai/3f50574a29bc37434c18cc8480779ccb/raw/coeffs.json';
-        const STALE_WARN_MIN = 75;
-        const STALE_CRIT_MIN = 130;
+<script>
+    // ── Состояние ───────────────────────────────────────────────────────────
+    let currentLev    = 3;
+    let currentStress = 'normal';
 
-        let tokens = [
-            {name: 'SUI', s: 'SUIUSDT'}, {name: 'ONDO', s: 'ONDOUSDT'}, {name: 'LINK', s: 'LINKUSDT'}, 
-            {name: 'RENDER', s: 'RENDERUSDT'}, {name: 'NEAR', s: 'NEARUSDT'}, {name: 'YFI', s: 'YFIUSDT'}, 
-            {name: 'AAVE', s: 'AAVEUSDT'}, {name: 'AVAX', s: 'AVAXUSDT'}, {name: 'FET', s: 'FETUSDT'}, 
-            {name: 'ENA', s: 'ENAUSDT'}, {name: 'TAO', s: 'TAOUSDT'}, {name: 'TON', s: 'TONUSDT'}, 
-            {name: 'XRP', s: 'XRPUSDT'}, {name: 'ADA', s: 'ADAUSDT'}, {name: 'TRX', s: 'TRXUSDT'}, 
-            {name: 'SOL', s: 'SOLUSDT'}, {name: 'BCH', s: 'BCHUSDT'}, {name: 'HYPE', s: 'HYPEUSDT'}, 
-            {name: 'SKY', s: 'SKYUSDT'}
-        ];
+    // Стресс-мод: Normal = без изменений (1.0 × бета = та же формула что была).
+    // Panic/Crash умножают бету, имитируя рост корреляций в risk-off.
+    // Бейдж β×1.3 / β×1.6 явно показывает что это стресс-допущение, не расчёт.
+    const STRESS_MULT  = { normal:1.0, panic:1.3, crash:1.8 };
+    const STRESS_BADGE = { normal:'',  panic:'β×1.3', crash:'β×1.8' };
 
-        const ORDER_KEY = 'cryptoEngineTokenOrder';
+    let botData           = { analysis_data:[], generated_at:null };
+    let cachedMarketData  = [];
+    let cachedFunding     = {};   // { 'SUIUSDT': rate, ... }
+    let sliderInitialized = false;
 
-        function applySavedOrder() {
-            try {
-                const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
-                if (!Array.isArray(saved) || saved.length === 0) return;
-                const byName = new Map(tokens.map(t => [t.name, t]));
-                const reordered = [];
-                saved.forEach(name => {
-                    if (byName.has(name)) { reordered.push(byName.get(name)); byName.delete(name); }
-                });
-                byName.forEach(t => reordered.push(t));
-                tokens = reordered;
-            } catch (e) {}
+    const GIST_URL       = 'https://gist.githubusercontent.com/seahomebatumi-ai/3f50574a29bc37434c18cc8480779ccb/raw/coeffs.json';
+    const STALE_WARN_MIN = 75;
+    const STALE_CRIT_MIN = 130;
+
+    let tokens = [
+        {name:'SUI',    s:'SUIUSDT'},   {name:'ONDO',  s:'ONDOUSDT'},
+        {name:'LINK',   s:'LINKUSDT'},  {name:'RENDER',s:'RENDERUSDT'},
+        {name:'NEAR',   s:'NEARUSDT'},  {name:'YFI',   s:'YFIUSDT'},
+        {name:'AAVE',   s:'AAVEUSDT'},  {name:'AVAX',  s:'AVAXUSDT'},
+        {name:'FET',    s:'FETUSDT'},   {name:'ENA',   s:'ENAUSDT'},
+        {name:'TAO',    s:'TAOUSDT'},   {name:'TON',   s:'TONUSDT'},
+        {name:'XRP',    s:'XRPUSDT'},   {name:'ADA',   s:'ADAUSDT'},
+        {name:'TRX',    s:'TRXUSDT'},   {name:'SOL',   s:'SOLUSDT'},
+        {name:'BCH',    s:'BCHUSDT'},   {name:'HYPE',  s:'HYPEUSDT'},
+        {name:'SKY',    s:'SKYUSDT'},
+        {name:'ETH',    s:'ETHUSDT'}
+    ];
+
+    // ── Порядок карточек (localStorage) ────────────────────────────────────
+    const ORDER_KEY = 'cryptoEngineTokenOrder';
+
+    function applySavedOrder() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
+            if (!Array.isArray(saved) || !saved.length) return;
+            const map = new Map(tokens.map(t => [t.name, t]));
+            const out = [];
+            saved.forEach(n => { if (map.has(n)) { out.push(map.get(n)); map.delete(n); } });
+            map.forEach(t => out.push(t));
+            tokens = out;
+        } catch(e) {}
+    }
+
+    function saveOrder() {
+        try { localStorage.setItem(ORDER_KEY, JSON.stringify(tokens.map(t => t.name))); } catch(e) {}
+    }
+
+    // ── Сетевые запросы ─────────────────────────────────────────────────────
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            fetchBotData(); refreshMarketData(); fetchFundingRates();
         }
+    });
 
-        function saveOrder() {
-            try { localStorage.setItem(ORDER_KEY, JSON.stringify(tokens.map(t => t.name))); } catch (e) {}
-        }
-        
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === "visible") {
-                fetchBotData();
-                refreshMarketData();
+    async function fetchBotData() {
+        try {
+            const res = await fetch(GIST_URL + '?t=' + Date.now());
+            botData = await res.json();
+            document.getElementById('status-dot').style.backgroundColor = 'var(--green)';
+            updateFreshnessDisplay();
+            update();
+        } catch(e) { document.getElementById('status-dot').style.backgroundColor = 'var(--red)'; }
+    }
+
+    async function fetchFundingRates() {
+        // Публичный эндпоинт Binance Futures, без ключа.
+        // lastFundingRate — ставка за последний 8-часовой период.
+        // Токены без фьючерсного контракта (SKY, HYPE если нет) — просто
+        // не попадут в словарь и строку фандинга не покажут.
+        try {
+            const res  = await fetch('https://fapi.binance.com/fapi/v1/premiumIndex');
+            const data = await res.json();
+            cachedFunding = {};
+            data.forEach(item => { cachedFunding[item.symbol] = parseFloat(item.lastFundingRate); });
+            update();
+        } catch(e) {}
+    }
+
+    function updateFreshnessDisplay() {
+        const el = document.getElementById('last-update');
+        if (!botData.generated_at) { el.innerText = 'Данные бота: нет timestamp'; el.style.color='#888'; return; }
+        const genDate = new Date(botData.generated_at);
+        const ageMin  = (Date.now() - genDate.getTime()) / 60000;
+        const ageText = ageMin < 1 ? 'меньше минуты назад' : Math.round(ageMin) + ' мин назад';
+        let color='#888', prefix='Бета обновлена: ';
+        if (ageMin > STALE_CRIT_MIN) { color='var(--red)';    prefix='⚠ Бот не отвечал давно. Бета: '; }
+        else if (ageMin > STALE_WARN_MIN) { color='var(--accent)'; prefix='Бета (устаревает): '; }
+        el.innerText   = prefix + ageText + ' (' + genDate.toLocaleTimeString() + ')';
+        el.style.color = color;
+    }
+
+    async function refreshMarketData() {
+        const logo = document.getElementById('btc-logo');
+        logo.classList.add('loading');
+        try {
+            const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+            cachedMarketData = await res.json();
+            if (!sliderInitialized && cachedMarketData.length > 0) {
+                const btcObj = cachedMarketData.find(t => t.symbol === 'BTCUSDT');
+                document.getElementById('slider').value = Math.round(parseFloat(btcObj.lastPrice));
+                sliderInitialized = true;
             }
+            update();
+        } finally { setTimeout(() => logo.classList.remove('loading'), 500); }
+    }
+
+    // ── UI ──────────────────────────────────────────────────────────────────
+    function move(idx, dir) {
+        const n = idx + dir;
+        if (n >= 0 && n < tokens.length) {
+            [tokens[idx], tokens[n]] = [tokens[n], tokens[idx]];
+            saveOrder(); update();
+        }
+    }
+
+    function renderButtons() {
+        const lc = document.getElementById('levContainer');
+        [2,3,4,5,6,8,10].forEach(l => {
+            const b = document.createElement('button');
+            b.className = 'lev-btn' + (currentLev===l?' active':'');
+            b.innerText = l+'X';
+            b.onclick = () => {
+                currentLev = l;
+                document.querySelectorAll('.lev-btn').forEach(x=>x.classList.remove('active'));
+                b.classList.add('active');
+                update();
+            };
+            lc.appendChild(b);
         });
 
-        async function fetchBotData() {
-            try {
-                const res = await fetch(GIST_URL + '?t=' + Date.now());
-                botData = await res.json();
-                document.getElementById('status-dot').style.backgroundColor = 'var(--green)';
-                updateFreshnessDisplay();
-                update(); 
-            } catch(e) { 
-                document.getElementById('status-dot').style.backgroundColor = 'var(--red)'; 
-            }
-        }
+        const sc = document.getElementById('stressContainer');
+        [['normal','Normal'],['panic','Panic'],['crash','Crash']].forEach(([mode,label]) => {
+            const b = document.createElement('button');
+            b.className = 'stress-btn' + (currentStress===mode ? ` s-${mode}` : '');
+            b.innerText = label;
+            b.onclick = () => {
+                currentStress = mode;
+                document.querySelectorAll('.stress-btn').forEach(x => x.className='stress-btn');
+                b.className = `stress-btn s-${mode}`;
+                update();
+            };
+            sc.appendChild(b);
+        });
+    }
 
-        function updateFreshnessDisplay() {
-            const el = document.getElementById('last-update');
-            if (!botData.generated_at) {
-                el.innerText = 'Данные бота: нет timestamp';
-                el.style.color = '#888';
+    function init() {
+        applySavedOrder();
+        renderButtons();
+        fetchBotData();
+        refreshMarketData();
+        fetchFundingRates();
+        setInterval(refreshMarketData,      30000);
+        setInterval(fetchBotData,      5*60*1000);
+        setInterval(fetchFundingRates, 5*60*1000);
+        setInterval(updateFreshnessDisplay, 30000);
+    }
+
+    // ── Главный рендер ──────────────────────────────────────────────────────
+    function update() {
+        if (!cachedMarketData.length) return;
+        const btcObj = cachedMarketData.find(t => t.symbol==='BTCUSDT');
+        if (!btcObj) return;
+
+        const btc    = parseFloat(btcObj.lastPrice);
+        const btc24h = parseFloat(btcObj.priceChangePercent);
+        const target = parseFloat(document.getElementById('slider').value);
+        const ratio  = (target - btc) / btc;
+
+        const slider = document.getElementById('slider');
+        slider.style.accentColor = ratio>0 ? 'var(--green)' : (ratio<0 ? 'var(--red)' : 'var(--accent)');
+        document.getElementById('btc-cur').innerText     = '$' + Math.round(btc).toLocaleString();
+        document.getElementById('btc-24h').innerText     = (btc24h>=0?'+':'') + btc24h.toFixed(2)+'%';
+        document.getElementById('btc-24h').style.color   = btc24h>=0 ? 'var(--green)' : 'var(--red)';
+        document.getElementById('btc-target').innerText  = 'Прогноз BTC: $' + target.toLocaleString();
+        const pctEl = document.getElementById('btc-pct');
+        pctEl.innerText   = (ratio>=0?'+':'') + (ratio*100).toFixed(2)+'%';
+        pctEl.style.color = ratio>0 ? 'var(--green)' : (ratio<0 ? 'var(--red)' : '#ffffff');
+
+        const stressMult  = STRESS_MULT[currentStress];
+        const stressBadge = STRESS_BADGE[currentStress];
+        const badgeColor  = currentStress==='panic' ? 'var(--accent)' : 'var(--red)';
+
+        let html = '';
+        tokens.forEach((t, i) => {
+            const coin = cachedMarketData.find(x => x.symbol===t.s);
+            if (!coin) return;
+
+            const coinData = botData.analysis_data.find(x => x.symbol===t.name);
+
+            if (!coinData || coinData.error) {
+                html += `<div class="no-data-card">
+                    <div class="token-name">${t.name} <span style="color:var(--red);font-size:0.7em;">NO DATA</span></div>
+                    <div style="font-size:0.85em;color:#888;margin-top:4px;">Бот не дал валидной беты</div>
+                </div>`;
                 return;
             }
-            const genDate = new Date(botData.generated_at);
-            const ageMin = (Date.now() - genDate.getTime()) / 60000;
-            const ageText = ageMin < 1 ? 'меньше минуты назад' : Math.round(ageMin) + ' мин назад';
-            let color = '#888';
-            let prefix = 'Бета обновлена: ';
-            if (ageMin > STALE_CRIT_MIN) { color = 'var(--red)'; prefix = '⚠ Бот не отвечал давно. Бета: '; }
-            else if (ageMin > STALE_WARN_MIN) { color = 'var(--accent)'; prefix = 'Бета (устаревает): '; }
-            el.innerText = prefix + ageText + ' (' + genDate.toLocaleTimeString() + ')';
-            el.style.color = color;
-        }
 
-        async function refreshMarketData() {
-            const logo = document.getElementById('btc-logo');
-            logo.classList.add('loading');
-            try {
-                const bRes = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-                cachedMarketData = await bRes.json();
-                if (!sliderInitialized && cachedMarketData.length > 0) {
-                    const btcObj = cachedMarketData.find(t => t.symbol === 'BTCUSDT');
-                    document.getElementById('slider').value = Math.round(parseFloat(btcObj.lastPrice));
-                    sliderInitialized = true;
-                }
-                update();
-            } finally { setTimeout(() => logo.classList.remove('loading'), 500); }
-        }
+            // 14-дневная бета (основная) + стресс-множитель
+            const rawBeta14 = ratio>=0 ? coinData.up_beta   : coinData.down_beta;
+            const r2_14     = ratio>=0 ? coinData.up_r2     : coinData.down_r2;
+            const beta      = rawBeta14 * stressMult;
 
-        function move(idx, dir) { let n = idx + dir; if (n >= 0 && n < tokens.length) { let temp = tokens[idx]; tokens[idx] = tokens[n]; tokens[n] = temp; saveOrder(); update(); } }
-        function renderButtons() { 
-            const container = document.getElementById('levContainer');
-            [2,3,4,5,6,8,10].forEach(l => { 
-                const b = document.createElement('button'); 
-                b.className = 'lev-btn' + (currentLev === l ? ' active' : ''); 
-                b.innerText = l + 'X'; 
-                b.onclick = () => { 
-                    currentLev = l; 
-                    document.querySelectorAll('.lev-btn').forEach(x=>x.classList.remove('active')); 
-                    b.classList.add('active'); 
-                    update(); 
-                }; 
-                container.appendChild(b); 
-            }); 
-        }
+            // 90-дневная бета (справочная, без стресс-множителя)
+            const beta90    = ratio>=0 ? coinData.up_beta_90 : coinData.down_beta_90;
+            const r2_90     = ratio>=0 ? coinData.up_r2_90   : coinData.down_r2_90;
 
-        function init() {
-            applySavedOrder();
-            renderButtons();
-            fetchBotData();
-            refreshMarketData();
-            setInterval(refreshMarketData, 30000);
-            setInterval(fetchBotData, 5 * 60 * 1000);
-            setInterval(updateFreshnessDisplay, 30000);
-        }
+            const cur  = parseFloat(coin.lastPrice);
+            const p24h = parseFloat(coin.priceChangePercent);
+            const pPct = ratio * beta * 100;
 
-        function update() { 
-            if (cachedMarketData.length === 0) return;
-            const btcObj = cachedMarketData.find(t => t.symbol === 'BTCUSDT');
-            if (!btcObj) return;
-            const btc = parseFloat(btcObj.lastPrice); 
-            const btc24h = parseFloat(btcObj.priceChangePercent);
-            const target = parseFloat(document.getElementById('slider').value); 
-            const ratio = (target - btc) / btc; 
-            
-            const slider = document.getElementById('slider');
-            slider.style.accentColor = ratio > 0 ? 'var(--green)' : (ratio < 0 ? 'var(--red)' : 'var(--accent)');
-            document.getElementById('btc-cur').innerText = '$' + Math.round(btc).toLocaleString(); 
-            document.getElementById('btc-24h').innerText = (btc24h >= 0 ? '+' : '') + btc24h.toFixed(2) + '%';
-            document.getElementById('btc-24h').style.color = btc24h >= 0 ? 'var(--green)' : 'var(--red)';
-            document.getElementById('btc-target').innerText = 'Прогноз BTC: $' + target.toLocaleString(); 
-            const pctEl = document.getElementById('btc-pct');
-            pctEl.innerText = (ratio >= 0 ? '+' : '') + (ratio * 100).toFixed(2) + '%'; 
-            pctEl.style.color = ratio > 0 ? 'var(--green)' : (ratio < 0 ? 'var(--red)' : '#ffffff');
-            
-            let html = ''; 
-            tokens.forEach(function(t, i) { 
-                const coin = cachedMarketData.find(x => x.symbol === t.s); 
-                if (!coin) return; 
+            // Позиция в диапазоне — по живой цене Binance
+            const minP = coinData.min_price, maxP = coinData.max_price;
+            const dynPos = (maxP-minP)>0 ? Math.max(0,Math.min(100,((cur-minP)/(maxP-minP))*100)) : 0;
 
-                const coinData = botData.analysis_data.find(x => x.symbol === t.name);
+            // Прогноз и ликвидация
+            const pred     = Math.max(cur*(1+ratio*beta), 0.00000001);
+            const predText = pred<0.0001 ? '<0.0001' : '$'+pred.toFixed(4);
+            const liq      = ratio>=0 ? pred*(1-1/currentLev) : pred*(1+1/currentLev);
+            const liqText  = liq<0.0001 ? '<0.0001' : '$'+liq.toFixed(4);
 
-                if (!coinData || coinData.error) {
-                    html += `<div class="no-data-card">
-                        <div class="token-name">${t.name} <span style="color:var(--red); font-size:0.7em;">NO DATA</span></div>
-                        <div style="font-size:0.85em; color:#888; margin-top:4px;">Бот не дал валидной беты</div>
-                    </div>`;
-                    return;
-                }
+            // Цвета
+            const p24hColor = p24h>=0 ? 'var(--green)' : 'var(--red)';
+            const r2Color   = r2_14<0.30 ? 'var(--red)' : (r2_14<0.60 ? '#f3ba2f' : 'var(--green)');
+            const volPct    = coinData.volatility*100;
+            const volColor  = volPct>1.5 ? 'var(--lilac)' : (volPct>1.0 ? 'var(--cyan)' : '#888');
 
-                const beta = ratio >= 0 ? coinData.up_beta : coinData.down_beta; 
-                const r2 = ratio >= 0 ? coinData.up_r2 : coinData.down_r2;
-                const cur = parseFloat(coin.lastPrice); 
-                const p24h = parseFloat(coin.priceChangePercent);
-                const pPct = ratio * beta * 100; 
-                
-                const minP = coinData.min_price;
-                const maxP = coinData.max_price;
-                const posRange = maxP - minP;
-                const dynamicPos = posRange > 0 ? Math.max(0, Math.min(100, ((cur - minP) / posRange) * 100)) : 0;
+            // ── Строка 90-дневной беты + индикатор согласованности ─────────
+            // Если 14d и 90d бета расходятся менее чем на 25% — сигнал стабильный (✓)
+            // Если расходятся сильнее — режим рынка меняется, риск выше (⚡)
+            let line90 = '';
+            if (beta90 !== null && beta90 !== undefined && r2_90 !== null) {
+                const div       = Math.abs(rawBeta14-beta90) / (Math.abs(beta90)||1);
+                const aligned   = div < 0.25;
+                const icon      = aligned ? '✓' : '⚡';
+                const iconColor = aligned ? 'var(--green)' : 'var(--accent)';
+                const r90Color  = r2_90<0.30 ? 'var(--red)' : (r2_90<0.60 ? '#f3ba2f' : 'var(--green)');
+                line90 = `<div style="font-size:0.78em;color:#666;margin:2px 0 3px;">
+                    90d: β=${beta90.toFixed(2)} / R²=<span style="color:${r90Color}">${r2_90.toFixed(2)}</span>
+                    <span style="color:${iconColor};font-weight:bold;margin-left:4px;">${icon}</span>
+                </div>`;
+            }
 
-                const rawPred = cur * (1 + (ratio * beta));
-                const pred = Math.max(rawPred, 0.00000001); 
-                const predText = pred < 0.0001 ? "<0.0001" : "$" + pred.toFixed(4);
-                
-                const liq = ratio >= 0 ? pred * (1 - (1 / currentLev)) : pred * (1 + (1 / currentLev));
-                const liqText = liq < 0.0001 ? "<0.0001" : "$" + liq.toFixed(4);
-                
-                const p24hColor = p24h >= 0 ? 'var(--green)' : 'var(--red)';
-                let r2Color = r2 < 0.25 ? 'var(--red)' : (r2 < 0.60 ? '#f3ba2f' : 'var(--green)');
+            // ── Funding Rate ────────────────────────────────────────────────
+            // Long (ratio≥0): +funding = ты платишь → красный
+            // Short (ratio<0): −funding = тебе платят → зелёный
+            const fundRate = cachedFunding[t.s];
+            let fundHtml = '';
+            if (fundRate !== undefined) {
+                const isLong   = ratio>=0;
+                const fColor   = isLong ? (fundRate>0?'var(--red)':'var(--green)') : (fundRate<0?'var(--green)':'var(--red)');
+                fundHtml = `<span style="color:${fColor};font-size:0.8em;font-style:italic;margin-left:8px;">Fund: ${fundRate>=0?'+':''}${(fundRate*100).toFixed(4)}%/8h</span>`;
+            }
 
-                html += `<div class="card" style="border-left: 4px solid ${p24hColor};">
-                    <div class="row">
-                        <span class="token-name">${t.name} <span class="pct-24h" style="color:${p24hColor};">${p24h > 0 ? '+' : ''}${p24h.toFixed(2)}%</span></span>
-                        <div style="text-align: right;">
-                            <div>$${cur.toFixed(4)}</div>
-                            <div style="color:${pPct >= 0 ? 'var(--green)' : 'var(--red)'};" class="${beta < 0 ? 'blink-text' : ''}">${pPct >= 0 ? '+' : ''}${pPct.toFixed(2)}%</div>
-                        </div>
+            // ── Стресс-бейдж ────────────────────────────────────────────────
+            const badgeHtml = stressBadge
+                ? `<span style="font-size:0.6em;color:${badgeColor};font-weight:bold;margin-left:5px;">${stressBadge}</span>`
+                : '';
+
+            html += `<div class="card" style="border-left:4px solid ${p24hColor};">
+                <div class="row">
+                    <span class="token-name">${t.name}${badgeHtml} <span class="pct-24h" style="color:${p24hColor};">${p24h>0?'+':''}${p24h.toFixed(2)}%</span></span>
+                    <div style="text-align:right;">
+                        <div>$${cur.toFixed(4)}</div>
+                        <div style="color:${pPct>=0?'var(--green)':'var(--red)'}" class="${beta<0?'blink-text':''}">${pPct>=0?'+':''}${pPct.toFixed(2)}%</div>
                     </div>
-                    <div style="font-size: 1.1em; font-weight: bold; font-style: italic; margin: 4px 0; color: ${r2Color}">R²: ${r2 !== null ? r2.toFixed(2) : 'N/A'}</div>
-                    <div style="margin-top:2px; font-size:0.9em;">Прогноз: <b>${predText}</b></div>
-                    <div style="font-size:0.9em; color:var(--red);">Ликв (${currentLev}X): ${liqText}</div>
-                    <div class="extra-data">
-                        Min: <span class="${dynamicPos <= 23 ? 'light-blink' : ''}" style="color:${dynamicPos <= 23 ? 'var(--red)' : 'var(--accent)'}">$${minP.toFixed(4)}</span> | 
-                        <span style="color:#ffffff; font-size: 1.1em; font-weight:bold; font-family:monospace; margin:0 4px;">${dynamicPos.toFixed(0)}%</span> | 
-                        Max: <span class="${dynamicPos >= 77 ? 'light-blink' : ''}" style="color:${dynamicPos >= 77 ? 'var(--green)' : 'var(--accent)'}">$${maxP.toFixed(4)}</span>
-                    </div>
-                    <div class="vol-value" style="color:${coinData.volatility * 100 > 1.5 ? 'var(--lilac)' : (coinData.volatility * 100 > 1.0 ? 'var(--cyan)' : '#888')}">Vol: ${(coinData.volatility * 100).toFixed(2)}%</div>
-                    <div style="position:absolute; bottom:10px; right:10px;">
-                        <button class="nav-btn" onclick="move(${i}, -1)">↑</button>
-                        <button class="nav-btn" onclick="move(${i}, 1)" style="margin-left:5px;">↓</button>
-                    </div>
-                </div>`; 
-            }); 
-            document.getElementById('results').innerHTML = html; 
-        }
-        document.getElementById('slider').oninput = update; 
-        init();
-    </script>
+                </div>
+                <div style="font-size:1.1em;font-weight:bold;font-style:italic;margin:4px 0;color:${r2Color};">R²: ${r2_14!==null?r2_14.toFixed(2):'N/A'}${fundHtml}</div>
+                ${line90}
+                <div style="margin-top:2px;font-size:0.9em;">Прогноз: <b>${predText}</b></div>
+                <div style="font-size:0.9em;color:var(--red);">Ликв (${currentLev}X): ${liqText}</div>
+                <div class="extra-data">
+                    Min: <span class="${dynPos<=25?'light-blink':''}" style="color:${dynPos<=25?'var(--red)':'var(--accent)'}">$${minP.toFixed(4)}</span> | 
+                    <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;margin:0 4px;">${dynPos.toFixed(0)}%</span> | 
+                    Max: <span class="${dynPos>=75?'light-blink':''}" style="color:${dynPos>=75?'var(--green)':'var(--accent)'}">$${maxP.toFixed(4)}</span>
+                </div>
+                <div class="vol-value" style="color:${volColor};">Vol: ${volPct.toFixed(2)}%</div>
+                <div style="position:absolute;bottom:10px;right:10px;">
+                    <button class="nav-btn" onclick="move(${i},-1)">↑</button>
+                    <button class="nav-btn" onclick="move(${i},1)" style="margin-left:5px;">↓</button>
+                </div>
+            </div>`;
+        });
+        document.getElementById('results').innerHTML = html;
+    }
+
+    document.getElementById('slider').oninput = update;
+    init();
+</script>
 </body>
 </html>
