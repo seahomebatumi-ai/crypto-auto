@@ -248,6 +248,12 @@
         pctEl.innerText   = (ratio>=0?'+':'') + (ratio*100).toFixed(2)+'%';
         pctEl.style.color = ratio>0 ? 'var(--green)' : (ratio<0 ? 'var(--red)' : '#ffffff');
 
+            // Индикатор LONG / SHORT в шапке
+            const dirEl = document.getElementById('dir-indicator');
+            if (ratio > 0.005)       { dirEl.innerText='▲ LONG';  dirEl.style.color='var(--green)'; }
+            else if (ratio < -0.005) { dirEl.innerText='▼ SHORT'; dirEl.style.color='var(--red)'; }
+            else                     { dirEl.innerText='──';       dirEl.style.color='#888'; }
+
         const stressMult  = STRESS_MULT[currentStress];
         const stressBadge = STRESS_BADGE[currentStress];
         const badgeColor  = currentStress==='panic' ? 'var(--accent)' : 'var(--red)';
@@ -287,8 +293,14 @@
             // Прогноз и ликвидация
             const pred     = Math.max(cur*(1+ratio*beta), 0.00000001);
             const predText = pred<0.0001 ? '<0.0001' : '$'+pred.toFixed(4);
-            const liq      = ratio>=0 ? pred*(1-1/currentLev) : pred*(1+1/currentLev);
-            const liqText  = liq<0.0001 ? '<0.0001' : '$'+liq.toFixed(4);
+            // ИСПРАВЛЕНИЕ: ликвидация от текущей цены (точки входа), НЕ от прогнозной.
+                // LONG  → ликвидация НИЖЕ входа:  cur × (1 − 1/L)
+                // SHORT → ликвидация ВЫШЕ входа:  cur × (1 + 1/L)
+                const isLong   = ratio >= 0;
+                const liq      = isLong ? cur*(1-1/currentLev) : cur*(1+1/currentLev);
+                const liqText  = liq<0.0001 ? '<0.0001' : '$'+liq.toFixed(4);
+                const liqLabel = isLong ? ('▲ LONG ' + currentLev + 'X') : ('▼ SHORT ' + currentLev + 'X');
+                const liqColor = isLong ? 'var(--red)' : '#ff8c00';
 
             // Цвета
             const p24hColor = p24h>=0 ? 'var(--green)' : 'var(--red)';
@@ -339,7 +351,7 @@
                 <div style="font-size:1.1em;font-weight:bold;font-style:italic;margin:4px 0;color:${r2Color};">R²: ${r2_14!==null?r2_14.toFixed(2):'N/A'}${fundHtml}</div>
                 ${line90}
                 <div style="margin-top:2px;font-size:0.9em;">Прогноз: <b>${predText}</b></div>
-                <div style="font-size:0.9em;color:var(--red);">Ликв (${currentLev}X): ${liqText}</div>
+                <div style="font-size:0.9em;font-weight:600;color:${liqColor};">Ликв ${liqLabel}: ${liqText}</div>
                 <div class="extra-data">
                     Min: <span class="${dynPos<=25?'light-blink':''}" style="color:${dynPos<=25?'var(--red)':'var(--accent)'}">$${minP.toFixed(4)}</span> | 
                     <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;margin:0 4px;">${dynPos.toFixed(0)}%</span> | 
