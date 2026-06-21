@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="image.PNG">
-    <title>Pro Crypto Engine</title>
+    <title>Pro Crypto Toll</title>
     <style>
         :root {
             --bg: #0f0f12; --card: #1a1a20; --accent: #f3ba2f;
@@ -93,9 +93,53 @@
             color: var(--green) !important;
             animation: blinkGreen 2s ease-in-out infinite;
         }
+        /* Экран ввода пароля */
+        #lock-screen {
+            position: fixed; inset: 0; z-index: 9999;
+            background: var(--bg);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        #lock-screen .lock-box {
+            background: var(--card); border: 1px solid #333;
+            border-radius: 16px; padding: 28px 22px;
+            width: 100%; max-width: 360px; text-align: center;
+        }
+        #lock-screen .lock-logo { font-size: 2.6em; color: var(--accent); font-weight: bold; margin-bottom: 6px; }
+        #lock-screen .lock-title {
+            font-size: 1.15em; font-weight: 700; margin-bottom: 18px;
+            color: var(--text); letter-spacing: 0.02em;
+            word-break: keep-all; line-height: 1.35;
+        }
+        #lock-input {
+            width: 100%; box-sizing: border-box;
+            background: #2c2c31; border: 1px solid #444;
+            color: var(--text); font-size: 1.1em;
+            padding: 12px 14px; border-radius: 10px;
+            text-align: center; letter-spacing: 0.05em;
+            margin-bottom: 12px; outline: none;
+        }
+        #lock-input:focus { border-color: var(--accent); }
+        #lock-btn {
+            width: 100%; background: var(--accent); color: #000;
+            font-size: 1.05em; font-weight: 700; border: none;
+            padding: 12px; border-radius: 10px; cursor: pointer;
+        }
+        #lock-error { color: var(--red); font-size: 0.85em; margin-top: 10px; min-height: 18px; }
     </style>
 </head>
 <body>
+
+<div id="lock-screen">
+    <div class="lock-box">
+        <div class="lock-logo">&#8383;</div>
+        <div class="lock-title">🜲 𝒫𝓇ℴ⇝𝒞𝓇𝒾𝓅𝓉ℴ⇝𝒯ℴ𝓁𝓁 🜲</div>
+        <input type="password" id="lock-input" placeholder="Введите код доступа" autocomplete="off" inputmode="text">
+        <button id="lock-btn">Войти</button>
+        <div id="lock-error"></div>
+    </div>
+</div>
 
 <div class="control">
     <div class="btc-header">
@@ -135,6 +179,50 @@
 <div id="results">Загрузка данных...</div>
 
 <script>
+// ── Защита паролем ──────────────────────────────────────────────────────────
+// Пароль запоминается на устройстве через localStorage: вводится один раз,
+// потом калькулятор открывается сразу. На чужом устройстве (где localStorage
+// пустой) без пароля доступа нет.
+(function() {
+    var ACCESS_CODE = 'AV777SA';
+    var LS_KEY = 'cryptoEngineAccess';
+
+    function unlock() {
+        var ls = document.getElementById('lock-screen');
+        if (ls) ls.style.display = 'none';
+    }
+
+    // Уже разблокировано на этом устройстве?
+    try {
+        if (localStorage.getItem(LS_KEY) === ACCESS_CODE) {
+            unlock();
+        }
+    } catch(e) {}
+
+    function tryLogin() {
+        var inp = document.getElementById('lock-input');
+        var err = document.getElementById('lock-error');
+        if (!inp) return;
+        if (inp.value === ACCESS_CODE) {
+            try { localStorage.setItem(LS_KEY, ACCESS_CODE); } catch(e) {}
+            if (err) err.innerText = '';
+            unlock();
+        } else {
+            if (err) err.innerText = 'Неверный код, попробуйте снова';
+            inp.value = '';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('lock-btn');
+        var inp = document.getElementById('lock-input');
+        if (btn) btn.addEventListener('click', tryLogin);
+        if (inp) inp.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') tryLogin();
+        });
+    });
+})();
+
 // ── Константы ──────────────────────────────────────────────────────────────
 var currentLev    = 3;
 var currentStress = 'normal';
@@ -539,7 +627,7 @@ function update() {
 
             // Прогнозная цена — над волатильностью, цвет по направлению слайдера
             + '<div style="position:absolute;bottom:66px;right:14px;font-size:0.9em;font-weight:bold;font-style:italic;color:' + predColor + ';">'
-            +   '<span style="font-size:1em;font-weight:400;">' + predArrow + '</span> ' + predText
+            +   '<span style="font-size:1.1em;font-weight:600;vertical-align:-1px;">' + predArrow + '</span> ' + predText
             + '</div>'
 
             // Волатильность
