@@ -72,6 +72,27 @@
             position: absolute; bottom: 42px; right: 14px;
             font-size: 0.9em; font-weight: bold; font-style: italic;
         }
+        @keyframes blinkRed {
+            0%  { opacity:1; }
+            50% { opacity:0.15; }
+            100%{ opacity:1; }
+        }
+        @keyframes blinkGreen {
+            0%  { opacity:1; }
+            50% { opacity:0.4; }
+            100%{ opacity:1; }
+        }
+        .icon-warn {
+            display:inline-block;
+            color: var(--red) !important;
+            animation: blinkRed 0.9s linear infinite;
+            font-weight: bold;
+        }
+        .icon-ok {
+            display:inline-block;
+            color: var(--green) !important;
+            animation: blinkGreen 2s ease-in-out infinite;
+        }
     </style>
 </head>
 <body>
@@ -93,16 +114,16 @@
     <div id="last-update" style="font-size:0.7em;color:#888;margin-bottom:10px;">Данные бота: ожидание...</div>
     <div style="display:flex;align-items:center;gap:6px;margin:6px 0;">
         <button id="btn-minus" style="
-            background:#2c2c31;border:none;color:#ffffff;
-            font-size:1.3em;font-weight:700;width:36px;height:36px;
+            background:#2c1f1f;border:1px solid var(--red);color:var(--red);
+            font-size:1.4em;font-weight:900;width:38px;height:38px;
             border-radius:8px;cursor:pointer;flex-shrink:0;
             display:flex;align-items:center;justify-content:center;
             line-height:1;">&#8722;</button>
         <input type="range" id="slider" min="20000" max="150000" step="100"
                style="flex:1;margin:0;">
         <button id="btn-plus" style="
-            background:#2c2c31;border:none;color:#ffffff;
-            font-size:1.3em;font-weight:700;width:36px;height:36px;
+            background:#1a2a1f;border:1px solid var(--green);color:var(--green);
+            font-size:1.4em;font-weight:900;width:38px;height:38px;
             border-radius:8px;cursor:pointer;flex-shrink:0;
             display:flex;align-items:center;justify-content:center;
             line-height:1;">&#43;</button>
@@ -340,6 +361,22 @@ function update() {
         else                     { dirEl.innerText = '--';     dirEl.style.color = '#888'; }
     }
 
+    // Цвет символов кнопок синхронно со слайдером
+    var btnM = document.getElementById('btn-minus');
+    var btnP = document.getElementById('btn-plus');
+    if (btnM && btnP) {
+        if (ratio < -0.005) {
+            btnM.style.color='var(--red)';   btnM.style.borderColor='var(--red)';
+            btnP.style.color='#444';         btnP.style.borderColor='#444';
+        } else if (ratio > 0.005) {
+            btnP.style.color='var(--green)'; btnP.style.borderColor='var(--green)';
+            btnM.style.color='#444';         btnM.style.borderColor='#444';
+        } else {
+            btnM.style.color='#777'; btnM.style.borderColor='#555';
+            btnP.style.color='#777'; btnP.style.borderColor='#555';
+        }
+    }
+
     var stressMult  = STRESS_MULT[currentStress];
     var stressBadge = STRESS_BADGE[currentStress];
     var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
@@ -396,30 +433,39 @@ function update() {
         // LONG  → ликвидация НИЖЕ входа: cur * (1 - 1/L)
         // SHORT → ликвидация ВЫШЕ входа: cur * (1 + 1/L)
         var isLong   = ratio >= 0;
-        var liq      = isLong ? cur * (1 - 1/currentLev) : cur * (1 + 1/currentLev);
+        // Ликвидация считается от ПРОГНОЗНОЙ цены (pred) — точки планируемого входа.
+        // Логика калькулятора: "BTC пойдёт туда → альт будет по pred → по этой цене входим".
+        // LONG:  liq = pred * (1 - 1/L)  — ниже входа (тебя выносит если цена упадёт)
+        // SHORT: liq = pred * (1 + 1/L)  — выше входа (тебя выносит если цена вырастет)
+        // Ликвидация меняется вместе со слайдером, так как pred меняется.
+        var liq      = isLong ? pred * (1 - 1/currentLev) : pred * (1 + 1/currentLev);
+        var liqLong    = pred * (1 - 1/currentLev);
+        var liqLongTxt = liqLong  < 0.0001 ? '&lt;0.0001' : '$' + liqLong.toFixed(4);
+        var liqShort   = pred * (1 + 1/currentLev);
+        var liqShortTxt= liqShort < 0.0001 ? '&lt;0.0001' : '$' + liqShort.toFixed(4);
         var liqText  = liq < 0.0001 ? '&lt;0.0001' : '$' + liq.toFixed(4);
-        var liqLabel = isLong ? ('LONG ' + currentLev + 'X') : ('SHORT ' + currentLev + 'X');
-        var liqArrow = isLong ? 'v ' : '^ ';
-        var liqColor = isLong ? 'var(--red)' : '#ff8c00';
 
         // Цвета
         var p24hColor = p24h >= 0 ? 'var(--green)' : 'var(--red)';
         var r2Color   = r2_14 < 0.30 ? 'var(--red)' : (r2_14 < 0.60 ? '#f3ba2f' : 'var(--green)');
         var volPct    = coinData.volatility * 100;
         var volColor  = volPct > 1.5 ? 'var(--lilac)' : (volPct > 1.0 ? 'var(--cyan)' : '#888');
+        var predColor = ratio >= 0 ? 'var(--green)' : 'var(--red)';
+        var predArrow = ratio >= 0 ? '\u219F' : '\u21A1';
 
         // Строка 90d беты + индикатор согласованности
         var line90 = '';
         if (beta90 !== null && beta90 !== undefined && r2_90 !== null) {
             var div90    = Math.abs(rawBeta - beta90) / (Math.abs(beta90) || 1);
             var aligned  = div90 < 0.25;
-            var icon90   = aligned ? ' ok' : ' !';
-            var icon90c  = aligned ? 'var(--green)' : 'var(--accent)';
+            var icon90    = aligned ? 'ok' : '!';
+            var icon90cls = aligned ? 'icon-ok' : 'icon-warn';
+            var icon90c   = aligned ? 'var(--green)' : 'var(--red)';
             var r90Color = r2_90 < 0.30 ? 'var(--red)' : (r2_90 < 0.60 ? '#f3ba2f' : 'var(--green)');
             line90 = '<div style="font-size:0.78em;color:#666;margin:2px 0 3px;">'
                 + '90d: b=' + beta90.toFixed(2)
                 + ' / R2=<span style="color:' + r90Color + '">' + r2_90.toFixed(2) + '</span>'
-                + '<span style="color:' + icon90c + ';font-weight:bold;margin-left:4px;">' + icon90 + '</span>'
+                + '<span class="' + icon90cls + '" style="color:' + icon90c + ';font-weight:bold;margin-left:4px;">' + icon90 + '</span>'
                 + '</div>';
         }
 
@@ -473,11 +519,13 @@ function update() {
             + line90
 
             // Прогнозная цена
-            + '<div style="margin-top:2px;font-size:0.9em;">Прогноз: <b>' + predText + '</b></div>'
-
-            // Ликвидация с меткой LONG/SHORT
-            + '<div style="font-size:0.9em;font-weight:600;color:' + liqColor + ';">'
-            +   'Ликв ' + liqArrow + liqLabel + ': ' + liqText
+            + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
+            +   '<span style="color:var(--green);">LONG </span>'
+            +   currentLev + 'X: ' + liqLongTxt
+            + '</div>'
+            + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
+            +   '<span style="color:var(--red);">SHORT </span>'
+            +   currentLev + 'X: ' + liqShortTxt
             + '</div>'
 
             // Диапазон Min / Pos% / Max
@@ -487,6 +535,11 @@ function update() {
             +     dynPos.toFixed(0) + '%'
             +   '</span> | '
             +   'Max: <span class="' + maxClass + '" style="color:' + maxColor + ';">$' + maxP.toFixed(4) + '</span>'
+            + '</div>'
+
+            // Прогнозная цена — над волатильностью, цвет по направлению слайдера
+            + '<div style="position:absolute;bottom:66px;right:14px;font-size:0.9em;font-weight:bold;font-style:italic;color:' + predColor + ';">'
+            +   '<span style="font-size:1em;font-weight:400;">' + predArrow + '</span> ' + predText
             + '</div>'
 
             // Волатильность
