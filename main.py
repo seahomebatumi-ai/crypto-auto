@@ -57,7 +57,7 @@ def fetch_with_retry(coin_id):
 
 
 def bucket_prices(price_list):
-    """[[ts_ms, price], ...] → {bucket_index: price}  (часовые бакеты)"""
+    """[[ts_ms, price], ...] -> {bucket_index: price}  (часовые бакеты)"""
     buckets = {}
     for ts_ms, price in price_list:
         b = int(ts_ms // (BUCKET_SECONDS * 1000))
@@ -66,7 +66,7 @@ def bucket_prices(price_list):
 
 
 def fit_stats(x, y):
-    """OLS y = beta*x + c → (beta, R²)"""
+    """OLS y = beta*x + c -> (beta, R2)"""
     if len(x) < 5:
         return None, None
     A = np.vstack([x, np.ones(len(x))]).T
@@ -122,14 +122,14 @@ def get_token_betas(coin_id, btc_buckets, cutoff_14d):
         common_90    = sorted(set(btc_buckets) & set(coin_buckets))
         debug["matched_90d"] = len(common_90)
 
-        # ── 90-дневная бета ────────────────────────────────────────────────
+        # -- 90-дневная бета --
         up_b90 = ur90 = dn_b90 = dr90 = None
         if len(common_90) >= MIN_MATCHED_90D:
             btc90  = np.array([btc_buckets[k]  for k in common_90])
             coin90 = np.array([coin_buckets[k] for k in common_90])
             up_b90, ur90, dn_b90, dr90 = asymmetric_beta(btc90, coin90)
 
-        # ── 14-дневная бета (срез последних 14 дней из тех же данных) ─────
+        # -- 14-дневная бета (срез последних 14 дней из тех же данных) --
         common_14 = [k for k in common_90 if k >= cutoff_14d]
         debug["matched_14d"] = len(common_14)
 
@@ -177,13 +177,52 @@ def main():
             results.append({"symbol": symbol, **beta_data})
             debug_info["details"][symbol] = dbg
 
+        # --- История бет: компактная запись по каждому токену ---
+        # Дописываем одну точку на прогон. Храним только беты и R2 (без min/max/vol),
+        # чтобы файл рос медленно. Старые записи обрезаем (хранится ~30 дней = 720 точек).
+        history_snapshot = {"t": generated_at, "coins": {}}
+        for row in results:
+            if not row.get("error"):
+                history_snapshot["coins"][row["symbol"]] = {
+                    "ub":  round(row["up_beta"], 3)    if row["up_beta"]    is not None else None,
+                    "ur":  round(row["up_r2"], 3)      if row["up_r2"]      is not None else None,
+                    "db":  round(row["down_beta"], 3)  if row["down_beta"]  is not None else None,
+                    "dr":  round(row["down_r2"], 3)    if row["down_r2"]    is not None else None,
+                    "ub90": round(row["up_beta_90"], 3)   if row["up_beta_90"]   is not None else None,
+                    "db90": round(row["down_beta_90"], 3) if row["down_beta_90"] is not None else None,
+                }
+
+        # Читаем существующую историю из Gist, дописываем новую точку
+        history_points = []
+        try:
+            existing = requests.get(
+                f"https://api.github.com/gists/{GIST_ID}",
+                headers={"Authorization": f"token {GIST_TOKEN}"}
+            )
+            if existing.ok:
+                files = existing.json().get("files", {})
+                if "history.json" in files:
+                    raw = files["history.json"].get("content", "[]")
+                    history_points = json.loads(raw)
+                    if not isinstance(history_points, list):
+                        history_points = []
+        except Exception as e:
+            print(f"История: не удалось прочитать прошлую ({e}), начинаем заново")
+            history_points = []
+
+        history_points.append(history_snapshot)
+        # Обрезаем до последних 720 точек (~30 дней при часовом прогоне)
+        if len(history_points) > 720:
+            history_points = history_points[-720:]
+
         payload = {
             "files": {
                 "coeffs.json": {"content": json.dumps({
                     "generated_at": generated_at,
                     "analysis_data": results
                 })},
-                "debug.json": {"content": json.dumps(debug_info, indent=4)}
+                "debug.json": {"content": json.dumps(debug_info, indent=4)},
+                "history.json": {"content": json.dumps(history_points)}
             }
         }
 
