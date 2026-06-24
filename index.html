@@ -28,7 +28,8 @@
         @keyframes rainbow { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
         .btc-logo { font-size: 2.4em; color: var(--accent); font-weight: bold; transition: 0.3s; }
         .btc-logo.loading { animation: rainbow 1s linear infinite; }
-        .btc-price { color: var(--accent); font-size: 1.6em; font-weight: 800; }
+        .btc-price.loading { animation: rainbow 1s linear infinite; }
+        .btc-price { color: var(--text); font-size: 1.6em; font-weight: 800; }
         .card {
             background: var(--card); padding: 14px; border-radius: 12px;
             margin-bottom: 8px; border: 1px solid #333; position: relative;
@@ -162,7 +163,9 @@
         <div id="status-dot" style="width:12px;height:12px;border-radius:50%;background:#666;margin-left:auto;"></div>
     </div>
     <div class="row" style="margin-bottom:4px;">
-        <div id="btc-target" style="font-weight:600;">Прогноз BTC: ...</div>
+        <div style="font-weight:600;">
+            <span id="btc-target">Прогноз BTC: ...</span><span id="btc-target-arrow" style="font-size:1.3em;font-weight:700;line-height:1;vertical-align:-2px;margin-left:4px;"></span>
+        </div>
         <div style="text-align:right;">
             <div id="btc-pct" style="font-weight:bold;color:#ffffff;">0.00%</div>
             <div id="dir-indicator" style="font-size:0.75em;font-weight:800;color:#888;">&#8212;&#8212;</div>
@@ -343,7 +346,9 @@ function updateFreshnessDisplay() {
 
 function refreshMarketData() {
     var logo = document.getElementById('btc-logo');
+    var priceEl = document.getElementById('btc-cur');
     if (logo) logo.classList.add('loading');
+    if (priceEl) priceEl.classList.add('loading');
     fetch('https://api.binance.com/api/v3/ticker/24hr')
         .then(function(res) { return res.json(); })
         .then(function(data) {
@@ -362,7 +367,10 @@ function refreshMarketData() {
         })
         .catch(function() {})
         .finally(function() {
-            setTimeout(function() { if (logo) logo.classList.remove('loading'); }, 500);
+            setTimeout(function() {
+                if (logo) logo.classList.remove('loading');
+                if (priceEl) priceEl.classList.remove('loading');
+            }, 500);
         });
 }
 
@@ -445,8 +453,19 @@ function update() {
         el24h.style.color = btc24h >= 0 ? 'var(--green)' : 'var(--red)';
     }
 
+    var btcDirColor = ratio >= 0 ? 'var(--green)' : 'var(--red)';
+    var btcDirArrow = ratio >= 0 ? '\u219F' : '\u21A1';
+
     var elTarget = document.getElementById('btc-target');
-    if (elTarget) elTarget.innerText = 'Прогноз BTC: $' + target.toLocaleString();
+    if (elTarget) {
+        elTarget.innerText = 'Прогноз BTC: $' + target.toLocaleString();
+        elTarget.style.color = btcDirColor;
+    }
+    var elTargetArrow = document.getElementById('btc-target-arrow');
+    if (elTargetArrow) {
+        elTargetArrow.innerText = btcDirArrow;
+        elTargetArrow.style.color = btcDirColor;
+    }
 
     var elPct = document.getElementById('btc-pct');
     if (elPct) {
@@ -565,8 +584,8 @@ function update() {
             var r90Color = r2_90 < 0.30 ? 'var(--red)' : (r2_90 < 0.60 ? '#f3ba2f' : 'var(--green)');
             line90 = '<div style="font-size:0.78em;color:#666;margin:2px 0 3px;">'
                 + '90d: b=' + beta90.toFixed(2)
-                + ' / R2=<span style="color:' + r90Color + '">' + r2_90.toFixed(2) + '</span>'
-                + '<span class="' + icon90cls + '" style="color:' + icon90c + ';font-weight:bold;margin-left:4px;">' + icon90 + '</span>'
+                + ' / <span style="color:#f3ba2f">R2=' + r2_90.toFixed(2) + '</span>'
+                + '<span class="' + icon90cls + '" style="color:' + icon90c + ';font-weight:bold;font-size:1.25em;margin-left:5px;vertical-align:-1px;">' + icon90 + '</span>'
                 + '</div>';
         }
 
@@ -609,10 +628,6 @@ function update() {
             +   '</span>'
             +   '<div style="text-align:right;">'
             +     '<div>$' + cur.toFixed(4) + '</div>'
-            +     '<div style="color:' + (pPct >= 0 ? 'var(--green)' : 'var(--red)') + ';"'
-            +       ' class="' + (beta < 0 ? 'blink-text' : '') + '">'
-            +       (pPct >= 0 ? '+' : '') + pPct.toFixed(2) + '%'
-            +     '</div>'
             +   '</div>'
             + '</div>'
 
@@ -644,6 +659,12 @@ function update() {
             + '</div>'
 
             // Прогнозная цена — над волатильностью, цвет по направлению слайдера
+            // Процент изменения — над прогнозной ценой, тем же шрифтом
+            + '<div style="position:absolute;bottom:90px;right:14px;font-size:0.9em;font-weight:bold;font-style:italic;color:' + (pPct >= 0 ? 'var(--green)' : 'var(--red)') + ';"'
+            +   ' class="' + (beta < 0 ? 'blink-text' : '') + '">'
+            +   (pPct >= 0 ? '+' : '') + pPct.toFixed(2) + '%'
+            + '</div>'
+            // Прогнозная цена со стрелкой
             + '<div style="position:absolute;bottom:66px;right:14px;font-size:0.9em;font-weight:bold;font-style:italic;color:' + predColor + ';">'
             +   '<span style="font-size:1.5em;font-weight:700;line-height:1;vertical-align:-2px;">' + predArrow + '</span> ' + predText
             + '</div>'
