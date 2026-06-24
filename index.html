@@ -28,25 +28,50 @@
         @keyframes rainbow { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
         .btc-logo { font-size: 2.4em; color: var(--accent); font-weight: bold; transition: 0.3s; }
         .btc-logo.loading { animation: rainbow 1s linear infinite; }
-        .btc-price.loading { animation: rainbow 1s linear infinite; }
+        @keyframes priceRainbow {
+            0%   { color: #f3ba2f; }
+            20%  { color: #30d158; }
+            40%  { color: #0ad1c8; }
+            60%  { color: #bf5af2; }
+            80%  { color: #ff453a; }
+            100% { color: #f3ba2f; }
+        }
+        .btc-price.loading { animation: priceRainbow 1.2s linear infinite; }
         .btc-price { color: var(--text); font-size: 1.6em; font-weight: 800; }
         .card {
             background: var(--card); padding: 14px; border-radius: 12px;
             margin-bottom: 8px; border: 1px solid #333; position: relative;
         }
-        /* Мерцающая рамка при достижении краёв диапазона (1% / 99%) */
-        @keyframes edgeGlowRed {
-            0%   { box-shadow: 0 0 2px 0 rgba(255,69,58,0.4), inset 0 0 2px 0 rgba(255,69,58,0.3); border-color: rgba(255,69,58,0.5); }
-            50%  { box-shadow: 0 0 10px 2px rgba(255,69,58,0.9), inset 0 0 6px 1px rgba(255,69,58,0.7); border-color: rgba(255,69,58,1); }
-            100% { box-shadow: 0 0 2px 0 rgba(255,69,58,0.4), inset 0 0 2px 0 rgba(255,69,58,0.3); border-color: rgba(255,69,58,0.5); }
+        /* Бегущая линия по контуру при достижении краёв диапазона (1% / 99%) */
+        .card.edge-min, .card.edge-max {
+            border: 1px solid transparent;
+            background-clip: padding-box;
         }
-        @keyframes edgeGlowGreen {
-            0%   { box-shadow: 0 0 2px 0 rgba(48,209,88,0.4), inset 0 0 2px 0 rgba(48,209,88,0.3); border-color: rgba(48,209,88,0.5); }
-            50%  { box-shadow: 0 0 10px 2px rgba(48,209,88,0.9), inset 0 0 6px 1px rgba(48,209,88,0.7); border-color: rgba(48,209,88,1); }
-            100% { box-shadow: 0 0 2px 0 rgba(48,209,88,0.4), inset 0 0 2px 0 rgba(48,209,88,0.3); border-color: rgba(48,209,88,0.5); }
+        .card.edge-min::before, .card.edge-max::before {
+            content: ''; position: absolute; inset: 0;
+            border-radius: 12px; padding: 2px;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude;
+            pointer-events: none;
         }
-        .card.edge-min { animation: edgeGlowRed 1.1s ease-in-out infinite; }
-        .card.edge-max { animation: edgeGlowGreen 1.1s ease-in-out infinite; }
+        @keyframes runBorderRed {
+            0%   { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        @keyframes runBorderGreen {
+            0%   { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        .card.edge-min::before {
+            background: linear-gradient(90deg, rgba(255,69,58,0) 0%, rgba(255,69,58,1) 25%, rgba(255,255,255,0.9) 50%, rgba(255,69,58,1) 75%, rgba(255,69,58,0) 100%);
+            background-size: 200% 100%;
+            animation: runBorderRed 1.5s linear infinite;
+        }
+        .card.edge-max::before {
+            background: linear-gradient(90deg, rgba(48,209,88,0) 0%, rgba(48,209,88,1) 25%, rgba(255,255,255,0.9) 50%, rgba(48,209,88,1) 75%, rgba(48,209,88,0) 100%);
+            background-size: 200% 100%;
+            animation: runBorderGreen 1.5s linear infinite;
+        }
         .no-data-card {
             background: var(--card); padding: 14px; border-radius: 12px;
             margin-bottom: 8px; border: 1px solid #333; border-left: 4px solid var(--red);
@@ -613,9 +638,11 @@ function update() {
         var maxColor  = dynPos >= 75 ? 'var(--green)' : 'var(--accent)';
 
         // Мерцающая рамка только на самых краях диапазона: <=1% или >=99%
+        // Подсветка по тому же округлённому %, что видит пользователь
+        var dynPosRounded = Math.round(dynPos);
         var edgeClass = '';
-        if (dynPos <= 1)       edgeClass = ' edge-min';
-        else if (dynPos >= 99) edgeClass = ' edge-max';
+        if (dynPosRounded <= 1)       edgeClass = ' edge-min';
+        else if (dynPosRounded >= 99) edgeClass = ' edge-max';
 
         html += '<div class="card' + edgeClass + '" style="border-left:4px solid ' + p24hColor + ';">'
 
