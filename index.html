@@ -396,18 +396,16 @@ function refreshMarketData(isRetry) {
     var priceEl = document.getElementById('btc-cur');
     if (logo) logo.classList.add('loading');
     if (priceEl) priceEl.classList.add('loading');
+    var wasSymbols = useSymbolsParam;
     fetch(marketTickerUrl())
         .then(function(res) {
-            // 400 = невалидный символ в ?symbols= → залипаем на полный тикер
-            // и сразу повторяем один раз (без рекурсии при сетевых ошибках)
-            if (res.status === 400 && useSymbolsParam && !isRetry) {
-                useSymbolsParam = false;
-                refreshMarketData(true);
-                throw new Error('retry-full-ticker');
-            }
+            // HTTP-ошибка (напр. 400: невалидный символ в ?symbols=) → в catch
+            if (!res.ok) throw new Error('http ' + res.status);
             return res.json();
         })
         .then(function(data) {
+            // Тикер обязан быть массивом (а не объектом ошибки Binance)
+            if (!data || typeof data.length !== 'number') throw new Error('bad ticker payload');
             cachedMarketData = data;
             if (!sliderInitialized && data.length > 0) {
                 var btcObj = null;
@@ -421,7 +419,16 @@ function refreshMarketData(isRetry) {
             }
             update();
         })
-        .catch(function() {})
+        .catch(function() {
+            // ЛЮБОЙ сбой варианта ?symbols= — HTTP 400, ответ об ошибке без
+            // CORS-заголовков (fetch тогда падает сразу сюда, минуя .then),
+            // сбой сети — один повтор ПОЛНЫМ тикером и залипание на нём до
+            // перезагрузки. Худший случай = ровно старое поведение.
+            if (wasSymbols && !isRetry) {
+                useSymbolsParam = false;
+                refreshMarketData(true);
+            }
+        })
         .finally(function() {
             setTimeout(function() {
                 if (logo) logo.classList.remove('loading');
