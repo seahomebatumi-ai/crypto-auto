@@ -79,10 +79,34 @@ def fit_stats(x, y):
     return float(beta), float(r2)
 
 
-def asymmetric_beta(btc_arr, coin_arr):
-    """Up-бета и down-бета из пары выровненных ценовых рядов."""
-    b_r = np.diff(btc_arr)  / btc_arr[:-1]
-    c_r = np.diff(coin_arr) / coin_arr[:-1]
+def paired_hourly_returns(btc_buckets, coin_buckets, keys):
+    """Часовые возвраты ТОЛЬКО между соседними бакетами (k-1 -> k).
+    Возвраты через дыры в данных (пропуск >1 часа) отбрасываются,
+    чтобы не смешивать горизонты и не искажать бету/R2."""
+    key_set = set(keys)
+    b_r, c_r = [], []
+    for k in keys:
+        if (k - 1) in key_set:
+            b_prev = btc_buckets[k - 1]
+            c_prev = coin_buckets[k - 1]
+            if b_prev > 0 and c_prev > 0:
+                b_r.append(btc_buckets[k] / b_prev - 1.0)
+                c_r.append(coin_buckets[k] / c_prev - 1.0)
+    return np.array(b_r), np.array(c_r)
+
+
+def safe_corr(x, y):
+    """Пирсоновская корреляция с защитой от вырожденных рядов."""
+    if len(x) < 5 or float(np.std(x)) == 0.0 or float(np.std(y)) == 0.0:
+        return None
+    c = float(np.corrcoef(x, y)[0, 1])
+    return c if np.isfinite(c) else None
+
+
+def asymmetric_beta(b_r, c_r):
+    """Up-бета и down-бета из выровненных часовых ВОЗВРАТОВ."""
+    if len(b_r) < 5:
+        return None, None, None, None
     up_b,   up_r2   = fit_stats(b_r[b_r > 0], c_r[b_r > 0])
     down_b, down_r2 = fit_stats(b_r[b_r < 0], c_r[b_r < 0])
     return up_b, up_r2, down_b, down_r2
@@ -95,12 +119,14 @@ def get_token_betas(coin_id, btc_buckets, cutoff_14d):
     """
     time.sleep(REQUEST_GAP_SEC)
 
-    debug = {"candles_total": 0, "matched_90d": 0, "matched_14d": 0, "error": None}
+    debug = {"candles_total": 0, "matched_90d": 0, "matched_14d": 0,
+             "returns_90d": 0, "returns_14d": 0, "error": None}
 
     def err_result(msg):
         debug["error"] = msg
         empty = dict(up_beta=None, up_r2=None, down_beta=None, down_r2=None,
                      up_beta_90=None, up_r2_90=None, down_beta_90=None, down_r2_90=None,
+                     corr_90=None,
                      price_pos=0, volatility=0, min_price=0, max_price=0, error=True)
         return empty, debug
 
@@ -123,12 +149,13 @@ def get_token_betas(coin_id, btc_buckets, cutoff_14d):
         common_90    = sorted(set(btc_buckets) & set(coin_buckets))
         debug["matched_90d"] = len(common_90)
 
-        # -- 90-дневная бета --
-        up_b90 = ur90 = dn_b90 = dr90 = None
+        # -- 90-дневная бета + корреляция BTC/ALT --
+        up_b90 = ur90 = dn_b90 = dr90 = corr90 = None
         if len(common_90) >= MIN_MATCHED_90D:
-            btc90  = np.array([btc_buckets[k]  for k in common_90])
-            coin90 = np.array([coin_buckets[k] for k in common_90])
-            up_b90, ur90, dn_b90, dr90 = asymmetric_beta(btc90, coin90)
+            b_r90, c_r90 = paired_hourly_returns(btc_buckets, coin_buckets, common_90)
+            debug["returns_90d"] = len(b_r90)
+            up_b90, ur90, dn_b90, dr90 = asymmetric_beta(b_r90, c_r90)
+            corr90 = safe_corr(b_r90, c_r90)
 
         # -- 14-дневная бета (срез последних 14 дней из тех же данных) --
         common_14 = [k for k in common_90 if k >= cutoff_14d]
@@ -137,9 +164,9 @@ def get_token_betas(coin_id, btc_buckets, cutoff_14d):
         up_b = ur = dn_b = dr = None
         has_error_14 = len(common_14) < MIN_MATCHED_14D
         if not has_error_14:
-            btc14  = np.array([btc_buckets[k]  for k in common_14])
-            coin14 = np.array([coin_buckets[k] for k in common_14])
-            up_b, ur, dn_b, dr = asymmetric_beta(btc14, coin14)
+            b_r14, c_r14 = paired_hourly_returns(btc_buckets, coin_buckets, common_14)
+            debug["returns_14d"] = len(b_r14)
+            up_b, ur, dn_b, dr = asymmetric_beta(b_r14, c_r14)
         else:
             debug["error"] = f"Мало 14d-точек: {len(common_14)}"
 
@@ -147,6 +174,7 @@ def get_token_betas(coin_id, btc_buckets, cutoff_14d):
             dict(up_beta=up_b,   up_r2=ur,   down_beta=dn_b,   down_r2=dr,
                  up_beta_90=up_b90, up_r2_90=ur90,
                  down_beta_90=dn_b90, down_r2_90=dr90,
+                 corr_90=corr90,
                  price_pos=float(price_pos), volatility=volatility,
                  min_price=min_p, max_price=max_p, error=has_error_14),
             debug
