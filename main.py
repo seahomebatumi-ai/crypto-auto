@@ -33,7 +33,8 @@ TOKENS = {
     'FET': 'fetch-ai', 'ENA': 'ethena', 'TON': 'the-open-network',
     'AVAX': 'avalanche-2', 'ONDO': 'ondo-finance', 'RENDER': 'render-token',
     'TRX': 'tron', 'SOL': 'solana', 'BCH': 'bitcoin-cash', 'HYPE': 'hyperliquid',
-    'SKY': 'sky'
+    'SKY': 'sky',
+    'HBAR': 'hedera-hashgraph', 'XLM': 'stellar', 'ALGO': 'algorand'
 }
 
 # ============================================================
@@ -197,12 +198,20 @@ def main():
         try:
             existing = requests.get(
                 f"https://api.github.com/gists/{GIST_ID}",
-                headers={"Authorization": f"token {GIST_TOKEN}"}
+                headers={"Authorization": f"token {GIST_TOKEN}"},
+                timeout=30
             )
             if existing.ok:
                 files = existing.json().get("files", {})
                 if "history.json" in files:
-                    raw = files["history.json"].get("content", "[]")
+                    hf = files["history.json"]
+                    # GitHub API обрезает файлы >1 МБ (truncated=true):
+                    # тогда content неполный, json.loads падает и история
+                    # сбрасывалась. Читаем полную версию через raw_url.
+                    if hf.get("truncated") and hf.get("raw_url"):
+                        raw = requests.get(hf["raw_url"], timeout=30).text
+                    else:
+                        raw = hf.get("content", "[]")
                     history_points = json.loads(raw)
                     if not isinstance(history_points, list):
                         history_points = []
@@ -230,7 +239,8 @@ def main():
             f"https://api.github.com/gists/{GIST_ID}",
             headers={"Authorization": f"token {GIST_TOKEN}",
                      "Content-Type": "application/json"},
-            json=payload
+            json=payload,
+            timeout=30
         )
         if not r.ok:
             print(f"Ошибка Gist: {r.status_code} {r.text}")
