@@ -30,7 +30,10 @@ TOKENS = {
     'ETH': 'ethereum',
     'SUI': 'sui', 'LINK': 'chainlink', 'NEAR': 'near', 'AAVE': 'aave',
     'XRP': 'ripple', 'ADA': 'cardano', 'YFI': 'yearn-finance', 'TAO': 'bittensor',
-    'FET': 'fetch-ai', 'ENA': 'ethena', 'TON': 'the-open-network',
+    'FET': 'fetch-ai', 'ENA': 'ethena',
+    # GRAM = ex-TON (ребрендинг 07.2026). CoinGecko id НЕ меняем: id у CG
+    # постоянные при переименовании, и он сохраняет всю 90д-историю.
+    'GRAM': 'the-open-network',
     'AVAX': 'avalanche-2', 'ONDO': 'ondo-finance', 'RENDER': 'render-token',
     'TRX': 'tron', 'SOL': 'solana', 'BCH': 'bitcoin-cash', 'HYPE': 'hyperliquid',
     'SKY': 'sky',
