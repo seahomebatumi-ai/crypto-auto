@@ -290,7 +290,7 @@ var tokens = [
     {name:'NEAR',   s:'NEARUSDT'},  {name:'YFI',    s:'YFIUSDT'},
     {name:'AAVE',   s:'AAVEUSDT'},  {name:'AVAX',   s:'AVAXUSDT'},
     {name:'FET',    s:'FETUSDT'},   {name:'ENA',    s:'ENAUSDT'},
-    {name:'TAO',    s:'TAOUSDT'},   {name:'TON',    s:'TONUSDT'},
+    {name:'TAO',    s:'TAOUSDT'},   {name:'GRAM',   s:'GRAMUSDT'},
     {name:'XRP',    s:'XRPUSDT'},   {name:'ADA',    s:'ADAUSDT'},
     {name:'TRX',    s:'TRXUSDT'},   {name:'SOL',    s:'SOLUSDT'},
     {name:'BCH',    s:'BCHUSDT'},   {name:'HYPE',   s:'HYPEUSDT'},
@@ -592,7 +592,33 @@ function update() {
         for (var j = 0; j < cachedMarketData.length; j++) {
             if (cachedMarketData[j].symbol === t.s) { coin = cachedMarketData[j]; break; }
         }
-        if (!coin) return;
+        if (!coin) {
+            // Пара исчезла из тикера Binance (делистинг / смена тикера при
+            // ребрендинге): раньше карточка молча пропадала — теперь видно.
+            html += '<div class="no-data-card">'
+                + '<div class="token-name">' + t.name + ' <span style="color:var(--red);font-size:0.7em;">НЕТ ПАРЫ</span></div>'
+                + '<div style="font-size:0.85em;color:#888;margin-top:4px;">' + t.s + ' отсутствует в тикере Binance &mdash; делистинг или смена тикера</div>'
+                + '</div>';
+            return;
+        }
+
+        // Детектор мёртвого рынка (остановка торгов / делистинг / миграция
+        // тикера): 0 сделок за 24ч или пустой стакан => lastPrice заморожен.
+        // Расчёты по замороженной цене ОТКЛЮЧАЮТСЯ полностью — для фьючерсов
+        // прогноз/ликвидации от неё опасны. У живых пар count всегда >> 0;
+        // если полей нет в ответе (NaN) — поведение как раньше, карточка живая.
+        var trades24 = parseFloat(coin.count);
+        var bidP     = parseFloat(coin.bidPrice);
+        var askP     = parseFloat(coin.askPrice);
+        if (trades24 === 0 || (bidP === 0 && askP === 0)) {
+            var frozenP = parseFloat(coin.lastPrice);
+            html += '<div class="no-data-card">'
+                + '<div class="token-name">' + t.name + ' <span class="light-blink" style="color:var(--red);font-size:0.7em;">ТОРГИ ОСТАНОВЛЕНЫ</span></div>'
+                + '<div style="font-size:0.85em;color:#888;margin-top:4px;">Цена заморожена: $' + (isFinite(frozenP) ? frozenP.toFixed(4) : '?')
+                + ' &mdash; прогноз и ликвидации отключены (0 сделок / пустой стакан). Возможна миграция тикера.</div>'
+                + '</div>';
+            return;
+        }
 
         var coinData = null;
         if (botData.analysis_data) {
@@ -629,6 +655,16 @@ function update() {
 
         var cur  = parseFloat(coin.lastPrice);
         var p24h = parseFloat(coin.priceChangePercent);
+
+        // Сверка источников: живая цена Binance против 90д-диапазона бота
+        // (CoinGecko). Выход далеко за диапазон (×1.5 вверх / ×0.5 вниз) =>
+        // либо пара и CoinGecko-id смотрят на РАЗНЫЕ активы (ошибка миграции),
+        // либо экстремальное движение за <1ч — в обоих случаях смотреть руками.
+        var srcMismatch = (coinData.max_price > 0)
+            && (cur > coinData.max_price * 1.5 || cur < coinData.min_price * 0.5);
+        var mismatchHtml = srcMismatch
+            ? '<div style="color:#f3ba2f;font-weight:600;font-size:0.75em;margin:2px 0;">&#9888; Расхождение источников: цена вне 90д-диапазона бота &mdash; проверь пару/ID</div>'
+            : '';
 
         // Степенная агрегация беты: часовая бета накапливается по пути
         // мультипликативно, поэтому прогноз = cur * (1+ratio)^beta.
@@ -744,6 +780,9 @@ function update() {
                    '<div style="font-size:0.72em;font-weight:700;color:' + confColor + ';">Conf ' + conf + '%</div>')
             +   '</div>'
             + '</div>'
+
+            // Жёлтое предупреждение о расхождении источников (пусто в норме)
+            + mismatchHtml
 
             // R² 14d + Funding
             + '<div style="font-size:1.1em;font-weight:bold;font-style:italic;margin:4px 0;color:' + r2Color + ';">'
