@@ -37,7 +37,9 @@ TOKENS = {
     'AVAX': 'avalanche-2', 'ONDO': 'ondo-finance', 'RENDER': 'render-token',
     'TRX': 'tron', 'SOL': 'solana', 'BCH': 'bitcoin-cash', 'HYPE': 'hyperliquid',
     'SKY': 'sky',
-    'HBAR': 'hedera-hashgraph', 'XLM': 'stellar', 'ALGO': 'algorand'
+    'HBAR': 'hedera-hashgraph', 'XLM': 'stellar', 'ALGO': 'algorand',
+    # BNB добавлен 2026-07-29. 24 альта + BTC = 25 вызовов/прогон (~18k/мес).
+    'BNB': 'binancecoin'
 }
 
 # ============================================================
