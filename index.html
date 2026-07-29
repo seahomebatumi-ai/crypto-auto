@@ -293,10 +293,10 @@ var tokens = [
     {name:'TAO',    s:'TAOUSDT'},   {name:'GRAM',   s:'GRAMUSDT'},
     {name:'XRP',    s:'XRPUSDT'},   {name:'ADA',    s:'ADAUSDT'},
     {name:'TRX',    s:'TRXUSDT'},   {name:'SOL',    s:'SOLUSDT'},
-    {name:'BCH',    s:'BCHUSDT'},   {name:'HYPE',   s:'HYPEUSDT'},
+    {name:'BCH',    s:'BCHUSDT'},   {name:'HYPE',   s:'HYPEUSDT', fut:true},
     {name:'SKY',    s:'SKYUSDT'},   {name:'ETH',    s:'ETHUSDT'},
     {name:'HBAR',   s:'HBARUSDT'},  {name:'XLM',    s:'XLMUSDT'},
-    {name:'ALGO',   s:'ALGOUSDT'}
+    {name:'ALGO',   s:'ALGOUSDT'},  {name:'BNB',    s:'BNBUSDT'}
 ];
 
 // ── Тикер только по нужным парам ────────────────────────────────────────────
@@ -309,6 +309,10 @@ function marketTickerUrl() {
     if (!useSymbolsParam) return 'https://api.binance.com/api/v3/ticker/24hr';
     var syms = ['BTCUSDT'];
     for (var i = 0; i < tokens.length; i++) {
+        // fut:true = пары нет на споте (есть только перп на fapi).
+        // Такой символ в ?symbols= даёт HTTP 400 на ВЕСЬ запрос и молча
+        // ронял приложение на полный тикер 1.2МБ каждую сессию.
+        if (tokens[i].fut) continue;
         if (syms.indexOf(tokens[i].s) === -1) syms.push(tokens[i].s);
     }
     return 'https://api.binance.com/api/v3/ticker/24hr?symbols='
@@ -342,6 +346,7 @@ document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') {
         fetchBotData();
         refreshMarketData();
+        refreshFuturesTickers();
         fetchFundingRates();
     }
 });
@@ -371,6 +376,28 @@ function fetchFundingRates() {
             update();
         })
         .catch(function() {});
+}
+
+// ── Futures-native пары (нет на Binance Spot, есть перп на fapi) ────────────
+// Цена берётся по одному запросу /fapi/v1/ticker/24hr?symbol=... (weight 1).
+// В ответе fapi нет bidPrice/askPrice — детектор мёртвого рынка работает по
+// count (отсутствующие поля = NaN = карточка жива, поведение по спецификации).
+// Любой сбой = карточка «НЕТ ПАРЫ», как раньше: регресс невозможен по построению.
+var cachedFutTickers = {};
+
+function refreshFuturesTickers() {
+    tokens.forEach(function(t) {
+        if (!t.fut) return;
+        fetch('https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=' + t.s)
+            .then(function(res) {
+                if (!res.ok) throw new Error('http ' + res.status);
+                return res.json();
+            })
+            .then(function(d) {
+                if (d && d.symbol) { cachedFutTickers[d.symbol] = d; update(); }
+            })
+            .catch(function() {});
+    });
 }
 
 function updateFreshnessDisplay() {
@@ -483,8 +510,10 @@ function init() {
     renderButtons();
     fetchBotData();
     refreshMarketData();
+    refreshFuturesTickers();
     fetchFundingRates();
     setInterval(refreshMarketData,    30000);
+    setInterval(refreshFuturesTickers, 30000);
     setInterval(fetchBotData,    300000);
     setInterval(fetchFundingRates,   300000);
     setInterval(updateFreshnessDisplay, 30000);
@@ -509,6 +538,20 @@ function confidenceScore(r2_14, r2_90, rawBeta, beta90, volatility) {
     var acc = 0, wsum = 0;
     for (var i = 0; i < parts.length; i++) { acc += parts[i] * weights[i]; wsum += weights[i]; }
     return wsum > 0 ? Math.round(100 * acc / wsum) : null;
+}
+
+// ── Gate: светофор доверия к МОДЕЛИ карточки (НЕ сигнал входа) ─────────────
+// Отвечает на один вопрос: можно ли использовать прогноз/бету этой карточки
+// в решении. red = цифрам не доверять (вход только по графику/катализатору),
+// yellow = использовать с половинным размером, green = модель рабочая.
+// Чисто отображение: не меняет ни одного расчёта. Старый coeffs.json без
+// corr_90 обрабатывается (undefined = без штрафа) — инвариант 9 соблюдён.
+function gateState(conf, r2dir, corr90) {
+    if (conf === null || conf === undefined || conf < 40) return 'red';
+    if (r2dir === null || r2dir === undefined || r2dir < 0.25) return 'red';
+    if (corr90 !== null && corr90 !== undefined && Math.abs(corr90) < 0.5) return 'red';
+    if (conf < 70) return 'yellow';
+    return 'green';
 }
 
 // ── Главный рендер ──────────────────────────────────────────────────────────
@@ -589,8 +632,12 @@ function update() {
 
     tokens.forEach(function(t, i) {
         var coin = null;
-        for (var j = 0; j < cachedMarketData.length; j++) {
-            if (cachedMarketData[j].symbol === t.s) { coin = cachedMarketData[j]; break; }
+        if (t.fut) {
+            coin = cachedFutTickers[t.s] || null;
+        } else {
+            for (var j = 0; j < cachedMarketData.length; j++) {
+                if (cachedMarketData[j].symbol === t.s) { coin = cachedMarketData[j]; break; }
+            }
         }
         if (!coin) {
             // Пара исчезла из тикера Binance (делистинг / смена тикера при
@@ -778,6 +825,12 @@ function update() {
             +     '<div>$' + cur.toFixed(4) + '</div>'
             +     (conf === null ? '' :
                    '<div style="font-size:0.72em;font-weight:700;color:' + confColor + ';">Conf ' + conf + '%</div>')
+            +     (function() {
+                       var g = gateState(conf, r2_14, coinData.corr_90);
+                       var gc = g === 'green' ? 'var(--green)' : (g === 'yellow' ? 'var(--accent)' : 'var(--red)');
+                       var gl = g === 'green' ? 'MDL \u2713' : (g === 'yellow' ? 'MDL \u007E' : 'MDL \u2715');
+                       return '<div style="font-size:0.66em;font-weight:800;letter-spacing:0.04em;color:' + gc + ';">' + gl + '</div>';
+                   })()
             +   '</div>'
             + '</div>'
 
