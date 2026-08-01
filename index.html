@@ -755,11 +755,8 @@ function update() {
         // Строка 90d беты + индикатор согласованности + корреляция BTC/ALT
         var line90 = '';
         if (beta90 !== null && beta90 !== undefined && r2_90 !== null) {
-            var div90    = Math.abs(rawBeta - beta90) / (Math.abs(beta90) || 1);
-            var aligned  = div90 < 0.25;
-            var icon90    = aligned ? 'ok' : '!';
-            var icon90cls = aligned ? 'icon-ok' : 'icon-warn';
-            var icon90c   = aligned ? 'var(--green)' : 'var(--red)';
+            // Иконка ok/! удалена: расхождение бет 14д/90д уже входит в Conf/МДЛ,
+            // а сами беты теперь видны рядом числами (b= в строке R2 и 90d: b=).
             var r90Color = r2_90 < 0.30 ? 'var(--red)' : (r2_90 < 0.60 ? '#f3ba2f' : 'var(--green)');
             // corr_90 — опциональное поле (старый coeffs.json его не содержит)
             var corr90   = coinData.corr_90;
@@ -773,7 +770,6 @@ function update() {
                 + '90d: b=' + beta90.toFixed(2)
                 + ' / <span style="color:#f3ba2f">R2=' + r2_90.toFixed(2) + '</span>'
                 + corrHtml
-                + '<span class="' + icon90cls + '" style="color:' + icon90c + ';font-weight:bold;font-size:1.25em;margin-left:5px;vertical-align:-1px;">' + icon90 + '</span>'
                 + '</div>';
         }
 
@@ -786,9 +782,11 @@ function update() {
         var fundRate = cachedFunding[t.s];
         var fundHtml = '';
         if (fundRate !== undefined) {
+            // Правило Босса: зелёный = мне платят, красный = я плачу.
+            // Funding > 0: лонги платят шортам; < 0: шорты платят лонгам.
             var fundColor = isLong
                 ? (fundRate > 0 ? 'var(--red)' : 'var(--green)')
-                : (fundRate < 0 ? 'var(--green)' : 'var(--red)');
+                : (fundRate > 0 ? 'var(--green)' : 'var(--red)');
             fundHtml = '<span style="color:' + fundColor + ';font-size:0.8em;font-style:italic;margin-left:8px;">'
                 + 'Fund: ' + (fundRate >= 0 ? '+' : '') + (fundRate * 100).toFixed(4) + '%/8h'
                 + '</span>';
@@ -839,7 +837,7 @@ function update() {
 
             // R² 14d + Funding
             + '<div style="font-size:1.1em;font-weight:bold;font-style:italic;margin:4px 0;color:' + r2Color + ';">'
-            +   'R2: ' + (r2_14 !== null ? r2_14.toFixed(2) : 'N/A') + fundHtml
+            +   '<span style="color:#ccc;">b=' + rawBeta.toFixed(2) + '</span> / R2: ' + (r2_14 !== null ? r2_14.toFixed(2) : 'N/A') + fundHtml
             + '</div>'
 
             // 90d строка
