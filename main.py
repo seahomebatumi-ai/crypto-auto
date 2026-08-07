@@ -3,7 +3,7 @@ import json
 import time
 import numpy as np
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pycoingecko import CoinGeckoAPI
 
 # ============================================================
@@ -25,6 +25,7 @@ MIN_MATCHED_90D  = 120   # минимум для 90d-беты (5 дней)
 REQUEST_GAP_SEC  = 1.0
 MAX_RETRIES      = 3
 RETRY_BACKOFF    = 3.0
+RANK_LOOKBACK_H  = 24    # горизонт сравнения ранга (часы)
 
 TOKENS = {
     'ETH': 'ethereum',
@@ -39,7 +40,13 @@ TOKENS = {
     'SKY': 'sky',
     'HBAR': 'hedera-hashgraph', 'XLM': 'stellar', 'ALGO': 'algorand',
     # BNB добавлен 2026-07-29. 24 альта + BTC = 25 вызовов/прогон (~18k/мес).
-    'BNB': 'binancecoin'
+    'BNB': 'binancecoin',
+    # Добавлены 2026-08-07. Итого 28 альтов + BTC = 29 market_chart
+    # + 1 /coins/markets (ранги) = 30 вызовов/прогон (~21.6k/мес).
+    'ZEC': 'zcash', 'XMR': 'monero', 'UNI': 'uniswap',
+    # LIT = Litentry. Требует подтверждения Боссом (возможен ребрендинг в HEI
+    # либо имелся в виду другой актив). CG id постоянен при переименовании.
+    'LIT': 'litentry'
 }
 
 # ============================================================
@@ -60,6 +67,46 @@ def fetch_with_retry(coin_id):
             if attempt < MAX_RETRIES:
                 time.sleep(RETRY_BACKOFF * (2 ** (attempt - 1)))
     return None, last_err
+
+
+def fetch_ranks():
+    """Ранги по капитализации для всех монет списка — ОДИН вызов /coins/markets.
+    Возвращает {coin_id: market_cap_rank}. Любой сбой -> {} (фронт рисует серый)."""
+    ids = ",".join(TOKENS.values())
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            data = cg.get_coins_markets(vs_currency='usd', ids=ids,
+                                        per_page=250, page=1)
+            out = {}
+            for item in (data or []):
+                r = item.get('market_cap_rank')
+                if isinstance(r, int) and r > 0:
+                    out[item.get('id')] = r
+            return out
+        except Exception:
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_BACKOFF * (2 ** (attempt - 1)))
+    return {}
+
+
+def prev_ranks_from_history(history_points, now_utc):
+    """Ранги из ближайшей точки истории СТАРШЕ RANK_LOOKBACK_H часов.
+    Нет такой точки (история короче / сброшена) -> {} -> фронт серый."""
+    cutoff = now_utc - timedelta(hours=RANK_LOOKBACK_H)
+    for point in reversed(history_points):
+        try:
+            t = datetime.fromisoformat(str(point.get("t")))
+        except Exception:
+            continue
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=timezone.utc)
+        if t <= cutoff:
+            out = {}
+            for sym, v in (point.get("coins") or {}).items():
+                if isinstance(v, dict) and isinstance(v.get("r"), int):
+                    out[sym] = v["r"]
+            return out
+    return {}
 
 
 def bucket_prices(price_list):
@@ -201,7 +248,18 @@ def main():
 
         btc_buckets  = bucket_prices(b_data['prices'])
         cutoff_14d   = int((time.time() - 14 * 24 * 3600) * 1000 // (BUCKET_SECONDS * 1000))
-        generated_at = datetime.now(timezone.utc).isoformat()
+        now_utc      = datetime.now(timezone.utc)
+        generated_at = now_utc.isoformat()
+
+        # 90д-статистика самого BTC (тот же ответ, доп. запросов НЕТ).
+        btc_p     = np.array([p[1] for p in b_data['prices']])
+        btc_min   = float(np.min(btc_p))
+        btc_max   = float(np.max(btc_p))
+        btc_pos   = ((float(btc_p[-1]) - btc_min) / (btc_max - btc_min) * 100) \
+                    if btc_max != btc_min else 0.0
+        btc_vol   = float(np.std(np.diff(btc_p) / btc_p[:-1])) if len(btc_p) > 1 else 0.0
+        btc_stats = {"min_price": btc_min, "max_price": btc_max,
+                     "price_pos": float(btc_pos), "volatility": btc_vol}
 
         results    = []
         debug_info = {"timestamp": generated_at, "details": {}}
@@ -211,21 +269,16 @@ def main():
             results.append({"symbol": symbol, **beta_data})
             debug_info["details"][symbol] = dbg
 
+        # --- Ранг по капитализации: 1 вызов на весь список ---
+        ranks = fetch_ranks()
+        debug_info["ranks_fetched"] = len(ranks)
+        for row in results:
+            row["rank"] = ranks.get(TOKENS.get(row["symbol"]))
+            row["rank_prev"] = None   # заполняется ниже из history.json
+
         # --- История бет: компактная запись по каждому токену ---
         # Дописываем одну точку на прогон. Храним только беты и R2 (без min/max/vol),
         # чтобы файл рос медленно. Старые записи обрезаем (хранится ~30 дней = 720 точек).
-        history_snapshot = {"t": generated_at, "coins": {}}
-        for row in results:
-            if not row.get("error"):
-                history_snapshot["coins"][row["symbol"]] = {
-                    "ub":  round(row["up_beta"], 3)    if row["up_beta"]    is not None else None,
-                    "ur":  round(row["up_r2"], 3)      if row["up_r2"]      is not None else None,
-                    "db":  round(row["down_beta"], 3)  if row["down_beta"]  is not None else None,
-                    "dr":  round(row["down_r2"], 3)    if row["down_r2"]    is not None else None,
-                    "ub90": round(row["up_beta_90"], 3)   if row["up_beta_90"]   is not None else None,
-                    "db90": round(row["down_beta_90"], 3) if row["down_beta_90"] is not None else None,
-                }
-
         # Читаем существующую историю из Gist, дописываем новую точку
         history_points = []
         try:
@@ -252,6 +305,30 @@ def main():
             print(f"История: не удалось прочитать прошлую ({e}), начинаем заново")
             history_points = []
 
+        # Ранг 24ч назад — из уже прочитанной истории (доп. запросов НЕТ)
+        prev_ranks = prev_ranks_from_history(history_points, now_utc)
+        for row in results:
+            row["rank_prev"] = prev_ranks.get(row["symbol"])
+
+        # Снимок для истории: беты (как раньше) + ранг «r».
+        # Поля опциональные — старые читатели history.json не ломаются.
+        history_snapshot = {"t": generated_at, "coins": {}}
+        for row in results:
+            entry = {}
+            if not row.get("error"):
+                entry = {
+                    "ub":  round(row["up_beta"], 3)    if row["up_beta"]    is not None else None,
+                    "ur":  round(row["up_r2"], 3)      if row["up_r2"]      is not None else None,
+                    "db":  round(row["down_beta"], 3)  if row["down_beta"]  is not None else None,
+                    "dr":  round(row["down_r2"], 3)    if row["down_r2"]    is not None else None,
+                    "ub90": round(row["up_beta_90"], 3)   if row["up_beta_90"]   is not None else None,
+                    "db90": round(row["down_beta_90"], 3) if row["down_beta_90"] is not None else None,
+                }
+            if row.get("rank") is not None:
+                entry["r"] = row["rank"]
+            if entry:
+                history_snapshot["coins"][row["symbol"]] = entry
+
         history_points.append(history_snapshot)
         # Обрезаем до последних 720 точек (~30 дней при часовом прогоне)
         if len(history_points) > 720:
@@ -261,6 +338,7 @@ def main():
             "files": {
                 "coeffs.json": {"content": json.dumps({
                     "generated_at": generated_at,
+                    "btc": btc_stats,
                     "analysis_data": results
                 })},
                 "debug.json": {"content": json.dumps(debug_info, indent=4)},
