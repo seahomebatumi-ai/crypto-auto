@@ -1,1012 +1,367 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="image.PNG">
-    <title>Pro Crypto Toll</title>
-    <style>
-        :root {
-            --bg: #0f0f12; --card: #1a1a20; --accent: #f3ba2f;
-            --lilac: #bf5af2; --cyan: #0ad1c8; --red: #ff453a;
-            --green: #30d158; --text: #ffffff;
-        }
-        body {
-            background-color: var(--bg); color: var(--text);
-            font-family: -apple-system, sans-serif; margin: 0;
-            padding-top: calc(env(safe-area-inset-top) + 10px);
-            padding-left: 10px; padding-right: 10px;
-            padding-bottom: calc(env(safe-area-inset-bottom) + 10px);
-        }
-        .control {
-            background: var(--card); padding: 15px; border-radius: 16px;
-            border: 1px solid #333; margin-bottom: 15px;
-        }
-        .btc-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-        @keyframes rainbow { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
-        .btc-logo { font-size: 2.4em; color: var(--accent); font-weight: bold; transition: 0.3s; }
-        .btc-logo.loading { animation: rainbow 1s linear infinite; }
-        @keyframes priceRainbow {
-            0%   { color: #f3ba2f; }
-            20%  { color: #30d158; }
-            40%  { color: #0ad1c8; }
-            60%  { color: #bf5af2; }
-            80%  { color: #ff453a; }
-            100% { color: #f3ba2f; }
-        }
-        .btc-price.loading { animation: priceRainbow 1.2s linear infinite; }
-        .btc-price { color: var(--text); font-size: 1.6em; font-weight: 800; }
-        .card {
-            background: var(--card); padding: 14px; border-radius: 12px;
-            margin-bottom: 8px; border: 1px solid #333; position: relative;
-        }
-        /* Бегущая линия по контуру при достижении краёв диапазона (1% / 99%) */
-        .card.edge-min, .card.edge-max {
-            border: 1px solid transparent;
-            background-clip: padding-box;
-        }
-        .card.edge-min::before, .card.edge-max::before {
-            content: ''; position: absolute; inset: 0;
-            border-radius: 12px; padding: 2px;
-            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor; mask-composite: exclude;
-            pointer-events: none;
-        }
-        @keyframes runBorderRed {
-            0%   { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
-        }
-        @keyframes runBorderGreen {
-            0%   { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
-        }
-        .card.edge-min::before {
-            background: linear-gradient(90deg, rgba(255,69,58,0) 0%, rgba(255,69,58,1) 25%, rgba(255,255,255,0.9) 50%, rgba(255,69,58,1) 75%, rgba(255,69,58,0) 100%);
-            background-size: 200% 100%;
-            animation: runBorderRed 1.5s linear infinite;
-        }
-        .card.edge-max::before {
-            background: linear-gradient(90deg, rgba(48,209,88,0) 0%, rgba(48,209,88,1) 25%, rgba(255,255,255,0.9) 50%, rgba(48,209,88,1) 75%, rgba(48,209,88,0) 100%);
-            background-size: 200% 100%;
-            animation: runBorderGreen 1.5s linear infinite;
-        }
-        .no-data-card {
-            background: var(--card); padding: 14px; border-radius: 12px;
-            margin-bottom: 8px; border: 1px solid #333; border-left: 4px solid var(--red);
-        }
-        .token-name { font-size: 1.2em; font-weight: 800; color: var(--lilac); }
-        .row { display: flex; justify-content: space-between; align-items: center; }
-        #slider { width: 100%; margin: 10px 0; transition: accent-color 0.3s ease; }
-        .lev-container {
-            display: grid; grid-template-columns: repeat(7,1fr);
-            gap: 4px; margin-bottom: 6px;
-        }
-        .lev-btn {
-            background: #2c2c31; border: none; color: white;
-            padding: 8px 0; border-radius: 6px; font-size: 12px; cursor: pointer;
-        }
-        .lev-btn.active { background: var(--accent); color: #000; font-weight: bold; }
-        .stress-container { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; }
-        .stress-btn {
-            border: none; color: #aaa; padding: 7px 0; border-radius: 6px;
-            font-size: 12px; font-weight: 600; cursor: pointer;
-            background: #2c2c31; transition: all 0.2s;
-        }
-        .stress-btn.s-normal { color: #000; background: var(--green); }
-        .stress-btn.s-panic  { color: #000; background: var(--accent); }
-        .stress-btn.s-crash  { color: #fff; background: var(--red); }
-        .nav-btn {
-            background: #444; border: none; color: #fff;
-            padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;
-        }
-        .pct-24h { font-size: 0.6em; font-weight: bold; }
-        @keyframes blink { 0%{opacity:1} 50%{opacity:0.2} 100%{opacity:1} }
-        .blink-text { animation: blink 1s linear infinite; font-weight: 900; }
-        @keyframes lightBlink { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
-        .light-blink { animation: lightBlink 1.5s ease-in-out infinite; }
-        .extra-data { font-size: 0.85em; color: var(--accent); margin-top: 8px; font-style: italic; }
-        /* Диапазон BTC 90д — занимает строку, освобождённую штампом обновления */
-        .btc-range { font-size: 0.8em; color: var(--accent); font-style: italic; margin-bottom: 10px; }
-        /* Компактный штамп свежести данных бота в правом верхнем углу */
-        .upd-stamp { font-size: 0.62em; line-height: 1; white-space: nowrap; color: #888; }
-        .rank-badge { font-size: 0.62em; font-weight: 700; vertical-align: 2px; margin-right: 5px; }
-        .vol-value {
-            position: absolute; bottom: 42px; right: 14px;
-            font-size: 0.9em; font-weight: bold; font-style: italic;
-        }
-        @keyframes blinkRed {
-            0%  { opacity:1; }
-            50% { opacity:0.15; }
-            100%{ opacity:1; }
-        }
-        @keyframes blinkGreen {
-            0%  { opacity:1; }
-            50% { opacity:0.4; }
-            100%{ opacity:1; }
-        }
-        .icon-warn {
-            display:inline-block;
-            color: var(--red) !important;
-            animation: blinkRed 0.9s linear infinite;
-            font-weight: bold;
-        }
-        .icon-ok {
-            display:inline-block;
-            color: var(--green) !important;
-            animation: blinkGreen 2s ease-in-out infinite;
-        }
-        /* Экран ввода пароля */
-        #lock-screen {
-            position: fixed; inset: 0; z-index: 9999;
-            background: var(--bg);
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            padding: 20px;
-        }
-        #lock-screen .lock-box {
-            background: var(--card); border: 1px solid #333;
-            border-radius: 16px; padding: 28px 22px;
-            width: 100%; max-width: 360px; text-align: center;
-        }
-        #lock-screen .lock-logo { font-size: 2.6em; color: var(--accent); font-weight: bold; margin-bottom: 6px; }
-        #lock-screen .lock-title {
-            font-size: 1.15em; font-weight: 700; margin-bottom: 18px;
-            color: var(--text); letter-spacing: 0.02em;
-            word-break: keep-all; line-height: 1.35;
-        }
-        #lock-input {
-            width: 100%; box-sizing: border-box;
-            background: #2c2c31; border: 1px solid #444;
-            color: var(--text); font-size: 1.1em;
-            padding: 12px 14px; border-radius: 10px;
-            text-align: center; letter-spacing: 0.05em;
-            margin-bottom: 12px; outline: none;
-        }
-        #lock-input:focus { border-color: var(--accent); }
-        #lock-btn {
-            width: 100%; background: var(--accent); color: #000;
-            font-size: 1.05em; font-weight: 700; border: none;
-            padding: 12px; border-radius: 10px; cursor: pointer;
-        }
-        #lock-error { color: var(--red); font-size: 0.85em; margin-top: 10px; min-height: 18px; }
-    </style>
-</head>
-<body>
+import os
+import json
+import time
+import numpy as np
+import requests
+from datetime import datetime, timezone, timedelta
+from pycoingecko import CoinGeckoAPI
 
-<div id="lock-screen">
-    <div class="lock-box">
-        <div class="lock-logo">&#8383;</div>
-        <div class="lock-title">🜲 𝒫𝓇ℴ⇝𝒞𝓇𝒾𝓅𝓉ℴ⇝𝒯ℴ𝓁𝓁 🜲</div>
-        <input type="password" id="lock-input" placeholder="Введите код доступа" autocomplete="off" inputmode="text">
-        <button id="lock-btn">Войти</button>
-        <div id="lock-error"></div>
-    </div>
-</div>
+# ============================================================
+# Инициализация
+# ============================================================
+api_key = os.environ.get('COINGECKO_API_KEY')
+cg = CoinGeckoAPI(api_key=api_key)
 
-<div class="control">
-    <div class="btc-header">
-        <span id="btc-logo" class="btc-logo">&#8383;</span>
-        <span id="btc-cur" class="btc-price">...</span>
-        <span id="btc-24h" style="font-weight:bold;">0.00%</span>
-        <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-            <div id="last-update" class="upd-stamp">...</div>
-            <div id="status-dot" style="width:12px;height:12px;border-radius:50%;background:#666;"></div>
-        </div>
-    </div>
-    <div class="row" style="margin-bottom:4px;">
-        <div style="font-weight:600;">
-            <span id="btc-target">Прогноз BTC: ...</span><span id="btc-target-arrow" style="font-size:1.3em;font-weight:700;line-height:1;vertical-align:-2px;margin-left:4px;"></span>
-        </div>
-        <div style="text-align:right;">
-            <div id="btc-pct" style="font-weight:bold;color:#ffffff;">0.00%</div>
-            <div id="dir-indicator" style="font-size:0.75em;font-weight:800;color:#888;">&#8212;&#8212;</div>
-        </div>
-    </div>
-    <div id="btc-range" class="btc-range">Диапазон BTC 90д: ...</div>
-    <div style="display:flex;align-items:center;gap:6px;margin:6px 0;">
-        <button id="btn-minus" style="
-            background:#2c1f1f;border:1px solid var(--red);color:var(--red);
-            font-size:1.4em;font-weight:900;width:38px;height:38px;
-            border-radius:8px;cursor:pointer;flex-shrink:0;
-            display:flex;align-items:center;justify-content:center;
-            line-height:1;">&#8722;</button>
-        <input type="range" id="slider" min="20000" max="150000" step="100"
-               style="flex:1;margin:0;">
-        <button id="btn-plus" style="
-            background:#1a2a1f;border:1px solid var(--green);color:var(--green);
-            font-size:1.4em;font-weight:900;width:38px;height:38px;
-            border-radius:8px;cursor:pointer;flex-shrink:0;
-            display:flex;align-items:center;justify-content:center;
-            line-height:1;">&#43;</button>
-    </div>
-    <div class="lev-container" id="levContainer"></div>
-    <div class="stress-container" id="stressContainer"></div>
-</div>
+GIST_ID    = "3f50574a29bc37434c18cc8480779ccb"
+GIST_TOKEN = os.environ.get('GIST_TOKEN')
 
-<div id="results">Загрузка данных...</div>
+# Один запрос за 90 дней даёт оба таймфрейма:
+# • 14-дневная бета  — последние 336 часовых бакетов (как раньше)
+# • 90-дневная бета  — все ~2160 бакетов (новый таймфрейм)
+DAYS_WINDOW      = 90
+BUCKET_SECONDS   = 3600
+MIN_MATCHED_14D  = 24    # минимум синхронных точек для 14d-беты
+MIN_MATCHED_90D  = 120   # минимум для 90d-беты (5 дней)
+REQUEST_GAP_SEC  = 1.0
+MAX_RETRIES      = 3
+RETRY_BACKOFF    = 3.0
+RANK_LOOKBACK_H  = 24    # горизонт сравнения ранга (часы)
 
-<script>
-// ── Защита паролем ──────────────────────────────────────────────────────────
-// Пароль запоминается на устройстве через localStorage: вводится один раз,
-// потом калькулятор открывается сразу. На чужом устройстве (где localStorage
-// пустой) без пароля доступа нет.
-(function() {
-    var ACCESS_CODE = 'AV777SA';
-    var LS_KEY = 'cryptoEngineAccess';
-
-    function unlock() {
-        var ls = document.getElementById('lock-screen');
-        if (ls) ls.style.display = 'none';
-    }
-
-    // Уже разблокировано на этом устройстве?
-    try {
-        if (localStorage.getItem(LS_KEY) === ACCESS_CODE) {
-            unlock();
-        }
-    } catch(e) {}
-
-    function tryLogin() {
-        var inp = document.getElementById('lock-input');
-        var err = document.getElementById('lock-error');
-        if (!inp) return;
-        if (inp.value === ACCESS_CODE) {
-            try { localStorage.setItem(LS_KEY, ACCESS_CODE); } catch(e) {}
-            if (err) err.innerText = '';
-            unlock();
-        } else {
-            if (err) err.innerText = 'Неверный код, попробуйте снова';
-            inp.value = '';
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        var btn = document.getElementById('lock-btn');
-        var inp = document.getElementById('lock-input');
-        if (btn) btn.addEventListener('click', tryLogin);
-        if (inp) inp.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') tryLogin();
-        });
-    });
-})();
-
-// ── Константы ──────────────────────────────────────────────────────────────
-var currentLev    = 3;
-var currentStress = 'normal';
-
-var STRESS_MULT  = { normal: 1.0, panic: 1.3, crash: 1.8 };
-var STRESS_BADGE = { normal: '',   panic: 'b*1.3', crash: 'b*1.8' };
-
-// Maintenance margin (Binance USDT-M, нижний тир для большинства альтов ~1%).
-// Реальная ликвидация ближе ко входу, чем наивное pred*(1 -/+ 1/L).
-var LIQ_MMR = 0.01;
-
-var botData          = { analysis_data: [], generated_at: null };
-var cachedMarketData = [];
-var cachedFunding    = {};
-var sliderInitialized = false;
-
-var GIST_URL       = 'https://gist.githubusercontent.com/seahomebatumi-ai/3f50574a29bc37434c18cc8480779ccb/raw/coeffs.json';
-var STALE_WARN_MIN = 75;
-var STALE_CRIT_MIN = 130;
-
-var tokens = [
-    {name:'SUI',    s:'SUIUSDT'},   {name:'ONDO',   s:'ONDOUSDT'},
-    {name:'LINK',   s:'LINKUSDT'},  {name:'RENDER', s:'RENDERUSDT'},
-    {name:'NEAR',   s:'NEARUSDT'},  {name:'YFI',    s:'YFIUSDT'},
-    {name:'AAVE',   s:'AAVEUSDT'},  {name:'AVAX',   s:'AVAXUSDT'},
-    {name:'FET',    s:'FETUSDT'},   {name:'ENA',    s:'ENAUSDT'},
-    {name:'TAO',    s:'TAOUSDT'},   {name:'GRAM',   s:'GRAMUSDT'},
-    {name:'XRP',    s:'XRPUSDT'},   {name:'ADA',    s:'ADAUSDT'},
-    {name:'TRX',    s:'TRXUSDT'},   {name:'SOL',    s:'SOLUSDT'},
-    {name:'BCH',    s:'BCHUSDT'},   {name:'HYPE',   s:'HYPEUSDT', fut:true},
-    {name:'SKY',    s:'SKYUSDT'},   {name:'ETH',    s:'ETHUSDT'},
-    {name:'HBAR',   s:'HBARUSDT'},  {name:'XLM',    s:'XLMUSDT'},
-    {name:'ALGO',   s:'ALGOUSDT'},  {name:'BNB',    s:'BNBUSDT'},
-    // Добавлены 2026-08-07.
-    // ZEC / UNI — спот-пары Binance есть, идут в ?symbols= штатно.
-    // XMR — спот делистнут Binance (2024, регуляторка) => fut:true.
-    // LIT — статус спот-пары не подтверждён (возможен ребрендинг) => fut:true.
-    // Правило: неподтверждённый символ НИКОГДА не кладём в спот-?symbols=
-    // (HTTP 400 роняет ВЕСЬ спот-тикер на 1.2 МБ — инвариант 5).
-    {name:'ZEC',    s:'ZECUSDT'},   {name:'UNI',    s:'UNIUSDT'},
-    {name:'XMR',    s:'XMRUSDT', fut:true},
-    {name:'LIT',    s:'LITUSDT', fut:true}
-];
-
-// ── Тикер только по нужным парам ────────────────────────────────────────────
-// Полный /ticker/24hr = ~1.2 МБ каждые 30с; ?symbols= = ~12 КБ (weight 40 vs 80).
-// При HTTP 400 (например, символ делистнут) откатываемся на полный тикер
-// до перезагрузки страницы — поведение идентично старому.
-var useSymbolsParam = true;
-
-function marketTickerUrl() {
-    if (!useSymbolsParam) return 'https://api.binance.com/api/v3/ticker/24hr';
-    var syms = ['BTCUSDT'];
-    for (var i = 0; i < tokens.length; i++) {
-        // fut:true = пары нет на споте (есть только перп на fapi).
-        // Такой символ в ?symbols= даёт HTTP 400 на ВЕСЬ запрос и молча
-        // ронял приложение на полный тикер 1.2МБ каждую сессию.
-        if (tokens[i].fut) continue;
-        if (syms.indexOf(tokens[i].s) === -1) syms.push(tokens[i].s);
-    }
-    return 'https://api.binance.com/api/v3/ticker/24hr?symbols='
-        + encodeURIComponent(JSON.stringify(syms));
+TOKENS = {
+    'ETH': 'ethereum',
+    'SUI': 'sui', 'LINK': 'chainlink', 'NEAR': 'near', 'AAVE': 'aave',
+    'XRP': 'ripple', 'ADA': 'cardano', 'YFI': 'yearn-finance', 'TAO': 'bittensor',
+    'FET': 'fetch-ai', 'ENA': 'ethena',
+    # GRAM = ex-TON (ребрендинг 07.2026). CoinGecko id НЕ меняем: id у CG
+    # постоянные при переименовании, и он сохраняет всю 90д-историю.
+    'GRAM': 'the-open-network',
+    'AVAX': 'avalanche-2', 'ONDO': 'ondo-finance', 'RENDER': 'render-token',
+    'TRX': 'tron', 'SOL': 'solana', 'BCH': 'bitcoin-cash', 'HYPE': 'hyperliquid',
+    'SKY': 'sky',
+    'HBAR': 'hedera-hashgraph', 'XLM': 'stellar', 'ALGO': 'algorand',
+    # BNB добавлен 2026-07-29. 24 альта + BTC = 25 вызовов/прогон (~18k/мес).
+    'BNB': 'binancecoin',
+    # Добавлены 2026-08-07. Итого 28 альтов + BTC = 29 market_chart
+    # + 1 /coins/markets (ранги) = 30 вызовов/прогон (~21.6k/мес).
+    'ZEC': 'zcash', 'XMR': 'monero', 'UNI': 'uniswap',
+    # LIT на Binance = Lighter (перп LITUSDT, подтверждено 2026-08-07).
+    # НЕ Litentry: тот id дал ранг #1183 и диапазон $0.06-1.26 при цене $2.33 —
+    # детектор расхождения источников (инв. 11) поймал разные активы.
+    # CG id не подтверждён по API: если бот даст NO DATA — найти точный id
+    # через api.coingecko.com/api/v3/search?query=lighter и заменить строку.
+    'LIT': 'lighter'
 }
 
-// ── Порядок карточек ────────────────────────────────────────────────────────
-var ORDER_KEY = 'cryptoEngineTokenOrder';
+# ============================================================
+# Вспомогательные функции
+# ============================================================
 
-function applySavedOrder() {
-    try {
-        var saved = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null');
-        if (!Array.isArray(saved) || !saved.length) return;
-        var map = {};
-        tokens.forEach(function(t) { map[t.name] = t; });
-        var out = [];
-        saved.forEach(function(n) { if (map[n]) { out.push(map[n]); delete map[n]; } });
-        Object.keys(map).forEach(function(n) { out.push(map[n]); });
-        tokens = out;
-    } catch(e) {}
-}
+def fetch_with_retry(coin_id):
+    last_err = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            data = cg.get_coin_market_chart_by_id(
+                id=coin_id, vs_currency='usd', days=DAYS_WINDOW)
+            if not data or 'prices' not in data or len(data['prices']) < 5:
+                raise ValueError("Пустой или некорректный ответ CoinGecko")
+            return data, None
+        except Exception as e:
+            last_err = str(e)
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_BACKOFF * (2 ** (attempt - 1)))
+    return None, last_err
 
-function saveOrder() {
-    try {
-        localStorage.setItem(ORDER_KEY, JSON.stringify(tokens.map(function(t){ return t.name; })));
-    } catch(e) {}
-}
 
-// ── Сетевые запросы ─────────────────────────────────────────────────────────
-document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') {
-        fetchBotData();
-        refreshMarketData();
-        refreshFuturesTickers();
-        fetchFundingRates();
-    }
-});
+def fetch_ranks():
+    """Ранги по капитализации для всех монет списка — ОДИН вызов /coins/markets.
+    Возвращает {coin_id: market_cap_rank}. Любой сбой -> {} (фронт рисует серый)."""
+    ids = ",".join(TOKENS.values())
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            data = cg.get_coins_markets(vs_currency='usd', ids=ids,
+                                        per_page=250, page=1)
+            out = {}
+            for item in (data or []):
+                r = item.get('market_cap_rank')
+                if isinstance(r, int) and r > 0:
+                    out[item.get('id')] = r
+            return out
+        except Exception:
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_BACKOFF * (2 ** (attempt - 1)))
+    return {}
 
-function fetchBotData() {
-    fetch(GIST_URL + '?t=' + Date.now())
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            botData = data;
-            document.getElementById('status-dot').style.backgroundColor = 'var(--green)';
-            updateFreshnessDisplay();
-            update();
-        })
-        .catch(function() {
-            document.getElementById('status-dot').style.backgroundColor = 'var(--red)';
-        });
-}
 
-function fetchFundingRates() {
-    fetch('https://fapi.binance.com/fapi/v1/premiumIndex')
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            cachedFunding = {};
-            data.forEach(function(item) {
-                cachedFunding[item.symbol] = parseFloat(item.lastFundingRate);
-            });
-            update();
-        })
-        .catch(function() {});
-}
+def prev_ranks_from_history(history_points, now_utc):
+    """Ранги из ближайшей точки истории СТАРШЕ RANK_LOOKBACK_H часов.
+    Нет такой точки (история короче / сброшена) -> {} -> фронт серый."""
+    cutoff = now_utc - timedelta(hours=RANK_LOOKBACK_H)
+    for point in reversed(history_points):
+        try:
+            t = datetime.fromisoformat(str(point.get("t")))
+        except Exception:
+            continue
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=timezone.utc)
+        if t <= cutoff:
+            out = {}
+            for sym, v in (point.get("coins") or {}).items():
+                if isinstance(v, dict) and isinstance(v.get("r"), int):
+                    out[sym] = v["r"]
+            return out
+    return {}
 
-// ── Futures-native пары (нет на Binance Spot, есть перп на fapi) ────────────
-// Цена берётся по одному запросу /fapi/v1/ticker/24hr?symbol=... (weight 1).
-// В ответе fapi нет bidPrice/askPrice — детектор мёртвого рынка работает по
-// count (отсутствующие поля = NaN = карточка жива, поведение по спецификации).
-// Любой сбой = карточка «НЕТ ПАРЫ», как раньше: регресс невозможен по построению.
-var cachedFutTickers = {};
 
-function refreshFuturesTickers() {
-    tokens.forEach(function(t) {
-        if (!t.fut) return;
-        fetch('https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=' + t.s)
-            .then(function(res) {
-                if (!res.ok) throw new Error('http ' + res.status);
-                return res.json();
-            })
-            .then(function(d) {
-                if (d && d.symbol) { cachedFutTickers[d.symbol] = d; update(); }
-            })
-            .catch(function() {});
-    });
-}
+def bucket_prices(price_list):
+    """[[ts_ms, price], ...] -> {bucket_index: price}  (часовые бакеты)"""
+    buckets = {}
+    for ts_ms, price in price_list:
+        b = int(ts_ms // (BUCKET_SECONDS * 1000))
+        buckets[b] = price
+    return buckets
 
-function updateFreshnessDisplay() {
-    var el = document.getElementById('last-update');
-    if (!el) return;
-    if (!botData.generated_at) {
-        el.innerText   = 'Нет данных';
-        el.style.color = 'var(--red)';
-        return;
-    }
-    var genDate = new Date(botData.generated_at);
-    var ageMin  = (Date.now() - genDate.getTime()) / 60000;
-    var mins    = Math.max(0, Math.round(ageMin));
-    // Компактный штамп: одна строка, без часов — влезает над точкой статуса.
-    // Пороги свежести те же (STALE_WARN 75 / STALE_CRIT 130), меняется только текст.
-    if (ageMin > STALE_CRIT_MIN) {
-        el.innerText   = '! Молчит ' + mins + ' мин';
-        el.style.color = 'var(--red)';
-    } else if (ageMin > STALE_WARN_MIN) {
-        el.innerText   = 'Обновлено ' + mins + ' мин';
-        el.style.color = 'var(--accent)';
-    } else {
-        el.innerText   = ageMin < 1 ? 'Обновлено сейчас' : 'Обновлено ' + mins + ' мин';
-        el.style.color = '#888';
-    }
-}
 
-function refreshMarketData(isRetry) {
-    var logo = document.getElementById('btc-logo');
-    var priceEl = document.getElementById('btc-cur');
-    if (logo) logo.classList.add('loading');
-    if (priceEl) priceEl.classList.add('loading');
-    var wasSymbols = useSymbolsParam;
-    fetch(marketTickerUrl())
-        .then(function(res) {
-            // HTTP-ошибка (напр. 400: невалидный символ в ?symbols=) → в catch
-            if (!res.ok) throw new Error('http ' + res.status);
-            return res.json();
-        })
-        .then(function(data) {
-            // Тикер обязан быть массивом (а не объектом ошибки Binance)
-            if (!data || typeof data.length !== 'number') throw new Error('bad ticker payload');
-            cachedMarketData = data;
-            if (!sliderInitialized && data.length > 0) {
-                var btcObj = null;
-                for (var i = 0; i < data.length; i++) {
-                    if (data[i].symbol === 'BTCUSDT') { btcObj = data[i]; break; }
+def fit_stats(x, y):
+    """OLS y = beta*x + c -> (beta, R2)"""
+    if len(x) < 5:
+        return None, None
+    A = np.vstack([x, np.ones(len(x))]).T
+    beta, c = np.linalg.lstsq(A, y, rcond=None)[0]
+    y_pred = beta * x + c
+    ss_res = np.sum((y - y_pred) ** 2)
+    ss_tot = np.sum((y - np.mean(y)) ** 2)
+    r2 = 1 - ss_res / ss_tot if ss_tot != 0 else 0
+    return float(beta), float(r2)
+
+
+def paired_hourly_returns(btc_buckets, coin_buckets, keys):
+    """Часовые возвраты ТОЛЬКО между соседними бакетами (k-1 -> k).
+    Возвраты через дыры в данных (пропуск >1 часа) отбрасываются,
+    чтобы не смешивать горизонты и не искажать бету/R2."""
+    key_set = set(keys)
+    b_r, c_r = [], []
+    for k in keys:
+        if (k - 1) in key_set:
+            b_prev = btc_buckets[k - 1]
+            c_prev = coin_buckets[k - 1]
+            if b_prev > 0 and c_prev > 0:
+                b_r.append(btc_buckets[k] / b_prev - 1.0)
+                c_r.append(coin_buckets[k] / c_prev - 1.0)
+    return np.array(b_r), np.array(c_r)
+
+
+def safe_corr(x, y):
+    """Пирсоновская корреляция с защитой от вырожденных рядов."""
+    if len(x) < 5 or float(np.std(x)) == 0.0 or float(np.std(y)) == 0.0:
+        return None
+    c = float(np.corrcoef(x, y)[0, 1])
+    return c if np.isfinite(c) else None
+
+
+def asymmetric_beta(b_r, c_r):
+    """Up-бета и down-бета из выровненных часовых ВОЗВРАТОВ."""
+    if len(b_r) < 5:
+        return None, None, None, None
+    up_b,   up_r2   = fit_stats(b_r[b_r > 0], c_r[b_r > 0])
+    down_b, down_r2 = fit_stats(b_r[b_r < 0], c_r[b_r < 0])
+    return up_b, up_r2, down_b, down_r2
+
+
+def get_token_betas(coin_id, btc_buckets, cutoff_14d):
+    """
+    Считает 14d-бету и 90d-бету за один запрос к CoinGecko.
+    cutoff_14d — минимальный bucket_index, соответствующий 14 дням назад.
+    """
+    time.sleep(REQUEST_GAP_SEC)
+
+    debug = {"candles_total": 0, "matched_90d": 0, "matched_14d": 0,
+             "returns_90d": 0, "returns_14d": 0, "error": None}
+
+    def err_result(msg):
+        debug["error"] = msg
+        empty = dict(up_beta=None, up_r2=None, down_beta=None, down_r2=None,
+                     up_beta_90=None, up_r2_90=None, down_beta_90=None, down_r2_90=None,
+                     corr_90=None,
+                     price_pos=0, volatility=0, min_price=0, max_price=0, error=True)
+        return empty, debug
+
+    c_data, err = fetch_with_retry(coin_id)
+    if c_data is None:
+        return err_result(err)
+
+    try:
+        c_prices = np.array([p[1] for p in c_data['prices']])
+        debug["candles_total"] = len(c_prices)
+
+        # Собственные метрики монеты (по всем 90 дням, не зависят от BTC)
+        cur   = c_prices[-1]
+        min_p = float(np.min(c_prices))
+        max_p = float(np.max(c_prices))
+        price_pos  = ((cur - min_p) / (max_p - min_p) * 100) if max_p != min_p else 0
+        volatility = float(np.std(np.diff(c_prices) / c_prices[:-1])) if len(c_prices) > 1 else 0
+
+        coin_buckets = bucket_prices(c_data['prices'])
+        common_90    = sorted(set(btc_buckets) & set(coin_buckets))
+        debug["matched_90d"] = len(common_90)
+
+        # -- 90-дневная бета + корреляция BTC/ALT --
+        up_b90 = ur90 = dn_b90 = dr90 = corr90 = None
+        if len(common_90) >= MIN_MATCHED_90D:
+            b_r90, c_r90 = paired_hourly_returns(btc_buckets, coin_buckets, common_90)
+            debug["returns_90d"] = len(b_r90)
+            up_b90, ur90, dn_b90, dr90 = asymmetric_beta(b_r90, c_r90)
+            corr90 = safe_corr(b_r90, c_r90)
+
+        # -- 14-дневная бета (срез последних 14 дней из тех же данных) --
+        common_14 = [k for k in common_90 if k >= cutoff_14d]
+        debug["matched_14d"] = len(common_14)
+
+        up_b = ur = dn_b = dr = None
+        has_error_14 = len(common_14) < MIN_MATCHED_14D
+        if not has_error_14:
+            b_r14, c_r14 = paired_hourly_returns(btc_buckets, coin_buckets, common_14)
+            debug["returns_14d"] = len(b_r14)
+            up_b, ur, dn_b, dr = asymmetric_beta(b_r14, c_r14)
+        else:
+            debug["error"] = f"Мало 14d-точек: {len(common_14)}"
+
+        return (
+            dict(up_beta=up_b,   up_r2=ur,   down_beta=dn_b,   down_r2=dr,
+                 up_beta_90=up_b90, up_r2_90=ur90,
+                 down_beta_90=dn_b90, down_r2_90=dr90,
+                 corr_90=corr90,
+                 price_pos=float(price_pos), volatility=volatility,
+                 min_price=min_p, max_price=max_p, error=has_error_14),
+            debug
+        )
+
+    except Exception as e:
+        return err_result(str(e))
+
+
+# ============================================================
+# Главный прогон
+# ============================================================
+def main():
+    try:
+        b_data, err = fetch_with_retry('bitcoin')
+        if b_data is None:
+            print(f"Критическая ошибка BTC: {err}")
+            return
+
+        btc_buckets  = bucket_prices(b_data['prices'])
+        cutoff_14d   = int((time.time() - 14 * 24 * 3600) * 1000 // (BUCKET_SECONDS * 1000))
+        now_utc      = datetime.now(timezone.utc)
+        generated_at = now_utc.isoformat()
+
+        # 90д-статистика самого BTC (тот же ответ, доп. запросов НЕТ).
+        btc_p     = np.array([p[1] for p in b_data['prices']])
+        btc_min   = float(np.min(btc_p))
+        btc_max   = float(np.max(btc_p))
+        btc_pos   = ((float(btc_p[-1]) - btc_min) / (btc_max - btc_min) * 100) \
+                    if btc_max != btc_min else 0.0
+        btc_vol   = float(np.std(np.diff(btc_p) / btc_p[:-1])) if len(btc_p) > 1 else 0.0
+        btc_stats = {"min_price": btc_min, "max_price": btc_max,
+                     "price_pos": float(btc_pos), "volatility": btc_vol}
+
+        results    = []
+        debug_info = {"timestamp": generated_at, "details": {}}
+
+        for symbol, coin_id in TOKENS.items():
+            beta_data, dbg = get_token_betas(coin_id, btc_buckets, cutoff_14d)
+            results.append({"symbol": symbol, **beta_data})
+            debug_info["details"][symbol] = dbg
+
+        # --- Ранг по капитализации: 1 вызов на весь список ---
+        ranks = fetch_ranks()
+        debug_info["ranks_fetched"] = len(ranks)
+        for row in results:
+            row["rank"] = ranks.get(TOKENS.get(row["symbol"]))
+            row["rank_prev"] = None   # заполняется ниже из history.json
+
+        # --- История бет: компактная запись по каждому токену ---
+        # Дописываем одну точку на прогон. Храним только беты и R2 (без min/max/vol),
+        # чтобы файл рос медленно. Старые записи обрезаем (хранится ~30 дней = 720 точек).
+        # Читаем существующую историю из Gist, дописываем новую точку
+        history_points = []
+        try:
+            existing = requests.get(
+                f"https://api.github.com/gists/{GIST_ID}",
+                headers={"Authorization": f"token {GIST_TOKEN}"},
+                timeout=30
+            )
+            if existing.ok:
+                files = existing.json().get("files", {})
+                if "history.json" in files:
+                    hf = files["history.json"]
+                    # GitHub API обрезает файлы >1 МБ (truncated=true):
+                    # тогда content неполный, json.loads падает и история
+                    # сбрасывалась. Читаем полную версию через raw_url.
+                    if hf.get("truncated") and hf.get("raw_url"):
+                        raw = requests.get(hf["raw_url"], timeout=30).text
+                    else:
+                        raw = hf.get("content", "[]")
+                    history_points = json.loads(raw)
+                    if not isinstance(history_points, list):
+                        history_points = []
+        except Exception as e:
+            print(f"История: не удалось прочитать прошлую ({e}), начинаем заново")
+            history_points = []
+
+        # Ранг 24ч назад — из уже прочитанной истории (доп. запросов НЕТ)
+        prev_ranks = prev_ranks_from_history(history_points, now_utc)
+        for row in results:
+            row["rank_prev"] = prev_ranks.get(row["symbol"])
+
+        # Снимок для истории: беты (как раньше) + ранг «r».
+        # Поля опциональные — старые читатели history.json не ломаются.
+        history_snapshot = {"t": generated_at, "coins": {}}
+        for row in results:
+            entry = {}
+            if not row.get("error"):
+                entry = {
+                    "ub":  round(row["up_beta"], 3)    if row["up_beta"]    is not None else None,
+                    "ur":  round(row["up_r2"], 3)      if row["up_r2"]      is not None else None,
+                    "db":  round(row["down_beta"], 3)  if row["down_beta"]  is not None else None,
+                    "dr":  round(row["down_r2"], 3)    if row["down_r2"]    is not None else None,
+                    "ub90": round(row["up_beta_90"], 3)   if row["up_beta_90"]   is not None else None,
+                    "db90": round(row["down_beta_90"], 3) if row["down_beta_90"] is not None else None,
                 }
-                if (btcObj) {
-                    document.getElementById('slider').value = Math.round(parseFloat(btcObj.lastPrice));
-                    sliderInitialized = true;
-                }
-            }
-            update();
-        })
-        .catch(function() {
-            // ЛЮБОЙ сбой варианта ?symbols= — HTTP 400, ответ об ошибке без
-            // CORS-заголовков (fetch тогда падает сразу сюда, минуя .then),
-            // сбой сети — один повтор ПОЛНЫМ тикером и залипание на нём до
-            // перезагрузки. Худший случай = ровно старое поведение.
-            if (wasSymbols && !isRetry) {
-                useSymbolsParam = false;
-                refreshMarketData(true);
-            }
-        })
-        .finally(function() {
-            setTimeout(function() {
-                if (logo) logo.classList.remove('loading');
-                if (priceEl) priceEl.classList.remove('loading');
-            }, 500);
-        });
-}
+            if row.get("rank") is not None:
+                entry["r"] = row["rank"]
+            if entry:
+                history_snapshot["coins"][row["symbol"]] = entry
 
-// ── UI ──────────────────────────────────────────────────────────────────────
-function move(idx, dir) {
-    var n = idx + dir;
-    if (n >= 0 && n < tokens.length) {
-        var tmp = tokens[idx]; tokens[idx] = tokens[n]; tokens[n] = tmp;
-        saveOrder();
-        update();
-    }
-}
+        history_points.append(history_snapshot)
+        # Обрезаем до последних 720 точек (~30 дней при часовом прогоне)
+        if len(history_points) > 720:
+            history_points = history_points[-720:]
 
-function renderButtons() {
-    var lc = document.getElementById('levContainer');
-    [2,3,4,5,6,8,10].forEach(function(l) {
-        var b = document.createElement('button');
-        b.className = 'lev-btn' + (currentLev === l ? ' active' : '');
-        b.innerText = l + 'X';
-        b.onclick = function() {
-            currentLev = l;
-            document.querySelectorAll('.lev-btn').forEach(function(x) { x.classList.remove('active'); });
-            b.classList.add('active');
-            update();
-        };
-        lc.appendChild(b);
-    });
-
-    var sc = document.getElementById('stressContainer');
-    [['normal','Normal'],['panic','Panic'],['crash','Crash']].forEach(function(pair) {
-        var mode = pair[0], label = pair[1];
-        var b = document.createElement('button');
-        b.className = 'stress-btn' + (currentStress === mode ? ' s-' + mode : '');
-        b.innerText = label;
-        b.onclick = function() {
-            currentStress = mode;
-            document.querySelectorAll('.stress-btn').forEach(function(x) { x.className = 'stress-btn'; });
-            b.className = 'stress-btn s-' + mode;
-            update();
-        };
-        sc.appendChild(b);
-    });
-}
-
-function init() {
-    applySavedOrder();
-    renderButtons();
-    fetchBotData();
-    refreshMarketData();
-    refreshFuturesTickers();
-    fetchFundingRates();
-    setInterval(refreshMarketData,    30000);
-    setInterval(refreshFuturesTickers, 30000);
-    setInterval(fetchBotData,    300000);
-    setInterval(fetchFundingRates,   300000);
-    setInterval(updateFreshnessDisplay, 30000);
-}
-
-// ── Confidence Score ────────────────────────────────────────────────────────
-// Композитная оценка доверия к прогнозу (0-100) из уже имеющихся метрик:
-// 45% R2 текущего направления (14d), 25% R2 (90d), 20% согласованность
-// бет 14d/90d, 10% штраф за волатильность. Отсутствующие компоненты
-// исключаются с перенормировкой весов (например, пока нет 90d-данных).
-function confidenceScore(r2_14, r2_90, rawBeta, beta90, volatility) {
-    function c01(x) { return Math.max(0, Math.min(1, x)); }
-    var parts = [], weights = [];
-    if (r2_14 !== null && r2_14 !== undefined) { parts.push(c01(r2_14)); weights.push(0.45); }
-    if (r2_90 !== null && r2_90 !== undefined) { parts.push(c01(r2_90)); weights.push(0.25); }
-    if (beta90 !== null && beta90 !== undefined && rawBeta !== null && rawBeta !== undefined) {
-        var div90 = Math.abs(rawBeta - beta90) / (Math.abs(beta90) || 1);
-        parts.push(1 - Math.min(div90, 1)); weights.push(0.20);
-    }
-    var volPct = (volatility || 0) * 100;
-    parts.push(1 - Math.min(volPct / 3, 1)); weights.push(0.10);
-    var acc = 0, wsum = 0;
-    for (var i = 0; i < parts.length; i++) { acc += parts[i] * weights[i]; wsum += weights[i]; }
-    return wsum > 0 ? Math.round(100 * acc / wsum) : null;
-}
-
-// ── Gate: светофор доверия к МОДЕЛИ карточки (НЕ сигнал входа) ─────────────
-// Отвечает на один вопрос: можно ли использовать прогноз/бету этой карточки
-// в решении. red = цифрам не доверять (вход только по графику/катализатору),
-// yellow = использовать с половинным размером, green = модель рабочая.
-// Чисто отображение: не меняет ни одного расчёта. Старый coeffs.json без
-// corr_90 обрабатывается (undefined = без штрафа) — инвариант 9 соблюдён.
-function gateState(conf, r2dir, corr90) {
-    if (conf === null || conf === undefined || conf < 40) return 'red';
-    if (r2dir === null || r2dir === undefined || r2dir < 0.25) return 'red';
-    if (corr90 !== null && corr90 !== undefined && Math.abs(corr90) < 0.5) return 'red';
-    if (conf < 70) return 'yellow';
-    return 'green';
-}
-
-// ── Главный рендер ──────────────────────────────────────────────────────────
-function update() {
-    if (!cachedMarketData.length) return;
-    var btcObj = null;
-    for (var i = 0; i < cachedMarketData.length; i++) {
-        if (cachedMarketData[i].symbol === 'BTCUSDT') { btcObj = cachedMarketData[i]; break; }
-    }
-    if (!btcObj) return;
-
-    var btc    = parseFloat(btcObj.lastPrice);
-    var btc24h = parseFloat(btcObj.priceChangePercent);
-    var target = parseFloat(document.getElementById('slider').value);
-    var ratio  = (target - btc) / btc;
-
-    var slider = document.getElementById('slider');
-    if (slider) slider.style.accentColor = ratio > 0 ? 'var(--green)' : (ratio < 0 ? 'var(--red)' : 'var(--accent)');
-
-    var elCur = document.getElementById('btc-cur');
-    if (elCur) elCur.innerText = '$' + Math.round(btc).toLocaleString();
-
-    var el24h = document.getElementById('btc-24h');
-    if (el24h) {
-        el24h.innerText   = (btc24h >= 0 ? '+' : '') + btc24h.toFixed(2) + '%';
-        el24h.style.color = btc24h >= 0 ? 'var(--green)' : 'var(--red)';
-    }
-
-    var btcDirColor = ratio >= 0 ? 'var(--green)' : 'var(--red)';
-    var btcDirArrow = ratio >= 0 ? '\u219F' : '\u21A1';
-
-    var elTarget = document.getElementById('btc-target');
-    if (elTarget) {
-        elTarget.innerText = 'Прогноз BTC: $' + target.toLocaleString();
-        elTarget.style.color = btcDirColor;
-    }
-    var elTargetArrow = document.getElementById('btc-target-arrow');
-    if (elTargetArrow) {
-        elTargetArrow.innerText = btcDirArrow;
-        elTargetArrow.style.color = btcDirColor;
-    }
-
-    var elPct = document.getElementById('btc-pct');
-    if (elPct) {
-        elPct.innerText   = (ratio >= 0 ? '+' : '') + (ratio * 100).toFixed(2) + '%';
-        elPct.style.color = ratio > 0 ? 'var(--green)' : (ratio < 0 ? 'var(--red)' : '#ffffff');
-    }
-
-    // Диапазон BTC за 90д (min / позиция / max) — данные из coeffs.json.
-    // Мигание на порогах 25%/75% — как в карточках монет.
-    // Старый coeffs.json без поля btc => честная надпись, без падения (инв. 9).
-    var brEl = document.getElementById('btc-range');
-    if (brEl) {
-        var bs = botData.btc;
-        if (bs && bs.max_price > bs.min_price) {
-            var bPos = Math.max(0, Math.min(100, (btc - bs.min_price) / (bs.max_price - bs.min_price) * 100));
-            var bMinCls = bPos <= 25 ? 'light-blink' : '';
-            var bMinCol = bPos <= 25 ? 'var(--red)' : 'var(--accent)';
-            var bMaxCls = bPos >= 75 ? 'light-blink' : '';
-            var bMaxCol = bPos >= 75 ? 'var(--green)' : 'var(--accent)';
-            brEl.innerHTML = 'Min: <span class="' + bMinCls + '" style="color:' + bMinCol + ';">$'
-                + Math.round(bs.min_price).toLocaleString() + '</span>'
-                + ' | <span style="color:#fff;font-size:1.05em;font-weight:bold;font-family:monospace;margin:0 4px;">'
-                + bPos.toFixed(0) + '%</span> | '
-                + 'Max: <span class="' + bMaxCls + '" style="color:' + bMaxCol + ';">$'
-                + Math.round(bs.max_price).toLocaleString() + '</span>'
-                + ' <span style="color:#666;font-size:0.8em;font-style:normal;">90д</span>';
-        } else {
-            brEl.innerHTML = '<span style="color:#666;">Диапазон BTC 90д: нет данных бота</span>';
-        }
-    }
-
-    // Индикатор LONG / SHORT — с защитой от null
-    var dirEl = document.getElementById('dir-indicator');
-    if (dirEl) {
-        if (ratio > 0.005)       { dirEl.innerText = 'LONG';  dirEl.style.color = 'var(--green)'; }
-        else if (ratio < -0.005) { dirEl.innerText = 'SHORT'; dirEl.style.color = 'var(--red)'; }
-        else                     { dirEl.innerText = '--';     dirEl.style.color = '#888'; }
-    }
-
-    // Цвет символов кнопок синхронно со слайдером
-    var btnM = document.getElementById('btn-minus');
-    var btnP = document.getElementById('btn-plus');
-    if (btnM && btnP) {
-        if (ratio < -0.005) {
-            btnM.style.color='var(--red)';   btnM.style.borderColor='var(--red)';
-            btnP.style.color='#444';         btnP.style.borderColor='#444';
-        } else if (ratio > 0.005) {
-            btnP.style.color='var(--green)'; btnP.style.borderColor='var(--green)';
-            btnM.style.color='#444';         btnM.style.borderColor='#444';
-        } else {
-            btnM.style.color='#777'; btnM.style.borderColor='#555';
-            btnP.style.color='#777'; btnP.style.borderColor='#555';
-        }
-    }
-
-    var stressMult  = STRESS_MULT[currentStress];
-    var stressBadge = STRESS_BADGE[currentStress];
-    var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
-
-    var html = '';
-
-    tokens.forEach(function(t, i) {
-        var coin = null;
-        if (t.fut) {
-            coin = cachedFutTickers[t.s] || null;
-        } else {
-            for (var j = 0; j < cachedMarketData.length; j++) {
-                if (cachedMarketData[j].symbol === t.s) { coin = cachedMarketData[j]; break; }
-            }
-        }
-        if (!coin) {
-            // Пара исчезла из тикера Binance (делистинг / смена тикера при
-            // ребрендинге): раньше карточка молча пропадала — теперь видно.
-            html += '<div class="no-data-card">'
-                + '<div class="token-name">' + t.name + ' <span style="color:var(--red);font-size:0.7em;">НЕТ ПАРЫ</span></div>'
-                + '<div style="font-size:0.85em;color:#888;margin-top:4px;">' + t.s + ' отсутствует в тикере Binance &mdash; делистинг или смена тикера</div>'
-                + '</div>';
-            return;
-        }
-
-        // Детектор мёртвого рынка (остановка торгов / делистинг / миграция
-        // тикера): 0 сделок за 24ч или пустой стакан => lastPrice заморожен.
-        // Расчёты по замороженной цене ОТКЛЮЧАЮТСЯ полностью — для фьючерсов
-        // прогноз/ликвидации от неё опасны. У живых пар count всегда >> 0;
-        // если полей нет в ответе (NaN) — поведение как раньше, карточка живая.
-        var trades24 = parseFloat(coin.count);
-        var bidP     = parseFloat(coin.bidPrice);
-        var askP     = parseFloat(coin.askPrice);
-        if (trades24 === 0 || (bidP === 0 && askP === 0)) {
-            var frozenP = parseFloat(coin.lastPrice);
-            html += '<div class="no-data-card">'
-                + '<div class="token-name">' + t.name + ' <span class="light-blink" style="color:var(--red);font-size:0.7em;">ТОРГИ ОСТАНОВЛЕНЫ</span></div>'
-                + '<div style="font-size:0.85em;color:#888;margin-top:4px;">Цена заморожена: $' + (isFinite(frozenP) ? frozenP.toFixed(4) : '?')
-                + ' &mdash; прогноз и ликвидации отключены (0 сделок / пустой стакан). Возможна миграция тикера.</div>'
-                + '</div>';
-            return;
-        }
-
-        var coinData = null;
-        if (botData.analysis_data) {
-            for (var k = 0; k < botData.analysis_data.length; k++) {
-                if (botData.analysis_data[k].symbol === t.name) { coinData = botData.analysis_data[k]; break; }
+        payload = {
+            "files": {
+                "coeffs.json": {"content": json.dumps({
+                    "generated_at": generated_at,
+                    "btc": btc_stats,
+                    "analysis_data": results
+                })},
+                "debug.json": {"content": json.dumps(debug_info, indent=4)},
+                "history.json": {"content": json.dumps(history_points)}
             }
         }
 
-        if (!coinData || coinData.error) {
-            html += '<div class="no-data-card">'
-                + '<div class="token-name">' + t.name + ' <span style="color:var(--red);font-size:0.7em;">NO DATA</span></div>'
-                + '<div style="font-size:0.85em;color:#888;margin-top:4px;">Бот не дал валидной беты</div>'
-                + '</div>';
-            return;
-        }
+        r = requests.patch(
+            f"https://api.github.com/gists/{GIST_ID}",
+            headers={"Authorization": f"token {GIST_TOKEN}",
+                     "Content-Type": "application/json"},
+            json=payload,
+            timeout=30
+        )
+        if not r.ok:
+            print(f"Ошибка Gist: {r.status_code} {r.text}")
 
-        // Бета с учётом стресс-режима
-        var rawBeta = ratio >= 0 ? coinData.up_beta : coinData.down_beta;
-        // Guard: бета может быть null при error=false (мало точек в нужном
-        // направлении) — раньше это молча рисовало прогноз 0%
-        if (rawBeta === null || rawBeta === undefined || !isFinite(rawBeta)) {
-            html += '<div class="no-data-card">'
-                + '<div class="token-name">' + t.name + ' <span style="color:var(--red);font-size:0.7em;">NO BETA</span></div>'
-                + '<div style="font-size:0.85em;color:#888;margin-top:4px;">Нет валидной беты для текущего направления</div>'
-                + '</div>';
-            return;
-        }
-        var beta    = rawBeta * stressMult;
-        var r2_14   = ratio >= 0 ? coinData.up_r2 : coinData.down_r2;
+    except Exception as e:
+        print(f"Критическая ошибка: {e}")
 
-        // 90-дневная бета (справочная)
-        var beta90 = ratio >= 0 ? coinData.up_beta_90 : coinData.down_beta_90;
-        var r2_90  = ratio >= 0 ? coinData.up_r2_90   : coinData.down_r2_90;
 
-        var cur  = parseFloat(coin.lastPrice);
-        var p24h = parseFloat(coin.priceChangePercent);
-
-        // Сверка источников: живая цена Binance против 90д-диапазона бота
-        // (CoinGecko). Выход далеко за диапазон (×1.5 вверх / ×0.5 вниз) =>
-        // либо пара и CoinGecko-id смотрят на РАЗНЫЕ активы (ошибка миграции),
-        // либо экстремальное движение за <1ч — в обоих случаях смотреть руками.
-        var srcMismatch = (coinData.max_price > 0)
-            && (cur > coinData.max_price * 1.5 || cur < coinData.min_price * 0.5);
-        var mismatchHtml = srcMismatch
-            ? '<div style="color:#f3ba2f;font-weight:600;font-size:0.75em;margin:2px 0;">&#9888; Расхождение источников: цена вне 90д-диапазона бота &mdash; проверь пару/ID</div>'
-            : '';
-
-        // Степенная агрегация беты: часовая бета накапливается по пути
-        // мультипликативно, поэтому прогноз = cur * (1+ratio)^beta.
-        // На малых ходах совпадает с прежним линейным cur*(1+ratio*beta),
-        // на больших не даёт цен ниже нуля и clamp-артефактов.
-        // 1+ratio = target/btc > 0 всегда; Math.max — защитный пояс.
-        var growth = Math.pow(Math.max(1 + ratio, 1e-9), beta);
-        var pPct   = (growth - 1) * 100;
-
-        // Позиция в 90-дневном диапазоне (по живой цене; бот считает min/max за DAYS_WINDOW=90)
-        var minP = coinData.min_price, maxP = coinData.max_price;
-        var dynPos = (maxP - minP) > 0
-            ? Math.max(0, Math.min(100, ((cur - minP) / (maxP - minP)) * 100))
-            : 0;
-
-        // Прогнозная цена (куда пойдёт монета)
-        var pred     = Math.max(cur * growth, 0.00000001);
-        var predText = pred < 0.0001 ? '&lt;0.0001' : '$' + pred.toFixed(4);
-
-        // ── ЛИКВИДАЦИЯ ────────────────────────────────────────────────────
-        var isLong   = ratio >= 0;
-        // Ликвидация считается от ПРОГНОЗНОЙ цены (pred) — точки планируемого входа.
-        // Логика калькулятора: "BTC пойдёт туда → альт будет по pred → по этой цене входим".
-        // Учитывается maintenance margin (LIQ_MMR): реальная ликвидация ближе
-        // ко входу, чем наивное pred*(1 -/+ 1/L). Комиссии/funding не учтены.
-        // LONG:  liq = pred * (1 - 1/L + MMR)  — ниже входа
-        // SHORT: liq = pred * (1 + 1/L - MMR)  — выше входа
-        var liqLong    = pred * (1 - 1/currentLev + LIQ_MMR);
-        var liqLongTxt = liqLong  < 0.0001 ? '&lt;0.0001' : '$' + liqLong.toFixed(4);
-        var liqShort   = pred * (1 + 1/currentLev - LIQ_MMR);
-        var liqShortTxt= liqShort < 0.0001 ? '&lt;0.0001' : '$' + liqShort.toFixed(4);
-
-        // Цвета
-        var p24hColor = p24h >= 0 ? 'var(--green)' : 'var(--red)';
-        var r2Color   = r2_14 < 0.30 ? 'var(--red)' : (r2_14 < 0.60 ? '#f3ba2f' : 'var(--green)');
-        var volPct    = coinData.volatility * 100;
-        var volColor  = volPct > 1.5 ? 'var(--lilac)' : (volPct > 1.0 ? 'var(--cyan)' : '#888');
-        var predColor = ratio >= 0 ? 'var(--green)' : 'var(--red)';
-        var predArrow = ratio >= 0 ? '\u219F' : '\u21A1';
-
-        // Строка 90d беты + индикатор согласованности + корреляция BTC/ALT
-        var line90 = '';
-        if (beta90 !== null && beta90 !== undefined && r2_90 !== null) {
-            // Иконка ok/! удалена: расхождение бет 14д/90д уже входит в Conf/МДЛ,
-            // а сами беты теперь видны рядом числами (b= в строке R2 и 90d: b=).
-            var r90Color = r2_90 < 0.30 ? 'var(--red)' : (r2_90 < 0.60 ? '#f3ba2f' : 'var(--green)');
-            // corr_90 — опциональное поле (старый coeffs.json его не содержит)
-            var corr90   = coinData.corr_90;
-            var corrHtml = '';
-            if (corr90 !== null && corr90 !== undefined) {
-                var corrColor = Math.abs(corr90) >= 0.75 ? 'var(--green)'
-                    : (Math.abs(corr90) >= 0.5 ? '#f3ba2f' : 'var(--red)');
-                corrHtml = ' / <span style="color:' + corrColor + '">\u03C1=' + corr90.toFixed(2) + '</span>';
-            }
-            line90 = '<div style="font-size:0.78em;color:#666;margin:2px 0 3px;">'
-                + '90d: b=' + beta90.toFixed(2)
-                + ' / <span style="color:#f3ba2f">R2=' + r2_90.toFixed(2) + '</span>'
-                + corrHtml
-                + '</div>';
-        }
-
-        // Confidence Score по метрикам текущего направления
-        var conf = confidenceScore(r2_14, r2_90, rawBeta, beta90, coinData.volatility);
-        var confColor = conf === null ? '#888'
-            : (conf >= 70 ? 'var(--green)' : (conf >= 40 ? 'var(--accent)' : 'var(--red)'));
-
-        // Funding Rate
-        var fundRate = cachedFunding[t.s];
-        var fundHtml = '';
-        if (fundRate !== undefined) {
-            // Правило Босса: зелёный = мне платят, красный = я плачу.
-            // Funding > 0: лонги платят шортам; < 0: шорты платят лонгам.
-            var fundColor = isLong
-                ? (fundRate > 0 ? 'var(--red)' : 'var(--green)')
-                : (fundRate > 0 ? 'var(--green)' : 'var(--red)');
-            fundHtml = '<span style="color:' + fundColor + ';font-size:0.8em;font-style:italic;margin-left:8px;">'
-                + 'Fund: ' + (fundRate >= 0 ? '+' : '') + (fundRate * 100).toFixed(4) + '%/8h'
-                + '</span>';
-        }
-
-        // Ранг по капитализации + дельта за 24ч (поля опциональные — инв. 9).
-        // Серый = без изменений, зелёный = поднялся, красный = опустился.
-        var rankHtml = '';
-        if (coinData.rank !== null && coinData.rank !== undefined) {
-            var rPrev = coinData.rank_prev;
-            var rColor = '#ccc', rArrow = '';
-            if (rPrev !== null && rPrev !== undefined && rPrev !== coinData.rank) {
-                var rDelta = rPrev - coinData.rank;   // > 0 => поднялся в рейтинге
-                if (rDelta > 0) { rColor = 'var(--green)'; rArrow = '\u2191' + rDelta; }
-                else            { rColor = 'var(--red)';   rArrow = '\u2193' + (-rDelta); }
-            }
-            rankHtml = '<span class="rank-badge" style="color:' + rColor + ';">#'
-                + coinData.rank + rArrow + '</span>';
-        }
-
-        // Стресс-бейдж
-        var badgeHtml = stressBadge
-            ? '<span style="font-size:0.6em;color:' + badgeColor + ';font-weight:bold;margin-left:5px;">' + stressBadge + '</span>'
-            : '';
-
-        // Min/Max с мигающей анимацией у порогов 25% и 75%
-        var minClass  = dynPos <= 25 ? 'light-blink' : '';
-        var minColor  = dynPos <= 25 ? 'var(--red)' : 'var(--accent)';
-        var maxClass  = dynPos >= 75 ? 'light-blink' : '';
-        var maxColor  = dynPos >= 75 ? 'var(--green)' : 'var(--accent)';
-
-        // Мерцающая рамка только на самых краях диапазона: <=1% или >=99%
-        // Подсветка по тому же округлённому %, что видит пользователь
-        var dynPosRounded = Math.round(dynPos);
-        var edgeClass = '';
-        if (dynPosRounded <= 1)       edgeClass = ' edge-min';
-        else if (dynPosRounded >= 99) edgeClass = ' edge-max';
-
-        html += '<div class="card' + edgeClass + '" style="border-left:4px solid ' + p24hColor + ';">'
-
-            // Заголовок карточки
-            + '<div class="row">'
-            +   '<span class="token-name">' + rankHtml + t.name + badgeHtml
-            +     ' <span class="pct-24h" style="color:' + p24hColor + ';">'
-            +       (p24h > 0 ? '+' : '') + p24h.toFixed(2) + '%'
-            +     '</span>'
-            +   '</span>'
-            +   '<div style="text-align:right;">'
-            +     '<div>$' + cur.toFixed(4) + '</div>'
-            +     (conf === null ? '' :
-                   '<div style="font-size:0.72em;font-weight:700;color:' + confColor + ';">Conf ' + conf + '%</div>')
-            +     (function() {
-                       var g = gateState(conf, r2_14, coinData.corr_90);
-                       var gc = g === 'green' ? 'var(--green)' : (g === 'yellow' ? 'var(--accent)' : 'var(--red)');
-                       var gl = g === 'green' ? 'MDL \u2713' : (g === 'yellow' ? 'MDL \u007E' : 'MDL \u2715');
-                       return '<div style="font-size:0.66em;font-weight:800;letter-spacing:0.04em;color:' + gc + ';">' + gl + '</div>';
-                   })()
-            +   '</div>'
-            + '</div>'
-
-            // Жёлтое предупреждение о расхождении источников (пусто в норме)
-            + mismatchHtml
-
-            // R² 14d + Funding
-            + '<div style="font-size:1.1em;font-weight:bold;font-style:italic;margin:4px 0;color:' + r2Color + ';">'
-            +   '<span style="color:#ccc;">b=' + rawBeta.toFixed(2) + '</span> / R2: ' + (r2_14 !== null ? r2_14.toFixed(2) : 'N/A') + fundHtml
-            + '</div>'
-
-            // 90d строка
-            + line90
-
-            // Прогнозная цена
-            + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
-            +   '<span style="color:var(--green);">LONG </span>'
-            +   currentLev + 'X: ' + liqLongTxt
-            + '</div>'
-            + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
-            +   '<span style="color:var(--red);">SHORT </span>'
-            +   currentLev + 'X: ' + liqShortTxt
-            + '</div>'
-
-            // Диапазон Min / Pos% / Max
-            + '<div class="extra-data">'
-            +   'Min: <span class="' + minClass + '" style="color:' + minColor + ';">$' + minP.toFixed(4) + '</span>'
-            +   ' | <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;margin:0 4px;">'
-            +     dynPos.toFixed(0) + '%'
-            +   '</span> | '
-            +   'Max: <span class="' + maxClass + '" style="color:' + maxColor + ';">$' + maxP.toFixed(4) + '</span>'
-            + '</div>'
-
-            // Прогнозная цена — над волатильностью, цвет по направлению слайдера
-            // Процент изменения — над прогнозной ценой, тем же шрифтом
-            + '<div style="position:absolute;bottom:90px;right:14px;font-size:0.9em;font-weight:bold;font-style:italic;color:' + (pPct >= 0 ? 'var(--green)' : 'var(--red)') + ';"'
-            +   ' class="' + (beta < 0 ? 'blink-text' : '') + '">'
-            +   (pPct >= 0 ? '+' : '') + pPct.toFixed(2) + '%'
-            + '</div>'
-            // Прогнозная цена со стрелкой
-            + '<div style="position:absolute;bottom:66px;right:14px;font-size:0.9em;font-weight:bold;font-style:italic;color:' + predColor + ';">'
-            +   '<span style="font-size:1.5em;font-weight:700;line-height:1;vertical-align:-2px;">' + predArrow + '</span> ' + predText
-            + '</div>'
-
-            // Волатильность
-            + '<div class="vol-value" style="color:' + volColor + ';">Vol: ' + volPct.toFixed(2) + '%</div>'
-
-            // Кнопки перестановки
-            + '<div style="position:absolute;bottom:10px;right:10px;">'
-            +   '<button class="nav-btn" onclick="move(' + i + ',-1)">&#8593;</button>'
-            +   '<button class="nav-btn" onclick="move(' + i + ',1)" style="margin-left:5px;">&#8595;</button>'
-            + '</div>'
-
-        + '</div>';
-    });
-
-    var resultsEl = document.getElementById('results');
-    if (resultsEl) resultsEl.innerHTML = html;
-}
-
-document.getElementById('slider').oninput = update;
-
-// Кнопки точной настройки цены
-// Шаг $500 — достаточно мелко для точного прицеливания,
-// достаточно крупно чтобы за 1-2 нажатия перейти на нужный уровень.
-var STEP_BTN = 500;
-
-document.getElementById('btn-minus').addEventListener('click', function() {
-    var s   = document.getElementById('slider');
-    var val = parseInt(s.value, 10) - STEP_BTN;
-    if (val < parseInt(s.min, 10)) val = parseInt(s.min, 10);
-    s.value = val;
-    update();
-});
-
-document.getElementById('btn-plus').addEventListener('click', function() {
-    var s   = document.getElementById('slider');
-    var val = parseInt(s.value, 10) + STEP_BTN;
-    if (val > parseInt(s.max, 10)) val = parseInt(s.max, 10);
-    s.value = val;
-    update();
-});
-
-// Удержание кнопки: автоповтор через 400мс с интервалом 100мс
-function setupHold(btnId, delta) {
-    var btn = document.getElementById(btnId);
-    var timer = null;
-    var interval = null;
-    btn.addEventListener('mousedown',  startHold);
-    btn.addEventListener('touchstart', startHold, {passive:true});
-    btn.addEventListener('mouseup',    stopHold);
-    btn.addEventListener('mouseleave', stopHold);
-    btn.addEventListener('touchend',   stopHold);
-    function startHold(e) {
-        timer = setTimeout(function() {
-            interval = setInterval(function() {
-                var s   = document.getElementById('slider');
-                var val = parseInt(s.value, 10) + delta;
-                if (val < parseInt(s.min,10)) val = parseInt(s.min,10);
-                if (val > parseInt(s.max,10)) val = parseInt(s.max,10);
-                s.value = val;
-                update();
-            }, 100);
-        }, 400);
-    }
-    function stopHold() {
-        clearTimeout(timer);
-        clearInterval(interval);
-        timer = null; interval = null;
-    }
-}
-setupHold('btn-minus', -STEP_BTN);
-setupHold('btn-plus',  +STEP_BTN);
-
-init();
-</script>
-</body>
-</html>
+if __name__ == "__main__":
+    main()
