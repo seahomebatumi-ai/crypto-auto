@@ -107,6 +107,11 @@
         @keyframes lightBlink { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
         .light-blink { animation: lightBlink 1.5s ease-in-out infinite; }
         .extra-data { font-size: 0.85em; color: var(--accent); margin-top: 8px; font-style: italic; }
+        /* Диапазон BTC 90д — занимает строку, освобождённую штампом обновления */
+        .btc-range { font-size: 0.8em; color: var(--accent); font-style: italic; margin-bottom: 10px; }
+        /* Компактный штамп свежести данных бота в правом верхнем углу */
+        .upd-stamp { font-size: 0.62em; line-height: 1; white-space: nowrap; color: #888; }
+        .rank-badge { font-size: 0.62em; font-weight: 700; vertical-align: 2px; margin-right: 5px; }
         .vol-value {
             position: absolute; bottom: 42px; right: 14px;
             font-size: 0.9em; font-weight: bold; font-style: italic;
@@ -185,7 +190,10 @@
         <span id="btc-logo" class="btc-logo">&#8383;</span>
         <span id="btc-cur" class="btc-price">...</span>
         <span id="btc-24h" style="font-weight:bold;">0.00%</span>
-        <div id="status-dot" style="width:12px;height:12px;border-radius:50%;background:#666;margin-left:auto;"></div>
+        <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+            <div id="last-update" class="upd-stamp">...</div>
+            <div id="status-dot" style="width:12px;height:12px;border-radius:50%;background:#666;"></div>
+        </div>
     </div>
     <div class="row" style="margin-bottom:4px;">
         <div style="font-weight:600;">
@@ -196,7 +204,7 @@
             <div id="dir-indicator" style="font-size:0.75em;font-weight:800;color:#888;">&#8212;&#8212;</div>
         </div>
     </div>
-    <div id="last-update" style="font-size:0.7em;color:#888;margin-bottom:10px;">Данные бота: ожидание...</div>
+    <div id="btc-range" class="btc-range">Диапазон BTC 90д: ...</div>
     <div style="display:flex;align-items:center;gap:6px;margin:6px 0;">
         <button id="btn-minus" style="
             background:#2c1f1f;border:1px solid var(--red);color:var(--red);
@@ -296,7 +304,16 @@ var tokens = [
     {name:'BCH',    s:'BCHUSDT'},   {name:'HYPE',   s:'HYPEUSDT', fut:true},
     {name:'SKY',    s:'SKYUSDT'},   {name:'ETH',    s:'ETHUSDT'},
     {name:'HBAR',   s:'HBARUSDT'},  {name:'XLM',    s:'XLMUSDT'},
-    {name:'ALGO',   s:'ALGOUSDT'},  {name:'BNB',    s:'BNBUSDT'}
+    {name:'ALGO',   s:'ALGOUSDT'},  {name:'BNB',    s:'BNBUSDT'},
+    // Добавлены 2026-08-07.
+    // ZEC / UNI — спот-пары Binance есть, идут в ?symbols= штатно.
+    // XMR — спот делистнут Binance (2024, регуляторка) => fut:true.
+    // LIT — статус спот-пары не подтверждён (возможен ребрендинг) => fut:true.
+    // Правило: неподтверждённый символ НИКОГДА не кладём в спот-?symbols=
+    // (HTTP 400 роняет ВЕСЬ спот-тикер на 1.2 МБ — инвариант 5).
+    {name:'ZEC',    s:'ZECUSDT'},   {name:'UNI',    s:'UNIUSDT'},
+    {name:'XMR',    s:'XMRUSDT', fut:true},
+    {name:'LIT',    s:'LITUSDT', fut:true}
 ];
 
 // ── Тикер только по нужным парам ────────────────────────────────────────────
@@ -404,18 +421,25 @@ function updateFreshnessDisplay() {
     var el = document.getElementById('last-update');
     if (!el) return;
     if (!botData.generated_at) {
-        el.innerText = 'Данные бота: нет timestamp';
-        el.style.color = '#888';
+        el.innerText   = 'Нет данных';
+        el.style.color = 'var(--red)';
         return;
     }
     var genDate = new Date(botData.generated_at);
     var ageMin  = (Date.now() - genDate.getTime()) / 60000;
-    var ageText = ageMin < 1 ? 'меньше минуты назад' : Math.round(ageMin) + ' мин назад';
-    var color = '#888', prefix = 'Бета обновлена: ';
-    if (ageMin > STALE_CRIT_MIN)      { color = 'var(--red)';    prefix = '! Бот давно молчит. Бета: '; }
-    else if (ageMin > STALE_WARN_MIN) { color = 'var(--accent)'; prefix = 'Бета (устаревает): '; }
-    el.innerText   = prefix + ageText + ' (' + genDate.toLocaleTimeString() + ')';
-    el.style.color = color;
+    var mins    = Math.max(0, Math.round(ageMin));
+    // Компактный штамп: одна строка, без часов — влезает над точкой статуса.
+    // Пороги свежести те же (STALE_WARN 75 / STALE_CRIT 130), меняется только текст.
+    if (ageMin > STALE_CRIT_MIN) {
+        el.innerText   = '! Молчит ' + mins + ' мин';
+        el.style.color = 'var(--red)';
+    } else if (ageMin > STALE_WARN_MIN) {
+        el.innerText   = 'Обновлено ' + mins + ' мин';
+        el.style.color = 'var(--accent)';
+    } else {
+        el.innerText   = ageMin < 1 ? 'Обновлено сейчас' : 'Обновлено ' + mins + ' мин';
+        el.style.color = '#888';
+    }
 }
 
 function refreshMarketData(isRetry) {
@@ -598,6 +622,30 @@ function update() {
     if (elPct) {
         elPct.innerText   = (ratio >= 0 ? '+' : '') + (ratio * 100).toFixed(2) + '%';
         elPct.style.color = ratio > 0 ? 'var(--green)' : (ratio < 0 ? 'var(--red)' : '#ffffff');
+    }
+
+    // Диапазон BTC за 90д (min / позиция / max) — данные из coeffs.json.
+    // Мигание на порогах 25%/75% — как в карточках монет.
+    // Старый coeffs.json без поля btc => честная надпись, без падения (инв. 9).
+    var brEl = document.getElementById('btc-range');
+    if (brEl) {
+        var bs = botData.btc;
+        if (bs && bs.max_price > bs.min_price) {
+            var bPos = Math.max(0, Math.min(100, (btc - bs.min_price) / (bs.max_price - bs.min_price) * 100));
+            var bMinCls = bPos <= 25 ? 'light-blink' : '';
+            var bMinCol = bPos <= 25 ? 'var(--red)' : 'var(--accent)';
+            var bMaxCls = bPos >= 75 ? 'light-blink' : '';
+            var bMaxCol = bPos >= 75 ? 'var(--green)' : 'var(--accent)';
+            brEl.innerHTML = 'Min: <span class="' + bMinCls + '" style="color:' + bMinCol + ';">$'
+                + Math.round(bs.min_price).toLocaleString() + '</span>'
+                + ' | <span style="color:#fff;font-size:1.05em;font-weight:bold;font-family:monospace;margin:0 4px;">'
+                + bPos.toFixed(0) + '%</span> | '
+                + 'Max: <span class="' + bMaxCls + '" style="color:' + bMaxCol + ';">$'
+                + Math.round(bs.max_price).toLocaleString() + '</span>'
+                + ' <span style="color:#666;font-size:0.8em;font-style:normal;">90д</span>';
+        } else {
+            brEl.innerHTML = '<span style="color:#666;">Диапазон BTC 90д: нет данных бота</span>';
+        }
     }
 
     // Индикатор LONG / SHORT — с защитой от null
@@ -792,6 +840,21 @@ function update() {
                 + '</span>';
         }
 
+        // Ранг по капитализации + дельта за 24ч (поля опциональные — инв. 9).
+        // Серый = без изменений, зелёный = поднялся, красный = опустился.
+        var rankHtml = '';
+        if (coinData.rank !== null && coinData.rank !== undefined) {
+            var rPrev = coinData.rank_prev;
+            var rColor = '#ccc', rArrow = '';
+            if (rPrev !== null && rPrev !== undefined && rPrev !== coinData.rank) {
+                var rDelta = rPrev - coinData.rank;   // > 0 => поднялся в рейтинге
+                if (rDelta > 0) { rColor = 'var(--green)'; rArrow = '\u2191' + rDelta; }
+                else            { rColor = 'var(--red)';   rArrow = '\u2193' + (-rDelta); }
+            }
+            rankHtml = '<span class="rank-badge" style="color:' + rColor + ';">#'
+                + coinData.rank + rArrow + '</span>';
+        }
+
         // Стресс-бейдж
         var badgeHtml = stressBadge
             ? '<span style="font-size:0.6em;color:' + badgeColor + ';font-weight:bold;margin-left:5px;">' + stressBadge + '</span>'
@@ -814,7 +877,7 @@ function update() {
 
             // Заголовок карточки
             + '<div class="row">'
-            +   '<span class="token-name">' + t.name + badgeHtml
+            +   '<span class="token-name">' + rankHtml + t.name + badgeHtml
             +     ' <span class="pct-24h" style="color:' + p24hColor + ';">'
             +       (p24h > 0 ? '+' : '') + p24h.toFixed(2) + '%'
             +     '</span>'
