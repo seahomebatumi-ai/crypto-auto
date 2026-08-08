@@ -114,6 +114,12 @@
             font-size: 12px; font-weight: 700; cursor: pointer;
         }
         .pin-btn.armed { background: #241f16; border-color: var(--accent); color: var(--accent); }
+        .pin-btn.auto-on { background: #16241f; border-color: var(--cyan); color: var(--cyan); }
+        .btn-row2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; }
+        .btn-row2 .pin-btn { margin-top: 6px; }
+        /* Строка «рекомендуемое плечо + риск ликвидации». padding-right — как
+           у .lev-block: держит текст левее абсолютного правого столбца. */
+        .rec-line { padding-right: 100px; font-size: 0.8em; font-weight: 700; margin: 3px 0 1px; }
         /* Блок расчёта плеча. padding-right держит текст левее абсолютного
            правого столбца карточки (прогноз/цена/Vol) — пересечений нет. */
         .lev-block { padding-right: 100px; margin: 6px 0 4px; line-height: 1.45; }
@@ -256,7 +262,10 @@
     <div class="side-container" id="sideContainer"></div>
     <div class="lev-container" id="levContainer"></div>
     <div class="stress-container" id="stressContainer"></div>
-    <button id="pin-btn" class="pin-btn">Зафиксировать вход</button>
+    <div class="btn-row2">
+        <button id="pin-btn" class="pin-btn">Зафиксировать вход</button>
+        <button id="auto-btn" class="pin-btn">АВТО-СТРЕСС: выкл</button>
+    </div>
 </div>
 
 <div id="results">Загрузка данных...</div>
@@ -325,6 +334,31 @@ var STRESS_NAME  = { normal: 'Normal', panic: 'Panic', crash: 'Crash' };
 // Maintenance margin (Binance USDT-M, нижний тир для большинства альтов ~1%).
 // Реальная ликвидация ближе ко входу, чем наивное pred*(1 -/+ 1/L).
 var LIQ_MMR = 0.01;
+
+// ── Горизонт риска ──────────────────────────────────────────────────────────
+// 720 ч = 30 суток — базовый срок удержания Босса (позиция живёт 2-3 недели+).
+// Все вероятностные расчёты ведутся ИМЕННО на этом горизонте; при другом
+// сроке риск масштабируется как sqrt(H): 7 суток = делить сигму на 2.07.
+var RISK_HORIZON_H = 720;
+// z = 1.645 => 10% вероятность КАСАНИЯ ликвидации за горизонт (принцип
+// отражения: касание вдвое вероятнее конечного значения ниже уровня).
+var RISK_Z         = 1.645;
+// Пороги зоны риска для ВЫБРАННОГО плеча (вероятность касания за 30д).
+var RISK_OK_P      = 0.10;
+var RISK_WARN_P    = 0.25;
+
+// ── Авто-стресс ─────────────────────────────────────────────────────────────
+// Просадка BTC = 2 sigma за тот же горизонт 30д, считается из btc.volatility
+// (часовая волатильность BTC за 90д, уже приходит в coeffs.json и до сих пор
+// не использовалась фронтом). Clamp защищает от режима сверхнизкой/бешеной
+// волатильности. Реакция альта берётся с множителем Panic 1.3: часовая
+// down-бета недооценивает многодневный обвал, в котором корреляции растут.
+var AUTO_SIGMA     = 2.0;
+var AUTO_D_MIN     = 0.15;
+var AUTO_D_MAX     = 0.35;
+var AUTO_D_FALLBACK = 0.20;   // старый coeffs.json без btc.volatility
+var AUTO_MODE      = 'panic';
+var autoStress     = false;
 
 var botData          = { analysis_data: [], generated_at: null };
 var cachedMarketData = [];
@@ -418,6 +452,7 @@ function fetchBotData() {
             botData = data;
             document.getElementById('status-dot').style.backgroundColor = 'var(--green)';
             updateFreshnessDisplay();
+            refreshAutoBtn();   // величина авто-просадки зависит от btc.volatility
             update();
         })
         .catch(function() {
@@ -623,12 +658,38 @@ function togglePin() {
     update();
 }
 
+// Авто-стресс: одна кнопка вместо ручной процедуры «сдвинь слайдер + выбери
+// режим». Стресс-сценарий строится от УРОВНЯ ВХОДА (зафиксированного или
+// рыночного), поэтому слайдер и кнопки Normal/Panic/Crash остаются свободны
+// для обычного прогноза — на них авто-режим не влияет.
+function refreshAutoBtn() {
+    var b = document.getElementById('auto-btn');
+    if (!b) return;
+    if (!autoStress) {
+        b.className = 'pin-btn';
+        b.innerHTML = 'АВТО-СТРЕСС: выкл';
+    } else {
+        var ad = autoStressDrop();
+        b.className = 'pin-btn auto-on';
+        b.innerHTML = 'АВТО-СТРЕСС: BTC \u00B1' + (ad.d * 100).toFixed(0) + '%';
+    }
+}
+
+function toggleAuto() {
+    autoStress = !autoStress;
+    refreshAutoBtn();
+    update();
+}
+
 function init() {
     applySavedOrder();
     renderButtons();
     refreshPinBtn();
+    refreshAutoBtn();
     var pb = document.getElementById('pin-btn');
     if (pb) pb.addEventListener('click', togglePin);
+    var ab = document.getElementById('auto-btn');
+    if (ab) ab.addEventListener('click', toggleAuto);
     fetchBotData();
     refreshMarketData();
     refreshFuturesTickers();
@@ -675,6 +736,96 @@ function gateState(conf, r2dir, corr90) {
     return 'green';
 }
 
+// ── Вероятностный риск ликвидации и РЕКОМЕНДУЕМОЕ плечо ────────────────────
+// Модель: цена монеты — броуновское движение с сигмой = Vol (часовая
+// волатильность за 90д, уже считается ботом). Ликвидация — событие КАСАНИЯ
+// уровня за время удержания, а не конечного значения, поэтому вероятность
+// вдвое выше наивной (принцип отражения для процесса без сноса):
+//     P(касание) = 2 * (1 - Phi(b / (Vol * sqrt(H))))
+// где b — расстояние до ликвидации В ЛОГАРИФМАХ (асимметрично по сторонам:
+// вверх цена не ограничена, поэтому шорт при том же плече рискованнее).
+// R2 сюда СОЗНАТЕЛЬНО не входит: позиция не захеджирована против BTC, значит
+// ликвидацию вызывает ПОЛНОЕ движение монеты, а не только идиосинкратическое.
+function normCdf(x) {
+    // Abramowitz-Stegun 7.1.26, точность ~1.5e-7 — с запасом для процентов.
+    var s = x < 0 ? -1 : 1, ax = Math.abs(x) / Math.sqrt(2);
+    var t = 1 / (1 + 0.3275911 * ax);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t
+                  - 0.284496736) * t + 0.254829592) * t * Math.exp(-ax * ax);
+    return 0.5 * (1 + s * y);
+}
+
+function liqLogDist(L, isLong) {
+    var d = 1 / L - LIQ_MMR;              // доля хода цены до ликвидации
+    if (!(d > 0)) return null;
+    // d >= 1 невозможно для лонга (цена не падает более чем на 100%),
+    // но штатно для шорта: рост на 120% — обычное событие. Раньше общий
+    // guard обнулял шорт при L < 1 и ломал инверсию РЕК <-> вероятность.
+    if (isLong) return d >= 1 ? null : -Math.log(1 - d);
+    return Math.log(1 + d);
+}
+
+// Вероятность касания ликвидации за RISK_HORIZON_H при данном плече.
+function liqTouchProb(vol, L, isLong) {
+    if (vol === null || vol === undefined || !isFinite(vol) || vol <= 0) return null;
+    var b = liqLogDist(L, isLong);
+    if (b === null) return 1;
+    var q = vol * Math.sqrt(RISK_HORIZON_H);
+    if (!(q > 0)) return 0;
+    var p = 2 * (1 - normCdf(b / q));
+    return Math.max(0, Math.min(1, p));
+}
+
+// Обратная задача: плечо, при котором вероятность касания = 10% за 30д.
+// LONG:  1/L - MMR = 1 - exp(-q)      SHORT: 1/L - MMR = exp(q) - 1
+function recommendedLeverage(vol, isLong) {
+    if (vol === null || vol === undefined || !isFinite(vol) || vol <= 0) return null;
+    var q    = RISK_Z * vol * Math.sqrt(RISK_HORIZON_H);
+    var need = isLong ? (1 - Math.exp(-q)) : (Math.exp(q) - 1);
+    var den  = need + LIQ_MMR;
+    if (!(den > 0)) return null;
+    var L = 1 / den;
+    return isFinite(L) ? L : null;
+}
+
+function riskColor(p) {
+    if (p === null || p === undefined) return '#888';
+    if (p <= RISK_OK_P)   return 'var(--green)';
+    if (p <= RISK_WARN_P) return 'var(--accent)';
+    return 'var(--red)';
+}
+
+// Строка «РЕК Nx · выбрано LX — риск ликв P%». Возвращает '' если нет Vol.
+// nested=true — строка уже внутри .lev-block, у которого свой padding-right;
+// повторный отступ сдвинул бы текст на 200px и порвал вёрстку.
+function recLineHtml(vol, isLong, L, nested) {
+    var rec = recommendedLeverage(vol, isLong);
+    var p   = liqTouchProb(vol, L, isLong);
+    if (rec === null || p === null) return '';
+    var recTxt = rec < 1 ? '&lt;1X' : Math.floor(rec) + 'X';
+    var col    = riskColor(p);
+    var zone   = p <= RISK_OK_P ? '\u2713' : (p <= RISK_WARN_P ? '\u007E' : '\u2715');
+    var pTxt   = p < 0.001 ? '&lt;0.1' : (p * 100).toFixed(p < 0.1 ? 1 : 0);
+    var cls    = nested ? 'lev-res' : 'rec-line';
+    return '<div class="' + cls + '" style="color:' + col + ';">'
+         + 'РЕК ' + recTxt + ' <span style="color:#666;font-weight:400;">(30д, '
+         + (isLong ? 'лонг' : 'шорт') + ')</span> &middot; ' + L + 'X: риск ликв '
+         + pTxt + '% ' + zone + '</div>';
+}
+
+// ── Авто-стресс: просадка BTC из его же волатильности ───────────────────────
+function autoStressDrop() {
+    var bs = botData.btc;
+    var v  = bs ? bs.volatility : null;
+    if (v === null || v === undefined || !isFinite(v) || v <= 0) {
+        return { d: AUTO_D_FALLBACK, auto: false };
+    }
+    var d = AUTO_SIGMA * v * Math.sqrt(RISK_HORIZON_H);
+    if (d < AUTO_D_MIN) d = AUTO_D_MIN;
+    if (d > AUTO_D_MAX) d = AUTO_D_MAX;
+    return { d: d, auto: true };
+}
+
 // ── Расчёт допустимого плеча ────────────────────────────────────────────────
 // Та же степенная модель, что и в основном рендере: growth = (1+ratio)^(b*стресс).
 // Бета выбирается по направлению движения BTC в КОНКРЕТНОМ сценарии, поэтому
@@ -693,10 +844,13 @@ function fmtUsd(x) {
     return x < 0.0001 ? '&lt;0.0001' : '$' + x.toFixed(4);
 }
 
-// Возвращает '' пока вход не зафиксирован => карточка рисуется как раньше.
+// Возвращает '' пока не зафиксирован вход И выключен авто-стресс
+// => карточка рисуется байт в байт как раньше.
 function leverageBlock(coinData, cur, btcNow, target) {
-    if (!pinned) return '';
+    if (!pinned && !autoStress) return '';
 
+    // Вход: зафиксированный уровень, иначе (только в авто-режиме) — рынок.
+    var entryBtc  = pinned ? pinned.btc : btcNow;
     var isL       = currentSide === 'long';
     var sideName  = isL ? 'ЛОНГ' : 'ШОРТ';
     var sideColor = isL ? 'var(--green)' : 'var(--red)';
@@ -711,8 +865,14 @@ function leverageBlock(coinData, cur, btcNow, target) {
                    '<div class="lev-sub" style="color:var(--accent);">' + msg + '</div>');
     }
 
-    var gE = scenarioGrowth(coinData, btcNow, pinned.btc, 'normal');
-    var gS = scenarioGrowth(coinData, btcNow, target, currentStress);
+    // Источник стресс-сценария: авто (2 sigma BTC от уровня входа, реакция
+    // Panic) или ручной (слайдер + выбранный режим) — формула МАКС не меняется.
+    var ad         = autoStress ? autoStressDrop() : null;
+    var stressBtc  = autoStress ? (isL ? entryBtc * (1 - ad.d) : entryBtc * (1 + ad.d)) : target;
+    var stressMode = autoStress ? AUTO_MODE : currentStress;
+
+    var gE = scenarioGrowth(coinData, btcNow, entryBtc, 'normal');
+    var gS = scenarioGrowth(coinData, btcNow, stressBtc, stressMode);
     if (gE === null) return note('Нет беты для сценария входа');
     if (gS === null) return note('Нет беты для стресс-сценария');
 
@@ -721,8 +881,12 @@ function leverageBlock(coinData, cur, btcNow, target) {
     var E = cur * gE;
     var S = cur * gS;
 
-    if (isL  && k >= 1) return note('Стресс не ниже входа &mdash; двинь слайдер НИЖЕ $' + pinned.btc.toLocaleString());
-    if (!isL && k <= 1) return note('Стресс не выше входа &mdash; двинь слайдер ВЫШЕ $' + pinned.btc.toLocaleString());
+    if (isL  && k >= 1) return note(autoStress
+        ? 'Авто-стресс не ниже входа &mdash; бета монеты отрицательна в этом сценарии'
+        : 'Стресс не ниже входа &mdash; двинь слайдер НИЖЕ $' + entryBtc.toLocaleString());
+    if (!isL && k <= 1) return note(autoStress
+        ? 'Авто-стресс не выше входа &mdash; бета монеты отрицательна в этом сценарии'
+        : 'Стресс не выше входа &mdash; двинь слайдер ВЫШЕ $' + entryBtc.toLocaleString());
 
     var denom = isL ? (1.01 - 0.87 * k) : (1.13 * k - 0.99);
     if (!(denom > 0)) return note('Сценарий слишком жёсткий &mdash; безопасного плеча нет даже на 1x');
@@ -754,20 +918,39 @@ function leverageBlock(coinData, cur, btcNow, target) {
     // Строка сценариев: видно, ЧТО с ЧЕМ сравнивается. Видео-прогон 08.08
     // показал чтение плеча при несдвинутом слайдере (стресс = только множитель
     // режима на том же уровне BTC) — теперь совпадение уровней подписано.
-    var sameLevel = Math.abs(target - pinned.btc) < 1;
-    var scenHtml = '<div class="lev-sub">BTC $' + pinned.btc.toLocaleString()
-        + ' (Normal) &rarr; $' + target.toLocaleString()
-        + ' (' + STRESS_NAME[currentStress] + ')'
-        + (sameLevel ? ' <span style="color:var(--accent);">&mdash; слайдер не сдвинут</span>' : '')
-        + '</div>';
+    var scenHtml;
+    if (autoStress) {
+        scenHtml = '<div class="lev-sub">АВТО: BTC $' + Math.round(entryBtc).toLocaleString()
+            + (pinned ? '' : ' <span style="color:#666;">(рынок)</span>')
+            + ' &rarr; $' + Math.round(stressBtc).toLocaleString()
+            + ' (' + (isL ? '\u2212' : '+') + (ad.d * 100).toFixed(1) + '%, реакция \u00D71.3)'
+            + (ad.auto ? '' : ' <span style="color:var(--accent);">&mdash; фикс. 20%, нет vol BTC</span>')
+            + '</div>';
+    } else {
+        // Видео-прогон 08.08: чтение плеча при несдвинутом слайдере — подписано.
+        var sameLevel = Math.abs(target - entryBtc) < 1;
+        scenHtml = '<div class="lev-sub">BTC $' + entryBtc.toLocaleString()
+            + ' (Normal) &rarr; $' + target.toLocaleString()
+            + ' (' + STRESS_NAME[currentStress] + ')'
+            + (sameLevel ? ' <span style="color:var(--accent);">&mdash; слайдер не сдвинут</span>' : '')
+            + '</div>';
+    }
+
+    // РЕК — независимая вероятностная оценка (Vol + горизонт 30д), она НЕ
+    // зависит от сценария BTC. Итоговый потолок = min(МАКС, РЕК): сценарный
+    // предел и статистический предел должны выполняться оба.
+    var recRaw  = recommendedLeverage(coinData.volatility, isL);
+    var recTxt  = recRaw === null ? '' : (recRaw < 1 ? '&lt;1x' : Math.floor(recRaw) + 'x');
+    var headRec = recTxt ? ' <span style="color:var(--cyan);">&middot; РЕК ' + recTxt + '</span>' : '';
 
     return box(
-        sideName + ' &middot; МАКС ПЛЕЧО ' + lmaxTxt,
+        sideName + ' &middot; МАКС ' + lmaxTxt + headRec,
         scenHtml
         + '<div class="lev-sub">Вход ' + fmtUsd(E) + ' &rarr; стресс ' + fmtUsd(S)
             + ' (' + (dPct >= 0 ? '+' : '') + dPct.toFixed(1) + '%)' + softHtml + '</div>'
         + '<div class="lev-res" style="color:' + resColor + ';">Выбрано ' + L + 'X &middot; ликв '
             + fmtUsd(liq) + ' &middot; запас ' + bufTxt + ' ' + resMark + '</div>'
+        + recLineHtml(coinData.volatility, isL, L, true)
     );
 }
 
@@ -1040,7 +1223,7 @@ function update() {
 
         // Ранг по капитализации + дельта за 24ч (поля опциональные — инв. 9).
         // Серый = без изменений, зелёный = поднялся, красный = опустился.
-        var rankHtml = '';
+        var badgeInner = '';
         if (coinData.rank !== null && coinData.rank !== undefined) {
             var rPrev = coinData.rank_prev;
             var rColor = '#ccc', rArrow = '';
@@ -1049,9 +1232,20 @@ function update() {
                 if (rDelta > 0) { rColor = 'var(--green)'; rArrow = '\u2191' + rDelta; }
                 else            { rColor = 'var(--red)';   rArrow = '\u2193' + (-rDelta); }
             }
-            rankHtml = '<span class="rank-badge" style="color:' + rColor + ';">#'
+            badgeInner += '<span style="color:' + rColor + ';">#'
                 + coinData.rank + rArrow + '</span>';
         }
+        // FDV/MC — во сколько раз полная эмиссия больше обращающейся.
+        // Контекст риска разлоков, НЕ самостоятельный сигнал лонг/шорт.
+        // Поле опционально: нет max supply (ETH, XMR) => null, ничего не рисуем.
+        var fdv = coinData.fdv_mc;
+        if (fdv !== null && fdv !== undefined && isFinite(fdv)) {
+            var fColor = fdv > 3 ? 'var(--red)' : (fdv >= 1.5 ? 'var(--accent)' : '#888');
+            badgeInner += '<span style="color:' + fColor + ';margin-left:6px;">FDV '
+                + fdv.toFixed(1) + '\u00D7</span>';
+        }
+        var rankHtml = badgeInner
+            ? '<span class="rank-badge">' + badgeInner + '</span>' : '';
 
         // Стресс-бейдж
         var badgeHtml = stressBadge
@@ -1121,7 +1315,10 @@ function update() {
                + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
                +   '<span style="color:var(--red);">SHORT </span>'
                +   currentLev + 'X: ' + liqShortTxt
-               + '</div>')
+               + '</div>'
+                 // РЕК не зависит от сценария BTC — показывается всегда, для
+                 // НАЖАТОЙ стороны сделки. Нет Vol => строка пустая (инв. 9).
+               + recLineHtml(coinData.volatility, currentSide === 'long', currentLev, false))
 
             // Диапазон Min / Pos% / Max
             + '<div class="extra-data">'
