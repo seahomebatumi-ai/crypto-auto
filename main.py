@@ -72,9 +72,11 @@ def fetch_with_retry(coin_id):
     return None, last_err
 
 
-def fetch_ranks():
-    """Ранги по капитализации для всех монет списка — ОДИН вызов /coins/markets.
-    Возвращает {coin_id: market_cap_rank}. Любой сбой -> {} (фронт рисует серый)."""
+def fetch_market_info():
+    """Ранг капитализации + FDV/MC — ОДИН вызов /coins/markets (тот же, что был).
+    FDV бесплатен: market_cap и fully_diluted_valuation уже приходят в ответе.
+    Возвращает {coin_id: {"rank": int|None, "fdv_mc": float|None}}.
+    Любой сбой -> {} (фронт рисует серый / не рисует FDV — инвариант 9)."""
     ids = ",".join(TOKENS.values())
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -82,9 +84,28 @@ def fetch_ranks():
                                         per_page=250, page=1)
             out = {}
             for item in (data or []):
+                cid = item.get('id')
+                if not cid:
+                    continue
+                entry = {}
                 r = item.get('market_cap_rank')
                 if isinstance(r, int) and r > 0:
-                    out[item.get('id')] = r
+                    entry["rank"] = r
+                # FDV/MC. None штатен: у монет без max supply (ETH, XMR)
+                # CoinGecko отдаёт fully_diluted_valuation = null.
+                mc  = item.get('market_cap')
+                fdv = item.get('fully_diluted_valuation')
+                try:
+                    if mc and fdv and float(mc) > 0 and float(fdv) > 0:
+                        ratio = float(fdv) / float(mc)
+                        # Отсекаем мусор: FDV < MC невозможен экономически,
+                        # >100x = ошибка данных о supply, а не сигнал.
+                        if 0.95 <= ratio <= 100.0:
+                            entry["fdv_mc"] = round(ratio, 3)
+                except (TypeError, ValueError):
+                    pass
+                if entry:
+                    out[cid] = entry
             return out
         except Exception:
             if attempt < MAX_RETRIES:
@@ -272,12 +293,17 @@ def main():
             results.append({"symbol": symbol, **beta_data})
             debug_info["details"][symbol] = dbg
 
-        # --- Ранг по капитализации: 1 вызов на весь список ---
-        ranks = fetch_ranks()
-        debug_info["ranks_fetched"] = len(ranks)
+        # --- Ранг по капитализации + FDV/MC: 1 вызов на весь список ---
+        market_info = fetch_market_info()
+        debug_info["ranks_fetched"] = sum(
+            1 for v in market_info.values() if v.get("rank") is not None)
+        debug_info["fdv_fetched"] = sum(
+            1 for v in market_info.values() if v.get("fdv_mc") is not None)
         for row in results:
-            row["rank"] = ranks.get(TOKENS.get(row["symbol"]))
+            info = market_info.get(TOKENS.get(row["symbol"])) or {}
+            row["rank"] = info.get("rank")
             row["rank_prev"] = None   # заполняется ниже из history.json
+            row["fdv_mc"] = info.get("fdv_mc")   # None штатен (нет max supply)
 
         # --- История бет: компактная запись по каждому токену ---
         # Дописываем одну точку на прогон. Храним только беты и R2 (без min/max/vol),
