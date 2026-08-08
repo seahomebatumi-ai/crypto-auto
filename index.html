@@ -636,8 +636,10 @@ function refreshPinBtn() {
         b.innerHTML = 'Зафиксировать вход';
     } else {
         b.className = 'pin-btn armed';
-        b.innerHTML = 'Вход: BTC $' + pinned.btc.toLocaleString()
-                    + ' &middot; Normal &mdash; сбросить';
+        // Слово «Normal» убрано 08.08: кнопка стоит вплотную к ряду
+        // Normal/Panic/Crash и читалась как «режим сброшен». Семантика
+        // «цена входа считается без стресса» теперь в строке сценария карточки.
+        b.innerHTML = 'Вход $' + pinned.btc.toLocaleString() + ' \u2715';
     }
 }
 
@@ -766,11 +768,12 @@ function liqLogDist(L, isLong) {
 }
 
 // Вероятность касания ликвидации за RISK_HORIZON_H при данном плече.
-function liqTouchProb(vol, L, isLong) {
+function liqTouchProb(vol, L, isLong, hours) {
     if (vol === null || vol === undefined || !isFinite(vol) || vol <= 0) return null;
+    var H = (hours === undefined || hours === null) ? RISK_HORIZON_H : hours;
     var b = liqLogDist(L, isLong);
     if (b === null) return 1;
-    var q = vol * Math.sqrt(RISK_HORIZON_H);
+    var q = vol * Math.sqrt(H);
     if (!(q > 0)) return 0;
     var p = 2 * (1 - normCdf(b / q));
     return Math.max(0, Math.min(1, p));
@@ -798,19 +801,25 @@ function riskColor(p) {
 // Строка «РЕК Nx · выбрано LX — риск ликв P%». Возвращает '' если нет Vol.
 // nested=true — строка уже внутри .lev-block, у которого свой padding-right;
 // повторный отступ сдвинул бы текст на 200px и порвал вёрстку.
+// Лестница 7/14/30д вместо одной цифры: срок удержания у Босса заранее
+// неизвестен, а вероятность КАСАНИЯ растёт с горизонтом. Три числа снимают
+// вопрос «а если я выйду через неделю» без отдельного переключателя.
 function recLineHtml(vol, isLong, L, nested) {
     var rec = recommendedLeverage(vol, isLong);
-    var p   = liqTouchProb(vol, L, isLong);
-    if (rec === null || p === null) return '';
+    var p30 = liqTouchProb(vol, L, isLong, 720);
+    if (rec === null || p30 === null) return '';
+    var p7  = liqTouchProb(vol, L, isLong, 168);
+    var p14 = liqTouchProb(vol, L, isLong, 336);
+    function pt(p) { return p < 0.005 ? '&lt;1' : Math.round(p * 100); }
     var recTxt = rec < 1 ? '&lt;1X' : Math.floor(rec) + 'X';
-    var col    = riskColor(p);
-    var zone   = p <= RISK_OK_P ? '\u2713' : (p <= RISK_WARN_P ? '\u007E' : '\u2715');
-    var pTxt   = p < 0.001 ? '&lt;0.1' : (p * 100).toFixed(p < 0.1 ? 1 : 0);
+    var col    = riskColor(p30);
+    var zone   = p30 <= RISK_OK_P ? '\u2713' : (p30 <= RISK_WARN_P ? '\u007E' : '\u2715');
     var cls    = nested ? 'lev-res' : 'rec-line';
     return '<div class="' + cls + '" style="color:' + col + ';">'
-         + 'РЕК ' + recTxt + ' <span style="color:#666;font-weight:400;">(30д, '
-         + (isLong ? 'лонг' : 'шорт') + ')</span> &middot; ' + L + 'X: риск ликв '
-         + pTxt + '% ' + zone + '</div>';
+         + 'РЕК ' + recTxt + ' <span style="color:#666;font-weight:400;">('
+         + (isLong ? 'лонг' : 'шорт') + ')</span> &middot; ' + L + 'X риск ликв: '
+         + '7д ' + pt(p7) + '% / 14д ' + pt(p14) + '% / 30д ' + pt(p30) + '% ' + zone
+         + '</div>';
 }
 
 // ── Авто-стресс: просадка BTC из его же волатильности ───────────────────────
@@ -895,16 +904,28 @@ function leverageBlock(coinData, cur, btcNow, target) {
     if (lmaxRaw < 1) return note('Сценарий слишком жёсткий &mdash; безопасного плеча нет даже на 1x');
     // Знаменатель строго > 0.14 (k по нужную сторону от 1), поэтому
     // L_max < 7.15 всегда: floor даёт 1..7, ветка «10x+» недостижима.
-    var lmaxTxt = Math.floor(lmaxRaw) + 'x';
 
     // Ликвидация и запас — для ВЫБРАННОГО сейчас плеча, от цены входа E.
     var L   = currentLev;
     var liq = isL ? E * (1 - 1 / L + LIQ_MMR) : E * (1 + 1 / L - LIQ_MMR);
     var buf = isL ? (S - liq) / S : (liq - S) / S;   // доля от стресс-уровня
-    var pass = isFinite(buf) && buf >= 0.13;         // тот же критерий, что и формула L_max
+    var passMax = isFinite(buf) && buf >= 0.13;      // тот же критерий, что и формула L_max
+
+    // РЕК — независимая вероятностная оценка (Vol + горизонт), она НЕ зависит
+    // от сценария BTC. ИТОГ = min(МАКС, РЕК): сценарный и статистический
+    // пределы должны выполняться ОБА. До 08.08 карточка показывала два
+    // светофора сразу («запас 26% ✓ ПРОХОДИТ» рядом с «риск 14% ~») — читатель
+    // получал зелёный и жёлтый вердикт на соседних строках.
+    var recRaw   = recommendedLeverage(coinData.volatility, isL);
+    var recFloor = recRaw === null ? null : Math.floor(recRaw);
+    var lmaxFl   = Math.floor(lmaxRaw);
+    var finalL   = (recFloor === null) ? lmaxFl : Math.min(lmaxFl, recFloor);
+    var passRec  = (recFloor === null) || (L <= recFloor);
+    var pass     = passMax && passRec;
 
     var resColor = pass ? 'var(--green)' : 'var(--red)';
-    var resMark  = pass ? '\u2713 ПРОХОДИТ' : '\u2715 НЕ ПРОХОДИТ';
+    var resMark  = pass ? '\u2713 ПРОХОДИТ'
+                        : (!passMax ? '\u2715 пробьёт стресс' : '\u2715 выше РЕК');
     var dPct     = (k - 1) * 100;
 
     // Мелкий сдвиг слайдера даёт формально большое «безопасное» плечо —
@@ -930,22 +951,22 @@ function leverageBlock(coinData, cur, btcNow, target) {
         // Видео-прогон 08.08: чтение плеча при несдвинутом слайдере — подписано.
         var sameLevel = Math.abs(target - entryBtc) < 1;
         scenHtml = '<div class="lev-sub">BTC $' + entryBtc.toLocaleString()
-            + ' (Normal) &rarr; $' + target.toLocaleString()
+            + ' (вход, без стресса) &rarr; $' + target.toLocaleString()
             + ' (' + STRESS_NAME[currentStress] + ')'
-            + (sameLevel ? ' <span style="color:var(--accent);">&mdash; слайдер не сдвинут</span>' : '')
+            + (sameLevel ? ' <span style="color:var(--accent);">&mdash; слайдер не сдвинут, нажми АВТО-СТРЕСС</span>' : '')
             + '</div>';
     }
 
-    // РЕК — независимая вероятностная оценка (Vol + горизонт 30д), она НЕ
-    // зависит от сценария BTC. Итоговый потолок = min(МАКС, РЕК): сценарный
-    // предел и статистический предел должны выполняться оба.
-    var recRaw  = recommendedLeverage(coinData.volatility, isL);
-    var recTxt  = recRaw === null ? '' : (recRaw < 1 ? '&lt;1x' : Math.floor(recRaw) + 'x');
-    var headRec = recTxt ? ' <span style="color:var(--cyan);">&middot; РЕК ' + recTxt + '</span>' : '';
+    // Строка 1 — ОТВЕТ: сколько можно поставить. Строка 2 — из чего он получен.
+    var finalTxt = finalL < 1 ? '&lt;1X' : finalL + 'X';
+    var whyTxt   = 'МАКС ' + lmaxFl + 'x'
+                 + (recFloor === null ? '' : ' &middot; РЕК ' + (recFloor < 1 ? '&lt;1' : recFloor) + 'x')
+                 + ' &rarr; min';
 
     return box(
-        sideName + ' &middot; МАКС ' + lmaxTxt + headRec,
-        scenHtml
+        sideName + ' &middot; ИТОГ ' + finalTxt,
+        '<div class="lev-sub">' + whyTxt + '</div>'
+        + scenHtml
         + '<div class="lev-sub">Вход ' + fmtUsd(E) + ' &rarr; стресс ' + fmtUsd(S)
             + ' (' + (dPct >= 0 ? '+' : '') + dPct.toFixed(1) + '%)' + softHtml + '</div>'
         + '<div class="lev-res" style="color:' + resColor + ';">Выбрано ' + L + 'X &middot; ликв '
@@ -1296,18 +1317,27 @@ function update() {
             // Жёлтое предупреждение о расхождении источников (пусто в норме)
             + mismatchHtml
 
-            // R² 14d + Funding
+            // РЕЖИМ ПОЗИЦИИ (вход зафиксирован или авто-стресс): блок плеча
+            // идёт ПЕРВЫМ — сначала ответ «сколько ставить», потом чем он
+            // обоснован. Порядок Босса: сторона -> вход -> сценарий -> стресс
+            // -> ИТОГ -> риск ликвидации.
+            + levHtml
+
+            // R² 14d + Funding. Остаётся и в режиме позиции: b= порождает
+            // прогноз и стресс-цену, Funding — реальная стоимость удержания
+            // недели/месяца, это часть позиции, а не диагностика.
             + '<div style="font-size:1.1em;font-weight:bold;font-style:italic;margin:4px 0;color:' + r2Color + ';">'
             +   '<span style="color:#ccc;">b=' + rawBeta.toFixed(2) + '</span> / R2: ' + (r2_14 !== null ? r2_14.toFixed(2) : 'N/A') + fundHtml
             + '</div>'
 
-            // 90d строка
-            + line90
+            // 90d строка — ЧИСТАЯ диагностика: b90/R2_90/rho уже свёрнуты в
+            // Conf и MDL, которые видны в углу карточки всегда. В режиме
+            // позиции прячем, чтобы не конкурировать с решением.
+            + (levHtml ? '' : line90)
 
-            // Вход зафиксирован -> блок допустимого плеча (одна база расчёта:
-            // цена входа E). Не зафиксирован -> прежние две строки ликвидации,
-            // байт в байт как раньше.
-            + (levHtml ? levHtml :
+            // Вход не зафиксирован -> прежние две строки ликвидации,
+            // байт в байт как раньше, плюс строка РЕК.
+            + (levHtml ? '' :
                  '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
                +   '<span style="color:var(--green);">LONG </span>'
                +   currentLev + 'X: ' + liqLongTxt
