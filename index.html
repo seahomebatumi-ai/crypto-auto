@@ -97,6 +97,29 @@
         .stress-btn.s-normal { color: #000; background: var(--green); }
         .stress-btn.s-panic  { color: #000; background: var(--accent); }
         .stress-btn.s-crash  { color: #fff; background: var(--red); }
+        /* Сторона сделки — единственный явный вход «лонг/шорт» в систему.
+           Направление слайдера = сценарий BTC, оно НЕ равно стороне позиции. */
+        .side-container { display: grid; grid-template-columns: repeat(2,1fr); gap: 4px; margin-bottom: 6px; }
+        .side-btn {
+            border: none; color: #aaa; padding: 8px 0; border-radius: 6px;
+            font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+            cursor: pointer; background: #2c2c31; transition: all 0.2s;
+        }
+        .side-btn.a-long  { color: #000; background: var(--green); }
+        .side-btn.a-short { color: #fff; background: var(--red); }
+        .pin-btn {
+            width: 100%; margin-top: 6px; box-sizing: border-box;
+            background: #2c2c31; border: 1px solid #444; color: #ccc;
+            padding: 9px 6px; border-radius: 8px;
+            font-size: 12px; font-weight: 700; cursor: pointer;
+        }
+        .pin-btn.armed { background: #241f16; border-color: var(--accent); color: var(--accent); }
+        /* Блок расчёта плеча. padding-right держит текст левее абсолютного
+           правого столбца карточки (прогноз/цена/Vol) — пересечений нет. */
+        .lev-block { padding-right: 100px; margin: 6px 0 4px; line-height: 1.45; }
+        .lev-head  { font-size: 0.95em; font-weight: 800; letter-spacing: 0.02em; }
+        .lev-sub   { font-size: 0.78em; color: #aaa; }
+        .lev-res   { font-size: 0.82em; font-weight: 700; }
         .nav-btn {
             background: #444; border: none; color: #fff;
             padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;
@@ -230,8 +253,10 @@
             display:flex;align-items:center;justify-content:center;
             line-height:1;">&#43;</button>
     </div>
+    <div class="side-container" id="sideContainer"></div>
     <div class="lev-container" id="levContainer"></div>
     <div class="stress-container" id="stressContainer"></div>
+    <button id="pin-btn" class="pin-btn">Зафиксировать вход</button>
 </div>
 
 <div id="results">Загрузка данных...</div>
@@ -284,9 +309,18 @@
 // ── Константы ──────────────────────────────────────────────────────────────
 var currentLev    = 3;
 var currentStress = 'normal';
+// Сторона сделки задаётся ЯВНО, а не выводится из направления слайдера:
+// слайдер вниз — это сценарий падения BTC, а не «шорт» (так ищут вход в лонг).
+var currentSide   = 'long';
+// Зафиксированный сценарий входа. Храним УРОВЕНЬ BTC + режим стресса, а не
+// цену: живая цена сокращается в отношении S/E, поэтому фиксация не портится
+// от тиков рынка. Намеренно НЕ пишется в localStorage — вчерашний вход с
+// сегодняшними бетами опаснее ручного счёта.
+var pinned = null;   // { btc: <уровень слайдера>, stress: 'normal'|'panic'|'crash' }
 
 var STRESS_MULT  = { normal: 1.0, panic: 1.3, crash: 1.8 };
 var STRESS_BADGE = { normal: '',   panic: 'b*1.3', crash: 'b*1.8' };
+var STRESS_NAME  = { normal: 'Normal', panic: 'Panic', crash: 'Crash' };
 
 // Maintenance margin (Binance USDT-M, нижний тир для большинства альтов ~1%).
 // Реальная ликвидация ближе ко входу, чем наивное pred*(1 -/+ 1/L).
@@ -508,6 +542,21 @@ function move(idx, dir) {
 }
 
 function renderButtons() {
+    var sd = document.getElementById('sideContainer');
+    [['long','ЛОНГ'],['short','ШОРТ']].forEach(function(pair) {
+        var mode = pair[0], label = pair[1];
+        var b = document.createElement('button');
+        b.className = 'side-btn' + (currentSide === mode ? ' a-' + mode : '');
+        b.innerText = label;
+        b.onclick = function() {
+            currentSide = mode;
+            document.querySelectorAll('.side-btn').forEach(function(x) { x.className = 'side-btn'; });
+            b.className = 'side-btn a-' + mode;
+            update();
+        };
+        sd.appendChild(b);
+    });
+
     var lc = document.getElementById('levContainer');
     [2,3,4,5,6,8,10].forEach(function(l) {
         var b = document.createElement('button');
@@ -538,9 +587,41 @@ function renderButtons() {
     });
 }
 
+// Кнопка фиксации входа: запоминает уровень BTC и режим стресса как сценарий
+// ВХОДА. Дальше слайдер двигается в стрессовый сценарий, и каждая карточка
+// сама считает допустимое плечо. Повторное нажатие — сброс.
+function refreshPinBtn() {
+    var b = document.getElementById('pin-btn');
+    if (!b) return;
+    if (!pinned) {
+        b.className = 'pin-btn';
+        b.innerHTML = 'Зафиксировать вход';
+    } else {
+        b.className = 'pin-btn armed';
+        b.innerHTML = 'Вход: BTC $' + pinned.btc.toLocaleString()
+                    + ' &middot; ' + STRESS_NAME[pinned.stress] + ' &mdash; сбросить';
+    }
+}
+
+function togglePin() {
+    if (pinned) {
+        pinned = null;
+    } else {
+        var s = document.getElementById('slider');
+        var v = parseFloat(s.value);
+        if (!isFinite(v)) return;
+        pinned = { btc: v, stress: currentStress };
+    }
+    refreshPinBtn();
+    update();
+}
+
 function init() {
     applySavedOrder();
     renderButtons();
+    refreshPinBtn();
+    var pb = document.getElementById('pin-btn');
+    if (pb) pb.addEventListener('click', togglePin);
     fetchBotData();
     refreshMarketData();
     refreshFuturesTickers();
@@ -585,6 +666,89 @@ function gateState(conf, r2dir, corr90) {
     if (corr90 !== null && corr90 !== undefined && Math.abs(corr90) < 0.5) return 'red';
     if (conf < 70) return 'yellow';
     return 'green';
+}
+
+// ── Расчёт допустимого плеча ────────────────────────────────────────────────
+// Та же степенная модель, что и в основном рендере: growth = (1+ratio)^(b*стресс).
+// Бета выбирается по направлению движения BTC в КОНКРЕТНОМ сценарии, поэтому
+// вход и стресс могут опираться на разные беты — это корректно.
+function scenarioGrowth(coinData, btcNow, btcTarget, stressMode) {
+    if (!(btcNow > 0) || !isFinite(btcTarget)) return null;
+    var r   = (btcTarget - btcNow) / btcNow;
+    var raw = r >= 0 ? coinData.up_beta : coinData.down_beta;
+    if (raw === null || raw === undefined || !isFinite(raw)) return null;
+    var g = Math.pow(Math.max(1 + r, 1e-9), raw * STRESS_MULT[stressMode]);
+    return (isFinite(g) && g > 0) ? g : null;
+}
+
+function fmtUsd(x) {
+    if (!isFinite(x)) return '?';
+    return x < 0.0001 ? '&lt;0.0001' : '$' + x.toFixed(4);
+}
+
+// Возвращает '' пока вход не зафиксирован => карточка рисуется как раньше.
+function leverageBlock(coinData, cur, btcNow, target) {
+    if (!pinned) return '';
+
+    var isL       = currentSide === 'long';
+    var sideName  = isL ? 'ЛОНГ' : 'ШОРТ';
+    var sideColor = isL ? 'var(--green)' : 'var(--red)';
+
+    function box(head, body) {
+        return '<div class="lev-block">'
+             + '<div class="lev-head" style="color:' + sideColor + ';">' + head + '</div>'
+             + body + '</div>';
+    }
+    function note(msg) {
+        return box(sideName + ' &middot; плечо: н/д',
+                   '<div class="lev-sub" style="color:var(--accent);">' + msg + '</div>');
+    }
+
+    var gE = scenarioGrowth(coinData, btcNow, pinned.btc, pinned.stress);
+    var gS = scenarioGrowth(coinData, btcNow, target, currentStress);
+    if (gE === null) return note('Нет беты для сценария входа');
+    if (gS === null) return note('Нет беты для стресс-сценария');
+
+    // Живая цена сокращается: k = S/E = gS/gE. Фиксация не портится тиками рынка.
+    var k = gS / gE;
+    var E = cur * gE;
+    var S = cur * gS;
+
+    if (isL  && k >= 1) return note('Стресс не ниже входа &mdash; двинь слайдер НИЖЕ $' + pinned.btc.toLocaleString());
+    if (!isL && k <= 1) return note('Стресс не выше входа &mdash; двинь слайдер ВЫШЕ $' + pinned.btc.toLocaleString());
+
+    var denom = isL ? (1.01 - 0.87 * k) : (1.13 * k - 0.99);
+    if (!(denom > 0)) return note('Сценарий слишком жёсткий &mdash; безопасного плеча нет даже на 1x');
+
+    var lmaxRaw = 1 / denom;
+    if (lmaxRaw < 1) return note('Сценарий слишком жёсткий &mdash; безопасного плеча нет даже на 1x');
+    var lmaxTxt = lmaxRaw >= 10 ? '10x+' : (Math.floor(lmaxRaw) + 'x');
+
+    // Ликвидация и запас — для ВЫБРАННОГО сейчас плеча, от цены входа E.
+    var L   = currentLev;
+    var liq = isL ? E * (1 - 1 / L + LIQ_MMR) : E * (1 + 1 / L - LIQ_MMR);
+    var buf = isL ? (S - liq) / S : (liq - S) / S;   // доля от стресс-уровня
+    var pass = isFinite(buf) && buf >= 0.13;         // тот же критерий, что и формула L_max
+
+    var resColor = pass ? 'var(--green)' : 'var(--red)';
+    var resMark  = pass ? '\u2713 ПРОХОДИТ' : '\u2715 НЕ ПРОХОДИТ';
+    var dPct     = (k - 1) * 100;
+
+    // Мелкий сдвиг слайдера даёт формально большое «безопасное» плечо —
+    // это ложный комфорт, а не запас прочности. Подписываем явно.
+    var softHtml = Math.abs(dPct) < 5
+        ? ' <span style="color:var(--accent);">&mdash; сценарий мягкий</span>' : '';
+    // Абсурдные отрицательные значения (ликвидация далеко внутри стресса)
+    // не несут информации сверх факта «пробито».
+    var bufTxt = buf < -0.999 ? '&lt;\u2212100%' : (buf * 100).toFixed(1) + '%';
+
+    return box(
+        sideName + ' &middot; МАКС ПЛЕЧО ' + lmaxTxt,
+        '<div class="lev-sub">Вход ' + fmtUsd(E) + ' &rarr; стресс ' + fmtUsd(S)
+            + ' (' + (dPct >= 0 ? '+' : '') + dPct.toFixed(1) + '%)' + softHtml + '</div>'
+        + '<div class="lev-res" style="color:' + resColor + ';">Выбрано ' + L + 'X &middot; ликв '
+            + fmtUsd(liq) + ' &middot; запас ' + bufTxt + ' ' + resMark + '</div>'
+    );
 }
 
 // ── Главный рендер ──────────────────────────────────────────────────────────
@@ -660,9 +824,11 @@ function update() {
     // Индикатор LONG / SHORT — с защитой от null
     var dirEl = document.getElementById('dir-indicator');
     if (dirEl) {
-        if (ratio > 0.005)       { dirEl.innerText = 'LONG';  dirEl.style.color = 'var(--green)'; }
-        else if (ratio < -0.005) { dirEl.innerText = 'SHORT'; dirEl.style.color = 'var(--red)'; }
-        else                     { dirEl.innerText = '--';     dirEl.style.color = '#888'; }
+        // Это направление СЦЕНАРИЯ BTC, а не сторона позиции: сторона задаётся
+        // кнопками ЛОНГ/ШОРТ. Слайдер вниз — штатный способ искать вход в лонг.
+        if (ratio > 0.005)       { dirEl.innerText = 'BTC ВВЕРХ'; dirEl.style.color = 'var(--green)'; }
+        else if (ratio < -0.005) { dirEl.innerText = 'BTC ВНИЗ';  dirEl.style.color = 'var(--red)'; }
+        else                     { dirEl.innerText = '--';        dirEl.style.color = '#888'; }
     }
 
     // Цвет символов кнопок синхронно со слайдером
@@ -841,7 +1007,10 @@ function update() {
         if (fundRate !== undefined) {
             // Правило Босса: зелёный = мне платят, красный = я плачу.
             // Funding > 0: лонги платят шортам; < 0: шорты платят лонгам.
-            var fundColor = isLong
+            // Сторона берётся из кнопок ЛОНГ/ШОРТ, а НЕ из направления слайдера:
+            // при замере риска слайдер смотрит против сделки, и старый цвет
+            // инвертировался ровно в этот момент.
+            var fundColor = (currentSide === 'long')
                 ? (fundRate > 0 ? 'var(--red)' : 'var(--green)')
                 : (fundRate > 0 ? 'var(--green)' : 'var(--red)');
             fundHtml = '<span style="color:' + fundColor + ';font-size:0.8em;font-style:italic;margin-left:8px;">'
@@ -874,6 +1043,9 @@ function update() {
         var minColor  = dynPos <= 25 ? 'var(--red)' : 'var(--accent)';
         var maxClass  = dynPos >= 75 ? 'light-blink' : '';
         var maxColor  = dynPos >= 75 ? 'var(--green)' : 'var(--accent)';
+
+        // Блок допустимого плеча ('' пока вход не зафиксирован)
+        var levHtml = leverageBlock(coinData, cur, btc, target);
 
         // Мерцающая рамка только на самых краях диапазона: <=1% или >=99%
         // Подсветка по тому же округлённому %, что видит пользователь
@@ -918,15 +1090,18 @@ function update() {
             // 90d строка
             + line90
 
-            // Прогнозная цена
-            + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
-            +   '<span style="color:var(--green);">LONG </span>'
-            +   currentLev + 'X: ' + liqLongTxt
-            + '</div>'
-            + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
-            +   '<span style="color:var(--red);">SHORT </span>'
-            +   currentLev + 'X: ' + liqShortTxt
-            + '</div>'
+            // Вход зафиксирован -> блок допустимого плеча (одна база расчёта:
+            // цена входа E). Не зафиксирован -> прежние две строки ликвидации,
+            // байт в байт как раньше.
+            + (levHtml ? levHtml :
+                 '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
+               +   '<span style="color:var(--green);">LONG </span>'
+               +   currentLev + 'X: ' + liqLongTxt
+               + '</div>'
+               + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
+               +   '<span style="color:var(--red);">SHORT </span>'
+               +   currentLev + 'X: ' + liqShortTxt
+               + '</div>')
 
             // Диапазон Min / Pos% / Max
             + '<div class="extra-data">'
