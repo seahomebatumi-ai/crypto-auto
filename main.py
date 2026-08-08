@@ -26,6 +26,13 @@ REQUEST_GAP_SEC  = 1.0
 MAX_RETRIES      = 3
 RETRY_BACKOFF    = 3.0
 RANK_LOOKBACK_H  = 24    # горизонт сравнения ранга (часы)
+# Хвостовая бета: регрессия только по худшей децили часов BTC.
+# Заменяет выдуманные множители Panic/Crash измеренным числом.
+# Порог квантильный, а не фиксированный: -1%/час = 2.7 сигмы для BTC и даёт
+# всего ~12 точек за 90 дней. Дециль всегда даёт ~216 точек и подстраивается
+# под текущий режим волатильности. Отбор по регрессору не смещает OLS.
+TAIL_QUANTILE    = 0.10
+MIN_TAIL_POINTS  = 40      # минимум точек для хвостовой регрессии
 
 TOKENS = {
     'ETH': 'ethereum',
@@ -72,45 +79,37 @@ def fetch_with_retry(coin_id):
     return None, last_err
 
 
-def fetch_market_info():
-    """Ранг капитализации + FDV/MC — ОДИН вызов /coins/markets (тот же, что был).
-    FDV бесплатен: market_cap и fully_diluted_valuation уже приходят в ответе.
-    Возвращает {coin_id: {"rank": int|None, "fdv_mc": float|None}}.
-    Любой сбой -> {} (фронт рисует серый / не рисует FDV — инвариант 9)."""
+def fetch_ranks():
+    """Ранг капитализации + FDV/MC для всех монет — ОДИН вызов /coins/markets.
+    Возвращает (ranks, fdvs). Любой сбой -> ({}, {}) (фронт рисует серый / прячет)."""
     ids = ",".join(TOKENS.values())
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             data = cg.get_coins_markets(vs_currency='usd', ids=ids,
                                         per_page=250, page=1)
-            out = {}
+            ranks, fdvs = {}, {}
             for item in (data or []):
                 cid = item.get('id')
-                if not cid:
-                    continue
-                entry = {}
                 r = item.get('market_cap_rank')
                 if isinstance(r, int) and r > 0:
-                    entry["rank"] = r
-                # FDV/MC. None штатен: у монет без max supply (ETH, XMR)
-                # CoinGecko отдаёт fully_diluted_valuation = null.
-                mc  = item.get('market_cap')
+                    ranks[cid] = r
+                # FDV/MC: во сколько раз полная эмиссия больше обращающейся.
+                # Нет max supply (ETH, XMR) -> FDV = null, поле не пишется.
                 fdv = item.get('fully_diluted_valuation')
+                mc  = item.get('market_cap')
                 try:
-                    if mc and fdv and float(mc) > 0 and float(fdv) > 0:
+                    if fdv and mc and float(mc) > 0:
                         ratio = float(fdv) / float(mc)
-                        # Отсекаем мусор: FDV < MC невозможен экономически,
-                        # >100x = ошибка данных о supply, а не сигнал.
-                        if 0.95 <= ratio <= 100.0:
-                            entry["fdv_mc"] = round(ratio, 3)
-                except (TypeError, ValueError):
+                        # <0.95 и >100 — мусор данных о supply, отсеиваем
+                        if 0.95 <= ratio <= 100:
+                            fdvs[cid] = round(ratio, 3)
+                except Exception:
                     pass
-                if entry:
-                    out[cid] = entry
-            return out
+            return ranks, fdvs
         except Exception:
             if attempt < MAX_RETRIES:
                 time.sleep(RETRY_BACKOFF * (2 ** (attempt - 1)))
-    return {}
+    return {}, {}
 
 
 def prev_ranks_from_history(history_points, now_utc):
@@ -131,6 +130,65 @@ def prev_ranks_from_history(history_points, now_utc):
                     out[sym] = v["r"]
             return out
     return {}
+
+
+def window_stats(price_list, days):
+    """Доходность / min / max за последние `days` суток.
+    Данные УЖЕ скачаны (тот же ответ /market_chart) — стоимость по API = 0."""
+    if not price_list or len(price_list) < 2:
+        return None, None, None
+    t_end  = price_list[-1][0]
+    cutoff = t_end - days * 86400 * 1000
+    seg = [p for p in price_list if p[0] >= cutoff]
+    if len(seg) < 2 or not (seg[0][1] > 0):
+        return None, None, None
+    vals = [p[1] for p in seg]
+    ret  = seg[-1][1] / seg[0][1] - 1.0
+    return float(ret), float(min(vals)), float(max(vals))
+
+
+def window_vol(price_list, days):
+    """Часовая волатильность за последние `days` суток (для режима волатильности)."""
+    if not price_list:
+        return None
+    t_end  = price_list[-1][0]
+    cutoff = t_end - days * 86400 * 1000
+    vals = [p[1] for p in price_list if p[0] >= cutoff and p[1] > 0]
+    if len(vals) < 24:
+        return None
+    a = np.array(vals)
+    v = float(np.std(np.diff(a) / a[:-1]))
+    return v if np.isfinite(v) else None
+
+
+def volume_expansion(volume_list):
+    """Текущий 24ч-оборот / медиана оборота за 90д.
+    CoinGecko отдаёт total_volumes в ТОМ ЖЕ ответе — новых запросов нет."""
+    if not volume_list or len(volume_list) < 100:
+        return None
+    vals = np.array([v[1] for v in volume_list if v[1] and v[1] > 0])
+    if len(vals) < 100:
+        return None
+    med = float(np.median(vals))
+    if not (med > 0):
+        return None
+    r = float(vals[-1]) / med
+    return round(r, 3) if np.isfinite(r) else None
+
+
+def tail_beta_fit(b_r, c_r):
+    """Бета по худшей децили часов BTC. Измеренная замена множителям
+    Panic/Crash. Возвращает (beta, R2, порог) или (None, None, None)."""
+    if len(b_r) < MIN_TAIL_POINTS * 4:
+        return None, None, None
+    thr = float(np.quantile(b_r, TAIL_QUANTILE))
+    if not (thr < 0):
+        return None, None, None
+    mask = b_r <= thr
+    if int(np.sum(mask)) < MIN_TAIL_POINTS:
+        return None, None, None
+    b, r2 = fit_stats(b_r[mask], c_r[mask])
+    return b, r2, thr
 
 
 def bucket_prices(price_list):
@@ -196,13 +254,15 @@ def get_token_betas(coin_id, btc_buckets, cutoff_14d):
     time.sleep(REQUEST_GAP_SEC)
 
     debug = {"candles_total": 0, "matched_90d": 0, "matched_14d": 0,
-             "returns_90d": 0, "returns_14d": 0, "error": None}
+             "returns_90d": 0, "returns_14d": 0, "tail_points": 0, "error": None}
 
     def err_result(msg):
         debug["error"] = msg
         empty = dict(up_beta=None, up_r2=None, down_beta=None, down_r2=None,
                      up_beta_90=None, up_r2_90=None, down_beta_90=None, down_r2_90=None,
-                     corr_90=None,
+                     corr_90=None, tail_beta=None, tail_r2=None,
+                     r7=None, r14=None, r30=None,
+                     min30=None, max30=None, vol7=None, eff14=None, vol_ratio=None,
                      price_pos=0, volatility=0, min_price=0, max_price=0, error=True)
         return empty, debug
 
@@ -221,17 +281,40 @@ def get_token_betas(coin_id, btc_buckets, cutoff_14d):
         price_pos  = ((cur - min_p) / (max_p - min_p) * 100) if max_p != min_p else 0
         volatility = float(np.std(np.diff(c_prices) / c_prices[:-1])) if len(c_prices) > 1 else 0
 
+        # --- Структурные метрики из ТЕХ ЖЕ данных (0 новых запросов) ---
+        # Нужны фронту для: инвалидации (min30/max30), фильтра «нож ещё летит»
+        # (r7 vs r30), режима волатильности (vol7/vol), силы тренда (eff14)
+        # и расширения оборота (vol_ratio).
+        r7,  _mn7,  _mx7  = window_stats(c_data['prices'], 7)
+        r14, _mn14, _mx14 = window_stats(c_data['prices'], 14)
+        r30, mn30,  mx30  = window_stats(c_data['prices'], 30)
+        vol7  = window_vol(c_data['prices'], 7)
+        vratio = volume_expansion(c_data.get('total_volumes'))
+        # Направленная эффективность: сколько сигм прошла цена за 14д.
+        # |eff14| > 0.6 = движение прямой линией (тренд), а не колебание.
+        eff14 = None
+        if r14 is not None and volatility > 0:
+            e = r14 / (volatility * np.sqrt(336))
+            if np.isfinite(e):
+                eff14 = float(max(-3.0, min(3.0, e)))
+
         coin_buckets = bucket_prices(c_data['prices'])
         common_90    = sorted(set(btc_buckets) & set(coin_buckets))
         debug["matched_90d"] = len(common_90)
 
-        # -- 90-дневная бета + корреляция BTC/ALT --
+        # -- 90-дневная бета + корреляция BTC/ALT + хвостовая бета --
         up_b90 = ur90 = dn_b90 = dr90 = corr90 = None
+        tail_b = tail_r2 = None
         if len(common_90) >= MIN_MATCHED_90D:
             b_r90, c_r90 = paired_hourly_returns(btc_buckets, coin_buckets, common_90)
             debug["returns_90d"] = len(b_r90)
+            debug["tail_points"] = 0
             up_b90, ur90, dn_b90, dr90 = asymmetric_beta(b_r90, c_r90)
             corr90 = safe_corr(b_r90, c_r90)
+            tail_b, tail_r2, tail_thr = tail_beta_fit(b_r90, c_r90)
+            if tail_thr is not None:
+                debug["tail_points"] = int(np.sum(b_r90 <= tail_thr))
+                debug["tail_thr"]    = round(tail_thr, 5)
 
         # -- 14-дневная бета (срез последних 14 дней из тех же данных) --
         common_14 = [k for k in common_90 if k >= cutoff_14d]
@@ -250,7 +333,10 @@ def get_token_betas(coin_id, btc_buckets, cutoff_14d):
             dict(up_beta=up_b,   up_r2=ur,   down_beta=dn_b,   down_r2=dr,
                  up_beta_90=up_b90, up_r2_90=ur90,
                  down_beta_90=dn_b90, down_r2_90=dr90,
-                 corr_90=corr90,
+                 corr_90=corr90, tail_beta=tail_b, tail_r2=tail_r2,
+                 r7=r7, r14=r14, r30=r30,
+                 min30=mn30, max30=mx30, vol7=vol7,
+                 eff14=eff14, vol_ratio=vratio,
                  price_pos=float(price_pos), volatility=volatility,
                  min_price=min_p, max_price=max_p, error=has_error_14),
             debug
@@ -293,17 +379,15 @@ def main():
             results.append({"symbol": symbol, **beta_data})
             debug_info["details"][symbol] = dbg
 
-        # --- Ранг по капитализации + FDV/MC: 1 вызов на весь список ---
-        market_info = fetch_market_info()
-        debug_info["ranks_fetched"] = sum(
-            1 for v in market_info.values() if v.get("rank") is not None)
-        debug_info["fdv_fetched"] = sum(
-            1 for v in market_info.values() if v.get("fdv_mc") is not None)
+        # --- Ранг по капитализации: 1 вызов на весь список ---
+        ranks, fdvs = fetch_ranks()
+        debug_info["ranks_fetched"] = len(ranks)
+        debug_info["fdv_fetched"]   = len(fdvs)
         for row in results:
-            info = market_info.get(TOKENS.get(row["symbol"])) or {}
-            row["rank"] = info.get("rank")
-            row["rank_prev"] = None   # заполняется ниже из history.json
-            row["fdv_mc"] = info.get("fdv_mc")   # None штатен (нет max supply)
+            cid = TOKENS.get(row["symbol"])
+            row["rank"] = ranks.get(cid)
+            row["fdv_mc"] = fdvs.get(cid)   # None штатен: нет max supply
+            row["rank_prev"] = None         # заполняется ниже из history.json
 
         # --- История бет: компактная запись по каждому токену ---
         # Дописываем одну точку на прогон. Храним только беты и R2 (без min/max/vol),
