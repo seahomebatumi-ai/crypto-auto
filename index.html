@@ -140,20 +140,6 @@
         .btc-range { font-size: 0.8em; color: var(--accent); font-style: italic; margin-bottom: 10px; }
         /* Компактный штамп свежести данных бота в правом верхнем углу */
         .upd-stamp { font-size: 0.62em; line-height: 1; white-space: nowrap; color: #888; }
-        /* Ранг — левый верхний угол карточки. position:absolute => вне потока,
-           высота карточки не меняется. left:14px совпадает с padding: бейдж
-           стоит ровно над именем монеты и над строкой Min/Max. Заголовочная
-           строка выровнена по центру трёхстрочного правого блока (цена/Conf/
-           MDL), поэтому имя стоит на своём прежнем месте, ниже бейджа. */
-        .rank-badge {
-            position: absolute; top: 10px; left: 14px;
-            font-size: 0.74em; font-weight: 700; line-height: 1;
-            letter-spacing: 0.02em; pointer-events: none;
-        }
-        .vol-value {
-            position: absolute; bottom: 42px; right: 14px;
-            font-size: 0.9em; font-weight: bold; font-style: italic;
-        }
         @keyframes blinkRed {
             0%  { opacity:1; }
             50% { opacity:0.15; }
@@ -175,6 +161,47 @@
             color: var(--green) !important;
             animation: blinkGreen 2s ease-in-out infinite;
         }
+        /* Ранг/FDV/тир — обычная первая строка карточки (не absolute:
+           высота карточки теперь переменная из-за блока входа). */
+        .rank-badge {
+            display: block; margin-bottom: 3px;
+            font-size: 0.74em; font-weight: 700; line-height: 1; letter-spacing: 0.02em;
+        }
+        .side3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin-bottom: 6px; }
+        .side-btn.a-none { color: #000; background: #c7c7cc; }
+        .adv-btn {
+            width: 100%; box-sizing: border-box; background: #2c2c31;
+            border: 1px solid #444; color: #999; padding: 7px 6px;
+            border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;
+        }
+        .adv-btn.on { border-color: var(--cyan); color: var(--cyan); }
+        .adv-note { font-size: 0.68em; color: #666; margin-top: 8px; line-height: 1.35; }
+        .dist-line { font-size: 0.8em; margin: 3px 0; color: #aaa; }
+        .reason-line { font-size: 0.76em; color: var(--cyan); margin: 3px 0 5px; line-height: 1.35; }
+        .qbtn {
+            background: #2c2c31; border: 1px solid #444; color: #ccc;
+            padding: 6px 9px; border-radius: 7px; font-size: 11px;
+            font-weight: 700; cursor: pointer; margin-right: 4px; margin-top: 4px;
+        }
+        .qbtn.wide { width: 100%; margin-right: 0; padding: 9px 6px; box-sizing: border-box; }
+        .qrow { display: flex; flex-wrap: wrap; margin-bottom: 2px; }
+        .ent {
+            border: 1px solid #3a3a42; border-radius: 10px;
+            padding: 9px 10px; margin: 6px 0 4px; background: #15151a;
+        }
+        .ent-head { font-size: 1.0em; font-weight: 800; letter-spacing: 0.02em; margin-bottom: 4px; }
+        .ent-line { font-size: 0.84em; margin: 3px 0; }
+        .ent-dim  { color: #777; font-size: 0.92em; }
+        .ent-sub  { font-size: 0.74em; color: #999; margin: 3px 0; line-height: 1.4; }
+        .ent-why  { font-size: 0.8em; font-weight: 600; margin: 4px 0; line-height: 1.4; }
+        .ent-warn { font-size: 0.76em; color: var(--accent); margin: 3px 0; }
+        .liq-row  { display: flex; flex-wrap: wrap; gap: 8px; margin: 5px 0 3px; }
+        .liq-cell { font-size: 0.8em; font-weight: 700; }
+        .diag {
+            font-size: 0.72em; color: #7a7a82; margin-top: 6px;
+            border-top: 1px dashed #333; padding-top: 5px; line-height: 1.5;
+        }
+        .nav-row { text-align: right; margin-top: 6px; }
         /* Экран ввода пароля */
         #lock-screen {
             position: fixed; inset: 0; z-index: 9999;
@@ -233,38 +260,37 @@
             <div id="status-dot" style="width:12px;height:12px;border-radius:50%;background:#666;"></div>
         </div>
     </div>
-    <div class="row" style="margin-bottom:4px;">
-        <div style="font-weight:600;">
-            <span id="btc-target">Прогноз BTC: ...</span><span id="btc-target-arrow" style="font-size:1.3em;font-weight:700;line-height:1;vertical-align:-2px;margin-left:4px;"></span>
-        </div>
-        <div style="text-align:right;">
-            <div id="btc-pct" style="font-weight:bold;color:#ffffff;">0.00%</div>
-            <div id="dir-indicator" style="font-size:0.75em;font-weight:800;color:#888;">&#8212;&#8212;</div>
-        </div>
-    </div>
     <div id="btc-range" class="btc-range">Диапазон BTC 90д: ...</div>
-    <div style="display:flex;align-items:center;gap:6px;margin:6px 0;">
-        <button id="btn-minus" style="
-            background:#2c1f1f;border:1px solid var(--red);color:var(--red);
-            font-size:1.4em;font-weight:900;width:38px;height:38px;
-            border-radius:8px;cursor:pointer;flex-shrink:0;
-            display:flex;align-items:center;justify-content:center;
-            line-height:1;">&#8722;</button>
-        <input type="range" id="slider" min="20000" max="150000" step="100"
-               style="flex:1;margin:0;">
-        <button id="btn-plus" style="
-            background:#1a2a1f;border:1px solid var(--green);color:var(--green);
-            font-size:1.4em;font-weight:900;width:38px;height:38px;
-            border-radius:8px;cursor:pointer;flex-shrink:0;
-            display:flex;align-items:center;justify-content:center;
-            line-height:1;">&#43;</button>
-    </div>
-    <div class="side-container" id="sideContainer"></div>
-    <div class="lev-container" id="levContainer"></div>
-    <div class="stress-container" id="stressContainer"></div>
-    <div class="btn-row2">
-        <button id="pin-btn" class="pin-btn">Зафиксировать вход</button>
-        <button id="auto-btn" class="pin-btn">АВТО-СТРЕСС: выкл</button>
+    <div class="side3" id="sideContainer"></div>
+    <button id="adv-btn" class="adv-btn">Диагностика &#9662;</button>
+    <div id="adv-panel" style="display:none;">
+        <div class="row" style="margin:10px 0 4px;">
+            <div style="font-weight:600;">
+                <span id="btc-target">Прогноз BTC: ...</span><span id="btc-target-arrow" style="font-size:1.3em;font-weight:700;line-height:1;vertical-align:-2px;margin-left:4px;"></span>
+            </div>
+            <div style="text-align:right;">
+                <div id="btc-pct" style="font-weight:bold;color:#ffffff;">0.00%</div>
+                <div id="dir-indicator" style="font-size:0.75em;font-weight:800;color:#888;">&#8212;&#8212;</div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin:6px 0;">
+            <button id="btn-minus" style="
+                background:#2c1f1f;border:1px solid var(--red);color:var(--red);
+                font-size:1.4em;font-weight:900;width:38px;height:38px;
+                border-radius:8px;cursor:pointer;flex-shrink:0;
+                display:flex;align-items:center;justify-content:center;
+                line-height:1;">&#8722;</button>
+            <input type="range" id="slider" min="20000" max="150000" step="100"
+                   style="flex:1;margin:0;">
+            <button id="btn-plus" style="
+                background:#1a2a1f;border:1px solid var(--green);color:var(--green);
+                font-size:1.4em;font-weight:900;width:38px;height:38px;
+                border-radius:8px;cursor:pointer;flex-shrink:0;
+                display:flex;align-items:center;justify-content:center;
+                line-height:1;">&#43;</button>
+        </div>
+        <div class="stress-container" id="stressContainer"></div>
+        <div class="adv-note">Сценарий BTC и режимы Normal/Panic/Crash влияют ТОЛЬКО на диагностические строки карточек. На решение по плечу они не влияют.</div>
     </div>
 </div>
 
@@ -315,50 +341,50 @@
     });
 })();
 
-// ── Константы ──────────────────────────────────────────────────────────────
-var currentLev    = 3;
+// ── Состояние ──────────────────────────────────────────────────────────────
+// currentSide — режим экрана. 'none' = обзор рынка (карточки компактные,
+// порядок ручной). 'long'/'short' = карточки пересортированы по силе кандидата.
+var currentSide   = 'none';
+// Режим стресса живёт ТОЛЬКО в диагностике: он множит бету и меняет
+// диагностический прогноз, но НЕ участвует в решении по плечу.
 var currentStress = 'normal';
-// Сторона сделки задаётся ЯВНО, а не выводится из направления слайдера:
-// слайдер вниз — это сценарий падения BTC, а не «шорт» (так ищут вход в лонг).
-var currentSide   = 'long';
-// Зафиксированный сценарий входа. Храним УРОВЕНЬ BTC + режим стресса, а не
-// цену: живая цена сокращается в отношении S/E, поэтому фиксация не портится
-// от тиков рынка. Намеренно НЕ пишется в localStorage — вчерашний вход с
-// сегодняшними бетами опаснее ручного счёта.
-var pinned = null;   // { btc: <уровень слайдера>, stress: 'normal'|'panic'|'crash' }
+var advOpen       = false;
+// Вход по каждой монете. Сессионное состояние: вчерашний вход с сегодняшними
+// данными опаснее ручного счёта, поэтому в localStorage не пишется.
+var entryState = {};   // { SYM: { open:true, price:<цена монеты> } }
 
 var STRESS_MULT  = { normal: 1.0, panic: 1.3, crash: 1.8 };
 var STRESS_BADGE = { normal: '',   panic: 'b*1.3', crash: 'b*1.8' };
 var STRESS_NAME  = { normal: 'Normal', panic: 'Panic', crash: 'Crash' };
 
-// Maintenance margin (Binance USDT-M, нижний тир для большинства альтов ~1%).
-// Реальная ликвидация ближе ко входу, чем наивное pred*(1 -/+ 1/L).
-var LIQ_MMR = 0.01;
-
-// ── Горизонт риска ──────────────────────────────────────────────────────────
-// 720 ч = 30 суток — базовый срок удержания Босса (позиция живёт 2-3 недели+).
-// Все вероятностные расчёты ведутся ИМЕННО на этом горизонте; при другом
-// сроке риск масштабируется как sqrt(H): 7 суток = делить сигму на 2.07.
-var RISK_HORIZON_H = 720;
-// z = 1.645 => 10% вероятность КАСАНИЯ ликвидации за горизонт (принцип
-// отражения: касание вдвое вероятнее конечного значения ниже уровня).
-var RISK_Z         = 1.645;
-// Пороги зоны риска для ВЫБРАННОГО плеча (вероятность касания за 30д).
-var RISK_OK_P      = 0.10;
-var RISK_WARN_P    = 0.25;
-
-// ── Авто-стресс ─────────────────────────────────────────────────────────────
-// Просадка BTC = 2 sigma за тот же горизонт 30д, считается из btc.volatility
-// (часовая волатильность BTC за 90д, уже приходит в coeffs.json и до сих пор
-// не использовалась фронтом). Clamp защищает от режима сверхнизкой/бешеной
-// волатильности. Реакция альта берётся с множителем Panic 1.3: часовая
-// down-бета недооценивает многодневный обвал, в котором корреляции растут.
-var AUTO_SIGMA     = 2.0;
-var AUTO_D_MIN     = 0.15;
-var AUTO_D_MAX     = 0.35;
-var AUTO_D_FALLBACK = 0.20;   // старый coeffs.json без btc.volatility
-var AUTO_MODE      = 'panic';
-var autoStress     = false;
+// ── Константы риска ────────────────────────────────────────────────────────
+// Maintenance margin. 0.0125 подтверждён обратным счётом по трём реальным
+// позициям Босса (XMR 1.28%, YFI 1.25%, LIT 1.13%). Прежний 0.01 давал
+// ликвидацию ДАЛЬШЕ реальной, то есть ошибался в опасную сторону.
+var LIQ_MMR   = 0.0125;
+var RISK_Z    = 1.645;    // 10% вероятности касания (принцип отражения)
+// Горизонт шума = 7 суток. Прежние 30 суток были самым чувствительным
+// параметром системы и в одиночку двигали вердикт на две ступени плеча,
+// не будучи связанными ни с одним решением Босса.
+var H_NOISE   = 168;
+// Окно реакции: сколько часов позиция может стоять без присмотра (сон/работа).
+var H_REACT   = 12;
+var H_BTC     = 168;      // тот же горизонт для стресса BTC
+var L_CAP     = 7;        // математический потолок
+var L_MIN     = 2;        // ниже -> «БЕЗ БЕЗОПАСНОГО ПЛЕЧА», 1X не рекомендуем
+var L_BASE    = 4;        // базовое плечо Босса — для справочной вероятности
+var INV_FLOOR_SD = 2.0;   // пол дистанции инвалидации в дневных сигмах
+// Потолок дистанции инвалидации. Если структурный уровень дальше 6 дневных
+// сигм (за 7 суток это движение с вероятностью ~2%), это уже не стоп, а
+// пожелание: по такому уровню выйти невозможно. Тогда опоры рядом НЕТ,
+// дистанция обрезается, и карточка честно об этом предупреждает. Без этого
+// потолка вход в середине диапазона давал «БЕЗ ПЛЕЧА» — то есть далёкая
+// опора трактовалась как огромный риск вместо отсутствия ориентира.
+var INV_CAP_SD   = 6.0;
+var SHOW_LEVS = [3, 4, 5];
+var VOL_ABNORMAL = 2.0;   // vol7/vol90 -> потолок 3X
+var VOL_HARD     = 0.02;  // 2%/ч      -> потолок 2X
+var VOL_STOP     = 0.03;  // 3%/ч      -> плечо не выдаётся
 
 var botData          = { analysis_data: [], generated_at: null };
 var cachedMarketData = [];
@@ -382,10 +408,9 @@ var tokens = [
     {name:'SKY',    s:'SKYUSDT'},   {name:'ETH',    s:'ETHUSDT'},
     {name:'HBAR',   s:'HBARUSDT'},  {name:'XLM',    s:'XLMUSDT'},
     {name:'ALGO',   s:'ALGOUSDT'},  {name:'BNB',    s:'BNBUSDT'},
-    // Добавлены 2026-08-07.
     // ZEC / UNI — спот-пары Binance есть, идут в ?symbols= штатно.
-    // XMR — спот делистнут Binance (2024, регуляторка) => fut:true.
-    // LIT — статус спот-пары не подтверждён (возможен ребрендинг) => fut:true.
+    // XMR — спот делистнут Binance (2024) => fut:true.
+    // LIT — статус спот-пары не подтверждён => fut:true.
     // Правило: неподтверждённый символ НИКОГДА не кладём в спот-?symbols=
     // (HTTP 400 роняет ВЕСЬ спот-тикер на 1.2 МБ — инвариант 5).
     {name:'ZEC',    s:'ZECUSDT'},   {name:'UNI',    s:'UNIUSDT'},
@@ -394,18 +419,12 @@ var tokens = [
 ];
 
 // ── Тикер только по нужным парам ────────────────────────────────────────────
-// Полный /ticker/24hr = ~1.2 МБ каждые 30с; ?symbols= = ~12 КБ (weight 40 vs 80).
-// При HTTP 400 (например, символ делистнут) откатываемся на полный тикер
-// до перезагрузки страницы — поведение идентично старому.
 var useSymbolsParam = true;
 
 function marketTickerUrl() {
     if (!useSymbolsParam) return 'https://api.binance.com/api/v3/ticker/24hr';
     var syms = ['BTCUSDT'];
     for (var i = 0; i < tokens.length; i++) {
-        // fut:true = пары нет на споте (есть только перп на fapi).
-        // Такой символ в ?symbols= даёт HTTP 400 на ВЕСЬ запрос и молча
-        // ронял приложение на полный тикер 1.2МБ каждую сессию.
         if (tokens[i].fut) continue;
         if (syms.indexOf(tokens[i].s) === -1) syms.push(tokens[i].s);
     }
@@ -452,7 +471,6 @@ function fetchBotData() {
             botData = data;
             document.getElementById('status-dot').style.backgroundColor = 'var(--green)';
             updateFreshnessDisplay();
-            refreshAutoBtn();   // величина авто-просадки зависит от btc.volatility
             update();
         })
         .catch(function() {
@@ -473,11 +491,7 @@ function fetchFundingRates() {
         .catch(function() {});
 }
 
-// ── Futures-native пары (нет на Binance Spot, есть перп на fapi) ────────────
-// Цена берётся по одному запросу /fapi/v1/ticker/24hr?symbol=... (weight 1).
-// В ответе fapi нет bidPrice/askPrice — детектор мёртвого рынка работает по
-// count (отсутствующие поля = NaN = карточка жива, поведение по спецификации).
-// Любой сбой = карточка «НЕТ ПАРЫ», как раньше: регресс невозможен по построению.
+// ── Futures-native пары ─────────────────────────────────────────────────────
 var cachedFutTickers = {};
 
 function refreshFuturesTickers() {
@@ -506,8 +520,6 @@ function updateFreshnessDisplay() {
     var genDate = new Date(botData.generated_at);
     var ageMin  = (Date.now() - genDate.getTime()) / 60000;
     var mins    = Math.max(0, Math.round(ageMin));
-    // Компактный штамп: одна строка, без часов — влезает над точкой статуса.
-    // Пороги свежести те же (STALE_WARN 75 / STALE_CRIT 130), меняется только текст.
     if (ageMin > STALE_CRIT_MIN) {
         el.innerText   = '! Молчит ' + mins + ' мин';
         el.style.color = 'var(--red)';
@@ -528,12 +540,10 @@ function refreshMarketData(isRetry) {
     var wasSymbols = useSymbolsParam;
     fetch(marketTickerUrl())
         .then(function(res) {
-            // HTTP-ошибка (напр. 400: невалидный символ в ?symbols=) → в catch
             if (!res.ok) throw new Error('http ' + res.status);
             return res.json();
         })
         .then(function(data) {
-            // Тикер обязан быть массивом (а не объектом ошибки Binance)
             if (!data || typeof data.length !== 'number') throw new Error('bad ticker payload');
             cachedMarketData = data;
             if (!sliderInitialized && data.length > 0) {
@@ -549,10 +559,6 @@ function refreshMarketData(isRetry) {
             update();
         })
         .catch(function() {
-            // ЛЮБОЙ сбой варианта ?symbols= — HTTP 400, ответ об ошибке без
-            // CORS-заголовков (fetch тогда падает сразу сюда, минуя .then),
-            // сбой сети — один повтор ПОЛНЫМ тикером и залипание на нём до
-            // перезагрузки. Худший случай = ровно старое поведение.
             if (wasSymbols && !isRetry) {
                 useSymbolsParam = false;
                 refreshMarketData(true);
@@ -566,7 +572,24 @@ function refreshMarketData(isRetry) {
         });
 }
 
-// ── UI ──────────────────────────────────────────────────────────────────────
+// ── Мелкие утилиты ──────────────────────────────────────────────────────────
+function has(v) { return v !== null && v !== undefined && typeof v === 'number' && isFinite(v); }
+function firstNum() {
+    for (var i = 0; i < arguments.length; i++) if (has(arguments[i])) return arguments[i];
+    return null;
+}
+function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+function fmtP(x) {
+    if (!isFinite(x)) return '?';
+    if (x >= 100) return '$' + x.toFixed(2);
+    if (x >= 1)   return '$' + x.toFixed(4);
+    return x < 0.000001 ? '&lt;0.000001' : '$' + x.toFixed(6);
+}
+// Число, попадающее в onclick-атрибут: без хвоста плавающей точки.
+function numAttr(x) { return Math.round(x * 1e6) / 1e6; }
+function pctTxt(x, digits) { return (x >= 0 ? '+' : '') + (x * 100).toFixed(digits === undefined ? 1 : digits) + '%'; }
+
+// ── UI: перестановка карточек (только в режиме обзора) ─────────────────────
 function move(idx, dir) {
     var n = idx + dir;
     if (n >= 0 && n < tokens.length) {
@@ -576,9 +599,10 @@ function move(idx, dir) {
     }
 }
 
+// ── Кнопки панели ───────────────────────────────────────────────────────────
 function renderButtons() {
     var sd = document.getElementById('sideContainer');
-    [['long','ЛОНГ'],['short','ШОРТ']].forEach(function(pair) {
+    [['none','ОБЗОР'],['long','ЛОНГ'],['short','ШОРТ']].forEach(function(pair) {
         var mode = pair[0], label = pair[1];
         var b = document.createElement('button');
         b.className = 'side-btn' + (currentSide === mode ? ' a-' + mode : '');
@@ -590,23 +614,6 @@ function renderButtons() {
             update();
         };
         sd.appendChild(b);
-    });
-
-    var lc = document.getElementById('levContainer');
-    // 8X/10X удалены: правило «запас >= 13%» + MMR 1% дают потолок
-    // L_max = 1/0.14 = 7.14 => 8x и 10x не проходят НИКОГДА (подтверждено
-    // сеткой сценариев). Интерфейс не предлагает то, что сам же запрещает.
-    [2,3,4,5,6,7].forEach(function(l) {
-        var b = document.createElement('button');
-        b.className = 'lev-btn' + (currentLev === l ? ' active' : '');
-        b.innerText = l + 'X';
-        b.onclick = function() {
-            currentLev = l;
-            document.querySelectorAll('.lev-btn').forEach(function(x) { x.classList.remove('active'); });
-            b.classList.add('active');
-            update();
-        };
-        lc.appendChild(b);
     });
 
     var sc = document.getElementById('stressContainer');
@@ -625,131 +632,48 @@ function renderButtons() {
     });
 }
 
-// Кнопка фиксации входа: запоминает уровень BTC и режим стресса как сценарий
-// ВХОДА. Дальше слайдер двигается в стрессовый сценарий, и каждая карточка
-// сама считает допустимое плечо. Повторное нажатие — сброс.
-function refreshPinBtn() {
-    var b = document.getElementById('pin-btn');
-    if (!b) return;
-    if (!pinned) {
-        b.className = 'pin-btn';
-        b.innerHTML = 'Зафиксировать вход';
-    } else {
-        b.className = 'pin-btn armed';
-        // Слово «Normal» убрано 08.08: кнопка стоит вплотную к ряду
-        // Normal/Panic/Crash и читалась как «режим сброшен». Семантика
-        // «цена входа считается без стресса» теперь в строке сценария карточки.
-        b.innerHTML = 'Вход $' + pinned.btc.toLocaleString() + ' \u2715';
+function toggleAdv() {
+    advOpen = !advOpen;
+    var p = document.getElementById('adv-panel');
+    var b = document.getElementById('adv-btn');
+    if (p) p.style.display = advOpen ? 'block' : 'none';
+    if (b) {
+        b.innerHTML = advOpen ? 'Диагностика \u25B4' : 'Диагностика \u25BE';
+        b.className = advOpen ? 'adv-btn on' : 'adv-btn';
     }
-}
-
-function togglePin() {
-    if (pinned) {
-        pinned = null;
-    } else {
-        var s = document.getElementById('slider');
-        var v = parseFloat(s.value);
-        if (!isFinite(v)) return;
-        // Вход ВСЕГДА оценивается в Normal (E = pred при Normal, SYSTEM_MAP §3.1):
-        // стресс-режимы усиливают бету для НЕблагоприятного сценария, а не для
-        // цены входа. Захват Panic/Crash завышал E, сужал видимый стресс и
-        // раздувал допустимое плечо — ловушка, вскрытая видео-прогоном 08.08.
-        pinned = { btc: v };
-    }
-    refreshPinBtn();
     update();
 }
 
-// Авто-стресс: одна кнопка вместо ручной процедуры «сдвинь слайдер + выбери
-// режим». Стресс-сценарий строится от УРОВНЯ ВХОДА (зафиксированного или
-// рыночного), поэтому слайдер и кнопки Normal/Panic/Crash остаются свободны
-// для обычного прогноза — на них авто-режим не влияет.
-function refreshAutoBtn() {
-    var b = document.getElementById('auto-btn');
-    if (!b) return;
-    if (!autoStress) {
-        b.className = 'pin-btn';
-        b.innerHTML = 'АВТО-СТРЕСС: выкл';
-    } else {
-        var ad = autoStressDrop();
-        b.className = 'pin-btn auto-on';
-        b.innerHTML = 'АВТО-СТРЕСС: BTC \u00B1' + (ad.d * 100).toFixed(0) + '%';
-    }
-}
+// ── Управление входом ───────────────────────────────────────────────────────
+function entryOf(sym) { return entryState[sym] || null; }
 
-function toggleAuto() {
-    autoStress = !autoStress;
-    refreshAutoBtn();
+function openEntry(sym, cur) {
+    entryState[sym] = { open: true, price: cur };
     update();
 }
-
-function init() {
-    applySavedOrder();
-    renderButtons();
-    refreshPinBtn();
-    refreshAutoBtn();
-    var pb = document.getElementById('pin-btn');
-    if (pb) pb.addEventListener('click', togglePin);
-    var ab = document.getElementById('auto-btn');
-    if (ab) ab.addEventListener('click', toggleAuto);
-    fetchBotData();
-    refreshMarketData();
-    refreshFuturesTickers();
-    fetchFundingRates();
-    setInterval(refreshMarketData,    30000);
-    setInterval(refreshFuturesTickers, 30000);
-    setInterval(fetchBotData,    300000);
-    setInterval(fetchFundingRates,   300000);
-    setInterval(updateFreshnessDisplay, 30000);
+function closeEntry(sym) { delete entryState[sym]; update(); }
+function setEntry(sym, price) {
+    if (!(price > 0)) return;
+    entryState[sym] = { open: true, price: price };
+    update();
+}
+function nudgeEntry(sym, mult) {
+    var e = entryOf(sym); if (!e) return;
+    setEntry(sym, e.price * mult);
+}
+// prompt() вместо <input>: карточки перерисовываются каждые 30 с по тикеру,
+// поле ввода теряло бы фокус прямо во время набора.
+function askEntry(sym) {
+    var e = entryOf(sym); if (!e) return;
+    var v = prompt('Цена входа для ' + sym, String(e.price));
+    if (v === null) return;
+    v = parseFloat(String(v).replace(',', '.'));
+    if (isFinite(v) && v > 0) setEntry(sym, v);
 }
 
-// ── Confidence Score ────────────────────────────────────────────────────────
-// Композитная оценка доверия к прогнозу (0-100) из уже имеющихся метрик:
-// 45% R2 текущего направления (14d), 25% R2 (90d), 20% согласованность
-// бет 14d/90d, 10% штраф за волатильность. Отсутствующие компоненты
-// исключаются с перенормировкой весов (например, пока нет 90d-данных).
-function confidenceScore(r2_14, r2_90, rawBeta, beta90, volatility) {
-    function c01(x) { return Math.max(0, Math.min(1, x)); }
-    var parts = [], weights = [];
-    if (r2_14 !== null && r2_14 !== undefined) { parts.push(c01(r2_14)); weights.push(0.45); }
-    if (r2_90 !== null && r2_90 !== undefined) { parts.push(c01(r2_90)); weights.push(0.25); }
-    if (beta90 !== null && beta90 !== undefined && rawBeta !== null && rawBeta !== undefined) {
-        var div90 = Math.abs(rawBeta - beta90) / (Math.abs(beta90) || 1);
-        parts.push(1 - Math.min(div90, 1)); weights.push(0.20);
-    }
-    var volPct = (volatility || 0) * 100;
-    parts.push(1 - Math.min(volPct / 3, 1)); weights.push(0.10);
-    var acc = 0, wsum = 0;
-    for (var i = 0; i < parts.length; i++) { acc += parts[i] * weights[i]; wsum += weights[i]; }
-    return wsum > 0 ? Math.round(100 * acc / wsum) : null;
-}
-
-// ── Gate: светофор доверия к МОДЕЛИ карточки (НЕ сигнал входа) ─────────────
-// Отвечает на один вопрос: можно ли использовать прогноз/бету этой карточки
-// в решении. red = цифрам не доверять (вход только по графику/катализатору),
-// yellow = использовать с половинным размером, green = модель рабочая.
-// Чисто отображение: не меняет ни одного расчёта. Старый coeffs.json без
-// corr_90 обрабатывается (undefined = без штрафа) — инвариант 9 соблюдён.
-function gateState(conf, r2dir, corr90) {
-    if (conf === null || conf === undefined || conf < 40) return 'red';
-    if (r2dir === null || r2dir === undefined || r2dir < 0.25) return 'red';
-    if (corr90 !== null && corr90 !== undefined && Math.abs(corr90) < 0.5) return 'red';
-    if (conf < 70) return 'yellow';
-    return 'green';
-}
-
-// ── Вероятностный риск ликвидации и РЕКОМЕНДУЕМОЕ плечо ────────────────────
-// Модель: цена монеты — броуновское движение с сигмой = Vol (часовая
-// волатильность за 90д, уже считается ботом). Ликвидация — событие КАСАНИЯ
-// уровня за время удержания, а не конечного значения, поэтому вероятность
-// вдвое выше наивной (принцип отражения для процесса без сноса):
-//     P(касание) = 2 * (1 - Phi(b / (Vol * sqrt(H))))
-// где b — расстояние до ликвидации В ЛОГАРИФМАХ (асимметрично по сторонам:
-// вверх цена не ограничена, поэтому шорт при том же плече рискованнее).
-// R2 сюда СОЗНАТЕЛЬНО не входит: позиция не захеджирована против BTC, значит
-// ликвидацию вызывает ПОЛНОЕ движение монеты, а не только идиосинкратическое.
+// ── Математика риска ────────────────────────────────────────────────────────
 function normCdf(x) {
-    // Abramowitz-Stegun 7.1.26, точность ~1.5e-7 — с запасом для процентов.
+    // Abramowitz-Stegun 7.1.26, точность ~1.5e-7
     var s = x < 0 ? -1 : 1, ax = Math.abs(x) / Math.sqrt(2);
     var t = 1 / (1 + 0.3275911 * ax);
     var y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t
@@ -757,222 +681,445 @@ function normCdf(x) {
     return 0.5 * (1 + s * y);
 }
 
-function liqLogDist(L, isLong) {
-    var d = 1 / L - LIQ_MMR;              // доля хода цены до ликвидации
-    if (!(d > 0)) return null;
-    // d >= 1 невозможно для лонга (цена не падает более чем на 100%),
-    // но штатно для шорта: рост на 120% — обычное событие. Раньше общий
-    // guard обнулял шорт при L < 1 и ломал инверсию РЕК <-> вероятность.
-    if (isLong) return d >= 1 ? null : -Math.log(1 - d);
-    return Math.log(1 + d);
+function sigmaDay(vol) { return vol * Math.sqrt(24); }
+
+function liqPrice(E, L, isLong) {
+    return isLong ? E * (1 - 1 / L + LIQ_MMR) : E * (1 + 1 / L - LIQ_MMR);
 }
 
-// Вероятность касания ликвидации за RISK_HORIZON_H при данном плече.
+// Вероятность КАСАНИЯ ликвидации за hours часов (без стопа, без долива).
 function liqTouchProb(vol, L, isLong, hours) {
-    if (vol === null || vol === undefined || !isFinite(vol) || vol <= 0) return null;
-    var H = (hours === undefined || hours === null) ? RISK_HORIZON_H : hours;
-    var b = liqLogDist(L, isLong);
-    if (b === null) return 1;
-    var q = vol * Math.sqrt(H);
+    if (!has(vol) || vol <= 0) return null;
+    var d = 1 / L - LIQ_MMR;
+    if (!(d > 0)) return 1;
+    var b;
+    if (isLong) { if (d >= 1) return 1; b = -Math.log(1 - d); }
+    else        { b = Math.log(1 + d); }
+    var q = vol * Math.sqrt(hours);
     if (!(q > 0)) return 0;
-    var p = 2 * (1 - normCdf(b / q));
-    return Math.max(0, Math.min(1, p));
+    return Math.max(0, Math.min(1, 2 * (1 - normCdf(b / q))));
 }
 
-// Обратная задача: плечо, при котором вероятность касания = 10% за 30д.
-// LONG:  1/L - MMR = 1 - exp(-q)      SHORT: 1/L - MMR = exp(q) - 1
-function recommendedLeverage(vol, isLong) {
-    if (vol === null || vol === undefined || !isFinite(vol) || vol <= 0) return null;
-    var q    = RISK_Z * vol * Math.sqrt(RISK_HORIZON_H);
+// Потолок по СТРУКТУРЕ: ликвидация обязана лежать за уровнем инвалидации
+// плюс запас на реакцию (движение за H_REACT часов с вероятностью 90%).
+function lStruct(dist, vol) {
+    var den = dist + RISK_Z * vol * Math.sqrt(H_REACT) + LIQ_MMR;
+    return den > 0 ? 1 / den : null;
+}
+
+// Потолок по ШУМУ: 10% вероятности касания за 7 суток, если не выйти вовсе.
+function lNoise(vol, isLong) {
+    var q = RISK_Z * vol * Math.sqrt(H_NOISE);
     var need = isLong ? (1 - Math.exp(-q)) : (Math.exp(q) - 1);
-    var den  = need + LIQ_MMR;
-    if (!(den > 0)) return null;
-    var L = 1 / den;
-    return isFinite(L) ? L : null;
+    var den = need + LIQ_MMR;
+    return den > 0 ? 1 / den : null;
 }
 
-function riskColor(p) {
-    if (p === null || p === undefined) return '#888';
-    if (p <= RISK_OK_P)   return 'var(--green)';
-    if (p <= RISK_WARN_P) return 'var(--accent)';
-    return 'var(--red)';
-}
-
-// Строка «РЕК Nx · выбрано LX — риск ликв P%». Возвращает '' если нет Vol.
-// nested=true — строка уже внутри .lev-block, у которого свой padding-right;
-// повторный отступ сдвинул бы текст на 200px и порвал вёрстку.
-// Лестница 7/14/30д вместо одной цифры: срок удержания у Босса заранее
-// неизвестен, а вероятность КАСАНИЯ растёт с горизонтом. Три числа снимают
-// вопрос «а если я выйду через неделю» без отдельного переключателя.
-function recLineHtml(vol, isLong, L, nested) {
-    var rec = recommendedLeverage(vol, isLong);
-    var p30 = liqTouchProb(vol, L, isLong, 720);
-    if (rec === null || p30 === null) return '';
-    var p7  = liqTouchProb(vol, L, isLong, 168);
-    var p14 = liqTouchProb(vol, L, isLong, 336);
-    function pt(p) { return p < 0.005 ? '&lt;1' : Math.round(p * 100); }
-    var recTxt = rec < 1 ? '&lt;1X' : Math.floor(rec) + 'X';
-    var col    = riskColor(p30);
-    var zone   = p30 <= RISK_OK_P ? '\u2713' : (p30 <= RISK_WARN_P ? '\u007E' : '\u2715');
-    var cls    = nested ? 'lev-res' : 'rec-line';
-    return '<div class="' + cls + '" style="color:' + col + ';">'
-         + 'РЕК ' + recTxt + ' <span style="color:#666;font-weight:400;">('
-         + (isLong ? 'лонг' : 'шорт') + ')</span> &middot; ' + L + 'X риск ликв: '
-         + '7д ' + pt(p7) + '% / 14д ' + pt(p14) + '% / 30д ' + pt(p30) + '% ' + zone
-         + '</div>';
-}
-
-// ── Авто-стресс: просадка BTC из его же волатильности ───────────────────────
-function autoStressDrop() {
-    var bs = botData.btc;
-    var v  = bs ? bs.volatility : null;
-    if (v === null || v === undefined || !isFinite(v) || v <= 0) {
-        return { d: AUTO_D_FALLBACK, auto: false };
+// Бета для проверки обвала BTC. Для ЛОНГа опасно падение BTC (down-бета),
+// для ШОРТа — рост (up-бета). 90д-окно предпочтительнее 14д: 2160 точек
+// против 336. Хвостовая бета шумная (типичный R2 < 0.05, ошибка ±30%),
+// поэтому она может только УЖЕСТОЧИТЬ проверку и только при R2 >= 0.10.
+function advBeta(cd, isLong) {
+    var base = isLong ? firstNum(cd.down_beta_90, cd.down_beta)
+                      : firstNum(cd.up_beta_90,   cd.up_beta);
+    if (base === null) return null;
+    var b = Math.abs(base);
+    if (has(cd.tail_beta) && has(cd.tail_r2) && cd.tail_r2 >= 0.10) {
+        b = Math.max(b, Math.abs(cd.tail_beta));
     }
-    var d = AUTO_SIGMA * v * Math.sqrt(RISK_HORIZON_H);
-    if (d < AUTO_D_MIN) d = AUTO_D_MIN;
-    if (d > AUTO_D_MAX) d = AUTO_D_MAX;
-    return { d: d, auto: true };
+    return b;
 }
 
-// ── Расчёт допустимого плеча ────────────────────────────────────────────────
-// Та же степенная модель, что и в основном рендере: growth = (1+ratio)^(b*стресс).
-// Бета выбирается по направлению движения BTC в КОНКРЕТНОМ сценарии, поэтому
-// вход и стресс могут опираться на разные беты — это корректно.
-function scenarioGrowth(coinData, btcNow, btcTarget, stressMode) {
-    if (!(btcNow > 0) || !isFinite(btcTarget)) return null;
-    var r   = (btcTarget - btcNow) / btcNow;
-    var raw = r >= 0 ? coinData.up_beta : coinData.down_beta;
-    if (raw === null || raw === undefined || !isFinite(raw)) return null;
-    var g = Math.pow(Math.max(1 + r, 1e-9), raw * STRESS_MULT[stressMode]);
-    return (isFinite(g) && g > 0) ? g : null;
+// Потолок по ОБВАЛУ BTC: переживёт ли позиция движение BTC на 2 сигмы
+// за те же 7 суток. Считается молча, срабатывает редко — только на монетах
+// с бетой примерно от 2.
+function lBtcCheck(beta, isLong, btcVol) {
+    if (!has(beta) || !has(btcVol) || btcVol <= 0) return null;
+    var D = 2 * btcVol * Math.sqrt(H_BTC);
+    var r = isLong ? -D : D;
+    var move = Math.abs(Math.pow(Math.max(1 + r, 1e-9), beta) - 1);
+    var den = move + LIQ_MMR;
+    return den > 0 ? 1 / den : null;
 }
 
-function fmtUsd(x) {
-    if (!isFinite(x)) return '?';
-    return x < 0.0001 ? '&lt;0.0001' : '$' + x.toFixed(4);
+function volRegime(cd) {
+    if (!has(cd.vol7) || !has(cd.volatility) || cd.volatility <= 0) return null;
+    return cd.vol7 / cd.volatility;
 }
 
-// Возвращает '' пока не зафиксирован вход И выключен авто-стресс
-// => карточка рисуется байт в байт как раньше.
-function leverageBlock(coinData, cur, btcNow, target) {
-    if (!pinned && !autoStress) return '';
-
-    // Вход: зафиксированный уровень, иначе (только в авто-режиме) — рынок.
-    var entryBtc  = pinned ? pinned.btc : btcNow;
-    var isL       = currentSide === 'long';
-    var sideName  = isL ? 'ЛОНГ' : 'ШОРТ';
-    var sideColor = isL ? 'var(--green)' : 'var(--red)';
-
-    function box(head, body) {
-        return '<div class="lev-block">'
-             + '<div class="lev-head" style="color:' + sideColor + ';">' + head + '</div>'
-             + body + '</div>';
-    }
-    function note(msg) {
-        return box(sideName + ' &middot; плечо: н/д',
-                   '<div class="lev-sub" style="color:var(--accent);">' + msg + '</div>');
-    }
-
-    // Источник стресс-сценария: авто (2 sigma BTC от уровня входа, реакция
-    // Panic) или ручной (слайдер + выбранный режим) — формула МАКС не меняется.
-    var ad         = autoStress ? autoStressDrop() : null;
-    var stressBtc  = autoStress ? (isL ? entryBtc * (1 - ad.d) : entryBtc * (1 + ad.d)) : target;
-    var stressMode = autoStress ? AUTO_MODE : currentStress;
-
-    var gE = scenarioGrowth(coinData, btcNow, entryBtc, 'normal');
-    var gS = scenarioGrowth(coinData, btcNow, stressBtc, stressMode);
-    if (gE === null) return note('Нет беты для сценария входа');
-    if (gS === null) return note('Нет беты для стресс-сценария');
-
-    // Живая цена сокращается: k = S/E = gS/gE. Фиксация не портится тиками рынка.
-    var k = gS / gE;
-    var E = cur * gE;
-    var S = cur * gS;
-
-    if (isL  && k >= 1) return note(autoStress
-        ? 'Авто-стресс не ниже входа &mdash; бета монеты отрицательна в этом сценарии'
-        : 'Стресс не ниже входа &mdash; двинь слайдер НИЖЕ $' + entryBtc.toLocaleString());
-    if (!isL && k <= 1) return note(autoStress
-        ? 'Авто-стресс не выше входа &mdash; бета монеты отрицательна в этом сценарии'
-        : 'Стресс не выше входа &mdash; двинь слайдер ВЫШЕ $' + entryBtc.toLocaleString());
-
-    var denom = isL ? (1.01 - 0.87 * k) : (1.13 * k - 0.99);
-    if (!(denom > 0)) return note('Сценарий слишком жёсткий &mdash; безопасного плеча нет даже на 1x');
-
-    var lmaxRaw = 1 / denom;
-    if (lmaxRaw < 1) return note('Сценарий слишком жёсткий &mdash; безопасного плеча нет даже на 1x');
-    // Знаменатель строго > 0.14 (k по нужную сторону от 1), поэтому
-    // L_max < 7.15 всегда: floor даёт 1..7, ветка «10x+» недостижима.
-
-    // Ликвидация и запас — для ВЫБРАННОГО сейчас плеча, от цены входа E.
-    var L   = currentLev;
-    var liq = isL ? E * (1 - 1 / L + LIQ_MMR) : E * (1 + 1 / L - LIQ_MMR);
-    var buf = isL ? (S - liq) / S : (liq - S) / S;   // доля от стресс-уровня
-    var passMax = isFinite(buf) && buf >= 0.13;      // тот же критерий, что и формула L_max
-
-    // РЕК — независимая вероятностная оценка (Vol + горизонт), она НЕ зависит
-    // от сценария BTC. ИТОГ = min(МАКС, РЕК): сценарный и статистический
-    // пределы должны выполняться ОБА. До 08.08 карточка показывала два
-    // светофора сразу («запас 26% ✓ ПРОХОДИТ» рядом с «риск 14% ~») — читатель
-    // получал зелёный и жёлтый вердикт на соседних строках.
-    var recRaw   = recommendedLeverage(coinData.volatility, isL);
-    var recFloor = recRaw === null ? null : Math.floor(recRaw);
-    var lmaxFl   = Math.floor(lmaxRaw);
-    var finalL   = (recFloor === null) ? lmaxFl : Math.min(lmaxFl, recFloor);
-    var passRec  = (recFloor === null) || (L <= recFloor);
-    var pass     = passMax && passRec;
-
-    var resColor = pass ? 'var(--green)' : 'var(--red)';
-    var resMark  = pass ? '\u2713 ПРОХОДИТ'
-                        : (!passMax ? '\u2715 пробьёт стресс' : '\u2715 выше РЕК');
-    var dPct     = (k - 1) * 100;
-
-    // Мелкий сдвиг слайдера даёт формально большое «безопасное» плечо —
-    // это ложный комфорт, а не запас прочности. Подписываем явно.
-    var softHtml = Math.abs(dPct) < 5
-        ? ' <span style="color:var(--accent);">&mdash; сценарий мягкий</span>' : '';
-    // Абсурдные отрицательные значения (ликвидация далеко внутри стресса)
-    // не несут информации сверх факта «пробито».
-    var bufTxt = buf < -0.999 ? '&lt;\u2212100%' : (buf * 100).toFixed(1) + '%';
-
-    // Строка сценариев: видно, ЧТО с ЧЕМ сравнивается. Видео-прогон 08.08
-    // показал чтение плеча при несдвинутом слайдере (стресс = только множитель
-    // режима на том же уровне BTC) — теперь совпадение уровней подписано.
-    var scenHtml;
-    if (autoStress) {
-        scenHtml = '<div class="lev-sub">АВТО: BTC $' + Math.round(entryBtc).toLocaleString()
-            + (pinned ? '' : ' <span style="color:#666;">(рынок)</span>')
-            + ' &rarr; $' + Math.round(stressBtc).toLocaleString()
-            + ' (' + (isL ? '\u2212' : '+') + (ad.d * 100).toFixed(1) + '%, реакция \u00D71.3)'
-            + (ad.auto ? '' : ' <span style="color:var(--accent);">&mdash; фикс. 20%, нет vol BTC</span>')
-            + '</div>';
+// ── Уровень инвалидации ─────────────────────────────────────────────────────
+// Опора — экстремум последних 30 дней (при их отсутствии в coeffs.json —
+// 90-дневный, инвариант 9), сдвинутый на полсигмы за него. Пол 2 дневные
+// сигмы обязателен: движение меньше двух сигм — это шум, а не поломка идеи,
+// и утверждать, что выйдешь по нему, нельзя.
+function invalidationInfo(cd, E, isLong) {
+    var vol = cd.volatility;
+    if (!has(vol) || vol <= 0 || !(E > 0)) return null;
+    var sd  = sigmaDay(vol);
+    var ref, src;
+    if (isLong) {
+        ref = firstNum(cd.min30, cd.min_price);
+        src = has(cd.min30) ? 'мин30' : 'мин90';
+        if (ref !== null && ref > E) { ref = E; src = 'вход'; }
     } else {
-        // Видео-прогон 08.08: чтение плеча при несдвинутом слайдере — подписано.
-        var sameLevel = Math.abs(target - entryBtc) < 1;
-        scenHtml = '<div class="lev-sub">BTC $' + entryBtc.toLocaleString()
-            + ' (вход, без стресса) &rarr; $' + target.toLocaleString()
-            + ' (' + STRESS_NAME[currentStress] + ')'
-            + (sameLevel ? ' <span style="color:var(--accent);">&mdash; слайдер не сдвинут, нажми АВТО-СТРЕСС</span>' : '')
-            + '</div>';
+        ref = firstNum(cd.max30, cd.max_price);
+        src = has(cd.max30) ? 'макс30' : 'макс90';
+        if (ref !== null && ref < E) { ref = E; src = 'вход'; }
+    }
+    if (ref === null || !(ref > 0)) return null;
+    var structPrice = isLong ? ref * (1 - 0.5 * sd) : ref * (1 + 0.5 * sd);
+    var dStruct = isLong ? (E - structPrice) / E : (structPrice - E) / E;
+    var floorD  = INV_FLOOR_SD * sd;
+    var capD    = INV_CAP_SD * sd;
+    var capped  = dStruct > capD;
+    var dist    = Math.max(Math.min(dStruct, capD), floorD);
+    var price   = isLong ? E * (1 - dist) : E * (1 + dist);
+    return { dist: dist, price: price, dStruct: dStruct, capped: capped,
+             floored: dist > dStruct + 1e-12, sd: sd, ref: ref, src: src };
+}
+
+// ── Решение по плечу ────────────────────────────────────────────────────────
+function leverageDecision(cd, E, isLong, btcStats) {
+    var out = { ok: false, L: null, msg: '', warn: [], parts: null, inv: null,
+                binding: '', fix: '' };
+    var vol = cd.volatility;
+    if (!has(vol) || vol <= 0) { out.msg = 'Бот не дал волатильность'; return out; }
+    if (vol >= VOL_STOP) {
+        out.msg = 'Волатильность ' + (vol * 100).toFixed(2) + '%/ч — плечо не выдаётся';
+        return out;
+    }
+    var inv = invalidationInfo(cd, E, isLong);
+    if (!inv) { out.msg = 'Нет данных для уровня инвалидации'; return out; }
+    out.inv = inv;
+
+    var Ls = lStruct(inv.dist, vol);
+    var Ln = lNoise(vol, isLong);
+    var bA = advBeta(cd, isLong);
+    var Lb = lBtcCheck(bA, isLong, btcStats ? btcStats.volatility : null);
+
+    var cands = [{ n: 'структура', v: Ls }, { n: 'шум 7д', v: Ln }];
+    if (Lb !== null) cands.push({ n: 'обвал BTC', v: Lb });
+    var best = cands[0];
+    for (var i = 1; i < cands.length; i++) if (cands[i].v < best.v) best = cands[i];
+    out.parts = { struct: Ls, noise: Ln, btc: Lb };
+    out.binding = best.n;
+
+    var cap = L_CAP;
+    var vr = volRegime(cd);
+    if (vr !== null && vr > VOL_ABNORMAL) {
+        cap = Math.min(cap, 3);
+        out.warn.push('Волатильность за 7д выросла в ' + vr.toFixed(1) + '\u00D7 — потолок 3X');
+    }
+    if (vol >= VOL_HARD) {
+        cap = Math.min(cap, 2);
+        out.warn.push('Волатильность ' + (vol * 100).toFixed(2) + '%/ч — потолок 2X');
     }
 
-    // Строка 1 — ОТВЕТ: сколько можно поставить. Строка 2 — из чего он получен.
-    var finalTxt = finalL < 1 ? '&lt;1X' : finalL + 'X';
-    var whyTxt   = 'МАКС ' + lmaxFl + 'x'
-                 + (recFloor === null ? '' : ' &middot; РЕК ' + (recFloor < 1 ? '&lt;1' : recFloor) + 'x')
-                 + ' &rarr; min';
+    var L = Math.floor(Math.min(best.v, cap, L_CAP));
+    if (L < L_MIN) {
+        out.msg = 'БЕЗ БЕЗОПАСНОГО ПЛЕЧА';
+        out.fix = fixHint(cd, E, isLong, best.n, vol, inv);
+        return out;
+    }
+    out.ok = true;
+    out.L  = L;
+    return out;
+}
 
-    return box(
-        sideName + ' &middot; ИТОГ ' + finalTxt,
-        '<div class="lev-sub">' + whyTxt + '</div>'
-        + scenHtml
-        + '<div class="lev-sub">Вход ' + fmtUsd(E) + ' &rarr; стресс ' + fmtUsd(S)
-            + ' (' + (dPct >= 0 ? '+' : '') + dPct.toFixed(1) + '%)' + softHtml + '</div>'
-        + '<div class="lev-res" style="color:' + resColor + ';">Выбрано ' + L + 'X &middot; ликв '
-            + fmtUsd(liq) + ' &middot; запас ' + bufTxt + ' ' + resMark + '</div>'
-        + recLineHtml(coinData.volatility, isL, L, true)
-    );
+// Что именно должно измениться, чтобы сетап стал торгуемым.
+function fixHint(cd, E, isLong, binding, vol, inv) {
+    if (binding === 'структура') {
+        if (inv.capped) return 'Опоры рядом нет — вход не спасает, нужен ручной стоп.';
+        var buf   = RISK_Z * vol * Math.sqrt(H_REACT);
+        var need  = 1 / L_MIN - buf - LIQ_MMR;   // требуемая дистанция для 2X
+        if (!(need > 0)) return 'Запас на реакцию уже съедает всё плечо — только спот.';
+        var ref = inv.ref;
+        var target = isLong ? ref * (1 - 0.5 * inv.sd) / (1 - need)
+                            : ref * (1 + 0.5 * inv.sd) / (1 + need);
+        if (!(target > 0) || !isFinite(target)) return 'Вход слишком далеко от структуры.';
+        return 'Станет 2X при входе ' + (isLong ? 'от ' : 'до ') + fmtP(target) + '.';
+    }
+    if (binding === 'шум 7д') {
+        var q  = -Math.log(1 - (1 / L_MIN - LIQ_MMR));
+        var qs = Math.log(1 + (1 / L_MIN - LIQ_MMR));
+        var needVol = (isLong ? q : qs) / (RISK_Z * Math.sqrt(H_NOISE));
+        return 'Дело в волатильности монеты, вход не поможет: нужна Vol \u2264 '
+             + (needVol * 100).toFixed(2) + '%/ч, сейчас ' + (vol * 100).toFixed(2) + '%/ч.';
+    }
+    return 'Монета слишком резко ходит за BTC — только спот или меньший размер.';
+}
+
+// ── Скоринг кандидатов ──────────────────────────────────────────────────────
+// ВАЖНО: это инструмент СОРТИРОВКИ внимания («на какие три монеты смотреть
+// первыми»), а НЕ сигнал входа. Веса — обоснованный приор, не результат
+// бэктеста: исторических данных для проверки в системе пока нет.
+function scoreCandidate(cd, sym, cur, p24, qv, isLong) {
+    var vol = cd.volatility;
+    if (!has(vol) || vol <= 0) return null;
+    var mn = cd.min_price, mx = cd.max_price;
+    if (!has(mn) || !has(mx) || !(mx > mn) || !(mn > 0) || !(cur > 0)) return null;
+
+    var sd = sigmaDay(vol);
+    var parts = [], ws = [], reasons = [];
+
+    if (isLong) {
+        // Главный принцип Босса: ближе к минимуму — выше. Меряется в ДНЕВНЫХ
+        // СИГМАХ, а не в процентах: 5% над минимумом при sigma 2% — это далеко,
+        // при sigma 8% — это фактически на минимуме.
+        var dLow = Math.max(0, ((cur - mn) / cur) / sd);
+        var pPos = Math.exp(-dLow / 3);
+        parts.push(pPos); ws.push(0.50);
+        reasons.push({ w: pPos * 0.50, s: dLow < 0.5
+            ? 'на минимуме 90д'
+            : '+' + ((cur / mn - 1) * 100).toFixed(1) + '% над мин90 (' + dLow.toFixed(1) + '\u03C3)' });
+    } else {
+        var run  = cur / mn - 1;
+        var pRun = clamp01(run / 1.0);
+        parts.push(pRun); ws.push(0.35);
+        reasons.push({ w: pRun * 0.35, s: '+' + (run * 100).toFixed(0) + '% от мин90' });
+        var dHigh = Math.max(0, ((mx - cur) / cur) / sd);
+        var pHigh = Math.exp(-dHigh / 3);
+        parts.push(pHigh); ws.push(0.20);
+        reasons.push({ w: pHigh * 0.20, s: dHigh < 0.5
+            ? 'у максимума 90д' : dHigh.toFixed(1) + '\u03C3 до макс90' });
+    }
+
+    // Разворот (ЛОНГ) / истощение (ШОРТ): идёт ли движение с прежним темпом.
+    if (has(cd.r7) && has(cd.r30)) {
+        var pace = cd.r30 * (7 / 30);
+        var z    = (cd.r7 - pace) / (sd * Math.sqrt(7));
+        var raw  = isLong ? z : -z;
+        var pEx  = clamp01((Math.max(-1, Math.min(1, raw)) + 1) / 2);
+        parts.push(pEx); ws.push(0.25);
+        reasons.push({ w: pEx * 0.25, s: isLong
+            ? (raw > 0.25 ? 'падение замедлилось' : (raw < -0.25 ? 'падение ускоряется' : 'темп падения ровный'))
+            : (raw > 0.25 ? 'рост выдыхается'     : (raw < -0.25 ? 'рост ускоряется'    : 'темп роста ровный')) });
+    }
+    // Дивергенция оборота: цена растёт, а оборот ниже нормы — топливо кончается.
+    if (!isLong && has(cd.vol_ratio) && has(cd.r7) && cd.r7 > 0 && cd.vol_ratio < 0.9) {
+        reasons.push({ w: 0.01, s: 'оборот ниже нормы при росте' });
+    }
+
+    // Качество: ликвидность, ранг, стабильность волатильности.
+    var qp = [], qw = [];
+    if (has(qv) && qv > 0) { qp.push(clamp01(Math.log(qv / 1e6) / Math.log(100))); qw.push(0.4); }
+    if (has(cd.rank))      { qp.push(clamp01(1 - (cd.rank - 1) / 150));            qw.push(0.3); }
+    var vr = volRegime(cd);
+    if (vr !== null)       { qp.push(clamp01(1 - (vr - 1) / 1.5));                 qw.push(0.3); }
+    if (qp.length) {
+        var qa = 0, qs2 = 0;
+        for (var k = 0; k < qp.length; k++) { qa += qp[k] * qw[k]; qs2 += qw[k]; }
+        parts.push(qa / qs2); ws.push(isLong ? 0.25 : 0.20);
+    }
+
+    var acc = 0, wsum = 0;
+    for (var i = 0; i < parts.length; i++) { acc += parts[i] * ws[i]; wsum += ws[i]; }
+    if (wsum <= 0) return null;
+    var score = 100 * acc / wsum;
+
+    // Штрафы — множители: один фатальный дефект обязан убивать кандидата,
+    // а не вычитать из него несколько баллов.
+    var mult = 1, flags = [];
+    if (vr !== null && vr > VOL_ABNORMAL) { mult *= 0.5; flags.push('волатильность \u00D7' + vr.toFixed(1)); }
+    if (has(cd.eff14)) {
+        if (isLong && cd.eff14 < -0.6)  { mult *= 0.6; flags.push('падает прямой линией'); }
+        if (!isLong && cd.eff14 > 0.6)  { mult *= 0.5; flags.push('тренд вверх не сломан'); }
+    }
+    if (isLong && has(cd.fdv_mc) && cd.fdv_mc > 3) {
+        mult *= 0.7; flags.push('FDV ' + cd.fdv_mc.toFixed(1) + '\u00D7 — проверить разлоки');
+    }
+    if (isLong && has(cd.rank) && has(cd.rank_prev) && (cd.rank - cd.rank_prev) >= 5) {
+        mult *= 0.8; flags.push('ранг падает');
+    }
+    if (has(p24)) {
+        var m24 = (p24 / 100) / sd;
+        if (isLong && m24 < -3)  { mult *= 0.6; flags.push(p24.toFixed(0) + '% за 24ч — нож ещё летит'); }
+        if (!isLong && m24 > 3)  { mult *= 0.7; flags.push('+' + p24.toFixed(0) + '% за 24ч — вертикаль'); }
+    }
+    var fr = cachedFunding[sym];
+    if (!isLong && has(fr) && fr > 0.0005) { mult *= 1.05; flags.push('лонги переполнены'); }
+
+    score = Math.max(0, Math.min(100, score * mult));
+    reasons.sort(function(a, b) { return b.w - a.w; });
+    var top = [];
+    for (var r = 0; r < reasons.length && top.length < 2; r++) top.push(reasons[r].s);
+    for (var f = 0; f < flags.length && top.length < 4; f++) top.push(flags[f]);
+    return { score: score, reasons: top };
+}
+
+function tierOf(s) {
+    if (s >= 70) return { n: 'Сильный',   c: 'var(--green)' };
+    if (s >= 50) return { n: 'Кандидат',  c: 'var(--accent)' };
+    if (s >= 35) return { n: 'Наблюдать', c: 'var(--cyan)' };
+    return { n: 'Слабый', c: '#888' };
+}
+
+// ── Блок входа (раскрытая карточка) ─────────────────────────────────────────
+function entryBlock(cd, sym, pair, cur, isLong, btcStats) {
+    var st = entryOf(sym);
+    if (!st) return '';
+    var E = st.price;
+    var sideName  = isLong ? 'ЛОНГ' : 'ШОРТ';
+    var sideColor = isLong ? 'var(--green)' : 'var(--red)';
+    var dec = leverageDecision(cd, E, isLong, btcStats);
+
+    var h = '<div class="ent">';
+
+    // Строка 1 — ОТВЕТ.
+    if (dec.ok) {
+        h += '<div class="ent-head" style="color:' + sideColor + ';">'
+           + sideName + ' \u00B7 ИТОГ ' + dec.L + 'X</div>';
+    } else {
+        h += '<div class="ent-head" style="color:var(--red);">'
+           + sideName + ' \u00B7 ' + dec.msg + '</div>';
+        if (dec.fix) h += '<div class="ent-sub" style="color:var(--accent);">' + dec.fix + '</div>';
+    }
+
+    // Вход и его подстройка.
+    var q = isLong ? [['рынок',1],['\u22123%',0.97],['\u22125%',0.95],['\u221210%',0.90]]
+                   : [['рынок',1],['+3%',1.03],['+5%',1.05],['+10%',1.10]];
+    var qh = '';
+    for (var i = 0; i < q.length; i++) {
+        qh += '<button class="qbtn" onclick="setEntry(\'' + sym + '\',' + numAttr(cur * q[i][1]) + ')">'
+            + q[i][0] + '</button>';
+    }
+    h += '<div class="ent-line">Вход <b>' + fmtP(E) + '</b> '
+       + '<span class="ent-dim">(' + pctTxt(E / cur - 1, 1) + ' к рынку)</span></div>'
+       + '<div class="qrow">' + qh
+       + '<button class="qbtn" onclick="nudgeEntry(\'' + sym + '\',0.995)">\u2212</button>'
+       + '<button class="qbtn" onclick="nudgeEntry(\'' + sym + '\',1.005)">+</button>'
+       + '<button class="qbtn" onclick="askEntry(\'' + sym + '\')">\u270E</button>'
+       + '</div>';
+
+    if (dec.inv && dec.inv.src === 'вход') {
+        dec.warn.push('Нет структуры ' + (isLong ? 'ниже' : 'выше')
+                    + ' входа \u2014 размер задан только шумом, опоры для выхода нет');
+    }
+    if (dec.inv && dec.inv.capped) {
+        dec.warn.push('Опора (' + dec.inv.src + ' ' + fmtP(dec.inv.ref) + ') дальше 6\u03C3 \u2014 '
+                    + 'по ней стоп не поставить. Плечо ограничено искусственно, выход держи вручную');
+    }
+    if (dec.inv) {
+        var invLbl = dec.inv.capped ? 'опоры рядом нет, взято 6\u03C3'
+                   : (dec.inv.floored ? 'шумовой пол 2\u03C3'
+                                      : dec.inv.src + ' ' + (isLong ? '\u2212' : '+') + '\u00BD\u03C3');
+        h += '<div class="ent-line">Идея мертва при ' + fmtP(dec.inv.price)
+           + ' <span class="ent-dim">(' + invLbl
+           + ', ' + (dec.inv.dist * 100).toFixed(1) + '% от входа)</span></div>';
+    }
+
+    // Ликвидации: 3X / 4X / 5X плюс ИТОГ, если он вне этого набора.
+    var levs = SHOW_LEVS.slice();
+    if (dec.ok && levs.indexOf(dec.L) === -1) { levs.push(dec.L); levs.sort(function(a,b){return a-b;}); }
+    var lh = '';
+    for (var j = 0; j < levs.length; j++) {
+        var L  = levs[j];
+        var lp = liqPrice(E, L, isLong);
+        var okL = dec.ok && L <= dec.L;
+        lh += '<span class="liq-cell" style="color:' + (okL ? 'var(--green)' : 'var(--red)') + ';">'
+            + L + 'X ' + fmtP(lp) + (okL ? ' \u2713' : ' \u2715') + '</span>';
+    }
+    h += '<div class="liq-row">' + lh + '</div>';
+
+    // Причина одной фразой.
+    if (dec.ok) {
+        var liqL = liqPrice(E, dec.L, isLong);
+        var gap  = isLong ? (dec.inv.price - liqL) / dec.inv.price
+                          : (liqL - dec.inv.price) / dec.inv.price;
+        h += '<div class="ent-why" style="color:var(--green);">' + dec.L
+           + 'X приемлемо: ликвидация ' + fmtP(liqL) + ' на ' + (gap * 100).toFixed(1)
+           + '% дальше уровня, где идея мертва.</div>';
+        if (dec.L < 4) {
+            h += '<div class="ent-why" style="color:var(--accent);">4X не рекомендуется: ограничитель \u2014 '
+               + dec.binding + '.</div>';
+        }
+    }
+
+    // Из чего получен ответ.
+    if (dec.parts) {
+        var pl = 'структура ' + (dec.parts.struct === null ? 'н/д' : dec.parts.struct.toFixed(1) + 'X')
+               + ' \u00B7 шум 7д ' + (dec.parts.noise === null ? 'н/д' : dec.parts.noise.toFixed(1) + 'X');
+        if (dec.parts.btc !== null) pl += ' \u00B7 обвал BTC ' + dec.parts.btc.toFixed(1) + 'X';
+        pl += ' \u2192 ' + dec.binding;
+        h += '<div class="ent-sub">' + pl + '</div>';
+    }
+
+    // Вероятность — одной понятной фразой, без шифра.
+    var Lp = dec.ok ? dec.L : L_BASE;
+    var p7 = liqTouchProb(cd.volatility, Lp, isLong, 168);
+    if (p7 !== null) {
+        var p14 = liqTouchProb(cd.volatility, Lp, isLong, 336);
+        h += '<div class="ent-sub">Если держать ' + Lp
+           + 'X без стопа и без долива маржи, шанс задеть ликвидацию: за 7 дней '
+           + (p7 < 0.005 ? '&lt;1' : Math.round(p7 * 100)) + '%, за 14 дней '
+           + (p14 < 0.005 ? '&lt;1' : Math.round(p14 * 100)) + '%.</div>';
+    }
+
+    // Funding как стоимость удержания. Ключ — ПАРА Binance (XMRUSDT),
+    // а не имя монеты: cachedFunding заполняется из fapi по символам.
+    var fr = cachedFunding[pair];
+    if (has(fr)) {
+        var payMe = isLong ? (fr < 0) : (fr > 0);
+        var cost  = Math.abs(fr) * 21 * Lp * 100;
+        h += '<div class="ent-sub" style="color:' + (payMe ? 'var(--green)' : 'var(--red)') + ';">'
+           + 'Funding ' + (fr >= 0 ? '+' : '') + (fr * 100).toFixed(4) + '%/8ч \u2014 '
+           + (payMe ? 'платят мне ' : 'плачу я ') + cost.toFixed(2) + '% маржи за 7 дней при ' + Lp + 'X</div>';
+    }
+
+    for (var w = 0; w < dec.warn.length; w++) {
+        h += '<div class="ent-warn">\u26A0 ' + dec.warn[w] + '</div>';
+    }
+
+    h += '<button class="qbtn wide" onclick="closeEntry(\'' + sym + '\')">Свернуть</button>';
+    h += '</div>';
+    return h;
+}
+
+// ── Диагностический блок карточки (только при открытой диагностике) ────────
+function diagBlock(cd, ratio, cur) {
+    var rawBeta = ratio >= 0 ? cd.up_beta : cd.down_beta;
+    var r2_14   = ratio >= 0 ? cd.up_r2   : cd.down_r2;
+    var beta90  = ratio >= 0 ? cd.up_beta_90 : cd.down_beta_90;
+    var r2_90   = ratio >= 0 ? cd.up_r2_90   : cd.down_r2_90;
+    var h = '<div class="diag">';
+    if (has(rawBeta)) {
+        var beta   = rawBeta * STRESS_MULT[currentStress];
+        var growth = Math.pow(Math.max(1 + ratio, 1e-9), beta);
+        var pred   = Math.max(cur * growth, 1e-8);
+        var r2Color = !has(r2_14) ? '#888' : (r2_14 < 0.30 ? 'var(--red)' : (r2_14 < 0.60 ? '#f3ba2f' : 'var(--green)'));
+        h += '<div>b=' + rawBeta.toFixed(2)
+           + ' / <span style="color:' + r2Color + ';">R2 ' + (has(r2_14) ? r2_14.toFixed(2) : 'н/д') + '</span>'
+           + ' \u00B7 прогноз ' + fmtP(pred) + ' (' + pctTxt(growth - 1, 2) + ', ' + STRESS_NAME[currentStress] + ')</div>';
+    } else {
+        h += '<div style="color:#888;">Беты 14д нет — связь с BTC не измеряется</div>';
+    }
+    if (has(beta90)) {
+        var r90c = !has(r2_90) ? '#888' : (r2_90 < 0.30 ? 'var(--red)' : (r2_90 < 0.60 ? '#f3ba2f' : 'var(--green)'));
+        h += '<div>90д: b=' + beta90.toFixed(2)
+           + ' / <span style="color:' + r90c + ';">R2 ' + (has(r2_90) ? r2_90.toFixed(2) : 'н/д') + '</span>'
+           + (has(cd.corr_90) ? ' / \u03C1=' + cd.corr_90.toFixed(2) : '') + '</div>';
+    }
+    if (has(cd.tail_beta)) {
+        h += '<div>хвост BTC: b=' + cd.tail_beta.toFixed(2)
+           + (has(cd.tail_r2) ? ' / R2 ' + cd.tail_r2.toFixed(2) : '')
+           + ' <span style="color:#666;">(оценка шумная, только ужесточает)</span></div>';
+    }
+    var bits = [];
+    if (has(cd.r7))        bits.push('7д ' + pctTxt(cd.r7, 1));
+    if (has(cd.r14))       bits.push('14д ' + pctTxt(cd.r14, 1));
+    if (has(cd.r30))       bits.push('30д ' + pctTxt(cd.r30, 1));
+    if (has(cd.eff14))     bits.push('эфф14 ' + cd.eff14.toFixed(2));
+    var vr = volRegime(cd);
+    if (vr !== null)       bits.push('vol7/90 ' + vr.toFixed(2));
+    if (has(cd.vol_ratio)) bits.push('оборот \u00D7' + cd.vol_ratio.toFixed(2));
+    if (bits.length) h += '<div>' + bits.join(' \u00B7 ') + '</div>';
+    if (has(cd.min30) && has(cd.max30)) {
+        h += '<div>30д: ' + fmtP(cd.min30) + ' \u2026 ' + fmtP(cd.max30) + '</div>';
+    } else {
+        h += '<div style="color:var(--accent);">Нет полей 30д — бот старой версии, инвалидация по 90д</div>';
+    }
+    h += '</div>';
+    return h;
 }
 
 // ── Главный рендер ──────────────────────────────────────────────────────────
@@ -986,10 +1133,11 @@ function update() {
 
     var btc    = parseFloat(btcObj.lastPrice);
     var btc24h = parseFloat(btcObj.priceChangePercent);
-    var target = parseFloat(document.getElementById('slider').value);
+    var slider = document.getElementById('slider');
+    var target = slider ? parseFloat(slider.value) : btc;
+    if (!isFinite(target) || target <= 0) target = btc;
     var ratio  = (target - btc) / btc;
 
-    var slider = document.getElementById('slider');
     if (slider) slider.style.accentColor = ratio > 0 ? 'var(--green)' : (ratio < 0 ? 'var(--red)' : 'var(--accent)');
 
     var elCur = document.getElementById('btc-cur');
@@ -1002,60 +1150,27 @@ function update() {
     }
 
     var btcDirColor = ratio >= 0 ? 'var(--green)' : 'var(--red)';
-    var btcDirArrow = ratio >= 0 ? '\u219F' : '\u21A1';
-
     var elTarget = document.getElementById('btc-target');
     if (elTarget) {
-        elTarget.innerText = 'Прогноз BTC: $' + target.toLocaleString();
+        elTarget.innerText   = 'Прогноз BTC: $' + target.toLocaleString();
         elTarget.style.color = btcDirColor;
     }
     var elTargetArrow = document.getElementById('btc-target-arrow');
     if (elTargetArrow) {
-        elTargetArrow.innerText = btcDirArrow;
+        elTargetArrow.innerText   = ratio >= 0 ? '\u219F' : '\u21A1';
         elTargetArrow.style.color = btcDirColor;
     }
-
     var elPct = document.getElementById('btc-pct');
     if (elPct) {
         elPct.innerText   = (ratio >= 0 ? '+' : '') + (ratio * 100).toFixed(2) + '%';
         elPct.style.color = ratio > 0 ? 'var(--green)' : (ratio < 0 ? 'var(--red)' : '#ffffff');
     }
-
-    // Диапазон BTC за 90д (min / позиция / max) — данные из coeffs.json.
-    // Мигание на порогах 25%/75% — как в карточках монет.
-    // Старый coeffs.json без поля btc => честная надпись, без падения (инв. 9).
-    var brEl = document.getElementById('btc-range');
-    if (brEl) {
-        var bs = botData.btc;
-        if (bs && bs.max_price > bs.min_price) {
-            var bPos = Math.max(0, Math.min(100, (btc - bs.min_price) / (bs.max_price - bs.min_price) * 100));
-            var bMinCls = bPos <= 25 ? 'light-blink' : '';
-            var bMinCol = bPos <= 25 ? 'var(--red)' : 'var(--accent)';
-            var bMaxCls = bPos >= 75 ? 'light-blink' : '';
-            var bMaxCol = bPos >= 75 ? 'var(--green)' : 'var(--accent)';
-            brEl.innerHTML = 'Min: <span class="' + bMinCls + '" style="color:' + bMinCol + ';">$'
-                + Math.round(bs.min_price).toLocaleString() + '</span>'
-                + ' | <span style="color:#fff;font-size:1.05em;font-weight:bold;font-family:monospace;margin:0 4px;">'
-                + bPos.toFixed(0) + '%</span> | '
-                + 'Max: <span class="' + bMaxCls + '" style="color:' + bMaxCol + ';">$'
-                + Math.round(bs.max_price).toLocaleString() + '</span>'
-                + ' <span style="color:#666;font-size:0.8em;font-style:normal;">90д</span>';
-        } else {
-            brEl.innerHTML = '<span style="color:#666;">Диапазон BTC 90д: нет данных бота</span>';
-        }
-    }
-
-    // Индикатор LONG / SHORT — с защитой от null
     var dirEl = document.getElementById('dir-indicator');
     if (dirEl) {
-        // Это направление СЦЕНАРИЯ BTC, а не сторона позиции: сторона задаётся
-        // кнопками ЛОНГ/ШОРТ. Слайдер вниз — штатный способ искать вход в лонг.
         if (ratio > 0.005)       { dirEl.innerText = 'BTC ВВЕРХ'; dirEl.style.color = 'var(--green)'; }
         else if (ratio < -0.005) { dirEl.innerText = 'BTC ВНИЗ';  dirEl.style.color = 'var(--red)'; }
         else                     { dirEl.innerText = '--';        dirEl.style.color = '#888'; }
     }
-
-    // Цвет символов кнопок синхронно со слайдером
     var btnM = document.getElementById('btn-minus');
     var btnP = document.getElementById('btn-plus');
     if (btnM && btnP) {
@@ -1071,13 +1186,34 @@ function update() {
         }
     }
 
-    var stressMult  = STRESS_MULT[currentStress];
-    var stressBadge = STRESS_BADGE[currentStress];
-    var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
+    // Диапазон BTC 90д — данные бота, старый coeffs.json переживается (инв. 9).
+    var btcStats = botData.btc || null;
+    var brEl = document.getElementById('btc-range');
+    if (brEl) {
+        if (btcStats && btcStats.max_price > btcStats.min_price) {
+            var bPos = Math.max(0, Math.min(100, (btc - btcStats.min_price) / (btcStats.max_price - btcStats.min_price) * 100));
+            var bMinCls = bPos <= 25 ? 'light-blink' : '';
+            var bMinCol = bPos <= 25 ? 'var(--red)' : 'var(--accent)';
+            var bMaxCls = bPos >= 75 ? 'light-blink' : '';
+            var bMaxCol = bPos >= 75 ? 'var(--green)' : 'var(--accent)';
+            brEl.innerHTML = 'Min: <span class="' + bMinCls + '" style="color:' + bMinCol + ';">$'
+                + Math.round(btcStats.min_price).toLocaleString() + '</span>'
+                + ' | <span style="color:#fff;font-size:1.05em;font-weight:bold;font-family:monospace;margin:0 4px;">'
+                + bPos.toFixed(0) + '%</span> | '
+                + 'Max: <span class="' + bMaxCls + '" style="color:' + bMaxCol + ';">$'
+                + Math.round(btcStats.max_price).toLocaleString() + '</span>'
+                + ' <span style="color:#666;font-size:0.8em;font-style:normal;">90д</span>';
+        } else {
+            brEl.innerHTML = '<span style="color:#666;">Диапазон BTC 90д: нет данных бота</span>';
+        }
+    }
 
-    var html = '';
+    var isLong = currentSide === 'long';
+    var sideOn = currentSide !== 'none';
 
-    tokens.forEach(function(t, i) {
+    // --- Сбор строк ---
+    var rows = [];
+    tokens.forEach(function(t, idx) {
         var coin = null;
         if (t.fut) {
             coin = cachedFutTickers[t.s] || null;
@@ -1086,304 +1222,203 @@ function update() {
                 if (cachedMarketData[j].symbol === t.s) { coin = cachedMarketData[j]; break; }
             }
         }
-        if (!coin) {
-            // Пара исчезла из тикера Binance (делистинг / смена тикера при
-            // ребрендинге): раньше карточка молча пропадала — теперь видно.
+        var row = { t: t, idx: idx, coin: coin, cd: null, state: 'ok', sc: null };
+        if (!coin) { row.state = 'nopair'; rows.push(row); return; }
+
+        var trades24 = parseFloat(coin.count);
+        var bidP     = parseFloat(coin.bidPrice);
+        var askP     = parseFloat(coin.askPrice);
+        if (trades24 === 0 || (bidP === 0 && askP === 0)) { row.state = 'dead'; rows.push(row); return; }
+
+        if (botData.analysis_data) {
+            for (var k = 0; k < botData.analysis_data.length; k++) {
+                if (botData.analysis_data[k].symbol === t.name) { row.cd = botData.analysis_data[k]; break; }
+            }
+        }
+        if (!row.cd || row.cd.error) { row.state = 'nodata'; rows.push(row); return; }
+
+        if (sideOn) {
+            row.sc = scoreCandidate(row.cd, t.s, parseFloat(coin.lastPrice),
+                                    parseFloat(coin.priceChangePercent),
+                                    parseFloat(coin.quoteVolume), isLong);
+        }
+        rows.push(row);
+    });
+
+    // Сортировка по силе кандидата. Проблемные карточки уходят вниз.
+    if (sideOn) {
+        rows.sort(function(a, b) {
+            var ga = (a.sc && has(a.sc.score)) ? a.sc.score : -1;
+            var gb = (b.sc && has(b.sc.score)) ? b.sc.score : -1;
+            if (Math.abs(gb - ga) > 0.05) return gb - ga;
+            var ra = (a.cd && has(a.cd.rank)) ? a.cd.rank : 9999;
+            var rb = (b.cd && has(b.cd.rank)) ? b.cd.rank : 9999;
+            if (ra !== rb) return ra - rb;
+            var va = (a.cd && has(a.cd.volatility)) ? a.cd.volatility : 9;
+            var vb = (b.cd && has(b.cd.volatility)) ? b.cd.volatility : 9;
+            return va - vb;
+        });
+    }
+
+    var stressBadge = STRESS_BADGE[currentStress];
+    var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
+    var html = '';
+
+    rows.forEach(function(row, pos) {
+        var t = row.t;
+        if (row.state === 'nopair') {
             html += '<div class="no-data-card">'
                 + '<div class="token-name">' + t.name + ' <span style="color:var(--red);font-size:0.7em;">НЕТ ПАРЫ</span></div>'
                 + '<div style="font-size:0.85em;color:#888;margin-top:4px;">' + t.s + ' отсутствует в тикере Binance &mdash; делистинг или смена тикера</div>'
                 + '</div>';
             return;
         }
-
-        // Детектор мёртвого рынка (остановка торгов / делистинг / миграция
-        // тикера): 0 сделок за 24ч или пустой стакан => lastPrice заморожен.
-        // Расчёты по замороженной цене ОТКЛЮЧАЮТСЯ полностью — для фьючерсов
-        // прогноз/ликвидации от неё опасны. У живых пар count всегда >> 0;
-        // если полей нет в ответе (NaN) — поведение как раньше, карточка живая.
-        var trades24 = parseFloat(coin.count);
-        var bidP     = parseFloat(coin.bidPrice);
-        var askP     = parseFloat(coin.askPrice);
-        if (trades24 === 0 || (bidP === 0 && askP === 0)) {
-            var frozenP = parseFloat(coin.lastPrice);
+        if (row.state === 'dead') {
+            var frozenP = parseFloat(row.coin.lastPrice);
             html += '<div class="no-data-card">'
                 + '<div class="token-name">' + t.name + ' <span class="light-blink" style="color:var(--red);font-size:0.7em;">ТОРГИ ОСТАНОВЛЕНЫ</span></div>'
                 + '<div style="font-size:0.85em;color:#888;margin-top:4px;">Цена заморожена: $' + (isFinite(frozenP) ? frozenP.toFixed(4) : '?')
-                + ' &mdash; прогноз и ликвидации отключены (0 сделок / пустой стакан). Возможна миграция тикера.</div>'
+                + ' &mdash; расчёты отключены (0 сделок / пустой стакан). Возможна миграция тикера.</div>'
                 + '</div>';
             return;
         }
-
-        var coinData = null;
-        if (botData.analysis_data) {
-            for (var k = 0; k < botData.analysis_data.length; k++) {
-                if (botData.analysis_data[k].symbol === t.name) { coinData = botData.analysis_data[k]; break; }
-            }
-        }
-
-        if (!coinData || coinData.error) {
+        if (row.state === 'nodata') {
             html += '<div class="no-data-card">'
-                + '<div class="token-name">' + t.name + ' <span style="color:var(--red);font-size:0.7em;">NO DATA</span></div>'
-                + '<div style="font-size:0.85em;color:#888;margin-top:4px;">Бот не дал валидной беты</div>'
+                + '<div class="token-name">' + t.name + ' <span style="color:var(--red);font-size:0.7em;">НЕТ ДАННЫХ</span></div>'
+                + '<div style="font-size:0.85em;color:#888;margin-top:4px;">Бот не дал валидных метрик</div>'
                 + '</div>';
             return;
         }
 
-        // Бета с учётом стресс-режима
-        var rawBeta = ratio >= 0 ? coinData.up_beta : coinData.down_beta;
-        // Guard: бета может быть null при error=false (мало точек в нужном
-        // направлении) — раньше это молча рисовало прогноз 0%
-        if (rawBeta === null || rawBeta === undefined || !isFinite(rawBeta)) {
-            html += '<div class="no-data-card">'
-                + '<div class="token-name">' + t.name + ' <span style="color:var(--red);font-size:0.7em;">NO BETA</span></div>'
-                + '<div style="font-size:0.85em;color:#888;margin-top:4px;">Нет валидной беты для текущего направления</div>'
-                + '</div>';
-            return;
-        }
-        var beta    = rawBeta * stressMult;
-        var r2_14   = ratio >= 0 ? coinData.up_r2 : coinData.down_r2;
-
-        // 90-дневная бета (справочная)
-        var beta90 = ratio >= 0 ? coinData.up_beta_90 : coinData.down_beta_90;
-        var r2_90  = ratio >= 0 ? coinData.up_r2_90   : coinData.down_r2_90;
-
+        var cd   = row.cd;
+        var coin = row.coin;
         var cur  = parseFloat(coin.lastPrice);
-        var p24h = parseFloat(coin.priceChangePercent);
+        var p24  = parseFloat(coin.priceChangePercent);
+        var minP = cd.min_price, maxP = cd.max_price;
 
-        // Сверка источников: живая цена Binance против 90д-диапазона бота
-        // (CoinGecko). Выход далеко за диапазон (×1.5 вверх / ×0.5 вниз) =>
-        // либо пара и CoinGecko-id смотрят на РАЗНЫЕ активы (ошибка миграции),
-        // либо экстремальное движение за <1ч — в обоих случаях смотреть руками.
-        var srcMismatch = (coinData.max_price > 0)
-            && (cur > coinData.max_price * 1.5 || cur < coinData.min_price * 0.5);
+        var srcMismatch = has(maxP) && maxP > 0
+            && (cur > maxP * 1.5 || cur < minP * 0.5);
         var mismatchHtml = srcMismatch
             ? '<div style="color:#f3ba2f;font-weight:600;font-size:0.75em;margin:2px 0;">&#9888; Расхождение источников: цена вне 90д-диапазона бота &mdash; проверь пару/ID</div>'
             : '';
 
-        // Степенная агрегация беты: часовая бета накапливается по пути
-        // мультипликативно, поэтому прогноз = cur * (1+ratio)^beta.
-        // На малых ходах совпадает с прежним линейным cur*(1+ratio*beta),
-        // на больших не даёт цен ниже нуля и clamp-артефактов.
-        // 1+ratio = target/btc > 0 всегда; Math.max — защитный пояс.
-        var growth = Math.pow(Math.max(1 + ratio, 1e-9), beta);
-        var pPct   = (growth - 1) * 100;
+        var dynPos = (has(minP) && has(maxP) && (maxP - minP) > 0)
+            ? Math.max(0, Math.min(100, ((cur - minP) / (maxP - minP)) * 100)) : 0;
 
-        // Позиция в 90-дневном диапазоне (по живой цене; бот считает min/max за DAYS_WINDOW=90)
-        var minP = coinData.min_price, maxP = coinData.max_price;
-        var dynPos = (maxP - minP) > 0
-            ? Math.max(0, Math.min(100, ((cur - minP) / (maxP - minP)) * 100))
-            : 0;
-
-        // Прогнозная цена (куда пойдёт монета)
-        var pred     = Math.max(cur * growth, 0.00000001);
-        var predText = pred < 0.0001 ? '&lt;0.0001' : '$' + pred.toFixed(4);
-
-        // ── ЛИКВИДАЦИЯ ────────────────────────────────────────────────────
-        var isLong   = ratio >= 0;
-        // Ликвидация считается от ПРОГНОЗНОЙ цены (pred) — точки планируемого входа.
-        // Логика калькулятора: "BTC пойдёт туда → альт будет по pred → по этой цене входим".
-        // Учитывается maintenance margin (LIQ_MMR): реальная ликвидация ближе
-        // ко входу, чем наивное pred*(1 -/+ 1/L). Комиссии/funding не учтены.
-        // LONG:  liq = pred * (1 - 1/L + MMR)  — ниже входа
-        // SHORT: liq = pred * (1 + 1/L - MMR)  — выше входа
-        var liqLong    = pred * (1 - 1/currentLev + LIQ_MMR);
-        var liqLongTxt = liqLong  < 0.0001 ? '&lt;0.0001' : '$' + liqLong.toFixed(4);
-        var liqShort   = pred * (1 + 1/currentLev - LIQ_MMR);
-        var liqShortTxt= liqShort < 0.0001 ? '&lt;0.0001' : '$' + liqShort.toFixed(4);
-
-        // Цвета
-        var p24hColor = p24h >= 0 ? 'var(--green)' : 'var(--red)';
-        var r2Color   = r2_14 < 0.30 ? 'var(--red)' : (r2_14 < 0.60 ? '#f3ba2f' : 'var(--green)');
-        var volPct    = coinData.volatility * 100;
-        var volColor  = volPct > 1.5 ? 'var(--lilac)' : (volPct > 1.0 ? 'var(--cyan)' : '#888');
-        var predColor = ratio >= 0 ? 'var(--green)' : 'var(--red)';
-        var predArrow = ratio >= 0 ? '\u219F' : '\u21A1';
-
-        // Строка 90d беты + индикатор согласованности + корреляция BTC/ALT
-        var line90 = '';
-        if (beta90 !== null && beta90 !== undefined && r2_90 !== null) {
-            // Иконка ok/! удалена: расхождение бет 14д/90д уже входит в Conf/МДЛ,
-            // а сами беты теперь видны рядом числами (b= в строке R2 и 90d: b=).
-            var r90Color = r2_90 < 0.30 ? 'var(--red)' : (r2_90 < 0.60 ? '#f3ba2f' : 'var(--green)');
-            // corr_90 — опциональное поле (старый coeffs.json его не содержит)
-            var corr90   = coinData.corr_90;
-            var corrHtml = '';
-            if (corr90 !== null && corr90 !== undefined) {
-                var corrColor = Math.abs(corr90) >= 0.75 ? 'var(--green)'
-                    : (Math.abs(corr90) >= 0.5 ? '#f3ba2f' : 'var(--red)');
-                corrHtml = ' / <span style="color:' + corrColor + '">\u03C1=' + corr90.toFixed(2) + '</span>';
-            }
-            line90 = '<div style="font-size:0.78em;color:#666;margin:2px 0 3px;">'
-                + '90d: b=' + beta90.toFixed(2)
-                + ' / <span style="color:' + r90Color + '">R2=' + r2_90.toFixed(2) + '</span>'
-                + corrHtml
-                + '</div>';
-        }
-
-        // Confidence Score по метрикам текущего направления
-        var conf = confidenceScore(r2_14, r2_90, rawBeta, beta90, coinData.volatility);
-        var confColor = conf === null ? '#888'
-            : (conf >= 70 ? 'var(--green)' : (conf >= 40 ? 'var(--accent)' : 'var(--red)'));
-
-        // Funding Rate
-        var fundRate = cachedFunding[t.s];
-        var fundHtml = '';
-        if (fundRate !== undefined) {
-            // Правило Босса: зелёный = мне платят, красный = я плачу.
-            // Funding > 0: лонги платят шортам; < 0: шорты платят лонгам.
-            // Сторона берётся из кнопок ЛОНГ/ШОРТ, а НЕ из направления слайдера:
-            // при замере риска слайдер смотрит против сделки, и старый цвет
-            // инвертировался ровно в этот момент.
-            var fundColor = (currentSide === 'long')
-                ? (fundRate > 0 ? 'var(--red)' : 'var(--green)')
-                : (fundRate > 0 ? 'var(--green)' : 'var(--red)');
-            fundHtml = '<span style="color:' + fundColor + ';font-size:0.8em;font-style:italic;margin-left:8px;">'
-                + 'Fund: ' + (fundRate >= 0 ? '+' : '') + (fundRate * 100).toFixed(4) + '%/8h'
-                + '</span>';
-        }
-
-        // Ранг по капитализации + дельта за 24ч (поля опциональные — инв. 9).
-        // Серый = без изменений, зелёный = поднялся, красный = опустился.
+        // Бейдж ранга + FDV.
         var badgeInner = '';
-        if (coinData.rank !== null && coinData.rank !== undefined) {
-            var rPrev = coinData.rank_prev;
-            var rColor = '#ccc', rArrow = '';
-            if (rPrev !== null && rPrev !== undefined && rPrev !== coinData.rank) {
-                var rDelta = rPrev - coinData.rank;   // > 0 => поднялся в рейтинге
+        if (has(cd.rank)) {
+            var rPrev = cd.rank_prev, rColor = '#ccc', rArrow = '';
+            if (has(rPrev) && rPrev !== cd.rank) {
+                var rDelta = rPrev - cd.rank;
                 if (rDelta > 0) { rColor = 'var(--green)'; rArrow = '\u2191' + rDelta; }
                 else            { rColor = 'var(--red)';   rArrow = '\u2193' + (-rDelta); }
             }
-            badgeInner += '<span style="color:' + rColor + ';">#'
-                + coinData.rank + rArrow + '</span>';
+            badgeInner += '<span style="color:' + rColor + ';">#' + cd.rank + rArrow + '</span>';
         }
-        // FDV/MC — во сколько раз полная эмиссия больше обращающейся.
-        // Контекст риска разлоков, НЕ самостоятельный сигнал лонг/шорт.
-        // Поле опционально: нет max supply (ETH, XMR) => null, ничего не рисуем.
-        var fdv = coinData.fdv_mc;
-        if (fdv !== null && fdv !== undefined && isFinite(fdv)) {
-            var fColor = fdv > 3 ? 'var(--red)' : (fdv >= 1.5 ? 'var(--accent)' : '#888');
+        if (has(cd.fdv_mc)) {
+            var fColor = cd.fdv_mc > 3 ? 'var(--red)' : (cd.fdv_mc >= 1.5 ? 'var(--accent)' : '#888');
             badgeInner += '<span style="color:' + fColor + ';margin-left:6px;">FDV '
-                + fdv.toFixed(1) + '\u00D7</span>';
+                + cd.fdv_mc.toFixed(1) + '\u00D7</span>';
         }
-        var rankHtml = badgeInner
-            ? '<span class="rank-badge">' + badgeInner + '</span>' : '';
+        if (sideOn && row.sc) {
+            var tier = tierOf(row.sc.score);
+            badgeInner += '<span style="color:' + tier.c + ';margin-left:8px;font-weight:800;">#'
+                + (pos + 1) + ' ' + tier.n + ' ' + Math.round(row.sc.score) + '</span>';
+        }
+        var rankHtml = badgeInner ? '<div class="rank-badge">' + badgeInner + '</div>' : '';
 
-        // Стресс-бейдж
-        var badgeHtml = stressBadge
+        var badgeHtml = (advOpen && stressBadge)
             ? '<span style="font-size:0.6em;color:' + badgeColor + ';font-weight:bold;margin-left:5px;">' + stressBadge + '</span>'
             : '';
 
-        // Min/Max с мигающей анимацией у порогов 25% и 75%
-        var minClass  = dynPos <= 25 ? 'light-blink' : '';
-        var minColor  = dynPos <= 25 ? 'var(--red)' : 'var(--accent)';
-        var maxClass  = dynPos >= 75 ? 'light-blink' : '';
-        var maxColor  = dynPos >= 75 ? 'var(--green)' : 'var(--accent)';
+        var p24hColor = p24 >= 0 ? 'var(--green)' : 'var(--red)';
+        var volPct    = has(cd.volatility) ? cd.volatility * 100 : null;
+        var volColor  = volPct === null ? '#888'
+            : (volPct > 1.5 ? 'var(--lilac)' : (volPct > 1.0 ? 'var(--cyan)' : '#888'));
 
-        // Блок допустимого плеча ('' пока вход не зафиксирован)
-        var levHtml = leverageBlock(coinData, cur, btc, target);
+        var minClass = dynPos <= 25 ? 'light-blink' : '';
+        var minColor = dynPos <= 25 ? 'var(--red)' : 'var(--accent)';
+        var maxClass = dynPos >= 75 ? 'light-blink' : '';
+        var maxColor = dynPos >= 75 ? 'var(--green)' : 'var(--accent)';
 
-        // Мерцающая рамка только на самых краях диапазона: <=1% или >=99%
-        // Подсветка по тому же округлённому %, что видит пользователь
         var dynPosRounded = Math.round(dynPos);
         var edgeClass = '';
         if (dynPosRounded <= 1)       edgeClass = ' edge-min';
         else if (dynPosRounded >= 99) edgeClass = ' edge-max';
 
+        // Строка расстояний — прямое кодирование правил отбора Босса.
+        var distHtml = '';
+        if (has(minP) && has(maxP) && minP > 0 && maxP > 0) {
+            var upFromMin = (cur / minP - 1) * 100;
+            var dnFromMax = (cur / maxP - 1) * 100;
+            var upColor = upFromMin >= 60 ? 'var(--red)' : (upFromMin <= 10 ? 'var(--green)' : '#aaa');
+            var dnColor = dnFromMax <= -40 ? 'var(--green)' : (dnFromMax >= -10 ? 'var(--red)' : '#aaa');
+            distHtml = '<div class="dist-line">'
+                + 'от мин90 <span style="color:' + upColor + ';font-weight:700;">+' + upFromMin.toFixed(1) + '%</span>'
+                + ' \u00B7 до макс90 <span style="color:' + dnColor + ';font-weight:700;">' + dnFromMax.toFixed(1) + '%</span>'
+                + (volPct === null ? '' : ' \u00B7 <span style="color:' + volColor + ';">Vol ' + volPct.toFixed(2) + '%</span>')
+                + '</div>';
+        }
+
+        var reasonHtml = '';
+        if (sideOn && row.sc && row.sc.reasons.length) {
+            reasonHtml = '<div class="reason-line">' + row.sc.reasons.join(' \u00B7 ') + '</div>';
+        }
+
+        var entryHtml = '';
+        if (sideOn) {
+            entryHtml = entryOf(t.name)
+                ? entryBlock(cd, t.name, t.s, cur, isLong, btcStats)
+                : '<button class="qbtn wide" onclick="openEntry(\'' + t.name + '\',' + numAttr(cur) + ')">Разобрать вход \u2192</button>';
+        }
+
         html += '<div class="card' + edgeClass + '" style="border-left:4px solid ' + p24hColor + ';">'
-
-            // Ранг в левом верхнем углу (абсолютное позиционирование — вне потока)
             + rankHtml
-
-            // Заголовок карточки
             + '<div class="row">'
             +   '<span class="token-name">' + t.name + badgeHtml
             +     ' <span class="pct-24h" style="color:' + p24hColor + ';">'
-            +       (p24h > 0 ? '+' : '') + p24h.toFixed(2) + '%'
-            +     '</span>'
+            +       (p24 > 0 ? '+' : '') + p24.toFixed(2) + '%</span>'
             +   '</span>'
-            +   '<div style="text-align:right;">'
-            +     '<div>$' + cur.toFixed(4) + '</div>'
-            +     (conf === null ? '' :
-                   '<div style="font-size:0.72em;font-weight:700;color:' + confColor + ';">Conf ' + conf + '%</div>')
-            +     (function() {
-                       var g = gateState(conf, r2_14, coinData.corr_90);
-                       var gc = g === 'green' ? 'var(--green)' : (g === 'yellow' ? 'var(--accent)' : 'var(--red)');
-                       var gl = g === 'green' ? 'MDL \u2713' : (g === 'yellow' ? 'MDL \u007E' : 'MDL \u2715');
-                       return '<div style="font-size:0.66em;font-weight:800;letter-spacing:0.04em;color:' + gc + ';">' + gl + '</div>';
-                   })()
-            +   '</div>'
+            +   '<div style="text-align:right;"><div style="font-weight:700;">' + fmtP(cur) + '</div></div>'
             + '</div>'
-
-            // Жёлтое предупреждение о расхождении источников (пусто в норме)
             + mismatchHtml
-
-            // РЕЖИМ ПОЗИЦИИ (вход зафиксирован или авто-стресс): блок плеча
-            // идёт ПЕРВЫМ — сначала ответ «сколько ставить», потом чем он
-            // обоснован. Порядок Босса: сторона -> вход -> сценарий -> стресс
-            // -> ИТОГ -> риск ликвидации.
-            + levHtml
-
-            // R² 14d + Funding. Остаётся и в режиме позиции: b= порождает
-            // прогноз и стресс-цену, Funding — реальная стоимость удержания
-            // недели/месяца, это часть позиции, а не диагностика.
-            + '<div style="font-size:1.1em;font-weight:bold;font-style:italic;margin:4px 0;color:' + r2Color + ';">'
-            +   '<span style="color:#ccc;">b=' + rawBeta.toFixed(2) + '</span> / R2: ' + (r2_14 !== null ? r2_14.toFixed(2) : 'N/A') + fundHtml
-            + '</div>'
-
-            // 90d строка — ЧИСТАЯ диагностика: b90/R2_90/rho уже свёрнуты в
-            // Conf и MDL, которые видны в углу карточки всегда. В режиме
-            // позиции прячем, чтобы не конкурировать с решением.
-            + (levHtml ? '' : line90)
-
-            // Вход не зафиксирован -> прежние две строки ликвидации,
-            // байт в байт как раньше, плюс строка РЕК.
-            + (levHtml ? '' :
-                 '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
-               +   '<span style="color:var(--green);">LONG </span>'
-               +   currentLev + 'X: ' + liqLongTxt
-               + '</div>'
-               + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
-               +   '<span style="color:var(--red);">SHORT </span>'
-               +   currentLev + 'X: ' + liqShortTxt
-               + '</div>'
-                 // РЕК не зависит от сценария BTC — показывается всегда, для
-                 // НАЖАТОЙ стороны сделки. Нет Vol => строка пустая (инв. 9).
-               + recLineHtml(coinData.volatility, currentSide === 'long', currentLev, false))
-
-            // Диапазон Min / Pos% / Max
+            + distHtml
             + '<div class="extra-data">'
-            +   'Min: <span class="' + minClass + '" style="color:' + minColor + ';">$' + minP.toFixed(4) + '</span>'
+            +   'Min: <span class="' + minClass + '" style="color:' + minColor + ';">' + fmtP(minP) + '</span>'
             +   ' | <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;margin:0 4px;">'
-            +     dynPos.toFixed(0) + '%'
-            +   '</span> | '
-            +   'Max: <span class="' + maxClass + '" style="color:' + maxColor + ';">$' + maxP.toFixed(4) + '</span>'
+            +     dynPos.toFixed(0) + '%</span> | '
+            +   'Max: <span class="' + maxClass + '" style="color:' + maxColor + ';">' + fmtP(maxP) + '</span>'
             + '</div>'
-
-            // Прогнозная цена — над волатильностью, цвет по направлению слайдера
-            // Процент изменения — над прогнозной ценой, тем же шрифтом
-            + '<div style="position:absolute;bottom:90px;right:14px;font-size:0.9em;font-weight:bold;font-style:italic;color:' + (pPct >= 0 ? 'var(--green)' : 'var(--red)') + ';"'
-            +   ' class="' + (beta < 0 ? 'blink-text' : '') + '">'
-            +   (pPct >= 0 ? '+' : '') + pPct.toFixed(2) + '%'
-            + '</div>'
-            // Прогнозная цена со стрелкой
-            + '<div style="position:absolute;bottom:66px;right:14px;font-size:0.9em;font-weight:bold;font-style:italic;color:' + predColor + ';">'
-            +   '<span style="font-size:1.5em;font-weight:700;line-height:1;vertical-align:-2px;">' + predArrow + '</span> ' + predText
-            + '</div>'
-
-            // Волатильность
-            + '<div class="vol-value" style="color:' + volColor + ';">Vol: ' + volPct.toFixed(2) + '%</div>'
-
-            // Кнопки перестановки
-            + '<div style="position:absolute;bottom:10px;right:10px;">'
-            +   '<button class="nav-btn" onclick="move(' + i + ',-1)">&#8593;</button>'
-            +   '<button class="nav-btn" onclick="move(' + i + ',1)" style="margin-left:5px;">&#8595;</button>'
-            + '</div>'
-
-        + '</div>';
+            + reasonHtml
+            + entryHtml
+            + (advOpen ? diagBlock(cd, ratio, cur) : '')
+            + (sideOn ? '' :
+                 '<div class="nav-row">'
+               + '<button class="nav-btn" onclick="move(' + row.idx + ',-1)">&#8593;</button>'
+               + '<button class="nav-btn" onclick="move(' + row.idx + ',1)" style="margin-left:5px;">&#8595;</button>'
+               + '</div>')
+            + '</div>';
     });
 
     var resultsEl = document.getElementById('results');
     if (resultsEl) resultsEl.innerHTML = html;
+}
+
+function init() {
+    applySavedOrder();
+    renderButtons();
+    var ab = document.getElementById('adv-btn');
+    if (ab) ab.addEventListener('click', toggleAdv);
+    fetchBotData();
+    refreshMarketData();
+    refreshFuturesTickers();
+    fetchFundingRates();
+    setInterval(refreshMarketData,     30000);
+    setInterval(refreshFuturesTickers, 30000);
+    setInterval(fetchBotData,         300000);
+    setInterval(fetchFundingRates,    300000);
+    setInterval(updateFreshnessDisplay, 30000);
 }
 
 document.getElementById('slider').oninput = update;
