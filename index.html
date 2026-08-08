@@ -161,47 +161,71 @@
             color: var(--green) !important;
             animation: blinkGreen 2s ease-in-out infinite;
         }
-        /* Ранг/FDV/тир — обычная первая строка карточки (не absolute:
-           высота карточки теперь переменная из-за блока входа). */
+        /* Ранг/FDV/тир — левый верхний угол, вне потока (как было).
+           Абсолютные элементы карточки считаются от .card-main, а не от
+           .card: блок входа растёт ВНИЗ и не сдвигает прогноз/Vol/стрелки. */
+        .card-main { position: relative; min-height: 160px; }
         .rank-badge {
-            display: block; margin-bottom: 3px;
-            font-size: 0.74em; font-weight: 700; line-height: 1; letter-spacing: 0.02em;
+            position: absolute; top: 0; left: 0;
+            font-size: 0.74em; font-weight: 700; line-height: 1;
+            letter-spacing: 0.02em; pointer-events: none;
         }
+        .vol-value {
+            position: absolute; bottom: 42px; right: 0;
+            font-size: 0.9em; font-weight: bold; font-style: italic;
+        }
+        .pred-pct  { position: absolute; bottom: 90px; right: 0; font-size: 0.9em; font-weight: bold; font-style: italic; }
+        .pred-val  { position: absolute; bottom: 66px; right: 0; font-size: 0.9em; font-weight: bold; font-style: italic; }
+        .nav-abs   { position: absolute; bottom: 10px; right: 0; }
         .side3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin-bottom: 6px; }
         .side-btn.a-none { color: #000; background: #c7c7cc; }
-        .adv-btn {
-            width: 100%; box-sizing: border-box; background: #2c2c31;
-            border: 1px solid #444; color: #999; padding: 7px 6px;
-            border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer;
-        }
-        .adv-btn.on { border-color: var(--cyan); color: var(--cyan); }
-        .adv-note { font-size: 0.68em; color: #666; margin-top: 8px; line-height: 1.35; }
         .dist-line { font-size: 0.8em; margin: 3px 0; color: #aaa; }
         .reason-line { font-size: 0.76em; color: var(--cyan); margin: 3px 0 5px; line-height: 1.35; }
         .qbtn {
-            background: #2c2c31; border: 1px solid #444; color: #ccc;
-            padding: 6px 9px; border-radius: 7px; font-size: 11px;
-            font-weight: 700; cursor: pointer; margin-right: 4px; margin-top: 4px;
+            background: #26262c; border: 1px solid #3d3d47; color: #d0d0d8;
+            padding: 7px 10px; border-radius: 8px; font-size: 11px;
+            font-weight: 700; cursor: pointer; margin-right: 5px; margin-top: 5px;
+            letter-spacing: 0.02em;
         }
-        .qbtn.wide { width: 100%; margin-right: 0; padding: 9px 6px; box-sizing: border-box; }
+        .qbtn:active { background: #33333b; }
+        .qbtn.wide {
+            width: 100%; margin-right: 0; padding: 11px 6px; box-sizing: border-box;
+            font-size: 12px; letter-spacing: 0.06em;
+        }
+        .qbtn.call {
+            background: transparent; border: 1px solid var(--accent);
+            color: var(--accent); font-weight: 800;
+        }
         .qrow { display: flex; flex-wrap: wrap; margin-bottom: 2px; }
+        /* Блок входа: не серая простыня, а отдельная «панель прибора» —
+           градиент, цветной торец по стороне сделки, крупные ключевые числа. */
         .ent {
-            border: 1px solid #3a3a42; border-radius: 10px;
-            padding: 9px 10px; margin: 6px 0 4px; background: #15151a;
+            position: relative; overflow: hidden;
+            border: 1px solid #35353f; border-radius: 12px;
+            padding: 12px 13px 11px; margin: 12px 0 2px;
+            background: linear-gradient(180deg, #1e1e26 0%, #131318 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
         }
-        .ent-head { font-size: 1.0em; font-weight: 800; letter-spacing: 0.02em; margin-bottom: 4px; }
-        .ent-line { font-size: 0.84em; margin: 3px 0; }
-        .ent-dim  { color: #777; font-size: 0.92em; }
-        .ent-sub  { font-size: 0.74em; color: #999; margin: 3px 0; line-height: 1.4; }
-        .ent-why  { font-size: 0.8em; font-weight: 600; margin: 4px 0; line-height: 1.4; }
-        .ent-warn { font-size: 0.76em; color: var(--accent); margin: 3px 0; }
-        .liq-row  { display: flex; flex-wrap: wrap; gap: 8px; margin: 5px 0 3px; }
-        .liq-cell { font-size: 0.8em; font-weight: 700; }
-        .diag {
-            font-size: 0.72em; color: #7a7a82; margin-top: 6px;
-            border-top: 1px dashed #333; padding-top: 5px; line-height: 1.5;
+        .ent::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+        .ent.s-long::before  { background: var(--green); }
+        .ent.s-short::before { background: var(--red); }
+        .ent-head {
+            font-size: 1.16em; font-weight: 900; letter-spacing: 0.07em;
+            margin-bottom: 9px; text-transform: uppercase;
         }
-        .nav-row { text-align: right; margin-top: 6px; }
+        .ent-line { font-size: 0.87em; margin: 5px 0; color: #dcdce4; }
+        .ent-big  { font-size: 1.12em; font-weight: 800; color: var(--accent); letter-spacing: 0.01em; }
+        .ent-dim  { color: #7e7e8c; font-weight: 400; font-size: 0.9em; }
+        .ent-sub  { font-size: 0.76em; color: #9296a2; margin: 4px 0; line-height: 1.45; }
+        .ent-why  { font-size: 0.86em; font-weight: 700; margin: 7px 0 5px; line-height: 1.45; }
+        .ent-warn { font-size: 0.78em; color: var(--accent); margin: 4px 0; line-height: 1.4; }
+        .liq-row  {
+            display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 4px;
+            padding: 8px 0; border-top: 1px solid #2c2c36; border-bottom: 1px solid #2c2c36;
+        }
+        .liq-cell { font-size: 0.86em; font-weight: 800; letter-spacing: 0.01em; }
+        .liq-cell.pick { text-decoration: underline; text-underline-offset: 3px; }
+        .diag-line { font-size: 0.78em; color: #666; margin: 2px 0 3px; }
         /* Экран ввода пароля */
         #lock-screen {
             position: fixed; inset: 0; z-index: 9999;
@@ -260,38 +284,35 @@
             <div id="status-dot" style="width:12px;height:12px;border-radius:50%;background:#666;"></div>
         </div>
     </div>
-    <div id="btc-range" class="btc-range">Диапазон BTC 90д: ...</div>
-    <div class="side3" id="sideContainer"></div>
-    <button id="adv-btn" class="adv-btn">Диагностика &#9662;</button>
-    <div id="adv-panel" style="display:none;">
-        <div class="row" style="margin:10px 0 4px;">
-            <div style="font-weight:600;">
-                <span id="btc-target">Прогноз BTC: ...</span><span id="btc-target-arrow" style="font-size:1.3em;font-weight:700;line-height:1;vertical-align:-2px;margin-left:4px;"></span>
-            </div>
-            <div style="text-align:right;">
-                <div id="btc-pct" style="font-weight:bold;color:#ffffff;">0.00%</div>
-                <div id="dir-indicator" style="font-size:0.75em;font-weight:800;color:#888;">&#8212;&#8212;</div>
-            </div>
+    <div class="row" style="margin-bottom:4px;">
+        <div style="font-weight:600;">
+            <span id="btc-target">Прогноз BTC: ...</span><span id="btc-target-arrow" style="font-size:1.3em;font-weight:700;line-height:1;vertical-align:-2px;margin-left:4px;"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;margin:6px 0;">
-            <button id="btn-minus" style="
-                background:#2c1f1f;border:1px solid var(--red);color:var(--red);
-                font-size:1.4em;font-weight:900;width:38px;height:38px;
-                border-radius:8px;cursor:pointer;flex-shrink:0;
-                display:flex;align-items:center;justify-content:center;
-                line-height:1;">&#8722;</button>
-            <input type="range" id="slider" min="20000" max="150000" step="100"
-                   style="flex:1;margin:0;">
-            <button id="btn-plus" style="
-                background:#1a2a1f;border:1px solid var(--green);color:var(--green);
-                font-size:1.4em;font-weight:900;width:38px;height:38px;
-                border-radius:8px;cursor:pointer;flex-shrink:0;
-                display:flex;align-items:center;justify-content:center;
-                line-height:1;">&#43;</button>
+        <div style="text-align:right;">
+            <div id="btc-pct" style="font-weight:bold;color:#ffffff;">0.00%</div>
+            <div id="dir-indicator" style="font-size:0.75em;font-weight:800;color:#888;">&#8212;&#8212;</div>
         </div>
-        <div class="stress-container" id="stressContainer"></div>
-        <div class="adv-note">Сценарий BTC и режимы Normal/Panic/Crash влияют ТОЛЬКО на диагностические строки карточек. На решение по плечу они не влияют.</div>
     </div>
+    <div id="btc-range" class="btc-range">Диапазон BTC 90д: ...</div>
+    <div style="display:flex;align-items:center;gap:6px;margin:6px 0;">
+        <button id="btn-minus" style="
+            background:#2c1f1f;border:1px solid var(--red);color:var(--red);
+            font-size:1.4em;font-weight:900;width:38px;height:38px;
+            border-radius:8px;cursor:pointer;flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;
+            line-height:1;">&#8722;</button>
+        <input type="range" id="slider" min="20000" max="150000" step="100"
+               style="flex:1;margin:0;">
+        <button id="btn-plus" style="
+            background:#1a2a1f;border:1px solid var(--green);color:var(--green);
+            font-size:1.4em;font-weight:900;width:38px;height:38px;
+            border-radius:8px;cursor:pointer;flex-shrink:0;
+            display:flex;align-items:center;justify-content:center;
+            line-height:1;">&#43;</button>
+    </div>
+    <div class="side3" id="sideContainer"></div>
+    <div class="lev-container" id="levContainer"></div>
+    <div class="stress-container" id="stressContainer"></div>
 </div>
 
 <div id="results">Загрузка данных...</div>
@@ -345,10 +366,12 @@
 // currentSide — режим экрана. 'none' = обзор рынка (карточки компактные,
 // порядок ручной). 'long'/'short' = карточки пересортированы по силе кандидата.
 var currentSide   = 'none';
-// Режим стресса живёт ТОЛЬКО в диагностике: он множит бету и меняет
-// диагностический прогноз, но НЕ участвует в решении по плечу.
+// Режим стресса множит бету и меняет ДИАГНОСТИЧЕСКИЙ прогноз на карточке.
+// В решение по плечу (ИТОГ) он не входит — там своя математика.
 var currentStress = 'normal';
-var advOpen       = false;
+// Ручной выбор плеча вернулся: им управляются строки LONG/SHORT-ликвидации
+// на карточке и проверка «проходит ли выбранное плечо» в блоке входа.
+var currentLev    = 3;
 // Вход по каждой монете. Сессионное состояние: вчерашний вход с сегодняшними
 // данными опаснее ручного счёта, поэтому в localStorage не пишется.
 var entryState = {};   // { SYM: { open:true, price:<цена монеты> } }
@@ -579,11 +602,11 @@ function firstNum() {
     return null;
 }
 function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+// Точность как была до правки: всегда 4 знака. Так цены на карточке,
+// в блоке входа и в строке ликвидаций читаются одним столбцом.
 function fmtP(x) {
     if (!isFinite(x)) return '?';
-    if (x >= 100) return '$' + x.toFixed(2);
-    if (x >= 1)   return '$' + x.toFixed(4);
-    return x < 0.000001 ? '&lt;0.000001' : '$' + x.toFixed(6);
+    return x < 0.0001 ? '&lt;0.0001' : '$' + x.toFixed(4);
 }
 // Число, попадающее в onclick-атрибут: без хвоста плавающей точки.
 function numAttr(x) { return Math.round(x * 1e6) / 1e6; }
@@ -602,7 +625,7 @@ function move(idx, dir) {
 // ── Кнопки панели ───────────────────────────────────────────────────────────
 function renderButtons() {
     var sd = document.getElementById('sideContainer');
-    [['none','ОБЗОР'],['long','ЛОНГ'],['short','ШОРТ']].forEach(function(pair) {
+    [['long','ЛОНГ'],['none','ОБЗОР'],['short','ШОРТ']].forEach(function(pair) {
         var mode = pair[0], label = pair[1];
         var b = document.createElement('button');
         b.className = 'side-btn' + (currentSide === mode ? ' a-' + mode : '');
@@ -614,6 +637,21 @@ function renderButtons() {
             update();
         };
         sd.appendChild(b);
+    });
+
+    var lc = document.getElementById('levContainer');
+    // Потолок 7X — математический предел модели (знаменатель > 0.14).
+    [2,3,4,5,6,7].forEach(function(l) {
+        var b = document.createElement('button');
+        b.className = 'lev-btn' + (currentLev === l ? ' active' : '');
+        b.innerText = l + 'X';
+        b.onclick = function() {
+            currentLev = l;
+            document.querySelectorAll('.lev-btn').forEach(function(x) { x.classList.remove('active'); });
+            b.classList.add('active');
+            update();
+        };
+        lc.appendChild(b);
     });
 
     var sc = document.getElementById('stressContainer');
@@ -630,18 +668,6 @@ function renderButtons() {
         };
         sc.appendChild(b);
     });
-}
-
-function toggleAdv() {
-    advOpen = !advOpen;
-    var p = document.getElementById('adv-panel');
-    var b = document.getElementById('adv-btn');
-    if (p) p.style.display = advOpen ? 'block' : 'none';
-    if (b) {
-        b.innerHTML = advOpen ? 'Диагностика \u25B4' : 'Диагностика \u25BE';
-        b.className = advOpen ? 'adv-btn on' : 'adv-btn';
-    }
-    update();
 }
 
 // ── Управление входом ───────────────────────────────────────────────────────
@@ -682,6 +708,34 @@ function normCdf(x) {
 }
 
 function sigmaDay(vol) { return vol * Math.sqrt(24); }
+
+// Композитная оценка доверия к МОДЕЛИ карточки (0-100): 45% R2 текущего
+// направления (14d), 25% R2 (90d), 20% согласованность бет, 10% штраф за
+// волатильность. Отсутствующие компоненты выпадают с перенормировкой.
+function confidenceScore(r2_14, r2_90, rawBeta, beta90, volatility) {
+    var parts = [], weights = [];
+    if (has(r2_14)) { parts.push(clamp01(r2_14)); weights.push(0.45); }
+    if (has(r2_90)) { parts.push(clamp01(r2_90)); weights.push(0.25); }
+    if (has(beta90) && has(rawBeta)) {
+        var div90 = Math.abs(rawBeta - beta90) / (Math.abs(beta90) || 1);
+        parts.push(1 - Math.min(div90, 1)); weights.push(0.20);
+    }
+    var volPct = (volatility || 0) * 100;
+    parts.push(1 - Math.min(volPct / 3, 1)); weights.push(0.10);
+    var acc = 0, wsum = 0;
+    for (var i = 0; i < parts.length; i++) { acc += parts[i] * weights[i]; wsum += weights[i]; }
+    return wsum > 0 ? Math.round(100 * acc / wsum) : null;
+}
+
+// Светофор доверия к модели: можно ли использовать прогноз/бету карточки.
+// Чисто отображение, ни один расчёт не меняет.
+function gateState(conf, r2dir, corr90) {
+    if (!has(conf) || conf < 40) return 'red';
+    if (!has(r2dir) || r2dir < 0.25) return 'red';
+    if (has(corr90) && Math.abs(corr90) < 0.5) return 'red';
+    if (conf < 70) return 'yellow';
+    return 'green';
+}
 
 function liqPrice(E, L, isLong) {
     return isLong ? E * (1 - 1 / L + LIQ_MMR) : E * (1 + 1 / L - LIQ_MMR);
@@ -963,7 +1017,7 @@ function entryBlock(cd, sym, pair, cur, isLong, btcStats) {
     var sideColor = isLong ? 'var(--green)' : 'var(--red)';
     var dec = leverageDecision(cd, E, isLong, btcStats);
 
-    var h = '<div class="ent">';
+    var h = '<div class="ent ' + (isLong ? 's-long' : 's-short') + '">';
 
     // Строка 1 — ОТВЕТ.
     if (dec.ok) {
@@ -972,7 +1026,7 @@ function entryBlock(cd, sym, pair, cur, isLong, btcStats) {
     } else {
         h += '<div class="ent-head" style="color:var(--red);">'
            + sideName + ' \u00B7 ' + dec.msg + '</div>';
-        if (dec.fix) h += '<div class="ent-sub" style="color:var(--accent);">' + dec.fix + '</div>';
+        if (dec.fix) h += '<div class="ent-warn">' + dec.fix + '</div>';
     }
 
     // Вход и его подстройка.
@@ -983,7 +1037,7 @@ function entryBlock(cd, sym, pair, cur, isLong, btcStats) {
         qh += '<button class="qbtn" onclick="setEntry(\'' + sym + '\',' + numAttr(cur * q[i][1]) + ')">'
             + q[i][0] + '</button>';
     }
-    h += '<div class="ent-line">Вход <b>' + fmtP(E) + '</b> '
+    h += '<div class="ent-line">Вход <span class="ent-big">' + fmtP(E) + '</span> '
        + '<span class="ent-dim">(' + pctTxt(E / cur - 1, 1) + ' к рынку)</span></div>'
        + '<div class="qrow">' + qh
        + '<button class="qbtn" onclick="nudgeEntry(\'' + sym + '\',0.995)">\u2212</button>'
@@ -1003,36 +1057,42 @@ function entryBlock(cd, sym, pair, cur, isLong, btcStats) {
         var invLbl = dec.inv.capped ? 'опоры рядом нет, взято 6\u03C3'
                    : (dec.inv.floored ? 'шумовой пол 2\u03C3'
                                       : dec.inv.src + ' ' + (isLong ? '\u2212' : '+') + '\u00BD\u03C3');
-        h += '<div class="ent-line">Идея мертва при ' + fmtP(dec.inv.price)
-           + ' <span class="ent-dim">(' + invLbl
+        h += '<div class="ent-line">Идея мертва при <b style="color:var(--red);">' + fmtP(dec.inv.price)
+           + '</b> <span class="ent-dim">(' + invLbl
            + ', ' + (dec.inv.dist * 100).toFixed(1) + '% от входа)</span></div>';
     }
 
-    // Ликвидации: 3X / 4X / 5X плюс ИТОГ, если он вне этого набора.
+    // Ликвидации: 3X / 4X / 5X, плюс ИТОГ и выбранное вручную плечо.
     var levs = SHOW_LEVS.slice();
-    if (dec.ok && levs.indexOf(dec.L) === -1) { levs.push(dec.L); levs.sort(function(a,b){return a-b;}); }
+    if (dec.ok && levs.indexOf(dec.L) === -1) levs.push(dec.L);
+    if (levs.indexOf(currentLev) === -1) levs.push(currentLev);
+    levs.sort(function(a, b) { return a - b; });
     var lh = '';
     for (var j = 0; j < levs.length; j++) {
         var L  = levs[j];
         var lp = liqPrice(E, L, isLong);
         var okL = dec.ok && L <= dec.L;
-        lh += '<span class="liq-cell" style="color:' + (okL ? 'var(--green)' : 'var(--red)') + ';">'
+        lh += '<span class="liq-cell' + (L === currentLev ? ' pick' : '') + '" style="color:'
+            + (okL ? 'var(--green)' : 'var(--red)') + ';">'
             + L + 'X ' + fmtP(lp) + (okL ? ' \u2713' : ' \u2715') + '</span>';
     }
     h += '<div class="liq-row">' + lh + '</div>';
+
+    // Вердикт по ВЫБРАННОМУ вручную плечу — прямой ответ на нажатую кнопку.
+    var liqSel = liqPrice(E, currentLev, isLong);
+    var okSel  = dec.ok && currentLev <= dec.L;
+    h += '<div class="ent-why" style="color:' + (okSel ? 'var(--green)' : 'var(--red)') + ';">'
+       + 'Выбрано ' + currentLev + 'X \u00B7 ликвидация ' + fmtP(liqSel) + ' \u00B7 '
+       + (okSel ? '\u2713 проходит' : '\u2715 выше допустимого') + '</div>';
 
     // Причина одной фразой.
     if (dec.ok) {
         var liqL = liqPrice(E, dec.L, isLong);
         var gap  = isLong ? (dec.inv.price - liqL) / dec.inv.price
                           : (liqL - dec.inv.price) / dec.inv.price;
-        h += '<div class="ent-why" style="color:var(--green);">' + dec.L
+        h += '<div class="ent-why" style="color:#dcdce4;font-weight:600;">' + dec.L
            + 'X приемлемо: ликвидация ' + fmtP(liqL) + ' на ' + (gap * 100).toFixed(1)
            + '% дальше уровня, где идея мертва.</div>';
-        if (dec.L < 4) {
-            h += '<div class="ent-why" style="color:var(--accent);">4X не рекомендуется: ограничитель \u2014 '
-               + dec.binding + '.</div>';
-        }
     }
 
     // Из чего получен ответ.
@@ -1040,12 +1100,12 @@ function entryBlock(cd, sym, pair, cur, isLong, btcStats) {
         var pl = 'структура ' + (dec.parts.struct === null ? 'н/д' : dec.parts.struct.toFixed(1) + 'X')
                + ' \u00B7 шум 7д ' + (dec.parts.noise === null ? 'н/д' : dec.parts.noise.toFixed(1) + 'X');
         if (dec.parts.btc !== null) pl += ' \u00B7 обвал BTC ' + dec.parts.btc.toFixed(1) + 'X';
-        pl += ' \u2192 ' + dec.binding;
+        pl += ' \u2192 ограничитель: ' + dec.binding;
         h += '<div class="ent-sub">' + pl + '</div>';
     }
 
     // Вероятность — одной понятной фразой, без шифра.
-    var Lp = dec.ok ? dec.L : L_BASE;
+    var Lp = dec.ok ? dec.L : currentLev;
     var p7 = liqTouchProb(cd.volatility, Lp, isLong, 168);
     if (p7 !== null) {
         var p14 = liqTouchProb(cd.volatility, Lp, isLong, 336);
@@ -1070,54 +1130,7 @@ function entryBlock(cd, sym, pair, cur, isLong, btcStats) {
         h += '<div class="ent-warn">\u26A0 ' + dec.warn[w] + '</div>';
     }
 
-    h += '<button class="qbtn wide" onclick="closeEntry(\'' + sym + '\')">Свернуть</button>';
-    h += '</div>';
-    return h;
-}
-
-// ── Диагностический блок карточки (только при открытой диагностике) ────────
-function diagBlock(cd, ratio, cur) {
-    var rawBeta = ratio >= 0 ? cd.up_beta : cd.down_beta;
-    var r2_14   = ratio >= 0 ? cd.up_r2   : cd.down_r2;
-    var beta90  = ratio >= 0 ? cd.up_beta_90 : cd.down_beta_90;
-    var r2_90   = ratio >= 0 ? cd.up_r2_90   : cd.down_r2_90;
-    var h = '<div class="diag">';
-    if (has(rawBeta)) {
-        var beta   = rawBeta * STRESS_MULT[currentStress];
-        var growth = Math.pow(Math.max(1 + ratio, 1e-9), beta);
-        var pred   = Math.max(cur * growth, 1e-8);
-        var r2Color = !has(r2_14) ? '#888' : (r2_14 < 0.30 ? 'var(--red)' : (r2_14 < 0.60 ? '#f3ba2f' : 'var(--green)'));
-        h += '<div>b=' + rawBeta.toFixed(2)
-           + ' / <span style="color:' + r2Color + ';">R2 ' + (has(r2_14) ? r2_14.toFixed(2) : 'н/д') + '</span>'
-           + ' \u00B7 прогноз ' + fmtP(pred) + ' (' + pctTxt(growth - 1, 2) + ', ' + STRESS_NAME[currentStress] + ')</div>';
-    } else {
-        h += '<div style="color:#888;">Беты 14д нет — связь с BTC не измеряется</div>';
-    }
-    if (has(beta90)) {
-        var r90c = !has(r2_90) ? '#888' : (r2_90 < 0.30 ? 'var(--red)' : (r2_90 < 0.60 ? '#f3ba2f' : 'var(--green)'));
-        h += '<div>90д: b=' + beta90.toFixed(2)
-           + ' / <span style="color:' + r90c + ';">R2 ' + (has(r2_90) ? r2_90.toFixed(2) : 'н/д') + '</span>'
-           + (has(cd.corr_90) ? ' / \u03C1=' + cd.corr_90.toFixed(2) : '') + '</div>';
-    }
-    if (has(cd.tail_beta)) {
-        h += '<div>хвост BTC: b=' + cd.tail_beta.toFixed(2)
-           + (has(cd.tail_r2) ? ' / R2 ' + cd.tail_r2.toFixed(2) : '')
-           + ' <span style="color:#666;">(оценка шумная, только ужесточает)</span></div>';
-    }
-    var bits = [];
-    if (has(cd.r7))        bits.push('7д ' + pctTxt(cd.r7, 1));
-    if (has(cd.r14))       bits.push('14д ' + pctTxt(cd.r14, 1));
-    if (has(cd.r30))       bits.push('30д ' + pctTxt(cd.r30, 1));
-    if (has(cd.eff14))     bits.push('эфф14 ' + cd.eff14.toFixed(2));
-    var vr = volRegime(cd);
-    if (vr !== null)       bits.push('vol7/90 ' + vr.toFixed(2));
-    if (has(cd.vol_ratio)) bits.push('оборот \u00D7' + cd.vol_ratio.toFixed(2));
-    if (bits.length) h += '<div>' + bits.join(' \u00B7 ') + '</div>';
-    if (has(cd.min30) && has(cd.max30)) {
-        h += '<div>30д: ' + fmtP(cd.min30) + ' \u2026 ' + fmtP(cd.max30) + '</div>';
-    } else {
-        h += '<div style="color:var(--accent);">Нет полей 30д — бот старой версии, инвалидация по 90д</div>';
-    }
+    h += '<button class="qbtn wide" onclick="closeEntry(\'' + sym + '\')">СВЕРНУТЬ</button>';
     h += '</div>';
     return h;
 }
@@ -1260,6 +1273,7 @@ function update() {
         });
     }
 
+    var stressMult  = STRESS_MULT[currentStress];
     var stressBadge = STRESS_BADGE[currentStress];
     var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
     var html = '';
@@ -1305,7 +1319,25 @@ function update() {
         var dynPos = (has(minP) && has(maxP) && (maxP - minP) > 0)
             ? Math.max(0, Math.min(100, ((cur - minP) / (maxP - minP)) * 100)) : 0;
 
-        // Бейдж ранга + FDV.
+        // --- Диагностика: бета, прогноз, доверие (как было на карточке) ---
+        var rawBeta = ratio >= 0 ? cd.up_beta : cd.down_beta;
+        var r2_14   = ratio >= 0 ? cd.up_r2   : cd.down_r2;
+        var beta90  = ratio >= 0 ? cd.up_beta_90 : cd.down_beta_90;
+        var r2_90   = ratio >= 0 ? cd.up_r2_90   : cd.down_r2_90;
+        var hasBeta = has(rawBeta);
+        var beta    = hasBeta ? rawBeta * stressMult : null;
+        var growth  = hasBeta ? Math.pow(Math.max(1 + ratio, 1e-9), beta) : null;
+        var pPct    = hasBeta ? (growth - 1) * 100 : null;
+        var pred    = hasBeta ? Math.max(cur * growth, 1e-8) : cur;
+
+        var conf = confidenceScore(r2_14, r2_90, rawBeta, beta90, cd.volatility);
+        var confColor = !has(conf) ? '#888'
+            : (conf >= 70 ? 'var(--green)' : (conf >= 40 ? 'var(--accent)' : 'var(--red)'));
+        var g  = gateState(conf, r2_14, cd.corr_90);
+        var gc = g === 'green' ? 'var(--green)' : (g === 'yellow' ? 'var(--accent)' : 'var(--red)');
+        var gl = g === 'green' ? 'MDL \u2713' : (g === 'yellow' ? 'MDL \u007E' : 'MDL \u2715');
+
+        // Бейдж: ранг + FDV + место в рейтинге кандидатов.
         var badgeInner = '';
         if (has(cd.rank)) {
             var rPrev = cd.rank_prev, rColor = '#ccc', rArrow = '';
@@ -1326,38 +1358,76 @@ function update() {
             badgeInner += '<span style="color:' + tier.c + ';margin-left:8px;font-weight:800;">#'
                 + (pos + 1) + ' ' + tier.n + ' ' + Math.round(row.sc.score) + '</span>';
         }
-        var rankHtml = badgeInner ? '<div class="rank-badge">' + badgeInner + '</div>' : '';
+        var rankHtml = badgeInner ? '<span class="rank-badge">' + badgeInner + '</span>' : '';
 
-        var badgeHtml = (advOpen && stressBadge)
+        var badgeHtml = stressBadge
             ? '<span style="font-size:0.6em;color:' + badgeColor + ';font-weight:bold;margin-left:5px;">' + stressBadge + '</span>'
             : '';
 
         var p24hColor = p24 >= 0 ? 'var(--green)' : 'var(--red)';
+        var r2Color   = !has(r2_14) ? '#888' : (r2_14 < 0.30 ? 'var(--red)' : (r2_14 < 0.60 ? '#f3ba2f' : 'var(--green)'));
         var volPct    = has(cd.volatility) ? cd.volatility * 100 : null;
         var volColor  = volPct === null ? '#888'
             : (volPct > 1.5 ? 'var(--lilac)' : (volPct > 1.0 ? 'var(--cyan)' : '#888'));
+        var predColor = ratio >= 0 ? 'var(--green)' : 'var(--red)';
+        var predArrow = ratio >= 0 ? '\u219F' : '\u21A1';
 
+        // Строка 90д — как была.
+        var line90 = '';
+        if (has(beta90)) {
+            var r90Color = !has(r2_90) ? '#888' : (r2_90 < 0.30 ? 'var(--red)' : (r2_90 < 0.60 ? '#f3ba2f' : 'var(--green)'));
+            var corrHtml = has(cd.corr_90)
+                ? ' / <span style="color:' + (Math.abs(cd.corr_90) >= 0.75 ? 'var(--green)'
+                    : (Math.abs(cd.corr_90) >= 0.5 ? '#f3ba2f' : 'var(--red)')) + '">\u03C1='
+                    + cd.corr_90.toFixed(2) + '</span>' : '';
+            line90 = '<div style="font-size:0.78em;color:#666;margin:2px 0 3px;">'
+                + '90d: b=' + beta90.toFixed(2)
+                + ' / <span style="color:' + r90Color + '">R2=' + (has(r2_90) ? r2_90.toFixed(2) : 'н/д') + '</span>'
+                + corrHtml + '</div>';
+        }
+
+        // Funding — цвет по НАЖАТОЙ стороне; в обзоре сторона не задана, серый.
+        var fundRate = cachedFunding[t.s];
+        var fundHtml = '';
+        if (has(fundRate)) {
+            var fundColor = !sideOn ? '#888'
+                : (isLong ? (fundRate > 0 ? 'var(--red)' : 'var(--green)')
+                          : (fundRate > 0 ? 'var(--green)' : 'var(--red)'));
+            fundHtml = '<span style="color:' + fundColor + ';font-size:0.8em;font-style:italic;margin-left:8px;">'
+                + 'Fund: ' + (fundRate >= 0 ? '+' : '') + (fundRate * 100).toFixed(4) + '%/8h</span>';
+        }
+
+        // Ликвидации по ВЫБРАННОМУ вручную плечу, от прогнозной цены.
+        var liqHtml = '';
+        if (hasBeta) {
+            liqHtml = '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
+                +   '<span style="color:var(--green);">LONG </span>' + currentLev + 'X: '
+                +   fmtP(pred * (1 - 1 / currentLev + LIQ_MMR)) + '</div>'
+                + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
+                +   '<span style="color:var(--red);">SHORT </span>' + currentLev + 'X: '
+                +   fmtP(pred * (1 + 1 / currentLev - LIQ_MMR)) + '</div>';
+        } else {
+            liqHtml = '<div style="font-size:0.82em;color:#777;">Беты нет \u2014 прогноз и ликвидации от прогноза недоступны</div>';
+        }
+
+        // Min / позиция / Max со стрелками к процентам (правка Босса 08.08).
         var minClass = dynPos <= 25 ? 'light-blink' : '';
         var minColor = dynPos <= 25 ? 'var(--red)' : 'var(--accent)';
         var maxClass = dynPos >= 75 ? 'light-blink' : '';
         var maxColor = dynPos >= 75 ? 'var(--green)' : 'var(--accent)';
-
-        var dynPosRounded = Math.round(dynPos);
-        var edgeClass = '';
-        if (dynPosRounded <= 1)       edgeClass = ' edge-min';
-        else if (dynPosRounded >= 99) edgeClass = ' edge-max';
-
-        // Строка расстояний — прямое кодирование правил отбора Босса.
-        var distHtml = '';
+        var rangeHtml = '';
         if (has(minP) && has(maxP) && minP > 0 && maxP > 0) {
             var upFromMin = (cur / minP - 1) * 100;
             var dnFromMax = (cur / maxP - 1) * 100;
-            var upColor = upFromMin >= 60 ? 'var(--red)' : (upFromMin <= 10 ? 'var(--green)' : '#aaa');
-            var dnColor = dnFromMax <= -40 ? 'var(--green)' : (dnFromMax >= -10 ? 'var(--red)' : '#aaa');
-            distHtml = '<div class="dist-line">'
-                + 'от мин90 <span style="color:' + upColor + ';font-weight:700;">+' + upFromMin.toFixed(1) + '%</span>'
-                + ' \u00B7 до макс90 <span style="color:' + dnColor + ';font-weight:700;">' + dnFromMax.toFixed(1) + '%</span>'
-                + (volPct === null ? '' : ' \u00B7 <span style="color:' + volColor + ';">Vol ' + volPct.toFixed(2) + '%</span>')
+            var upColor = upFromMin >= 60 ? 'var(--red)' : (upFromMin <= 10 ? 'var(--green)' : '#9a9aa4');
+            var dnColor = dnFromMax <= -40 ? 'var(--green)' : (dnFromMax >= -10 ? 'var(--red)' : '#9a9aa4');
+            rangeHtml = '<div class="extra-data">'
+                + 'Min: <span class="' + minClass + '" style="color:' + minColor + ';">' + fmtP(minP) + '</span>'
+                + ' <span style="color:' + upColor + ';font-style:normal;font-weight:700;">\u2192+' + upFromMin.toFixed(1) + '%</span>'
+                + ' | <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;margin:0 4px;">'
+                + dynPos.toFixed(0) + '%</span> | '
+                + 'Max: <span class="' + maxClass + '" style="color:' + maxColor + ';">' + fmtP(maxP) + '</span>'
+                + ' <span style="color:' + dnColor + ';font-style:normal;font-weight:700;">\u2192' + dnFromMax.toFixed(1) + '%</span>'
                 + '</div>';
         }
 
@@ -1370,34 +1440,54 @@ function update() {
         if (sideOn) {
             entryHtml = entryOf(t.name)
                 ? entryBlock(cd, t.name, t.s, cur, isLong, btcStats)
-                : '<button class="qbtn wide" onclick="openEntry(\'' + t.name + '\',' + numAttr(cur) + ')">Разобрать вход \u2192</button>';
+                : '<button class="qbtn wide call" onclick="openEntry(\'' + t.name + '\',' + numAttr(cur) + ')">РАЗОБРАТЬ ВХОД \u2192</button>';
         }
 
+        var dynPosRounded = Math.round(dynPos);
+        var edgeClass = '';
+        if (dynPosRounded <= 1)       edgeClass = ' edge-min';
+        else if (dynPosRounded >= 99) edgeClass = ' edge-max';
+
         html += '<div class="card' + edgeClass + '" style="border-left:4px solid ' + p24hColor + ';">'
+            + '<div class="card-main">'
             + rankHtml
             + '<div class="row">'
             +   '<span class="token-name">' + t.name + badgeHtml
             +     ' <span class="pct-24h" style="color:' + p24hColor + ';">'
             +       (p24 > 0 ? '+' : '') + p24.toFixed(2) + '%</span>'
             +   '</span>'
-            +   '<div style="text-align:right;"><div style="font-weight:700;">' + fmtP(cur) + '</div></div>'
+            +   '<div style="text-align:right;">'
+            +     '<div>' + fmtP(cur) + '</div>'
+            +     (!has(conf) ? '' :
+                   '<div style="font-size:0.72em;font-weight:700;color:' + confColor + ';">Conf ' + conf + '%</div>')
+            +     '<div style="font-size:0.66em;font-weight:800;letter-spacing:0.04em;color:' + gc + ';">' + gl + '</div>'
+            +   '</div>'
             + '</div>'
             + mismatchHtml
-            + distHtml
-            + '<div class="extra-data">'
-            +   'Min: <span class="' + minClass + '" style="color:' + minColor + ';">' + fmtP(minP) + '</span>'
-            +   ' | <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;margin:0 4px;">'
-            +     dynPos.toFixed(0) + '%</span> | '
-            +   'Max: <span class="' + maxClass + '" style="color:' + maxColor + ';">' + fmtP(maxP) + '</span>'
+            + '<div style="font-size:1.1em;font-weight:bold;font-style:italic;margin:4px 0;color:' + r2Color + ';">'
+            +   '<span style="color:#ccc;">b=' + (hasBeta ? rawBeta.toFixed(2) : 'н/д') + '</span>'
+            +   ' / R2: ' + (has(r2_14) ? r2_14.toFixed(2) : 'N/A') + fundHtml
             + '</div>'
+            + line90
+            + liqHtml
+            + rangeHtml
             + reasonHtml
-            + entryHtml
-            + (advOpen ? diagBlock(cd, ratio, cur) : '')
+            + (!hasBeta ? '' :
+                 '<div class="pred-pct ' + (beta < 0 ? 'blink-text' : '')
+               + '" style="color:' + (pPct >= 0 ? 'var(--green)' : 'var(--red)') + ';">'
+               + (pPct >= 0 ? '+' : '') + pPct.toFixed(2) + '%</div>'
+               + '<div class="pred-val" style="color:' + predColor + ';">'
+               + '<span style="font-size:1.5em;font-weight:700;line-height:1;vertical-align:-2px;">' + predArrow + '</span> '
+               + fmtP(pred) + '</div>')
+            + (volPct === null ? '' :
+                 '<div class="vol-value" style="color:' + volColor + ';">Vol: ' + volPct.toFixed(2) + '%</div>')
             + (sideOn ? '' :
-                 '<div class="nav-row">'
+                 '<div class="nav-abs">'
                + '<button class="nav-btn" onclick="move(' + row.idx + ',-1)">&#8593;</button>'
                + '<button class="nav-btn" onclick="move(' + row.idx + ',1)" style="margin-left:5px;">&#8595;</button>'
                + '</div>')
+            + '</div>'
+            + entryHtml
             + '</div>';
     });
 
@@ -1408,8 +1498,6 @@ function update() {
 function init() {
     applySavedOrder();
     renderButtons();
-    var ab = document.getElementById('adv-btn');
-    if (ab) ab.addEventListener('click', toggleAdv);
     fetchBotData();
     refreshMarketData();
     refreshFuturesTickers();
