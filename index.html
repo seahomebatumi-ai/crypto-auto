@@ -80,7 +80,7 @@
         .row { display: flex; justify-content: space-between; align-items: center; }
         #slider { width: 100%; margin: 10px 0; transition: accent-color 0.3s ease; }
         .lev-container {
-            display: grid; grid-template-columns: repeat(7,1fr);
+            display: grid; grid-template-columns: repeat(6,1fr);
             gap: 4px; margin-bottom: 6px;
         }
         .lev-btn {
@@ -558,7 +558,10 @@ function renderButtons() {
     });
 
     var lc = document.getElementById('levContainer');
-    [2,3,4,5,6,8,10].forEach(function(l) {
+    // 8X/10X удалены: правило «запас >= 13%» + MMR 1% дают потолок
+    // L_max = 1/0.14 = 7.14 => 8x и 10x не проходят НИКОГДА (подтверждено
+    // сеткой сценариев). Интерфейс не предлагает то, что сам же запрещает.
+    [2,3,4,5,6,7].forEach(function(l) {
         var b = document.createElement('button');
         b.className = 'lev-btn' + (currentLev === l ? ' active' : '');
         b.innerText = l + 'X';
@@ -599,7 +602,7 @@ function refreshPinBtn() {
     } else {
         b.className = 'pin-btn armed';
         b.innerHTML = 'Вход: BTC $' + pinned.btc.toLocaleString()
-                    + ' &middot; ' + STRESS_NAME[pinned.stress] + ' &mdash; сбросить';
+                    + ' &middot; Normal &mdash; сбросить';
     }
 }
 
@@ -610,7 +613,11 @@ function togglePin() {
         var s = document.getElementById('slider');
         var v = parseFloat(s.value);
         if (!isFinite(v)) return;
-        pinned = { btc: v, stress: currentStress };
+        // Вход ВСЕГДА оценивается в Normal (E = pred при Normal, SYSTEM_MAP §3.1):
+        // стресс-режимы усиливают бету для НЕблагоприятного сценария, а не для
+        // цены входа. Захват Panic/Crash завышал E, сужал видимый стресс и
+        // раздувал допустимое плечо — ловушка, вскрытая видео-прогоном 08.08.
+        pinned = { btc: v };
     }
     refreshPinBtn();
     update();
@@ -704,7 +711,7 @@ function leverageBlock(coinData, cur, btcNow, target) {
                    '<div class="lev-sub" style="color:var(--accent);">' + msg + '</div>');
     }
 
-    var gE = scenarioGrowth(coinData, btcNow, pinned.btc, pinned.stress);
+    var gE = scenarioGrowth(coinData, btcNow, pinned.btc, 'normal');
     var gS = scenarioGrowth(coinData, btcNow, target, currentStress);
     if (gE === null) return note('Нет беты для сценария входа');
     if (gS === null) return note('Нет беты для стресс-сценария');
@@ -722,7 +729,9 @@ function leverageBlock(coinData, cur, btcNow, target) {
 
     var lmaxRaw = 1 / denom;
     if (lmaxRaw < 1) return note('Сценарий слишком жёсткий &mdash; безопасного плеча нет даже на 1x');
-    var lmaxTxt = lmaxRaw >= 10 ? '10x+' : (Math.floor(lmaxRaw) + 'x');
+    // Знаменатель строго > 0.14 (k по нужную сторону от 1), поэтому
+    // L_max < 7.15 всегда: floor даёт 1..7, ветка «10x+» недостижима.
+    var lmaxTxt = Math.floor(lmaxRaw) + 'x';
 
     // Ликвидация и запас — для ВЫБРАННОГО сейчас плеча, от цены входа E.
     var L   = currentLev;
@@ -742,9 +751,20 @@ function leverageBlock(coinData, cur, btcNow, target) {
     // не несут информации сверх факта «пробито».
     var bufTxt = buf < -0.999 ? '&lt;\u2212100%' : (buf * 100).toFixed(1) + '%';
 
+    // Строка сценариев: видно, ЧТО с ЧЕМ сравнивается. Видео-прогон 08.08
+    // показал чтение плеча при несдвинутом слайдере (стресс = только множитель
+    // режима на том же уровне BTC) — теперь совпадение уровней подписано.
+    var sameLevel = Math.abs(target - pinned.btc) < 1;
+    var scenHtml = '<div class="lev-sub">BTC $' + pinned.btc.toLocaleString()
+        + ' (Normal) &rarr; $' + target.toLocaleString()
+        + ' (' + STRESS_NAME[currentStress] + ')'
+        + (sameLevel ? ' <span style="color:var(--accent);">&mdash; слайдер не сдвинут</span>' : '')
+        + '</div>';
+
     return box(
         sideName + ' &middot; МАКС ПЛЕЧО ' + lmaxTxt,
-        '<div class="lev-sub">Вход ' + fmtUsd(E) + ' &rarr; стресс ' + fmtUsd(S)
+        scenHtml
+        + '<div class="lev-sub">Вход ' + fmtUsd(E) + ' &rarr; стресс ' + fmtUsd(S)
             + ' (' + (dPct >= 0 ? '+' : '') + dPct.toFixed(1) + '%)' + softHtml + '</div>'
         + '<div class="lev-res" style="color:' + resColor + ';">Выбрано ' + L + 'X &middot; ликв '
             + fmtUsd(liq) + ' &middot; запас ' + bufTxt + ' ' + resMark + '</div>'
