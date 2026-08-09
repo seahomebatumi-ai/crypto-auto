@@ -375,6 +375,10 @@
                  gap: 10px; margin: 7px 0; font-size: 0.86em; }
         .bd-k  { color: #a2a2b2; }
         .bd-v  { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        /* Волосяной разделитель между метриками в одной строке значения:
+           разводит b= / R2 / rho, не добавляя строке заметной ширины. */
+        .bd-msep { display: inline-block; width: 1px; height: 0.82em; margin: 0 5px;
+                   background: #4d4d5c; border-radius: 1px; vertical-align: -0.06em; }
         .bd-note { font-size: 0.76em; color: #91919f; line-height: 1.45; margin-top: 8px; }
         .bd-warn { font-size: 0.78em; color: var(--accent); line-height: 1.45; margin-top: 8px; }
         .bd-bad  { font-size: 0.78em; color: var(--red);    line-height: 1.45; margin-top: 8px; }
@@ -393,8 +397,12 @@
                     font-variant-numeric: tabular-nums; line-height: 1.05; }
         .bd-pricesub { font-size: 0.66em; color: #9a9aa8; margin-top: 3px; letter-spacing: 0.06em; }
         .bd-chips { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; margin-top: 8px; }
+        /* Карандаш: базовый акцентный вид. Стоит ДО .on, чтобы выбранное
+           состояние его перекрывало (та же специфичность, побеждает последнее). */
+        .bd-chip.pen { color: var(--accent); border-color: rgba(243,186,47,0.45); }
+        /* Нажатая кнопка — единый вид со всеми блоками доски (МОНЕТЫ/USDT, плечо). */
         .bd-chip.on { background: rgba(243,186,47,0.16); border-color: rgba(243,186,47,0.6);
-                      color: var(--accent); }
+                      color: var(--accent); box-shadow: 0 0 0 1px rgba(243,186,47,0.18) inset; }
         .bd-cur { font-size: 0.5em; font-weight: 800; opacity: 0.75; letter-spacing: 0.08em; }
         .bd-chip {
             padding: 9px 0; border-radius: 9px; font-size: 11px; font-weight: 800;
@@ -503,6 +511,52 @@
         .bd-cbar { height: 9px; border-radius: 6px; background: #26262e; overflow: hidden; }
         .bd-cnum { font-size: 1.25em; font-weight: 900; text-align: right;
                    font-variant-numeric: tabular-nums; }
+        /* ─────────── АВРОРА: вспышка при входе в ЛОНГ/ШОРТ ─────────── */
+        /* Два слоя размытых цветовых пятен медленно вращаются в разные
+           стороны — цвета плывут по экрану сами. Анимируются ТОЛЬКО transform и
+           opacity: слой целиком на GPU, разметка не пересчитывается ни разу.
+           Сами пятна крутятся только при .on — без вспышки расхода батареи нет. */
+        #aurora {
+            position: fixed; top: 0; left: 0; right: 0; height: 58vh;
+            z-index: 6000; pointer-events: none; overflow: hidden;
+            opacity: 0; mix-blend-mode: screen;
+            -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 34%, rgba(0,0,0,0.45) 70%, rgba(0,0,0,0) 100%);
+                    mask-image: linear-gradient(180deg, #000 0%, #000 34%, rgba(0,0,0,0.45) 70%, rgba(0,0,0,0) 100%);
+        }
+        #aurora.on { animation: au-life 2600ms cubic-bezier(0.33, 0.9, 0.4, 1) forwards; }
+        .au {
+            position: absolute; left: -50%; top: -75%; width: 200%; height: 220%;
+            filter: blur(52px); will-change: transform;
+        }
+        .au.a1 {
+            background:
+              radial-gradient(closest-side at 32% 34%, rgba(176,92,246,0.70), rgba(176,92,246,0) 100%),
+              radial-gradient(closest-side at 68% 28%, rgba(40,200,110,0.62), rgba(40,200,110,0) 100%);
+        }
+        .au.a2 {
+            background:
+              radial-gradient(closest-side at 42% 56%, rgba(243,186,47,0.55), rgba(243,186,47,0) 100%),
+              radial-gradient(closest-side at 74% 60%, rgba(58,120,255,0.58), rgba(58,120,255,0) 100%);
+        }
+        #aurora.on .au.a1 { animation: au-a  9s linear infinite; }
+        #aurora.on .au.a2 { animation: au-b 13s linear infinite; }
+        @keyframes au-life {
+            0%   { opacity: 0; }
+            16%  { opacity: 1; }
+            58%  { opacity: 0.88; }
+            100% { opacity: 0; }
+        }
+        @keyframes au-a {
+            0%   { transform: rotate(0deg)   scale(1.00); }
+            50%  { transform: rotate(180deg) scale(1.14); }
+            100% { transform: rotate(360deg) scale(1.00); }
+        }
+        @keyframes au-b {
+            0%   { transform: rotate(360deg) scale(1.10); }
+            50%  { transform: rotate(180deg) scale(0.94); }
+            100% { transform: rotate(0deg)   scale(1.10); }
+        }
+        @media (prefers-reduced-motion: reduce) { #aurora { display: none; } }
         /* Экран ввода пароля */
         #lock-screen {
             position: fixed; inset: 0; z-index: 9999;
@@ -593,6 +647,8 @@
 </div>
 
 <div id="results">Загрузка данных...</div>
+
+<div id="aurora"><span class="au a1"></span><span class="au a2"></span></div>
 
 <div id="board"></div>
 
@@ -934,7 +990,24 @@ function move(idx, dir) {
 // ── Кнопки панели ───────────────────────────────────────────────────────────
 // Сторона и плечо переключаются из ДВУХ мест: верхняя панель и доска.
 // Обе точки входа зовут эти функции, поэтому состояние не рассинхронизируется.
+// Аврора живёт 2.6 с и гаснет. Класс снимается по таймеру, иначе пятна
+// продолжали бы вращаться невидимо и есть батарею.
+var auroraTimer = null;
+function playAurora() {
+    var a = document.getElementById('aurora');
+    if (!a) return;
+    if (auroraTimer) { clearTimeout(auroraTimer); auroraTimer = null; }
+    a.classList.remove('on');
+    void a.offsetWidth;              // перезапуск анимации с нуля
+    a.classList.add('on');
+    auroraTimer = setTimeout(function() {
+        a.classList.remove('on');
+        auroraTimer = null;
+    }, 2700);
+}
+
 function setSide(mode) {
+    if (mode !== 'none' && mode !== currentSide) playAurora();
     currentSide = mode;
     // Доска больше не закрывается в ОБЗОРЕ: её открывают нажатием на имя монеты.
     // Смена ЛОНГ/ШОРТ в списке ведёт сторону доски за собой — иначе два разных
@@ -1012,6 +1085,7 @@ function sideRelevant(pos, isLong) {
 }
 
 function openEntry(sym, cur, side) {
+    playAurora();
     entryState[sym] = { open: true, price: cur };
     if (side) boardSide = side;
     else if (currentSide !== 'none') boardSide = currentSide;
@@ -1081,7 +1155,7 @@ function fmtUsd(x) {
 }
 
 // Переключение стороны ВНУТРИ доски: список не трогаем.
-function setBoardSide(s) { boardSide = s; update(); }
+function setBoardSide(s) { if (s !== boardSide) playAurora(); boardSide = s; update(); }
 function toggleOff() { showOff = !showOff; update(); }
 function setEntry(sym, price) {
     if (!(price > 0)) return;
@@ -1580,12 +1654,20 @@ function boardHtml(row, pos) {
     // ── 4. Точка входа ──
     var q = isLong ? [['\u0440\u044B\u043D\u043E\u043A',1],['\u22123%',0.97],['\u22125%',0.95],['\u221210%',0.90]]
                    : [['\u0440\u044B\u043D\u043E\u043A',1],['+3%',1.03],['+5%',1.05],['+10%',1.10]];
-    var qh = '';
+    // Подсветка нажатой кнопки (правка Босса 10.08): ровно одна из пяти горит
+    // всегда. Допуск 0.25% = половина шага кнопок -/+ : мелкий тик цены с биржи
+    // подсветку не гасит, а собственный сдвиг входа — гасит.
+    var qh = '', qHit = false;
     for (var i = 0; i < q.length; i++) {
-        qh += '<button class="bd-chip" onclick="setEntry(\'' + sym + '\',' + numAttr(cur * q[i][1]) + ')">'
-            + q[i][0] + '</button>';
+        var qPrice = cur * q[i][1];
+        var qOn    = (cur > 0) && Math.abs(E / cur - q[i][1]) < 0.0025;
+        if (qOn) qHit = true;
+        qh += '<button class="bd-chip' + (qOn ? ' on' : '') + '" onclick="setEntry(\'' + sym + '\','
+            + numAttr(qPrice) + ')">' + q[i][0] + '</button>';
     }
-    qh += '<button class="bd-chip" style="color:var(--accent);border-color:rgba(243,186,47,0.45);" '
+    // Карандаш горит, когда цена входа не совпала ни с одной готовой кнопкой:
+    // это и есть состояние «своя цена».
+    qh += '<button class="bd-chip pen' + (qHit ? '' : ' on') + '" '
         + 'onclick="askEntry(\'' + sym + '\')">\u270E</button>';
     sEntry += '<div class="bd-sec"><div class="bd-h">\u0422\u041E\u0427\u041A\u0410 \u0412\u0425\u041E\u0414\u0410</div>'
        + '<div class="bd-ent">'
@@ -1795,6 +1877,10 @@ function boardHtml(row, pos) {
         if (has(fr)) {
             var payMe = isLong ? (fr < 0) : (fr > 0);
             var cost  = Math.abs(fr) * 21 * Lp * 100;
+            // Деньги, а не только проценты (правка Босса 10.08). 21 = 3 выплаты
+            // в сутки x 7 дней. Ставка берётся от ОБЪЁМА позиции, поэтому
+            // costUsd = |fr| * 21 * notional; это ровно cost% от маржи.
+            var costUsd = Math.abs(fr) * 21 * notional;
             // Весь блок одним цветом: зелёный — платят мне, красный — плачу я
             // (правка Босса 09.08). Смысл и расчёт не тронуты.
             var fCol  = payMe ? 'var(--green)' : 'var(--red)';
@@ -1802,10 +1888,14 @@ function boardHtml(row, pos) {
                + '<span class="bd-k" style="color:' + fCol + ';">Funding ' + (fr >= 0 ? '+' : '')
                + (fr * 100).toFixed(4) + '%/8\u0447</span>'
                + '<span class="bd-v" style="color:' + fCol + ';">'
-               + (payMe ? '+' : '\u2212') + cost.toFixed(2) + '% \u043C\u0430\u0440\u0436\u0438 / 7\u0434</span></div>'
+               + (payMe ? '+' : '\u2212') + fmtUsd(costUsd) + ' / 7\u0434</span></div>'
+               + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k"></span>'
+               + '<span class="bd-v" style="color:' + fCol + ';font-size:0.9em;">'
+               + (payMe ? '+' : '\u2212') + cost.toFixed(2) + '% \u043C\u0430\u0440\u0436\u0438</span></div>'
                + '<div class="bd-note" style="color:' + fCol + ';opacity:0.82;">'
                + (payMe ? '\u041F\u043B\u0430\u0442\u044F\u0442 \u043C\u043D\u0435' : '\u041F\u043B\u0430\u0447\u0443 \u044F')
-               + ' \u2014 \u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0443\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u044F \u043D\u0435\u0434\u0435\u043B\u0438 \u043F\u0440\u0438 ' + Lp + 'X.</div>';
+               + ' \u2014 \u0437\u0430 \u043D\u0435\u0434\u0435\u043B\u044E \u0443\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u044F ' + qtyTxt + ' ' + sym
+               + ' \u043F\u0440\u0438 ' + Lp + 'X. \u0421\u0442\u0430\u0432\u043A\u0430 \u043F\u043B\u0430\u0432\u0430\u044E\u0449\u0430\u044F \u2014 \u044D\u0442\u043E \u043E\u0446\u0435\u043D\u043A\u0430 \u043F\u043E \u0442\u0435\u043A\u0443\u0449\u0435\u0439.</div>';
         }
         sTime += '</div>';
     }
@@ -1893,11 +1983,11 @@ function boardHtml(row, pos) {
     }
     sTrust += '<div class="bd-kv" style="margin-top:11px;"><span class="bd-k">\u0421\u0432\u044F\u0437\u044C \u0441 BTC, 14 \u0434\u043D\u0435\u0439</span>'
        + '<span class="bd-v">b=' + (has(rawBeta) ? rawBeta.toFixed(2) : '\u043D/\u0434')
-       + ' <span style="color:' + r2Color(r14) + ';">R\u00B2=' + (has(r14) ? r14.toFixed(2) : '\u043D/\u0434') + '</span></span></div>'
+       + '<i class="bd-msep"></i><span style="color:' + r2Color(r14) + ';">R\u00B2=' + (has(r14) ? r14.toFixed(2) : '\u043D/\u0434') + '</span></span></div>'
        + '<div class="bd-kv"><span class="bd-k">\u0421\u0432\u044F\u0437\u044C \u0441 BTC, 90 \u0434\u043D\u0435\u0439</span>'
        + '<span class="bd-v">b=' + (has(beta90) ? beta90.toFixed(2) : '\u043D/\u0434')
-       + ' <span style="color:' + r2Color(r90) + ';">R\u00B2=' + (has(r90) ? r90.toFixed(2) : '\u043D/\u0434') + '</span>'
-       + (has(cd.corr_90) ? ' <span style="color:' + (Math.abs(cd.corr_90) >= 0.75 ? 'var(--green)'
+       + '<i class="bd-msep"></i><span style="color:' + r2Color(r90) + ';">R\u00B2=' + (has(r90) ? r90.toFixed(2) : '\u043D/\u0434') + '</span>'
+       + (has(cd.corr_90) ? '<i class="bd-msep"></i><span style="color:' + (Math.abs(cd.corr_90) >= 0.75 ? 'var(--green)'
             : (Math.abs(cd.corr_90) >= 0.5 ? 'var(--accent)' : 'var(--red)')) + ';">\u03C1='
             + cd.corr_90.toFixed(2) + '</span>' : '') + '</span></div>';
     if (has(rawBeta)) {
