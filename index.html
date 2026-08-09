@@ -226,6 +226,179 @@
         .liq-cell { font-size: 0.86em; font-weight: 800; letter-spacing: 0.01em; }
         .liq-cell.pick { text-decoration: underline; text-underline-offset: 3px; }
         .diag-line { font-size: 0.78em; color: #666; margin: 2px 0 3px; }
+        /* Тир кандидата — по центру верха карточки, вне потока (высота карточки
+           не меняется). Слева ранг/FDV, справа цена — пересечений нет. */
+        .tier-badge {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            font-size: 0.74em; font-weight: 800; line-height: 1;
+            letter-spacing: 0.02em; white-space: nowrap; pointer-events: none;
+        }
+        /* Кнопка вызова доски */
+        .qbtn.call {
+            background: linear-gradient(180deg, rgba(243,186,47,0.14), rgba(243,186,47,0.04));
+            border: 1px solid rgba(243,186,47,0.55); color: var(--accent);
+            font-weight: 900; letter-spacing: 0.14em;
+        }
+
+        /* ─────────── ДОСКА CRYPTO FUTURE (полный экран) ─────────── */
+        #board {
+            position: fixed; inset: 0; z-index: 5000; display: none;
+            background:
+              radial-gradient(90% 55% at 50% 0%, rgba(243,186,47,0.07) 0%, rgba(0,0,0,0) 70%),
+              var(--bg);
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 28px);
+        }
+        .bd-top {
+            position: sticky; top: 0; z-index: 3; text-align: center;
+            padding: calc(env(safe-area-inset-top) + 12px) 54px 12px;
+            background: rgba(15,15,18,0.93);
+            -webkit-backdrop-filter: saturate(140%) blur(14px);
+            backdrop-filter: saturate(140%) blur(14px);
+            border-bottom: 1px solid #24242c;
+        }
+        .bd-title { font-size: 1.02em; font-weight: 900; letter-spacing: 0.14em; }
+        .bd-sub   { font-size: 0.64em; color: #6e6e7c; letter-spacing: 0.1em; margin-top: 3px; }
+        .bd-x {
+            position: absolute; left: 12px; top: calc(env(safe-area-inset-top) + 8px);
+            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+            background: #23232b; border: 1px solid #3a3a46; color: #d6d6de;
+            font-size: 17px; font-weight: 700; line-height: 1; padding: 0;
+        }
+        .bd-wrap { padding: 0 12px; }
+        .bd-sec {
+            margin-top: 11px; padding: 13px 14px 14px;
+            border: 1px solid #2a2a33; border-radius: 15px;
+            background: linear-gradient(180deg, #1c1c23 0%, #141419 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
+        }
+        .bd-h {
+            font-size: 0.63em; font-weight: 900; letter-spacing: 0.2em;
+            color: #6f6f7e; text-transform: uppercase; margin-bottom: 10px;
+        }
+        /* Герой-вердикт */
+        .bd-hero {
+            position: relative; overflow: hidden; margin-top: 11px;
+            border-radius: 18px; padding: 15px 15px 13px; border: 1px solid #34343f;
+            background: linear-gradient(180deg, #1f1f28 0%, #131318 100%);
+        }
+        .bd-hero::after {
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background: radial-gradient(80% 120% at 100% 0%, rgba(48,209,88,0.16) 0%, rgba(0,0,0,0) 62%);
+        }
+        .bd-hero.s-short::after {
+            background: radial-gradient(80% 120% at 100% 0%, rgba(255,69,58,0.16) 0%, rgba(0,0,0,0) 62%);
+        }
+        .bd-hero.s-stop::after {
+            background: radial-gradient(80% 120% at 100% 0%, rgba(255,69,58,0.22) 0%, rgba(0,0,0,0) 62%);
+        }
+        .bd-vlabel { position: relative; z-index: 1; font-size: 0.62em; font-weight: 900;
+                     letter-spacing: 0.24em; color: #75758a; }
+        .bd-vnum {
+            position: relative; z-index: 1; font-size: 3.4em; font-weight: 900;
+            line-height: 0.92; letter-spacing: -0.035em; margin: 2px 0 1px;
+            font-variant-numeric: tabular-nums;
+        }
+        .bd-vstop { position: relative; z-index: 1; font-size: 1.35em; font-weight: 900;
+                    line-height: 1.15; letter-spacing: 0.01em; color: var(--red); margin: 4px 0 2px; }
+        .bd-vwhy  { position: relative; z-index: 1; font-size: 0.8em; color: #a0a0b0; line-height: 1.4; }
+        /* Сегмент ЛОНГ/ШОРТ внутри доски */
+        .bd-seg { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr;
+                  gap: 6px; margin-top: 12px; }
+        .bd-sbtn {
+            padding: 9px 0; border-radius: 10px; font-size: 12px; font-weight: 800;
+            letter-spacing: 0.1em; cursor: pointer;
+            background: #23232b; border: 1px solid #35353f; color: #82828f;
+        }
+        .bd-sbtn.on-long  { background: var(--green); border-color: var(--green); color: #06210f; }
+        .bd-sbtn.on-short { background: var(--red);   border-color: var(--red);   color: #2a0806; }
+        /* Строка «метка → значение» */
+        .bd-kv { display: flex; justify-content: space-between; align-items: baseline;
+                 gap: 10px; margin: 7px 0; font-size: 0.86em; }
+        .bd-k  { color: #8d8d9c; }
+        .bd-v  { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .bd-note { font-size: 0.76em; color: #74748a; line-height: 1.45; margin-top: 8px; }
+        .bd-warn { font-size: 0.78em; color: var(--accent); line-height: 1.45; margin-top: 8px; }
+        .bd-bad  { font-size: 0.78em; color: var(--red);    line-height: 1.45; margin-top: 8px; }
+        /* Точка входа: крупная цена между большими шагами */
+        .bd-ent { display: grid; grid-template-columns: 58px 1fr 58px; gap: 8px; }
+        .bd-step {
+            border-radius: 13px; font-size: 1.55em; font-weight: 800; line-height: 1;
+            cursor: pointer; background: #23232b; color: #d8d8e2; border: 1px solid #3a3a46;
+        }
+        .bd-step:active { background: #2f2f3a; }
+        .bd-pricebox {
+            border-radius: 13px; padding: 9px 6px; cursor: pointer; text-align: center;
+            background: #1a1a21; border: 1px dashed #46464f;
+        }
+        .bd-price { font-size: 1.5em; font-weight: 900; color: var(--accent);
+                    font-variant-numeric: tabular-nums; line-height: 1.05; }
+        .bd-pricesub { font-size: 0.66em; color: #7e7e8c; margin-top: 3px; letter-spacing: 0.06em; }
+        .bd-chips { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; margin-top: 8px; }
+        .bd-chip {
+            padding: 9px 0; border-radius: 9px; font-size: 11px; font-weight: 800;
+            cursor: pointer; background: #23232b; border: 1px solid #33333d; color: #b7b7c4;
+        }
+        .bd-chip:active { background: #2f2f3a; }
+        /* Лестница уровней */
+        .bd-lad { position: relative; padding-left: 20px; margin-top: 2px; }
+        .bd-lad::before {
+            content: ''; position: absolute; left: 4px; top: 8px; bottom: 10px; width: 2px;
+            border-radius: 2px; opacity: 0.55;
+            background: linear-gradient(180deg, var(--accent) 0%, #b07a1e 45%, var(--red) 100%);
+        }
+        .bd-node { position: relative; margin: 11px 0; }
+        .bd-node::before {
+            content: ''; position: absolute; left: -20px; top: 4px;
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #15151b; border: 2px solid #55555f;
+        }
+        .bd-node.n-acc::before { border-color: var(--accent); }
+        .bd-node.n-red::before { border-color: var(--red); }
+        .bd-nl { font-size: 0.72em; letter-spacing: 0.1em; color: #79798a; font-weight: 800; }
+        .bd-nv { font-size: 1.05em; font-weight: 900; font-variant-numeric: tabular-nums; }
+        .bd-nd { font-size: 0.74em; color: #74748a; }
+        /* Плечи */
+        .bd-levs { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; }
+        .bd-lev {
+            padding: 10px 0 8px; border-radius: 10px; cursor: pointer;
+            background: #202028; border: 1px solid #33333d; color: #7e7e8c;
+            font-size: 12px; font-weight: 900; line-height: 1.15;
+        }
+        .bd-lev .lp { display: block; font-size: 8.5px; font-weight: 700; margin-top: 3px;
+                      letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+        .bd-lev.ok  { border-color: rgba(48,209,88,0.5); color: var(--green); }
+        .bd-lev.bad { border-color: rgba(255,69,58,0.32); color: #8b524c; }
+        .bd-lev.sel { background: var(--accent); border-color: var(--accent); color: #1a1206; }
+        /* Полоски вероятности */
+        .bd-prow { display: grid; grid-template-columns: 52px 1fr 46px; gap: 9px;
+                   align-items: center; margin: 8px 0; }
+        .bd-plab { font-size: 0.74em; color: #8d8d9c; font-weight: 700; letter-spacing: 0.06em; }
+        .bd-track { height: 7px; border-radius: 5px; background: #26262e; overflow: hidden; }
+        .bd-fill  { height: 100%; border-radius: 5px; }
+        .bd-pval  { font-size: 0.8em; font-weight: 900; text-align: right;
+                    font-variant-numeric: tabular-nums; }
+        /* Диапазон 90 дней */
+        .bd-rng { position: relative; height: 12px; border-radius: 7px; margin: 20px 0 8px;
+                  box-shadow: inset 0 1px 3px rgba(0,0,0,0.55); }
+        .bd-rmark {
+            position: absolute; top: -6px; width: 4px; height: 24px; border-radius: 3px;
+            background: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.75); transform: translateX(-2px);
+        }
+        .bd-rpos {
+            position: absolute; top: -25px; transform: translateX(-50%);
+            font-size: 0.72em; font-weight: 900; color: #fff; white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        .bd-rends { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .bd-rend  { font-size: 0.76em; line-height: 1.35; }
+        .bd-rcap  { font-size: 0.82em; letter-spacing: 0.12em; font-weight: 800; color: #6f6f7e; }
+        .bd-rnum  { font-size: 1.02em; font-weight: 900; font-variant-numeric: tabular-nums; }
+        /* Доверие к модели */
+        .bd-conf { display: grid; grid-template-columns: 1fr 62px; gap: 11px; align-items: center; }
+        .bd-cbar { height: 9px; border-radius: 6px; background: #26262e; overflow: hidden; }
+        .bd-cnum { font-size: 1.25em; font-weight: 900; text-align: right;
+                   font-variant-numeric: tabular-nums; }
         /* Экран ввода пароля */
         #lock-screen {
             position: fixed; inset: 0; z-index: 9999;
@@ -317,6 +490,8 @@
 
 <div id="results">Загрузка данных...</div>
 
+<div id="board"></div>
+
 <script>
 // ── Защита паролем ──────────────────────────────────────────────────────────
 // Пароль запоминается на устройстве через localStorage: вводится один раз,
@@ -375,6 +550,12 @@ var currentLev    = 3;
 // Вход по каждой монете. Сессионное состояние: вчерашний вход с сегодняшними
 // данными опаснее ручного счёта, поэтому в localStorage не пишется.
 var entryState = {};   // { SYM: { open:true, price:<цена монеты> } }
+// Открытая полноэкранная доска CRYPTO FUTURE. Одна монета за раз.
+// Тоже сессионное: доска = развёрнутый вход, хранить её между запусками опасно.
+var boardSym  = null;
+// Снимок строк последнего рендера — доска берёт данные отсюда, чтобы не
+// пересчитывать список заново на каждой перерисовке тикера.
+var lastRows  = [];
 
 var STRESS_MULT  = { normal: 1.0, panic: 1.3, crash: 1.8 };
 var STRESS_BADGE = { normal: '',   panic: 'b*1.3', crash: 'b*1.8' };
@@ -623,19 +804,39 @@ function move(idx, dir) {
 }
 
 // ── Кнопки панели ───────────────────────────────────────────────────────────
+// Сторона и плечо переключаются из ДВУХ мест: верхняя панель и доска.
+// Обе точки входа зовут эти функции, поэтому состояние не рассинхронизируется.
+function setSide(mode) {
+    currentSide = mode;
+    // В ОБЗОРЕ стороны нет -> нет ни плеча, ни ликвидации: доска закрывается
+    // насовсем, а не прячется (иначе всплыла бы при возврате в ЛОНГ).
+    if (mode === 'none') boardSym = null;
+    var btns = document.querySelectorAll('.side-btn');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].className = 'side-btn' + (btns[i].getAttribute('data-mode') === mode ? ' a-' + mode : '');
+    }
+    update();
+}
+
+function setLev(l) {
+    currentLev = l;
+    var btns = document.querySelectorAll('.lev-btn');
+    for (var i = 0; i < btns.length; i++) {
+        if (parseInt(btns[i].getAttribute('data-lev'), 10) === l) btns[i].classList.add('active');
+        else btns[i].classList.remove('active');
+    }
+    update();
+}
+
 function renderButtons() {
     var sd = document.getElementById('sideContainer');
     [['long','ЛОНГ'],['none','ОБЗОР'],['short','ШОРТ']].forEach(function(pair) {
         var mode = pair[0], label = pair[1];
         var b = document.createElement('button');
         b.className = 'side-btn' + (currentSide === mode ? ' a-' + mode : '');
+        b.setAttribute('data-mode', mode);
         b.innerText = label;
-        b.onclick = function() {
-            currentSide = mode;
-            document.querySelectorAll('.side-btn').forEach(function(x) { x.className = 'side-btn'; });
-            b.className = 'side-btn a-' + mode;
-            update();
-        };
+        b.onclick = function() { setSide(mode); };
         sd.appendChild(b);
     });
 
@@ -644,13 +845,9 @@ function renderButtons() {
     [2,3,4,5,6,7].forEach(function(l) {
         var b = document.createElement('button');
         b.className = 'lev-btn' + (currentLev === l ? ' active' : '');
+        b.setAttribute('data-lev', String(l));
         b.innerText = l + 'X';
-        b.onclick = function() {
-            currentLev = l;
-            document.querySelectorAll('.lev-btn').forEach(function(x) { x.classList.remove('active'); });
-            b.classList.add('active');
-            update();
-        };
+        b.onclick = function() { setLev(l); };
         lc.appendChild(b);
     });
 
@@ -675,9 +872,14 @@ function entryOf(sym) { return entryState[sym] || null; }
 
 function openEntry(sym, cur) {
     entryState[sym] = { open: true, price: cur };
+    boardSym = sym;
     update();
 }
-function closeEntry(sym) { delete entryState[sym]; update(); }
+function closeEntry(sym) {
+    delete entryState[sym];
+    if (boardSym === sym) boardSym = null;
+    update();
+}
 function setEntry(sym, price) {
     if (!(price > 0)) return;
     entryState[sym] = { open: true, price: price };
@@ -1008,43 +1210,55 @@ function tierOf(s) {
     return { n: 'Слабый', c: '#888' };
 }
 
-// ── Блок входа (раскрытая карточка) ─────────────────────────────────────────
-function entryBlock(cd, sym, pair, cur, isLong, btcStats) {
-    var st = entryOf(sym);
-    if (!st) return '';
-    var E = st.price;
+// ── Полноэкранная доска CRYPTO FUTURE ───────────────────────────────────────
+// Заменяет блок входа внутри карточки. Карточка в режиме ЛОНГ/ШОРТ остаётся
+// витриной, доска — рабочим столом: дублирования информации нет по построению.
+// Вся математика (leverageDecision / invalidationInfo / liqPrice / liqTouchProb)
+// вызывается без изменений — переехало только место отрисовки.
+var lastCtx = null;   // снимок сценария последнего рендера (BTC, ratio, стресс)
+
+// Цена без знака доллара — для узких колонок (шесть плеч в ряд).
+function fmtPBare(x) {
+    var s = fmtP(x);
+    return s.charAt(0) === '$' ? s.substring(1) : s;
+}
+
+function probColor(p) {
+    return p <= 0.10 ? 'var(--green)' : (p <= 0.25 ? 'var(--accent)' : 'var(--red)');
+}
+
+function probRow(label, p) {
+    if (p === null) return '';
+    var c = probColor(p);
+    var w = Math.max(2, Math.min(100, Math.round(p * 100)));
+    return '<div class="bd-prow">'
+         + '<div class="bd-plab">' + label + '</div>'
+         + '<div class="bd-track"><div class="bd-fill" style="width:' + w + '%;background:' + c + ';"></div></div>'
+         + '<div class="bd-pval" style="color:' + c + ';">'
+         + (p < 0.005 ? '&lt;1%' : Math.round(p * 100) + '%') + '</div>'
+         + '</div>';
+}
+
+function r2Color(v) {
+    if (!has(v)) return '#888';
+    return v < 0.30 ? 'var(--red)' : (v < 0.60 ? 'var(--accent)' : 'var(--green)');
+}
+
+function boardHtml(row, pos) {
+    var cd   = row.cd, t = row.t, coin = row.coin;
+    var sym  = t.name, pair = t.s;
+    var cur  = parseFloat(coin.lastPrice);
+    var p24  = parseFloat(coin.priceChangePercent);
+    var isLong    = lastCtx.isLong;
+    var btcStats  = lastCtx.btcStats;
     var sideName  = isLong ? 'ЛОНГ' : 'ШОРТ';
     var sideColor = isLong ? 'var(--green)' : 'var(--red)';
+
+    var st = entryOf(sym);
+    var E  = st ? st.price : cur;
     var dec = leverageDecision(cd, E, isLong, btcStats);
 
-    var h = '<div class="ent ' + (isLong ? 's-long' : 's-short') + '">';
-
-    // Строка 1 — ОТВЕТ.
-    if (dec.ok) {
-        h += '<div class="ent-head" style="color:' + sideColor + ';">'
-           + sideName + ' \u00B7 ИТОГ ' + dec.L + 'X</div>';
-    } else {
-        h += '<div class="ent-head" style="color:var(--red);">'
-           + sideName + ' \u00B7 ' + dec.msg + '</div>';
-        if (dec.fix) h += '<div class="ent-warn">' + dec.fix + '</div>';
-    }
-
-    // Вход и его подстройка.
-    var q = isLong ? [['рынок',1],['\u22123%',0.97],['\u22125%',0.95],['\u221210%',0.90]]
-                   : [['рынок',1],['+3%',1.03],['+5%',1.05],['+10%',1.10]];
-    var qh = '';
-    for (var i = 0; i < q.length; i++) {
-        qh += '<button class="qbtn" onclick="setEntry(\'' + sym + '\',' + numAttr(cur * q[i][1]) + ')">'
-            + q[i][0] + '</button>';
-    }
-    h += '<div class="ent-line">Вход <span class="ent-big">' + fmtP(E) + '</span> '
-       + '<span class="ent-dim">(' + pctTxt(E / cur - 1, 1) + ' к рынку)</span></div>'
-       + '<div class="qrow">' + qh
-       + '<button class="qbtn" onclick="nudgeEntry(\'' + sym + '\',0.995)">\u2212</button>'
-       + '<button class="qbtn" onclick="nudgeEntry(\'' + sym + '\',1.005)">+</button>'
-       + '<button class="qbtn" onclick="askEntry(\'' + sym + '\')">\u270E</button>'
-       + '</div>';
-
+    // Предупреждения, которые раньше жили в блоке входа.
     if (dec.inv && dec.inv.src === 'вход') {
         dec.warn.push('Нет структуры ' + (isLong ? 'ниже' : 'выше')
                     + ' входа \u2014 размер задан только шумом, опоры для выхода нет');
@@ -1053,86 +1267,308 @@ function entryBlock(cd, sym, pair, cur, isLong, btcStats) {
         dec.warn.push('Опора (' + dec.inv.src + ' ' + fmtP(dec.inv.ref) + ') дальше 6\u03C3 \u2014 '
                     + 'по ней стоп не поставить. Плечо ограничено искусственно, выход держи вручную');
     }
-    if (dec.inv) {
-        var invLbl = dec.inv.capped ? 'опоры рядом нет, взято 6\u03C3'
-                   : (dec.inv.floored ? 'шумовой пол 2\u03C3'
-                                      : dec.inv.src + ' ' + (isLong ? '\u2212' : '+') + '\u00BD\u03C3');
-        h += '<div class="ent-line">Идея мертва при <b style="color:var(--red);">' + fmtP(dec.inv.price)
-           + '</b> <span class="ent-dim">(' + invLbl
-           + ', ' + (dec.inv.dist * 100).toFixed(1) + '% от входа)</span></div>';
-    }
 
-    // Ликвидации: 3X / 4X / 5X, плюс ИТОГ и выбранное вручную плечо.
-    var levs = SHOW_LEVS.slice();
-    if (dec.ok && levs.indexOf(dec.L) === -1) levs.push(dec.L);
-    if (levs.indexOf(currentLev) === -1) levs.push(currentLev);
-    levs.sort(function(a, b) { return a - b; });
-    var lh = '';
-    for (var j = 0; j < levs.length; j++) {
-        var L  = levs[j];
-        var lp = liqPrice(E, L, isLong);
-        var okL = dec.ok && L <= dec.L;
-        lh += '<span class="liq-cell' + (L === currentLev ? ' pick' : '') + '" style="color:'
-            + (okL ? 'var(--green)' : 'var(--red)') + ';">'
-            + L + 'X ' + fmtP(lp) + (okL ? ' \u2713' : ' \u2715') + '</span>';
-    }
-    h += '<div class="liq-row">' + lh + '</div>';
+    var p24Color = p24 >= 0 ? 'var(--green)' : 'var(--red)';
+    var h = '';
 
-    // Вердикт по ВЫБРАННОМУ вручную плечу — прямой ответ на нажатую кнопку.
-    var liqSel = liqPrice(E, currentLev, isLong);
-    var okSel  = dec.ok && currentLev <= dec.L;
-    h += '<div class="ent-why" style="color:' + (okSel ? 'var(--green)' : 'var(--red)') + ';">'
-       + 'Выбрано ' + currentLev + 'X \u00B7 ликвидация ' + fmtP(liqSel) + ' \u00B7 '
-       + (okSel ? '\u2713 проходит' : '\u2715 выше допустимого') + '</div>';
+    // ── Шапка: название по центру, крестик слева ──
+    h += '<div class="bd-top">'
+       + '<button class="bd-x" onclick="closeEntry(\'' + sym + '\')">\u2715</button>'
+       + '<div class="bd-title"><span style="color:var(--lilac);">' + sym
+       + '</span> <span style="color:#4a4a56;">\u00B7</span> <span style="color:' + sideColor + ';">'
+       + sideName + '</span></div>'
+       + '<div class="bd-sub">' + fmtP(cur) + ' \u00B7 <span style="color:' + p24Color + ';">'
+       + (p24 > 0 ? '+' : '') + p24.toFixed(2) + '%</span>'
+       + (has(cd.volatility) ? ' \u00B7 Vol ' + (cd.volatility * 100).toFixed(2) + '%/\u0447' : '')
+       + '</div></div>';
 
-    // Причина одной фразой.
+    h += '<div class="bd-wrap">';
+
+    // ── 1. Вердикт ──
+    h += '<div class="bd-hero ' + (dec.ok ? (isLong ? 's-long' : 's-short') : 's-stop') + '">';
     if (dec.ok) {
-        var liqL = liqPrice(E, dec.L, isLong);
-        var gap  = isLong ? (dec.inv.price - liqL) / dec.inv.price
-                          : (liqL - dec.inv.price) / dec.inv.price;
-        h += '<div class="ent-why" style="color:#dcdce4;font-weight:600;">' + dec.L
-           + 'X приемлемо: ликвидация ' + fmtP(liqL) + ' на ' + (gap * 100).toFixed(1)
-           + '% дальше уровня, где идея мертва.</div>';
+        h += '<div class="bd-vlabel">\u0418\u0422\u041E\u0413 \u00B7 ' + sideName + '</div>'
+           + '<div class="bd-vnum" style="color:' + sideColor + ';">' + dec.L + 'X</div>'
+           + '<div class="bd-vwhy">\u0416\u0451\u0441\u0442\u0447\u0435 \u0432\u0441\u0435\u0433\u043E \u0440\u0435\u0436\u0435\u0442 \u00AB' + dec.binding
+           + '\u00BB. \u0412\u044B\u0448\u0435 \u044D\u0442\u043E\u0433\u043E \u043F\u043B\u0435\u0447\u0430 \u043B\u0438\u043A\u0432\u0438\u0434\u0430\u0446\u0438\u044F \u0437\u0430\u0445\u043E\u0434\u0438\u0442 \u0432\u043D\u0443\u0442\u0440\u044C \u0436\u0438\u0432\u043E\u0439 \u0438\u0434\u0435\u0438.</div>';
+    } else {
+        h += '<div class="bd-vlabel">' + sideName + '</div>'
+           + '<div class="bd-vstop">' + dec.msg + '</div>'
+           + (dec.fix ? '<div class="bd-vwhy">' + dec.fix + '</div>' : '');
+    }
+    h += '<div class="bd-seg">'
+       + '<button class="bd-sbtn' + (isLong ? ' on-long' : '') + '" onclick="setSide(\'long\')">\u041B\u041E\u041D\u0413</button>'
+       + '<button class="bd-sbtn' + (isLong ? '' : ' on-short') + '" onclick="setSide(\'short\')">\u0428\u041E\u0420\u0422</button>'
+       + '</div></div>';
+
+    // ── 2. Предупреждения ──
+    if (dec.warn.length) {
+        h += '<div class="bd-sec" style="border-color:rgba(243,186,47,0.35);">'
+           + '<div class="bd-h">\u0412\u041D\u0418\u041C\u0410\u041D\u0418\u0415</div>';
+        for (var w = 0; w < dec.warn.length; w++) {
+            h += '<div class="bd-warn" style="margin-top:' + (w ? 8 : 0) + 'px;">\u26A0 ' + dec.warn[w] + '</div>';
+        }
+        h += '</div>';
     }
 
-    // Из чего получен ответ.
-    if (dec.parts) {
-        var pl = 'структура ' + (dec.parts.struct === null ? 'н/д' : dec.parts.struct.toFixed(1) + 'X')
-               + ' \u00B7 шум 7д ' + (dec.parts.noise === null ? 'н/д' : dec.parts.noise.toFixed(1) + 'X');
-        if (dec.parts.btc !== null) pl += ' \u00B7 обвал BTC ' + dec.parts.btc.toFixed(1) + 'X';
-        pl += ' \u2192 ограничитель: ' + dec.binding;
-        h += '<div class="ent-sub">' + pl + '</div>';
+    // ── 3. Почему эта монета ──
+    if (row.sc) {
+        var tier = tierOf(row.sc.score);
+        h += '<div class="bd-sec"><div class="bd-h">\u041F\u041E\u0427\u0415\u041C\u0423 \u042D\u0422\u0410 \u041C\u041E\u041D\u0415\u0422\u0410</div>'
+           + '<div class="bd-kv"><span class="bd-k">\u041C\u0435\u0441\u0442\u043E \u0432 \u0441\u043F\u0438\u0441\u043A\u0435 ' + sideName.toLowerCase() + '</span>'
+           + '<span class="bd-v" style="color:' + tier.c + ';">#' + (pos + 1) + ' \u00B7 ' + tier.n
+           + ' \u00B7 ' + Math.round(row.sc.score) + '</span></div>';
+        if (has(cd.rank)) {
+            h += '<div class="bd-kv"><span class="bd-k">\u0420\u0430\u043D\u0433 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438</span>'
+               + '<span class="bd-v">#' + cd.rank + '</span></div>';
+        }
+        if (has(cd.fdv_mc)) {
+            var fC = cd.fdv_mc > 3 ? 'var(--red)' : (cd.fdv_mc >= 1.5 ? 'var(--accent)' : '#9a9aa6');
+            h += '<div class="bd-kv"><span class="bd-k">FDV / \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u044F</span>'
+               + '<span class="bd-v" style="color:' + fC + ';">' + cd.fdv_mc.toFixed(1) + '\u00D7</span></div>';
+        }
+        if (row.sc.reasons.length) {
+            h += '<div class="bd-note" style="color:var(--cyan);">' + row.sc.reasons.join(' \u00B7 ') + '</div>';
+        }
+        h += '<div class="bd-note">\u042D\u0442\u043E \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F, \u0430 \u043D\u0435 \u0441\u0438\u0433\u043D\u0430\u043B \u0432\u0445\u043E\u0434\u0430: \u0441\u0447\u0451\u0442 \u0433\u043E\u0432\u043E\u0440\u0438\u0442, \u043D\u0430 \u043A\u0430\u043A\u0438\u0435 \u043C\u043E\u043D\u0435\u0442\u044B \u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043F\u0435\u0440\u0432\u044B\u043C\u0438.</div>'
+           + '</div>';
     }
 
-    // Вероятность — одной понятной фразой, без шифра.
+    // ── 4. Точка входа ──
+    var q = isLong ? [['\u0440\u044B\u043D\u043E\u043A',1],['\u22123%',0.97],['\u22125%',0.95],['\u221210%',0.90]]
+                   : [['\u0440\u044B\u043D\u043E\u043A',1],['+3%',1.03],['+5%',1.05],['+10%',1.10]];
+    var qh = '';
+    for (var i = 0; i < q.length; i++) {
+        qh += '<button class="bd-chip" onclick="setEntry(\'' + sym + '\',' + numAttr(cur * q[i][1]) + ')">'
+            + q[i][0] + '</button>';
+    }
+    qh += '<button class="bd-chip" style="color:var(--accent);border-color:rgba(243,186,47,0.45);" '
+        + 'onclick="askEntry(\'' + sym + '\')">\u270E</button>';
+    h += '<div class="bd-sec"><div class="bd-h">\u0422\u041E\u0427\u041A\u0410 \u0412\u0425\u041E\u0414\u0410</div>'
+       + '<div class="bd-ent">'
+       + '<button class="bd-step" onclick="nudgeEntry(\'' + sym + '\',0.995)">\u2212</button>'
+       + '<div class="bd-pricebox" onclick="askEntry(\'' + sym + '\')">'
+       +   '<div class="bd-price">' + fmtP(E) + '</div>'
+       +   '<div class="bd-pricesub">' + pctTxt(E / cur - 1, 1) + ' \u041A \u0420\u042B\u041D\u041A\u0423 \u00B7 \u041D\u0410\u0416\u041C\u0418 \u2192 \u0421\u0412\u041E\u042F</div>'
+       + '</div>'
+       + '<button class="bd-step" onclick="nudgeEntry(\'' + sym + '\',1.005)">+</button>'
+       + '</div>'
+       + '<div class="bd-chips">' + qh + '</div>'
+       + '<div class="bd-note">\u0428\u0430\u0433 \u043A\u043D\u043E\u043F\u043E\u043A \u2212/+ \u2014 0.5%. \u041E\u0442 \u044D\u0442\u043E\u0439 \u0446\u0435\u043D\u044B \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u0432\u0441\u0451 \u043D\u0438\u0436\u0435; \u0441\u0446\u0435\u043D\u0430\u0440\u0438\u0439 BTC \u043D\u0430 \u043F\u043B\u0435\u0447\u043E \u043D\u0435 \u0432\u043B\u0438\u044F\u0435\u0442.</div>'
+       + '</div>';
+
+    // ── 5. Границы сделки ──
+    var liqSel = liqPrice(E, currentLev, isLong);
+    h += '<div class="bd-sec"><div class="bd-h">\u0413\u0420\u0410\u041D\u0418\u0426\u042B \u0421\u0414\u0415\u041B\u041A\u0418</div><div class="bd-lad">'
+       + '<div class="bd-node n-acc"><div class="bd-nl">\u0412\u0425\u041E\u0414</div>'
+       + '<div class="bd-nv" style="color:var(--accent);">' + fmtP(E) + '</div></div>';
+    if (dec.inv) {
+        var invLbl = dec.inv.capped ? '\u043E\u043F\u043E\u0440\u044B \u0440\u044F\u0434\u043E\u043C \u043D\u0435\u0442, \u0432\u0437\u044F\u0442\u043E 6\u03C3'
+                   : (dec.inv.floored ? '\u0448\u0443\u043C\u043E\u0432\u043E\u0439 \u043F\u043E\u043B 2\u03C3'
+                                      : dec.inv.src + ' ' + (isLong ? '\u2212' : '+') + '\u00BD\u03C3');
+        h += '<div class="bd-node"><div class="bd-nl">\u0418\u0414\u0415\u042F \u041C\u0415\u0420\u0422\u0412\u0410 \u2014 \u041F\u041E\u0420\u0410 \u0412\u042B\u0425\u041E\u0414\u0418\u0422\u042C</div>'
+           + '<div class="bd-nv" style="color:#e8b04a;">' + fmtP(dec.inv.price) + '</div>'
+           + '<div class="bd-nd">' + (dec.inv.dist * 100).toFixed(1) + '% \u043E\u0442 \u0432\u0445\u043E\u0434\u0430 \u00B7 ' + invLbl + '</div></div>';
+    }
+    h += '<div class="bd-node n-red"><div class="bd-nl">\u041B\u0418\u041A\u0412\u0418\u0414\u0410\u0426\u0418\u042F \u041F\u0420\u0418 ' + currentLev + 'X</div>'
+       + '<div class="bd-nv" style="color:var(--red);">' + fmtP(liqSel) + '</div>'
+       + '<div class="bd-nd">' + (Math.abs(liqSel / E - 1) * 100).toFixed(1) + '% \u043E\u0442 \u0432\u0445\u043E\u0434\u0430</div></div>'
+       + '</div>';
+    if (dec.inv) {
+        var gapSel = isLong ? (dec.inv.price - liqSel) / dec.inv.price
+                            : (liqSel - dec.inv.price) / dec.inv.price;
+        var gapOk  = gapSel > 0;
+        h += '<div class="bd-kv" style="border-top:1px solid #2b2b34;padding-top:9px;margin-top:11px;">'
+           + '<span class="bd-k">\u0417\u0430\u043F\u0430\u0441 \u043C\u0435\u0436\u0434\u0443 \u0432\u044B\u0445\u043E\u0434\u043E\u043C \u0438 \u043B\u0438\u043A\u0432\u0438\u0434\u0430\u0446\u0438\u0435\u0439</span>'
+           + '<span class="bd-v" style="color:' + (gapOk ? 'var(--green)' : 'var(--red)') + ';">'
+           + (gapSel * 100).toFixed(1) + '%</span></div>'
+           + '<div class="bd-note">\u041F\u043E\u0440\u044F\u0434\u043E\u043A \u043E\u0431\u044F\u0437\u0430\u043D \u0431\u044B\u0442\u044C \u0442\u0430\u043A\u0438\u043C: \u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u0432\u043E\u0439 \u0432\u044B\u0445\u043E\u0434, \u043F\u043E\u0442\u043E\u043C \u0431\u0438\u0440\u0436\u0430. '
+           + '\u0417\u0430\u043F\u0430\u0441 \u043D\u0438\u0436\u0435 \u043D\u0443\u043B\u044F \u0437\u043D\u0430\u0447\u0438\u0442, \u0447\u0442\u043E \u0431\u0438\u0440\u0436\u0430 \u0437\u0430\u043A\u0440\u043E\u0435\u0442 \u0440\u0430\u043D\u044C\u0448\u0435, \u0447\u0435\u043C \u0438\u0434\u0435\u044F \u0443\u0441\u043F\u0435\u0435\u0442 \u0441\u043B\u043E\u043C\u0430\u0442\u044C\u0441\u044F.</div>';
+    }
+    h += '</div>';
+
+    // ── 6. Выбор плеча ──
+    var lh = '';
+    for (var L = 2; L <= 7; L++) {
+        var okL = dec.ok && L <= dec.L;
+        var cls = 'bd-lev' + (L === currentLev ? ' sel' : (okL ? ' ok' : ' bad'));
+        lh += '<button class="' + cls + '" onclick="setLev(' + L + ')">' + L + 'X'
+            + '<span class="lp">' + fmtPBare(liqPrice(E, L, isLong)) + '</span></button>';
+    }
+    var okSel = dec.ok && currentLev <= dec.L;
+    h += '<div class="bd-sec"><div class="bd-h">\u0412\u042B\u0411\u041E\u0420 \u041F\u041B\u0415\u0427\u0410</div>'
+       + '<div class="bd-levs">' + lh + '</div>'
+       + '<div class="bd-kv" style="margin-top:11px;"><span class="bd-k">\u0412\u044B\u0431\u0440\u0430\u043D\u043E ' + currentLev + 'X</span>'
+       + '<span class="bd-v" style="color:' + (okSel ? 'var(--green)' : 'var(--red)') + ';">'
+       + (okSel ? '\u2713 \u043F\u0440\u043E\u0445\u043E\u0434\u0438\u0442' : '\u2715 \u0432\u044B\u0448\u0435 \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u043E\u0433\u043E') + '</span></div>'
+       + '<div class="bd-note">\u041F\u043E\u0434 \u043A\u0430\u0436\u0434\u043E\u0439 \u043A\u043D\u043E\u043F\u043A\u043E\u0439 \u2014 \u0446\u0435\u043D\u0430 \u043B\u0438\u043A\u0432\u0438\u0434\u0430\u0446\u0438\u0438 \u043E\u0442 \u0442\u0435\u043A\u0443\u0449\u0435\u0433\u043E \u0432\u0445\u043E\u0434\u0430. '
+       + '\u0417\u0435\u043B\u0451\u043D\u044B\u0435 \u2014 \u0432 \u043F\u0440\u0435\u0434\u0435\u043B\u0430\u0445 \u0418\u0422\u041E\u0413\u0410, \u043A\u0440\u0430\u0441\u043D\u044B\u0435 \u2014 \u0437\u0430 \u043D\u0438\u043C.</div>'
+       + '</div>';
+
+    // ── 7. Цена времени ──
     var Lp = dec.ok ? dec.L : currentLev;
-    var p7 = liqTouchProb(cd.volatility, Lp, isLong, 168);
+    var p7  = liqTouchProb(cd.volatility, Lp, isLong, 168);
+    var p14 = liqTouchProb(cd.volatility, Lp, isLong, 336);
+    var p30 = liqTouchProb(cd.volatility, Lp, isLong, 720);
     if (p7 !== null) {
-        var p14 = liqTouchProb(cd.volatility, Lp, isLong, 336);
-        h += '<div class="ent-sub">Если держать ' + Lp
-           + 'X без стопа и без долива маржи, шанс задеть ликвидацию: за 7 дней '
-           + (p7 < 0.005 ? '&lt;1' : Math.round(p7 * 100)) + '%, за 14 дней '
-           + (p14 < 0.005 ? '&lt;1' : Math.round(p14 * 100)) + '%.</div>';
+        h += '<div class="bd-sec"><div class="bd-h">\u0426\u0415\u041D\u0410 \u0412\u0420\u0415\u041C\u0415\u041D\u0418</div>'
+           + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k">\u0428\u0430\u043D\u0441 \u0437\u0430\u0434\u0435\u0442\u044C \u043B\u0438\u043A\u0432\u0438\u0434\u0430\u0446\u0438\u044E \u043F\u0440\u0438 ' + Lp + 'X</span></div>'
+           + probRow('7 \u0434\u043D\u0435\u0439',  p7)
+           + probRow('14 \u0434\u043D\u0435\u0439', p14)
+           + probRow('30 \u0434\u043D\u0435\u0439', p30)
+           + '<div class="bd-note">\u0411\u0435\u0437 \u0441\u0442\u043E\u043F\u0430 \u0438 \u0431\u0435\u0437 \u0434\u043E\u043B\u0438\u0432\u0430 \u043C\u0430\u0440\u0436\u0438. \u0421\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u041A\u0410\u0421\u0410\u041D\u0418\u0415 \u0446\u0435\u043D\u044B \u0445\u043E\u0442\u044F \u0431\u044B \u0440\u0430\u0437, \u0430 \u043D\u0435 \u0446\u0435\u043D\u0430 \u043D\u0430 \u0432\u044B\u0445\u043E\u0434\u0435: '
+           + '\u0444\u0438\u0442\u0438\u043B\u044F \u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E. \u041F\u043B\u0435\u0447\u043E \u043F\u043E\u0434\u043E\u0431\u0440\u0430\u043D\u043E \u043F\u043E\u0434 \u0433\u043E\u0440\u0438\u0437\u043E\u043D\u0442 7 \u0434\u043D\u0435\u0439 \u2014 \u0434\u0430\u043B\u044C\u0448\u0435 \u0440\u0438\u0441\u043A \u0440\u0430\u0441\u0442\u0451\u0442 \u043D\u0435\u043B\u0438\u043D\u0435\u0439\u043D\u043E.</div>';
+        var fr = cachedFunding[pair];
+        if (has(fr)) {
+            var payMe = isLong ? (fr < 0) : (fr > 0);
+            var cost  = Math.abs(fr) * 21 * Lp * 100;
+            h += '<div class="bd-kv" style="border-top:1px solid #2b2b34;padding-top:9px;margin-top:11px;">'
+               + '<span class="bd-k">Funding ' + (fr >= 0 ? '+' : '') + (fr * 100).toFixed(4) + '%/8\u0447</span>'
+               + '<span class="bd-v" style="color:' + (payMe ? 'var(--green)' : 'var(--red)') + ';">'
+               + (payMe ? '+' : '\u2212') + cost.toFixed(2) + '% \u043C\u0430\u0440\u0436\u0438 / 7\u0434</span></div>'
+               + '<div class="bd-note">' + (payMe ? '\u041F\u043B\u0430\u0442\u044F\u0442 \u043C\u043D\u0435' : '\u041F\u043B\u0430\u0447\u0443 \u044F')
+               + ' \u2014 \u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0443\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u044F \u043D\u0435\u0434\u0435\u043B\u0438 \u043F\u0440\u0438 ' + Lp + 'X.</div>';
+        }
+        h += '</div>';
     }
 
-    // Funding как стоимость удержания. Ключ — ПАРА Binance (XMRUSDT),
-    // а не имя монеты: cachedFunding заполняется из fapi по символам.
-    var fr = cachedFunding[pair];
-    if (has(fr)) {
-        var payMe = isLong ? (fr < 0) : (fr > 0);
-        var cost  = Math.abs(fr) * 21 * Lp * 100;
-        h += '<div class="ent-sub" style="color:' + (payMe ? 'var(--green)' : 'var(--red)') + ';">'
-           + 'Funding ' + (fr >= 0 ? '+' : '') + (fr * 100).toFixed(4) + '%/8ч \u2014 '
-           + (payMe ? 'платят мне ' : 'плачу я ') + cost.toFixed(2) + '% маржи за 7 дней при ' + Lp + 'X</div>';
+    // ── 8. Откуда плечо ──
+    if (dec.parts) {
+        var caps = [{ n: '\u0421\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430', v: dec.parts.struct,
+                      d: '\u043B\u0438\u043A\u0432\u0438\u0434\u0430\u0446\u0438\u044F \u0434\u043E\u043B\u0436\u043D\u0430 \u043B\u0435\u0436\u0430\u0442\u044C \u0437\u0430 \u0443\u0440\u043E\u0432\u043D\u0435\u043C \u0432\u044B\u0445\u043E\u0434\u0430 + 12\u0447 \u043D\u0430 \u0440\u0435\u0430\u043A\u0446\u0438\u044E', k: '\u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0430' },
+                     { n: '\u0428\u0443\u043C 7\u0434',     v: dec.parts.noise,
+                      d: '10% \u0448\u0430\u043D\u0441\u0430 \u0432\u044B\u043B\u0435\u0442\u0435\u0442\u044C \u0437\u0430 \u043D\u0435\u0434\u0435\u043B\u044E \u043F\u0440\u043E\u0441\u0442\u043E \u043E\u0442 \u0431\u043E\u043B\u0442\u0430\u043D\u043A\u0438', k: '\u0448\u0443\u043C 7\u0434' },
+                     { n: '\u041E\u0431\u0432\u0430\u043B BTC',  v: dec.parts.btc,
+                      d: '\u043F\u0435\u0440\u0435\u0436\u0438\u0432\u0451\u0442 \u043B\u0438 \u043F\u043E\u0437\u0438\u0446\u0438\u044F \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435 BTC \u043D\u0430 2\u03C3', k: '\u043E\u0431\u0432\u0430\u043B BTC' }];
+        h += '<div class="bd-sec"><div class="bd-h">\u041E\u0422\u041A\u0423\u0414\u0410 \u041F\u041B\u0415\u0427\u041E</div>';
+        for (var ci = 0; ci < caps.length; ci++) {
+            if (caps[ci].v === null || caps[ci].v === undefined) continue;
+            var bind = (dec.binding === caps[ci].k);
+            h += '<div class="bd-kv" style="margin-bottom:1px;">'
+               + '<span class="bd-k" style="' + (bind ? 'color:var(--accent);font-weight:700;' : '') + '">'
+               + caps[ci].n + (bind ? ' \u2190 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0438\u0442\u0435\u043B\u044C' : '') + '</span>'
+               + '<span class="bd-v" style="color:' + (bind ? 'var(--accent)' : '#6f6f7e') + ';">'
+               + caps[ci].v.toFixed(1) + 'X</span></div>'
+               + '<div class="bd-nd" style="margin-bottom:8px;">' + caps[ci].d + '</div>';
+        }
+        h += '<div class="bd-note">\u0422\u0440\u0438 \u043D\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043C\u044B\u0445 \u043F\u043E\u0442\u043E\u043B\u043A\u0430, \u0431\u0435\u0440\u0451\u0442\u0441\u044F \u0441\u0430\u043C\u044B\u0439 \u043D\u0438\u0437\u043A\u0438\u0439 \u0438 \u043E\u043A\u0440\u0443\u0433\u043B\u044F\u0435\u0442\u0441\u044F \u0432\u043D\u0438\u0437.</div></div>';
     }
 
-    for (var w = 0; w < dec.warn.length; w++) {
-        h += '<div class="ent-warn">\u26A0 ' + dec.warn[w] + '</div>';
+    // ── 9. Диапазон 90 дней ──
+    var mn = cd.min_price, mx = cd.max_price;
+    if (has(mn) && has(mx) && mx > mn && mn > 0) {
+        var rp = Math.max(0, Math.min(100, (cur - mn) / (mx - mn) * 100));
+        var lblPos = Math.max(9, Math.min(91, rp));
+        var grad = isLong
+            ? 'linear-gradient(90deg, rgba(48,209,88,0.9) 0%, rgba(243,186,47,0.75) 52%, rgba(255,69,58,0.85) 100%)'
+            : 'linear-gradient(90deg, rgba(255,69,58,0.85) 0%, rgba(243,186,47,0.75) 48%, rgba(48,209,88,0.9) 100%)';
+        var upMin = (cur / mn - 1) * 100;
+        var dnMax = (1 - cur / mx) * 100;
+        var mnCls = rp <= 25 ? 'light-blink' : '';
+        var mxCls = rp >= 75 ? 'light-blink' : '';
+        var mnCol = rp <= 25 ? 'var(--red)'   : 'var(--accent)';
+        var mxCol = rp >= 75 ? 'var(--green)' : 'var(--accent)';
+        h += '<div class="bd-sec"><div class="bd-h">\u0414\u0418\u0410\u041F\u0410\u0417\u041E\u041D 90 \u0414\u041D\u0415\u0419</div>'
+           + '<div class="bd-rng" style="background:' + grad + ';">'
+           +   '<div class="bd-rpos" style="left:' + lblPos.toFixed(1) + '%;">' + rp.toFixed(0) + '%</div>'
+           +   '<div class="bd-rmark" style="left:' + rp.toFixed(1) + '%;"></div>'
+           + '</div>'
+           + '<div class="bd-rends">'
+           +   '<div class="bd-rend"><div class="bd-rcap">\u041C\u0418\u041D</div>'
+           +     '<div class="bd-rnum ' + mnCls + '" style="color:' + mnCol + ';">' + fmtP(mn) + '</div>'
+           +     '<div class="bd-nd">\u0446\u0435\u043D\u0430 \u0432\u044B\u0448\u0435 \u043D\u0430 ' + upMin.toFixed(1) + '%</div></div>'
+           +   '<div class="bd-rend" style="text-align:right;"><div class="bd-rcap">\u041C\u0410\u041A\u0421</div>'
+           +     '<div class="bd-rnum ' + mxCls + '" style="color:' + mxCol + ';">' + fmtP(mx) + '</div>'
+           +     '<div class="bd-nd">\u0446\u0435\u043D\u0430 \u043D\u0438\u0436\u0435 \u043D\u0430 ' + dnMax.toFixed(1) + '%</div></div>'
+           + '</div></div>';
     }
 
-    h += '<button class="qbtn wide" onclick="closeEntry(\'' + sym + '\')">СВЕРНУТЬ</button>';
+    // ── 10. Доверие к модели ──
+    var rawBeta = lastCtx.ratio >= 0 ? cd.up_beta : cd.down_beta;
+    var r14     = lastCtx.ratio >= 0 ? cd.up_r2   : cd.down_r2;
+    var beta90  = lastCtx.ratio >= 0 ? cd.up_beta_90 : cd.down_beta_90;
+    var r90     = lastCtx.ratio >= 0 ? cd.up_r2_90   : cd.down_r2_90;
+    var conf    = confidenceScore(r14, r90, rawBeta, beta90, cd.volatility);
+    var gs      = gateState(conf, r14, cd.corr_90);
+    var gc      = gs === 'green' ? 'var(--green)' : (gs === 'yellow' ? 'var(--accent)' : 'var(--red)');
+    h += '<div class="bd-sec"><div class="bd-h">\u0414\u041E\u0412\u0415\u0420\u0418\u0415 \u041A \u041C\u041E\u0414\u0415\u041B\u0418</div>';
+    if (has(conf)) {
+        h += '<div class="bd-conf">'
+           + '<div class="bd-cbar"><div class="bd-fill" style="width:' + Math.max(2, Math.min(100, conf))
+           + '%;background:' + gc + ';"></div></div>'
+           + '<div class="bd-cnum" style="color:' + gc + ';">' + conf + '%</div></div>';
+    }
+    h += '<div class="bd-kv" style="margin-top:11px;"><span class="bd-k">\u0421\u0432\u044F\u0437\u044C \u0441 BTC, 14 \u0434\u043D\u0435\u0439</span>'
+       + '<span class="bd-v">b=' + (has(rawBeta) ? rawBeta.toFixed(2) : '\u043D/\u0434')
+       + ' <span style="color:' + r2Color(r14) + ';">R\u00B2=' + (has(r14) ? r14.toFixed(2) : '\u043D/\u0434') + '</span></span></div>'
+       + '<div class="bd-kv"><span class="bd-k">\u0421\u0432\u044F\u0437\u044C \u0441 BTC, 90 \u0434\u043D\u0435\u0439</span>'
+       + '<span class="bd-v">b=' + (has(beta90) ? beta90.toFixed(2) : '\u043D/\u0434')
+       + ' <span style="color:' + r2Color(r90) + ';">R\u00B2=' + (has(r90) ? r90.toFixed(2) : '\u043D/\u0434') + '</span>'
+       + (has(cd.corr_90) ? ' <span style="color:' + (Math.abs(cd.corr_90) >= 0.75 ? 'var(--green)'
+            : (Math.abs(cd.corr_90) >= 0.5 ? 'var(--accent)' : 'var(--red)')) + ';">\u03C1='
+            + cd.corr_90.toFixed(2) + '</span>' : '') + '</span></div>';
+    if (has(rawBeta)) {
+        var gr = Math.pow(Math.max(1 + lastCtx.ratio, 1e-9), rawBeta * lastCtx.stressMult);
+        h += '<div class="bd-kv"><span class="bd-k">\u0415\u0441\u043B\u0438 BTC \u043F\u0440\u0438\u0434\u0451\u0442 \u043D\u0430 $'
+           + Math.round(lastCtx.target).toLocaleString() + '</span>'
+           + '<span class="bd-v" style="color:' + (gr >= 1 ? 'var(--green)' : 'var(--red)') + ';">'
+           + fmtP(Math.max(cur * gr, 1e-8)) + ' (' + pctTxt(gr - 1, 2) + ')</span></div>';
+    }
+    if (gs === 'red') {
+        h += '<div class="bd-bad">\u26A0 \u041C\u043E\u0434\u0435\u043B\u044C \u043D\u0435\u043D\u0430\u0434\u0451\u0436\u043D\u0430 (MDL \u2715): \u043F\u0440\u043E\u0433\u043D\u043E\u0437 \u043F\u043E BTC \u2014 \u0448\u0443\u043C. '
+           + '\u0420\u0430\u0431\u043E\u0442\u0430\u044E\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u0446\u0438\u0444\u0440\u044B \u0432\u044B\u0448\u0435: \u043E\u043D\u0438 \u0441\u0447\u0438\u0442\u0430\u044E\u0442\u0441\u044F \u043E\u0442 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0439 \u0432\u043E\u043B\u0430\u0442\u0438\u043B\u044C\u043D\u043E\u0441\u0442\u0438 \u043C\u043E\u043D\u0435\u0442\u044B, \u0430 \u043D\u0435 \u043E\u0442 \u0431\u0435\u0442\u044B. '
+           + '\u041D\u0430\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0431\u0435\u0440\u0438 \u0438\u0437 \u043A\u0430\u0442\u0430\u043B\u0438\u0437\u0430\u0442\u043E\u0440\u043E\u0432, \u043D\u0435 \u0438\u0437 \u043F\u0440\u043E\u0433\u043D\u043E\u0437\u0430.</div>';
+    }
+    h += '</div>';
+
+    h += '<button class="qbtn wide" style="margin-top:14px;" onclick="closeEntry(\'' + sym + '\')">\u0417\u0410\u041A\u0420\u042B\u0422\u042C</button>';
     h += '</div>';
     return h;
+}
+
+// Перерисовка доски. Вызывается из update() вместе со списком: тикер обновляется
+// каждые 30 с, поэтому позиция прокрутки сохраняется вручную — иначе экран
+// прыгал бы наверх посреди чтения.
+function renderBoard() {
+    var el = document.getElementById('board');
+    if (!el) return;
+
+    var row = null, pos = 0;
+    if (boardSym && currentSide !== 'none' && lastCtx) {
+        for (var i = 0; i < lastRows.length; i++) {
+            if (lastRows[i].t.name === boardSym) { row = lastRows[i]; pos = i; break; }
+        }
+    }
+    if (!row) {
+        if (el.style.display === 'block') {
+            el.style.display = 'none';
+            el.innerHTML = '';
+            document.body.style.overflow = '';
+        }
+        return;
+    }
+
+    var keep = el.scrollTop;
+    if (row.state === 'ok') {
+        el.innerHTML = boardHtml(row, pos);
+    } else {
+        el.innerHTML = '<div class="bd-top">'
+            + '<button class="bd-x" onclick="closeEntry(\'' + boardSym + '\')">\u2715</button>'
+            + '<div class="bd-title">' + boardSym + '</div></div>'
+            + '<div class="bd-wrap"><div class="bd-sec">'
+            + '<div class="bd-h">\u0414\u0410\u041D\u041D\u042B\u0415 \u041D\u0415\u0414\u041E\u0421\u0422\u0423\u041F\u041D\u042B</div>'
+            + '<div class="bd-vwhy">\u041C\u043E\u043D\u0435\u0442\u0430 \u043F\u0435\u0440\u0435\u0448\u043B\u0430 \u0432 \u0437\u0430\u0449\u0438\u0442\u043D\u043E\u0435 \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435 (\u043D\u0435\u0442 \u043F\u0430\u0440\u044B, \u0442\u043E\u0440\u0433\u0438 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B '
+            + '\u0438\u043B\u0438 \u0431\u043E\u0442 \u043D\u0435 \u0434\u0430\u043B \u043C\u0435\u0442\u0440\u0438\u043A). \u0420\u0430\u0441\u0447\u0451\u0442\u044B \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u044B \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u043D\u043E.</div></div>'
+            + '<button class="qbtn wide" style="margin-top:14px;" onclick="closeEntry(\'' + boardSym + '\')">\u0417\u0410\u041A\u0420\u042B\u0422\u042C</button>'
+            + '</div>';
+    }
+    if (el.style.display !== 'block') {
+        el.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        el.scrollTop = 0;
+    } else {
+        el.scrollTop = keep;
+    }
 }
 
 // ── Главный рендер ──────────────────────────────────────────────────────────
@@ -1274,6 +1710,10 @@ function update() {
     }
 
     var stressMult  = STRESS_MULT[currentStress];
+    // Снимок сценария и строк — доска читает их, а не пересчитывает список.
+    lastRows = rows;
+    lastCtx  = { isLong: isLong, btcStats: btcStats, ratio: ratio,
+                 stressMult: stressMult, target: target, btc: btc };
     var stressBadge = STRESS_BADGE[currentStress];
     var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
     var html = '';
@@ -1337,7 +1777,10 @@ function update() {
         var gc = g === 'green' ? 'var(--green)' : (g === 'yellow' ? 'var(--accent)' : 'var(--red)');
         var gl = g === 'green' ? 'MDL \u2713' : (g === 'yellow' ? 'MDL \u007E' : 'MDL \u2715');
 
-        // Бейдж: ранг + FDV + место в рейтинге кандидатов.
+        // Бейдж слева сверху: ранг всегда, FDV — только в режимах ЛОНГ/ШОРТ.
+        // В ОБЗОРЕ FDV переехал на строку «b= / R2» (правка Босса 09.08).
+        var fdvColor = has(cd.fdv_mc)
+            ? (cd.fdv_mc > 3 ? 'var(--red)' : (cd.fdv_mc >= 1.5 ? 'var(--accent)' : '#888')) : '#888';
         var badgeInner = '';
         if (has(cd.rank)) {
             var rPrev = cd.rank_prev, rColor = '#ccc', rArrow = '';
@@ -1348,17 +1791,19 @@ function update() {
             }
             badgeInner += '<span style="color:' + rColor + ';">#' + cd.rank + rArrow + '</span>';
         }
-        if (has(cd.fdv_mc)) {
-            var fColor = cd.fdv_mc > 3 ? 'var(--red)' : (cd.fdv_mc >= 1.5 ? 'var(--accent)' : '#888');
-            badgeInner += '<span style="color:' + fColor + ';margin-left:6px;">FDV '
+        if (sideOn && has(cd.fdv_mc)) {
+            badgeInner += '<span style="color:' + fdvColor + ';margin-left:6px;">FDV '
                 + cd.fdv_mc.toFixed(1) + '\u00D7</span>';
         }
+        var rankHtml = badgeInner ? '<span class="rank-badge">' + badgeInner + '</span>' : '';
+
+        // Тир кандидата — по центру верха карточки, вне потока.
+        var tierHtml = '';
         if (sideOn && row.sc) {
             var tier = tierOf(row.sc.score);
-            badgeInner += '<span style="color:' + tier.c + ';margin-left:8px;font-weight:800;">#'
+            tierHtml = '<span class="tier-badge" style="color:' + tier.c + ';">#'
                 + (pos + 1) + ' ' + tier.n + ' ' + Math.round(row.sc.score) + '</span>';
         }
-        var rankHtml = badgeInner ? '<span class="rank-badge">' + badgeInner + '</span>' : '';
 
         var badgeHtml = stressBadge
             ? '<span style="font-size:0.6em;color:' + badgeColor + ';font-weight:bold;margin-left:5px;">' + stressBadge + '</span>'
@@ -1386,21 +1831,26 @@ function update() {
                 + corrHtml + '</div>';
         }
 
-        // Funding — цвет по НАЖАТОЙ стороне; в обзоре сторона не задана, серый.
+        // Funding — цвет по НАЖАТОЙ стороне. В ОБЗОРЕ стороны нет, значит нет и
+        // экономического смысла: строка убрана, её место занимает FDV.
         var fundRate = cachedFunding[t.s];
         var fundHtml = '';
-        if (has(fundRate)) {
-            var fundColor = !sideOn ? '#888'
-                : (isLong ? (fundRate > 0 ? 'var(--red)' : 'var(--green)')
-                          : (fundRate > 0 ? 'var(--green)' : 'var(--red)'));
+        if (sideOn && has(fundRate)) {
+            var fundColor = isLong ? (fundRate > 0 ? 'var(--red)' : 'var(--green)')
+                                   : (fundRate > 0 ? 'var(--green)' : 'var(--red)');
             fundHtml = '<span style="color:' + fundColor + ';font-size:0.8em;font-style:italic;margin-left:8px;">'
                 + 'Fund: ' + (fundRate >= 0 ? '+' : '') + (fundRate * 100).toFixed(4) + '%/8h</span>';
+        } else if (!sideOn && has(cd.fdv_mc)) {
+            fundHtml = '<span style="color:' + fdvColor + ';font-size:0.8em;font-style:italic;margin-left:8px;">'
+                + 'FDV ' + cd.fdv_mc.toFixed(1) + '\u00D7</span>';
         }
 
         // Ликвидации по ВЫБРАННОМУ вручную плечу, от прогнозной цены.
         var liqHtml = '';
         if (hasBeta) {
-            liqHtml = '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
+            liqHtml = '<div style="font-size:0.62em;font-weight:800;letter-spacing:0.14em;color:#6f6f7e;margin:5px 0 1px;">'
+                +   '\u041B\u0418\u041A\u0412\u0418\u0414\u0410\u0426\u0418\u042F \u041E\u0422 \u041F\u0420\u041E\u0413\u041D\u041E\u0417\u0410</div>'
+                + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
                 +   '<span style="color:var(--green);">LONG </span>' + currentLev + 'X: '
                 +   fmtP(pred * (1 - 1 / currentLev + LIQ_MMR)) + '</div>'
                 + '<div style="font-size:0.9em;font-weight:600;color:var(--accent);">'
@@ -1421,13 +1871,19 @@ function update() {
             var dnFromMax = (cur / maxP - 1) * 100;
             var upColor = upFromMin >= 60 ? 'var(--red)' : (upFromMin <= 10 ? 'var(--green)' : '#9a9aa4');
             var dnColor = dnFromMax <= -40 ? 'var(--green)' : (dnFromMax >= -10 ? 'var(--red)' : '#9a9aa4');
+            // Стрелки-проценты — только в ЛОНГ/ШОРТ. В ОБЗОРЕ они убраны
+            // (правка Босса 09.08): то же самое есть в строке причины и на доске.
+            var upArrow = sideOn
+                ? ' <span style="color:' + upColor + ';font-style:normal;font-weight:700;">\u2192+' + upFromMin.toFixed(1) + '%</span>' : '';
+            var dnArrow = sideOn
+                ? ' <span style="color:' + dnColor + ';font-style:normal;font-weight:700;">\u2192' + dnFromMax.toFixed(1) + '%</span>' : '';
             rangeHtml = '<div class="extra-data">'
                 + 'Min: <span class="' + minClass + '" style="color:' + minColor + ';">' + fmtP(minP) + '</span>'
-                + ' <span style="color:' + upColor + ';font-style:normal;font-weight:700;">\u2192+' + upFromMin.toFixed(1) + '%</span>'
+                + upArrow
                 + ' | <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;margin:0 4px;">'
                 + dynPos.toFixed(0) + '%</span> | '
                 + 'Max: <span class="' + maxClass + '" style="color:' + maxColor + ';">' + fmtP(maxP) + '</span>'
-                + ' <span style="color:' + dnColor + ';font-style:normal;font-weight:700;">\u2192' + dnFromMax.toFixed(1) + '%</span>'
+                + dnArrow
                 + '</div>';
         }
 
@@ -1436,11 +1892,11 @@ function update() {
             reasonHtml = '<div class="reason-line">' + row.sc.reasons.join(' \u00B7 ') + '</div>';
         }
 
+        // Блок входа переехал в полноэкранную доску: карточка остаётся витриной.
         var entryHtml = '';
         if (sideOn) {
-            entryHtml = entryOf(t.name)
-                ? entryBlock(cd, t.name, t.s, cur, isLong, btcStats)
-                : '<button class="qbtn wide call" onclick="openEntry(\'' + t.name + '\',' + numAttr(cur) + ')">РАЗОБРАТЬ ВХОД \u2192</button>';
+            entryHtml = '<button class="qbtn wide call" onclick="openEntry(\'' + t.name + '\','
+                + numAttr(cur) + ')">CRYPTO FUTURE</button>';
         }
 
         var dynPosRounded = Math.round(dynPos);
@@ -1451,6 +1907,7 @@ function update() {
         html += '<div class="card' + edgeClass + '" style="border-left:4px solid ' + p24hColor + ';">'
             + '<div class="card-main">'
             + rankHtml
+            + tierHtml
             + '<div class="row">'
             +   '<span class="token-name">' + t.name + badgeHtml
             +     ' <span class="pct-24h" style="color:' + p24hColor + ';">'
@@ -1493,6 +1950,8 @@ function update() {
 
     var resultsEl = document.getElementById('results');
     if (resultsEl) resultsEl.innerHTML = html;
+
+    renderBoard();
 }
 
 function init() {
