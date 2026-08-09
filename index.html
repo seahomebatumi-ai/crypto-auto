@@ -87,6 +87,15 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             padding-right: 98px; letter-spacing: -0.01em;
         }
+        /* В ОБЗОРЕ справа только стрелки перестановки (~54px), поэтому полная
+           подписанная строка Min/Max помещается без переноса. */
+        .range-line.ov { padding-right: 62px; font-size: 0.92em; }
+        /* FDV в свободном правом нижнем углу карточки (ЛОНГ/ШОРТ). */
+        .fdv-abs {
+            position: absolute; bottom: 4px; right: 0;
+            font-size: 0.76em; font-weight: 700; font-style: italic;
+            letter-spacing: 0.01em; white-space: nowrap; pointer-events: none;
+        }
         /* Свёрнутые монеты вне сценария */
         .off-strip {
             margin: 6px 0 8px; padding: 12px 14px; cursor: pointer;
@@ -204,7 +213,8 @@
         .side3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; margin-bottom: 6px; }
         .side-btn.a-none { color: #000; background: #c7c7cc; }
         .dist-line { font-size: 0.8em; margin: 3px 0; color: #aaa; }
-        .reason-line { font-size: 0.76em; color: var(--cyan); margin: 3px 0 5px; line-height: 1.35; }
+        .reason-line { font-size: 0.76em; color: var(--cyan); margin: 3px 0 5px;
+                       line-height: 1.35; padding-right: 84px; }
         .qbtn {
             background: #26262c; border: 1px solid #3d3d47; color: #d0d0d8;
             padding: 7px 10px; border-radius: 8px; font-size: 11px;
@@ -307,10 +317,15 @@
             background: linear-gradient(180deg, #1c1c23 0%, #141419 100%);
             box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
         }
+        /* Заголовок любого блока — по центру (правка Босса 09.08). Единый
+           принцип выравнивания, заданный блоком «ДИАПАЗОН 90 ДНЕЙ». */
         .bd-h {
             font-size: 0.63em; font-weight: 900; letter-spacing: 0.2em;
-            color: #8f8fa0; text-transform: uppercase; margin-bottom: 10px;
+            color: #8f8fa0; text-transform: uppercase; margin-bottom: 11px;
+            text-align: center;
         }
+        /* Герой тоже центрируется: он и есть главный информационный блок. */
+        .bd-vlabel, .bd-vnum, .bd-vstop, .bd-vwhy { text-align: center; }
         /* Герой-вердикт */
         .bd-hero {
             position: relative; overflow: hidden; margin-top: 11px;
@@ -378,6 +393,9 @@
                     font-variant-numeric: tabular-nums; line-height: 1.05; }
         .bd-pricesub { font-size: 0.66em; color: #9a9aa8; margin-top: 3px; letter-spacing: 0.06em; }
         .bd-chips { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; margin-top: 8px; }
+        .bd-chip.on { background: rgba(243,186,47,0.16); border-color: rgba(243,186,47,0.6);
+                      color: var(--accent); }
+        .bd-cur { font-size: 0.5em; font-weight: 800; opacity: 0.75; letter-spacing: 0.08em; }
         .bd-chip {
             padding: 9px 0; border-radius: 9px; font-size: 11px; font-weight: 800;
             cursor: pointer; background: #23232b; border: 1px solid #33333d; color: #b7b7c4;
@@ -429,13 +447,23 @@
         .bd-center { text-align: center; }
         /* Положение цены — крупное белое число по центру. Плавающая подпись над
            маркером убрана: у краёв она наезжала на МИН/МАКС. */
+        /* Единый типографический знак: число компактнее, «%» подтянут к нему.
+           Курсив — как у остальных числовых акцентов калькулятора. */
         .bd-rpct {
-            text-align: center; color: #fff; font-weight: 900;
-            font-size: 2.15em; line-height: 1; letter-spacing: -0.03em;
-            margin: 2px 0 12px; font-variant-numeric: tabular-nums;
-            text-shadow: 0 2px 14px rgba(255,255,255,0.14);
+            text-align: center; color: #fff; font-weight: 900; font-style: italic;
+            font-size: 1.78em; line-height: 1; letter-spacing: -0.012em;
+            margin: 4px 0 13px; font-variant-numeric: tabular-nums;
+            text-shadow: 0 2px 14px rgba(255,255,255,0.13);
         }
-        .bd-rpct-s { font-size: 0.46em; font-weight: 800; margin-left: 2px; opacity: 0.75; }
+        .bd-rpct-s {
+            font-size: 0.62em; font-weight: 800; margin-left: 1px;
+            opacity: 0.92; letter-spacing: -0.02em;
+        }
+        /* Подписи «цена выше / ниже на N%» — белые, курсив (правка Босса 09.08) */
+        .bd-rsub {
+            font-size: 0.76em; font-style: italic; color: #ffffff;
+            opacity: 0.88; letter-spacing: 0.005em; margin-top: 2px;
+        }
         .bd-rng { position: relative; height: 12px; border-radius: 7px; margin: 4px 0 10px;
                   box-shadow: inset 0 1px 3px rgba(0,0,0,0.55); }
         .bd-rmark {
@@ -654,6 +682,14 @@ var INV_FLOOR_SD = 2.0;   // пол дистанции инвалидации в
 // потолка вход в середине диапазона давал «БЕЗ ПЛЕЧА» — то есть далёкая
 // опора трактовалась как огромный риск вместо отсутствия ориентира.
 var INV_CAP_SD   = 6.0;
+// Потолок потери на СТОП по марже. Профессиональная замена фиксированному
+// «стоп не дальше 10%»: расстояние до стопа задаёт структура монеты, а
+// ограничивается не сам стоп, а ПЛЕЧО — стоп нельзя подтягивать в шум.
+// 0.35 маржи = при типичной марже в 10% счёта это 3.5% счёта на сделку.
+var MAX_MARGIN_LOSS = 0.35;
+// Маржа позиции в USDT. Сессионная: вчерашний размер с сегодняшней ценой
+// опаснее ручного счёта (тот же принцип, что и с ценой входа).
+var posMargin = 100;
 var SHOW_LEVS = [3, 4, 5];
 var VOL_ABNORMAL = 2.0;   // vol7/vol90 -> потолок 3X
 var VOL_HARD     = 0.02;  // 2%/ч      -> потолок 2X
@@ -965,6 +1001,28 @@ function closeEntry(sym) {
     document.body.style.overflow = '';
     update();
 }
+function setMargin(v) {
+    v = parseFloat(v);
+    if (isFinite(v) && v > 0) { posMargin = v; update(); }
+}
+function nudgeMargin(mult) {
+    var v = posMargin * mult;
+    setMargin(v >= 10 ? Math.round(v) : Math.round(v * 100) / 100);
+}
+function askMargin() {
+    var v = prompt('\u041C\u0430\u0440\u0436\u0430 \u0432 USDT', String(posMargin));
+    if (v === null) return;
+    setMargin(String(v).replace(',', '.'));
+}
+// Деньги: два знака, разряды пробелом — как в отчёте, а не как цена монеты.
+function fmtUsd(x) {
+    if (!isFinite(x)) return '?';
+    var neg = x < 0, a = Math.abs(x);
+    var t = a.toFixed(2).split('.');
+    t[0] = t[0].replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
+    return (neg ? '\u2212$' : '$') + t[0] + '.' + t[1];
+}
+
 // Переключение стороны ВНУТРИ доски: список не трогаем.
 function setBoardSide(s) { boardSide = s; update(); }
 function toggleOff() { showOff = !showOff; update(); }
@@ -1478,6 +1536,103 @@ function boardHtml(row, pos) {
        + '<div class="bd-note">\u0428\u0430\u0433 \u043A\u043D\u043E\u043F\u043E\u043A \u2212/+ \u2014 0.5%. \u041E\u0442 \u044D\u0442\u043E\u0439 \u0446\u0435\u043D\u044B \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044F \u0432\u0441\u0451 \u043D\u0438\u0436\u0435; \u0441\u0446\u0435\u043D\u0430\u0440\u0438\u0439 BTC \u043D\u0430 \u043F\u043B\u0435\u0447\u043E \u043D\u0435 \u0432\u043B\u0438\u044F\u0435\u0442.</div>'
        + '</div>';
 
+    // ── 4b. Размер позиции и результат в USDT ──
+    // Вход — МАРЖА в USDT (формулировка Босса 09.08: «расчёт от начальной
+    // маржи»). Объём и количество монет выводятся из неё и текущего плеча.
+    var notional = posMargin * currentLev;
+    var qty      = E > 0 ? notional / E : 0;
+    var mh = '';
+    [50, 100, 250, 500].forEach(function(v) {
+        mh += '<button class="bd-chip' + (Math.abs(posMargin - v) < 1e-9 ? ' on' : '')
+            + '" onclick="setMargin(' + v + ')">' + v + '</button>';
+    });
+    mh += '<button class="bd-chip" style="color:var(--accent);border-color:rgba(243,186,47,0.45);" '
+        + 'onclick="askMargin()">\u270E</button>';
+    h += '<div class="bd-sec"><div class="bd-h">\u0420\u0410\u0417\u041C\u0415\u0420 \u041F\u041E\u0417\u0418\u0426\u0418\u0418</div>'
+       + '<div class="bd-ent">'
+       + '<button class="bd-step" onclick="nudgeMargin(0.9)">\u2212</button>'
+       + '<div class="bd-pricebox" onclick="askMargin()">'
+       +   '<div class="bd-price">' + fmtUsd(posMargin).replace('$', '') + '<span class="bd-cur"> USDT</span></div>'
+       +   '<div class="bd-pricesub">\u041C\u0410\u0420\u0416\u0410 \u00B7 \u041D\u0410\u0416\u041C\u0418 \u2192 \u0421\u0412\u041E\u042F</div>'
+       + '</div>'
+       + '<button class="bd-step" onclick="nudgeMargin(1.1)">+</button>'
+       + '</div>'
+       + '<div class="bd-chips">' + mh + '</div>'
+       + '<div class="bd-kv" style="margin-top:11px;"><span class="bd-k">\u041E\u0431\u044A\u0451\u043C \u043F\u0440\u0438 ' + currentLev + 'X</span>'
+       + '<span class="bd-v">' + fmtUsd(notional) + '</span></div>'
+       + '<div class="bd-kv"><span class="bd-k">\u041A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E</span>'
+       + '<span class="bd-v">' + (qty >= 1000 ? Math.round(qty).toLocaleString()
+                                              : qty.toFixed(qty >= 1 ? 2 : 4)) + ' ' + sym + '</span></div>'
+       + '</div>';
+
+    // ── 4c. Результат в деньгах ──
+    if (dec.inv) {
+        var stopP    = dec.inv.price;
+        var lossStop = qty * Math.abs(E - stopP);
+        var lossStopPct = posMargin > 0 ? lossStop / posMargin : 0;
+        var liqP     = liqPrice(E, currentLev, isLong);
+        var lossLiq  = qty * Math.abs(E - liqP);
+        var lossLiqPct = posMargin > 0 ? lossLiq / posMargin : 0;
+        var stopCol  = lossStopPct > MAX_MARGIN_LOSS ? 'var(--red)' : 'var(--accent)';
+
+        h += '<div class="bd-sec"><div class="bd-h">\u0415\u0421\u041B\u0418 \u0418\u0414\u0415\u042F \u041D\u0415 \u0421\u0420\u0410\u0411\u041E\u0422\u0410\u0415\u0422</div>'
+           + '<div class="bd-kv"><span class="bd-k">\u0412\u044B\u0445\u043E\u0434 \u043F\u043E \u0441\u0442\u043E\u043F\u0443 ' + fmtP(stopP) + '</span>'
+           + '<span class="bd-v" style="color:' + stopCol + ';">\u2212' + fmtUsd(lossStop).replace('$', '$') + '</span></div>'
+           + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k"></span>'
+           + '<span class="bd-v" style="color:' + stopCol + ';font-size:0.9em;">'
+           + (lossStopPct * 100).toFixed(1) + '% \u043C\u0430\u0440\u0436\u0438</span></div>'
+           + '<div class="bd-kv" style="margin-top:9px;"><span class="bd-k">\u0415\u0441\u043B\u0438 \u0441\u0442\u043E\u043F \u043D\u0435 \u0441\u0440\u0430\u0431\u043E\u0442\u0430\u043B: \u043B\u0438\u043A\u0432\u0438\u0434\u0430\u0446\u0438\u044F ' + fmtP(liqP) + '</span>'
+           + '<span class="bd-v" style="color:var(--red);">\u2212' + fmtUsd(lossLiq) + '</span></div>'
+           + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k"></span>'
+           + '<span class="bd-v" style="color:var(--red);font-size:0.9em;">'
+           + (lossLiqPct * 100).toFixed(1) + '% \u043C\u0430\u0440\u0436\u0438</span></div>';
+
+        // Правило риска маржи: плечо подгоняется под стоп, а не стоп под плечо.
+        var Lmoney = dec.inv.dist > 0 ? MAX_MARGIN_LOSS / dec.inv.dist : null;
+        if (lossStopPct > MAX_MARGIN_LOSS && Lmoney !== null) {
+            var Lfit = Math.floor(Lmoney);
+            h += '<div class="bd-bad">\u26A0 \u041F\u0440\u0438 ' + currentLev + 'X \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u043D\u044B\u0439 \u0441\u0442\u043E\u043F \u0441\u0442\u043E\u0438\u0442 '
+               + (lossStopPct * 100).toFixed(0) + '% \u043C\u0430\u0440\u0436\u0438 \u2014 \u0432\u044B\u0448\u0435 \u043F\u043E\u0440\u043E\u0433\u0430 '
+               + Math.round(MAX_MARGIN_LOSS * 100) + '%. '
+               + (Lfit >= L_MIN
+                   ? '\u041F\u043E\u0434\u0442\u044F\u0433\u0438\u0432\u0430\u0442\u044C \u0441\u0442\u043E\u043F \u0431\u043B\u0438\u0436\u0435 \u041D\u0415\u041B\u044C\u0417\u042F \u2014 \u0442\u0430\u043C \u0448\u0443\u043C. \u0421\u043D\u0438\u0437\u044C \u043F\u043B\u0435\u0447\u043E \u0434\u043E ' + Lfit + 'X.'
+                   : '\u0414\u0430\u0436\u0435 ' + L_MIN + 'X \u043D\u0435 \u0443\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u2014 \u044D\u0442\u043E \u0441\u0434\u0435\u043B\u043A\u0430 \u0434\u043B\u044F \u0441\u043F\u043E\u0442\u0430 \u0438\u043B\u0438 \u043C\u0435\u043D\u044C\u0448\u0435\u0433\u043E \u0440\u0430\u0437\u043C\u0435\u0440\u0430.')
+               + '</div>';
+        } else {
+            h += '<div class="bd-note">\u0421\u0442\u043E\u043F \u0443\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0432 \u043F\u043E\u0440\u043E\u0433 '
+               + Math.round(MAX_MARGIN_LOSS * 100) + '% \u043C\u0430\u0440\u0436\u0438 \u043D\u0430 \u0441\u0434\u0435\u043B\u043A\u0443.</div>';
+        }
+        h += '</div>';
+
+        // ── 4d. Цель и соотношение риск/прибыль ──
+        var tgt = isLong ? cd.max_price : cd.min_price;
+        var tgtOk = has(tgt) && (isLong ? tgt > E : tgt < E && tgt > 0);
+        h += '<div class="bd-sec"><div class="bd-h">\u0415\u0421\u041B\u0418 \u0421\u0420\u0410\u0411\u041E\u0422\u0410\u0415\u0422</div>';
+        if (tgtOk) {
+            var win    = qty * Math.abs(tgt - E);
+            var winPct = posMargin > 0 ? win / posMargin : 0;
+            var rr     = lossStop > 0 ? win / lossStop : null;
+            h += '<div class="bd-kv"><span class="bd-k">\u0426\u0435\u043B\u044C \u2014 '
+               + (isLong ? '\u043C\u0430\u043A\u0441' : '\u043C\u0438\u043D') + '90 ' + fmtP(tgt) + '</span>'
+               + '<span class="bd-v" style="color:var(--green);">+' + fmtUsd(win) + '</span></div>'
+               + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k"></span>'
+               + '<span class="bd-v" style="color:var(--green);font-size:0.9em;">+'
+               + (winPct * 100).toFixed(1) + '% \u043C\u0430\u0440\u0436\u0438</span></div>';
+            if (rr !== null) {
+                var rrCol = rr >= 2 ? 'var(--green)' : (rr >= 1 ? 'var(--accent)' : 'var(--red)');
+                h += '<div class="bd-kv" style="border-top:1px solid #2b2b34;padding-top:9px;margin-top:10px;">'
+                   + '<span class="bd-k">\u0420\u0438\u0441\u043A / \u043F\u0440\u0438\u0431\u044B\u043B\u044C</span>'
+                   + '<span class="bd-v" style="color:' + rrCol + ';">1 : ' + rr.toFixed(1) + '</span></div>';
+            }
+            h += '<div class="bd-note">\u0426\u0435\u043B\u044C \u2014 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u043D\u044B\u0439 \u043E\u0440\u0438\u0435\u043D\u0442\u0438\u0440 (\u044D\u043A\u0441\u0442\u0440\u0435\u043C\u0443\u043C 90\u0434), \u0430 \u041D\u0415 \u043F\u0440\u043E\u0433\u043D\u043E\u0437. '
+               + '\u041E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u043D\u0438\u0436\u0435 1:2 \u043E\u0437\u043D\u0430\u0447\u0430\u0435\u0442, \u0447\u0442\u043E \u0441\u0434\u0435\u043B\u043A\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0443\u0433\u0430\u0434\u044B\u0432\u0430\u0442\u044C \u0447\u0430\u0449\u0435, \u0447\u0435\u043C \u043E\u0448\u0438\u0431\u0430\u0442\u044C\u0441\u044F.</div>';
+        } else {
+            h += '<div class="bd-note">\u0426\u0435\u043D\u0430 \u0443\u0436\u0435 \u0437\u0430 \u044D\u043A\u0441\u0442\u0440\u0435\u043C\u0443\u043C\u043E\u043C 90 \u0434\u043D\u0435\u0439 \u2014 \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u043D\u043E\u0433\u043E \u043E\u0440\u0438\u0435\u043D\u0442\u0438\u0440\u0430 \u0434\u043B\u044F \u0446\u0435\u043B\u0438 \u043D\u0435\u0442. '
+               + '\u0412\u044B\u0445\u043E\u0434 \u043F\u043B\u0430\u043D\u0438\u0440\u0443\u0439 \u0432\u0440\u0443\u0447\u043D\u0443\u044E.</div>';
+        }
+        h += '</div>';
+    }
+
     // ── 5. Границы сделки ──
     var liqSel = liqPrice(E, currentLev, isLong);
     h += '<div class="bd-sec"><div class="bd-h">\u0413\u0420\u0410\u041D\u0418\u0426\u042B \u0421\u0414\u0415\u041B\u041A\u0418</div><div class="bd-lad">'
@@ -1583,7 +1738,18 @@ function boardHtml(row, pos) {
                + caps[ci].v.toFixed(1) + 'X</span></div>'
                + '<div class="bd-nd" style="margin-bottom:8px;">' + caps[ci].d + '</div>';
         }
-        h += '<div class="bd-note">\u0422\u0440\u0438 \u043D\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043C\u044B\u0445 \u043F\u043E\u0442\u043E\u043B\u043A\u0430, \u0431\u0435\u0440\u0451\u0442\u0441\u044F \u0441\u0430\u043C\u044B\u0439 \u043D\u0438\u0437\u043A\u0438\u0439 \u0438 \u043E\u043A\u0440\u0443\u0433\u043B\u044F\u0435\u0442\u0441\u044F \u0432\u043D\u0438\u0437.</div></div>';
+        // Четвёртый ограничитель — по цене стопа в марже. Показывается СПРАВОЧНО
+        // и в ИТОГ не входит: он систематически строже трёх остальных, и его
+        // включение меняет каждую рекомендацию системы (инвариант 13).
+        if (dec.inv && dec.inv.dist > 0) {
+            var Lm = MAX_MARGIN_LOSS / dec.inv.dist;
+            h += '<div class="bd-kv" style="margin-bottom:1px;border-top:1px solid #2b2b34;padding-top:9px;">'
+               + '<span class="bd-k">\u0420\u0438\u0441\u043A \u043C\u0430\u0440\u0436\u0438 \u00B7 \u0441\u043F\u0440\u0430\u0432\u043E\u0447\u043D\u043E</span>'
+               + '<span class="bd-v" style="color:#8f8fa0;">' + Lm.toFixed(1) + 'X</span></div>'
+               + '<div class="bd-nd" style="margin-bottom:8px;">\u043F\u0440\u0438 \u043A\u0430\u043A\u043E\u043C \u043F\u043B\u0435\u0447\u0435 \u0432\u044B\u0445\u043E\u0434 \u043F\u043E \u0441\u0442\u043E\u043F\u0443 \u0441\u0442\u043E\u0438\u0442 \u0440\u043E\u0432\u043D\u043E '
+               + Math.round(MAX_MARGIN_LOSS * 100) + '% \u043C\u0430\u0440\u0436\u0438</div>';
+        }
+        h += '<div class="bd-note">\u0422\u0440\u0438 \u043D\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043C\u044B\u0445 \u043F\u043E\u0442\u043E\u043B\u043A\u0430, \u0431\u0435\u0440\u0451\u0442\u0441\u044F \u0441\u0430\u043C\u044B\u0439 \u043D\u0438\u0437\u043A\u0438\u0439 \u0438 \u043E\u043A\u0440\u0443\u0433\u043B\u044F\u0435\u0442\u0441\u044F \u0432\u043D\u0438\u0437. \u0427\u0435\u0442\u0432\u0451\u0440\u0442\u0430\u044F \u0441\u0442\u0440\u043E\u043A\u0430 \u0432 \u0418\u0422\u041E\u0413 \u043F\u043E\u043A\u0430 \u041D\u0415 \u0432\u0445\u043E\u0434\u0438\u0442.</div></div>';
     }
 
     // ── 9. Диапазон 90 дней ──
@@ -1609,10 +1775,10 @@ function boardHtml(row, pos) {
            + '<div class="bd-rends">'
            +   '<div class="bd-rend"><div class="bd-rcap" style="color:' + mnCol + ';">\u041C\u0418\u041D</div>'
            +     '<div class="bd-rnum ' + mnCls + '" style="color:' + mnCol + ';">' + fmtP(mn) + '</div>'
-           +     '<div class="bd-nd">\u0446\u0435\u043D\u0430 \u0432\u044B\u0448\u0435 \u043D\u0430 ' + upMin.toFixed(1) + '%</div></div>'
+           +     '<div class="bd-rsub">\u0446\u0435\u043D\u0430 \u0432\u044B\u0448\u0435 \u043D\u0430 ' + upMin.toFixed(1) + '%</div></div>'
            +   '<div class="bd-rend" style="text-align:right;"><div class="bd-rcap" style="color:' + mxCol + ';">\u041C\u0410\u041A\u0421</div>'
            +     '<div class="bd-rnum ' + mxCls + '" style="color:' + mxCol + ';">' + fmtP(mx) + '</div>'
-           +     '<div class="bd-nd">\u0446\u0435\u043D\u0430 \u043D\u0438\u0436\u0435 \u043D\u0430 ' + dnMax.toFixed(1) + '%</div></div>'
+           +     '<div class="bd-rsub">\u0446\u0435\u043D\u0430 \u043D\u0438\u0436\u0435 \u043D\u0430 ' + dnMax.toFixed(1) + '%</div></div>'
            + '</div></div>';
     }
 
@@ -1943,10 +2109,13 @@ function update() {
             }
             badgeInner += '<span style="color:' + rColor + ';">#' + cd.rank + rArrow + '</span>';
         }
-        if (sideOn && has(cd.fdv_mc)) {
-            badgeInner += '<span style="color:' + fdvColor + ';margin-left:6px;">FDV '
-                + cd.fdv_mc.toFixed(1) + '\u00D7</span>';
-        }
+        // FDV в ЛОНГ/ШОРТ вынесен из бейджа в правый нижний угол карточки
+        // (правка Босса 09.08): там свободно, стрелок перестановки в этом
+        // режиме нет.
+        var fdvAbs = (sideOn && has(cd.fdv_mc))
+            ? '<span class="fdv-abs" style="color:' + fdvColor + ';">FDV '
+              + cd.fdv_mc.toFixed(1) + '\u00D7</span>'
+            : '';
         var rankHtml = badgeInner ? '<span class="rank-badge">' + badgeInner + '</span>' : '';
 
         // Тир кандидата — по центру верха карточки, вне потока.
@@ -1993,7 +2162,8 @@ function update() {
             fundHtml = '<span style="color:' + fundColor + ';font-size:0.8em;font-style:italic;margin-left:8px;">'
                 + 'Fund: ' + (fundRate >= 0 ? '+' : '') + (fundRate * 100).toFixed(4) + '%/8h</span>';
         } else if (!sideOn && has(cd.fdv_mc)) {
-            fundHtml = '<span style="color:' + fdvColor + ';font-size:0.8em;font-style:italic;margin-left:8px;">'
+            fundHtml = '<span style="color:#5f5f6c;font-size:0.8em;font-style:italic;margin-left:6px;">/</span>'
+                + '<span style="color:' + fdvColor + ';font-size:0.8em;font-style:italic;margin-left:5px;">'
                 + 'FDV ' + cd.fdv_mc.toFixed(1) + '\u00D7</span>';
         }
 
@@ -2021,10 +2191,17 @@ function update() {
         var maxColor = dynPos >= 75 ? 'var(--green)' : 'var(--accent)';
         var rangeHtml = '';
         if (has(minP) && has(maxP) && minP > 0 && maxP > 0) {
-            rangeHtml = '<div class="extra-data range-line">'
+            // В ОБЗОРЕ подписи Min/Max и разделители «|» возвращены (правка Босса
+            // 09.08). В ЛОНГ/ШОРТ формат остаётся компактным: там правый нижний
+            // угол занят FDV, и полная строка не помещается без переноса.
+            rangeHtml = '<div class="extra-data range-line' + (sideOn ? '' : ' ov') + '">'
+                + (sideOn ? '' : 'Min: ')
                 + '<span class="' + minClass + '" style="color:' + minColor + ';">' + fmtP(minP) + '</span>'
-                + ' <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;">'
-                + dynPos.toFixed(0) + '%</span> '
+                + (sideOn ? ' ' : ' | ')
+                + '<span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;">'
+                + dynPos.toFixed(0) + '%</span>'
+                + (sideOn ? ' ' : ' | ')
+                + (sideOn ? '' : 'Max: ')
                 + '<span class="' + maxClass + '" style="color:' + maxColor + ';">' + fmtP(maxP) + '</span>'
                 + ' <span style="color:#666;font-size:0.8em;font-style:normal;">90\u0434</span>'
                 + '</div>';
@@ -2061,6 +2238,7 @@ function update() {
             + '<div class="card-main">'
             + rankHtml
             + tierHtml
+            + fdvAbs
             + '<div class="row">'
             +   '<span>' + nameHtml + badgeHtml
             +     ' <span class="pct-24h" style="color:' + p24hColor + ';">'
