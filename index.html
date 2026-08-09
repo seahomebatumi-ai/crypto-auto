@@ -77,6 +77,28 @@
             margin-bottom: 8px; border: 1px solid #333; border-left: 4px solid var(--red);
         }
         .token-name { font-size: 1.2em; font-weight: 800; color: var(--lilac); }
+        /* Имя монеты — кнопка входа в доску. Аффорданс минимальный: шеврон. */
+        .token-name.tap { cursor: pointer; }
+        .token-name.tap:active { opacity: 0.6; }
+        .tap-mark { font-size: 0.62em; margin-left: 4px; opacity: 0.65; vertical-align: 1px; }
+        /* Диапазон 90д — строго одна строка, без переносов и наездов на
+           абсолютный правый столбец карточки (прогноз/цена/Vol). */
+        .range-line {
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            padding-right: 98px; letter-spacing: -0.01em;
+        }
+        /* Свёрнутые монеты вне сценария */
+        .off-strip {
+            margin: 4px 0 8px; padding: 11px 13px; cursor: pointer;
+            border: 1px dashed #3a3a46; border-radius: 12px; background: #16161c;
+            font-size: 0.8em; color: #8a8a98; line-height: 1.4;
+        }
+        .off-cnt { color: var(--accent); font-weight: 900; font-size: 1.15em; }
+        .off-names { color: #5c5c68; font-size: 0.9em; margin-top: 4px; word-break: break-word; }
+        .off-act {
+            color: var(--cyan); font-weight: 800; font-size: 0.85em;
+            letter-spacing: 0.1em; margin-top: 6px;
+        }
         .row { display: flex; justify-content: space-between; align-items: center; }
         #slider { width: 100%; margin: 10px 0; transition: accent-color 0.3s ease; }
         .lev-container {
@@ -302,6 +324,15 @@
         .bd-vstop { position: relative; z-index: 1; font-size: 1.35em; font-weight: 900;
                     line-height: 1.15; letter-spacing: 0.01em; color: var(--red); margin: 4px 0 2px; }
         .bd-vwhy  { position: relative; z-index: 1; font-size: 0.8em; color: #a0a0b0; line-height: 1.4; }
+        /* Строка выбранного плеча — единственное место, где живёт нажатая
+           кнопка. Отделена рамкой, чтобы её нельзя было спутать с ИТОГОМ. */
+        .bd-pick {
+            position: relative; z-index: 1; display: flex;
+            justify-content: space-between; align-items: baseline;
+            margin-top: 11px; padding: 9px 11px;
+            border: 1px solid #3a3a46; border-radius: 11px; background: rgba(0,0,0,0.28);
+            font-size: 0.86em;
+        }
         /* Сегмент ЛОНГ/ШОРТ внутри доски */
         .bd-seg { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr;
                   gap: 6px; margin-top: 12px; }
@@ -553,9 +584,21 @@ var entryState = {};   // { SYM: { open:true, price:<цена монеты> } }
 // Открытая полноэкранная доска CRYPTO FUTURE. Одна монета за раз.
 // Тоже сессионное: доска = развёрнутый вход, хранить её между запусками опасно.
 var boardSym  = null;
+// Сторона ВНУТРИ доски. Отдельно от currentSide: доску можно открыть прямо из
+// ОБЗОРА нажатием на имя монеты, не пересортировывая весь список.
+var boardSide = 'long';
+// Пороги релевантности стороны по положению в 90д-диапазоне (правка Босса 09.08).
+// Ниже 25% шорт бессмысленен, выше 75% бессмысленен лонг: Босс торгует
+// контртренд от краёв, а не вход в середину уже состоявшегося движения.
+var REL_LOW   = 25;
+var REL_HIGH  = 75;
+// Показывать ли монеты, для которых выбранная сторона нерелевантна.
+var showOff   = false;
 // Снимок строк последнего рендера — доска берёт данные отсюда, чтобы не
 // пересчитывать список заново на каждой перерисовке тикера.
 var lastRows  = [];
+// Символы монет, реально показанных в списке — для нумерации места в доске.
+var lastShownSyms = [];
 
 var STRESS_MULT  = { normal: 1.0, panic: 1.3, crash: 1.8 };
 var STRESS_BADGE = { normal: '',   panic: 'b*1.3', crash: 'b*1.8' };
@@ -808,9 +851,10 @@ function move(idx, dir) {
 // Обе точки входа зовут эти функции, поэтому состояние не рассинхронизируется.
 function setSide(mode) {
     currentSide = mode;
-    // В ОБЗОРЕ стороны нет -> нет ни плеча, ни ликвидации: доска закрывается
-    // насовсем, а не прячется (иначе всплыла бы при возврате в ЛОНГ).
-    if (mode === 'none') boardSym = null;
+    // Доска больше не закрывается в ОБЗОРЕ: её открывают нажатием на имя монеты.
+    // Смена ЛОНГ/ШОРТ в списке ведёт сторону доски за собой — иначе два разных
+    // ответа на экране одновременно.
+    if (mode !== 'none') boardSide = mode;
     var btns = document.querySelectorAll('.side-btn');
     for (var i = 0; i < btns.length; i++) {
         btns[i].className = 'side-btn' + (btns[i].getAttribute('data-mode') === mode ? ' a-' + mode : '');
@@ -870,16 +914,34 @@ function renderButtons() {
 // ── Управление входом ───────────────────────────────────────────────────────
 function entryOf(sym) { return entryState[sym] || null; }
 
-function openEntry(sym, cur) {
+// Положение цены в 90д-диапазоне, 0-100. null, если данных нет.
+function rangePos(cd, cur) {
+    if (!has(cd.min_price) || !has(cd.max_price)) return null;
+    if (!(cd.max_price > cd.min_price) || !(cur > 0)) return null;
+    return Math.max(0, Math.min(100, (cur - cd.min_price) / (cd.max_price - cd.min_price) * 100));
+}
+// Релевантна ли сторона при текущем положении в диапазоне.
+function sideRelevant(pos, isLong) {
+    if (pos === null) return true;
+    return isLong ? (pos <= REL_HIGH) : (pos >= REL_LOW);
+}
+
+function openEntry(sym, cur, side) {
     entryState[sym] = { open: true, price: cur };
+    if (side) boardSide = side;
+    else if (currentSide !== 'none') boardSide = currentSide;
     boardSym = sym;
     update();
 }
 function closeEntry(sym) {
     delete entryState[sym];
     if (boardSym === sym) boardSym = null;
+    document.body.style.overflow = '';
     update();
 }
+// Переключение стороны ВНУТРИ доски: список не трогаем.
+function setBoardSide(s) { boardSide = s; update(); }
+function toggleOff() { showOff = !showOff; update(); }
 function setEntry(sym, price) {
     if (!(price > 0)) return;
     entryState[sym] = { open: true, price: price };
@@ -1244,15 +1306,26 @@ function r2Color(v) {
     return v < 0.30 ? 'var(--red)' : (v < 0.60 ? 'var(--accent)' : 'var(--green)');
 }
 
+// Совпадает ли сторона доски с режимом списка (тогда row.sc уже посчитан).
+function sideAligned(row) {
+    return row.sc && currentSide !== 'none' && (currentSide === boardSide);
+}
+
 function boardHtml(row, pos) {
     var cd   = row.cd, t = row.t, coin = row.coin;
     var sym  = t.name, pair = t.s;
     var cur  = parseFloat(coin.lastPrice);
     var p24  = parseFloat(coin.priceChangePercent);
-    var isLong    = lastCtx.isLong;
+    var isLong    = (boardSide === 'long');
     var btcStats  = lastCtx.btcStats;
     var sideName  = isLong ? 'ЛОНГ' : 'ШОРТ';
     var sideColor = isLong ? 'var(--green)' : 'var(--red)';
+    // Счёт пересчитывается под сторону ДОСКИ: она может отличаться от режима
+    // списка (доску открывают и из ОБЗОРА, и с перевёрнутой стороной).
+    var sc = sideAligned(row) ? row.sc
+           : scoreCandidate(cd, pair, cur, p24, parseFloat(coin.quoteVolume), isLong);
+    var rpos = rangePos(cd, cur);
+    var relevant = sideRelevant(rpos, isLong);
 
     var st = entryOf(sym);
     var E  = st ? st.price : cur;
@@ -1285,21 +1358,40 @@ function boardHtml(row, pos) {
     h += '<div class="bd-wrap">';
 
     // ── 1. Вердикт ──
+    var okSelHero = dec.ok && currentLev <= dec.L;
     h += '<div class="bd-hero ' + (dec.ok ? (isLong ? 's-long' : 's-short') : 's-stop') + '">';
     if (dec.ok) {
-        h += '<div class="bd-vlabel">\u0418\u0422\u041E\u0413 \u00B7 ' + sideName + '</div>'
+        h += '<div class="bd-vlabel">\u0418\u0422\u041E\u0413 \u00B7 ' + sideName
+           + ' \u00B7 \u041F\u041E\u0422\u041E\u041B\u041E\u041A</div>'
            + '<div class="bd-vnum" style="color:' + sideColor + ';">' + dec.L + 'X</div>'
            + '<div class="bd-vwhy">\u0416\u0451\u0441\u0442\u0447\u0435 \u0432\u0441\u0435\u0433\u043E \u0440\u0435\u0436\u0435\u0442 \u00AB' + dec.binding
-           + '\u00BB. \u0412\u044B\u0448\u0435 \u044D\u0442\u043E\u0433\u043E \u043F\u043B\u0435\u0447\u0430 \u043B\u0438\u043A\u0432\u0438\u0434\u0430\u0446\u0438\u044F \u0437\u0430\u0445\u043E\u0434\u0438\u0442 \u0432\u043D\u0443\u0442\u0440\u044C \u0436\u0438\u0432\u043E\u0439 \u0438\u0434\u0435\u0438.</div>';
+           + '\u00BB. \u042D\u0442\u043E \u043F\u0440\u0435\u0434\u0435\u043B \u0441\u0438\u0441\u0442\u0435\u043C\u044B \u2014 \u043E\u0442 \u043A\u043D\u043E\u043F\u043E\u043A \u043F\u043B\u0435\u0447\u0430 \u043E\u043D \u041D\u0415 \u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F.</div>';
     } else {
         h += '<div class="bd-vlabel">' + sideName + '</div>'
            + '<div class="bd-vstop">' + dec.msg + '</div>'
            + (dec.fix ? '<div class="bd-vwhy">' + dec.fix + '</div>' : '');
     }
+    // Строка выбора — единственное место, где живёт нажатая кнопка. Меняется
+    // мгновенно вместе со всеми числами ниже.
+    h += '<div class="bd-pick" style="border-color:' + (okSelHero ? 'rgba(48,209,88,0.45)' : 'rgba(255,69,58,0.45)') + ';">'
+       + '<span class="bd-k">\u0412\u044B\u0431\u0440\u0430\u043D\u043E</span>'
+       + '<span class="bd-v" style="color:' + (okSelHero ? 'var(--green)' : 'var(--red)') + ';font-size:1.15em;">'
+       + currentLev + 'X ' + (okSelHero ? '\u2713 \u043F\u0440\u043E\u0445\u043E\u0434\u0438\u0442' : '\u2715 \u0432\u044B\u0448\u0435 \u043F\u043E\u0442\u043E\u043B\u043A\u0430') + '</span></div>';
     h += '<div class="bd-seg">'
-       + '<button class="bd-sbtn' + (isLong ? ' on-long' : '') + '" onclick="setSide(\'long\')">\u041B\u041E\u041D\u0413</button>'
-       + '<button class="bd-sbtn' + (isLong ? '' : ' on-short') + '" onclick="setSide(\'short\')">\u0428\u041E\u0420\u0422</button>'
+       + '<button class="bd-sbtn' + (isLong ? ' on-long' : '') + '" onclick="setBoardSide(\'long\')">\u041B\u041E\u041D\u0413</button>'
+       + '<button class="bd-sbtn' + (isLong ? '' : ' on-short') + '" onclick="setBoardSide(\'short\')">\u0428\u041E\u0420\u0422</button>'
        + '</div></div>';
+
+    // ── 1a. Релевантность стороны для текущего положения в диапазоне ──
+    if (!relevant) {
+        h += '<div class="bd-sec" style="border-color:rgba(255,69,58,0.4);">'
+           + '<div class="bd-h">\u0421\u0422\u041E\u0420\u041E\u041D\u0410 \u041F\u0420\u041E\u0422\u0418\u0412 \u0421\u0422\u0420\u0423\u041A\u0422\u0423\u0420\u042B</div>'
+           + '<div class="bd-bad" style="margin-top:0;">\u0426\u0435\u043D\u0430 \u043D\u0430 ' + rpos.toFixed(0)
+           + '% \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D\u0430 90\u0434. '
+           + (isLong ? '\u041B\u043E\u043D\u0433 \u0443 \u0432\u0435\u0440\u0445\u043D\u0435\u0433\u043E \u043A\u0440\u0430\u044F \u2014 \u043F\u043E\u043A\u0443\u043F\u043A\u0430 \u043F\u043E\u0441\u043B\u0435 \u0441\u043E\u0441\u0442\u043E\u044F\u0432\u0448\u0435\u0433\u043E\u0441\u044F \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F.'
+                     : '\u0428\u043E\u0440\u0442 \u0443 \u043D\u0438\u0436\u043D\u0435\u0433\u043E \u043A\u0440\u0430\u044F \u2014 \u043F\u0440\u043E\u0434\u0430\u0436\u0430 \u0443\u0436\u0435 \u0443\u043F\u0430\u0432\u0448\u0435\u0433\u043E.')
+           + ' \u0421\u0447\u0451\u0442 \u0438 \u043F\u043B\u0435\u0447\u043E \u043D\u0438\u0436\u0435 \u0441\u0447\u0438\u0442\u0430\u044E\u0442\u0441\u044F \u0447\u0435\u0441\u0442\u043D\u043E, \u043D\u043E \u044D\u0442\u043E \u0432\u0445\u043E\u0434 \u043F\u0440\u043E\u0442\u0438\u0432 \u0442\u0432\u043E\u0435\u0433\u043E \u0436\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u0430.</div></div>';
+    }
 
     // ── 2. Предупреждения ──
     if (dec.warn.length) {
@@ -1312,12 +1404,13 @@ function boardHtml(row, pos) {
     }
 
     // ── 3. Почему эта монета ──
-    if (row.sc) {
-        var tier = tierOf(row.sc.score);
+    if (sc) {
+        var tier = tierOf(sc.score);
         h += '<div class="bd-sec"><div class="bd-h">\u041F\u041E\u0427\u0415\u041C\u0423 \u042D\u0422\u0410 \u041C\u041E\u041D\u0415\u0422\u0410</div>'
-           + '<div class="bd-kv"><span class="bd-k">\u041C\u0435\u0441\u0442\u043E \u0432 \u0441\u043F\u0438\u0441\u043A\u0435 ' + sideName.toLowerCase() + '</span>'
-           + '<span class="bd-v" style="color:' + tier.c + ';">#' + (pos + 1) + ' \u00B7 ' + tier.n
-           + ' \u00B7 ' + Math.round(row.sc.score) + '</span></div>';
+           + '<div class="bd-kv"><span class="bd-k">\u041E\u0446\u0435\u043D\u043A\u0430 \u043A\u0430\u043A ' + sideName.toLowerCase() + '-\u043A\u0430\u043D\u0434\u0438\u0434\u0430\u0442\u0430</span>'
+           + '<span class="bd-v" style="color:' + tier.c + ';">'
+           + ((sideAligned(row) && pos >= 0) ? '#' + (pos + 1) + ' \u00B7 ' : '') + tier.n
+           + ' \u00B7 ' + Math.round(sc.score) + '</span></div>';
         if (has(cd.rank)) {
             h += '<div class="bd-kv"><span class="bd-k">\u0420\u0430\u043D\u0433 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438</span>'
                + '<span class="bd-v">#' + cd.rank + '</span></div>';
@@ -1327,8 +1420,8 @@ function boardHtml(row, pos) {
             h += '<div class="bd-kv"><span class="bd-k">FDV / \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u044F</span>'
                + '<span class="bd-v" style="color:' + fC + ';">' + cd.fdv_mc.toFixed(1) + '\u00D7</span></div>';
         }
-        if (row.sc.reasons.length) {
-            h += '<div class="bd-note" style="color:var(--cyan);">' + row.sc.reasons.join(' \u00B7 ') + '</div>';
+        if (sc.reasons.length) {
+            h += '<div class="bd-note" style="color:var(--cyan);">' + sc.reasons.join(' \u00B7 ') + '</div>';
         }
         h += '<div class="bd-note">\u042D\u0442\u043E \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F, \u0430 \u043D\u0435 \u0441\u0438\u0433\u043D\u0430\u043B \u0432\u0445\u043E\u0434\u0430: \u0441\u0447\u0451\u0442 \u0433\u043E\u0432\u043E\u0440\u0438\u0442, \u043D\u0430 \u043A\u0430\u043A\u0438\u0435 \u043C\u043E\u043D\u0435\u0442\u044B \u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043F\u0435\u0440\u0432\u044B\u043C\u0438.</div>'
            + '</div>';
@@ -1406,7 +1499,11 @@ function boardHtml(row, pos) {
        + '</div>';
 
     // ── 7. Цена времени ──
-    var Lp = dec.ok ? dec.L : currentLev;
+    // БАГ 09.08 (найден Боссом): здесь стояло dec.ok ? dec.L : currentLev.
+    // При выданном вердикте раздел молча считал ИТОГ, игнорируя нажатую кнопку:
+    // 4X->3X менял только цену ликвидации, а вероятности и funding оставались
+    // от 4X. Всё, чем управляет Босс, обязано идти от currentLev.
+    var Lp = currentLev;
     var p7  = liqTouchProb(cd.volatility, Lp, isLong, 168);
     var p14 = liqTouchProb(cd.volatility, Lp, isLong, 336);
     var p30 = liqTouchProb(cd.volatility, Lp, isLong, 720);
@@ -1534,10 +1631,11 @@ function renderBoard() {
     if (!el) return;
 
     var row = null, pos = 0;
-    if (boardSym && currentSide !== 'none' && lastCtx) {
+    if (boardSym && lastCtx) {
         for (var i = 0; i < lastRows.length; i++) {
-            if (lastRows[i].t.name === boardSym) { row = lastRows[i]; pos = i; break; }
+            if (lastRows[i].t.name === boardSym) { row = lastRows[i]; break; }
         }
+        pos = lastShownSyms.indexOf(boardSym);
     }
     if (!row) {
         if (el.style.display === 'block') {
@@ -1712,13 +1810,31 @@ function update() {
     var stressMult  = STRESS_MULT[currentStress];
     // Снимок сценария и строк — доска читает их, а не пересчитывает список.
     lastRows = rows;
+    // Отсев нерелевантной стороны (правка Босса 09.08): в ЛОНГЕ прячем монеты
+    // у верхнего края диапазона, в ШОРТЕ — у нижнего. Не удаляем, а сворачиваем
+    // в полосу с раскрытием: молча исчезнувшая монета опаснее лишней строки.
+    var shownRows = rows, offRows = [];
+    if (sideOn) {
+        shownRows = [];
+        for (var oi = 0; oi < rows.length; oi++) {
+            var orow = rows[oi];
+            if (orow.state === 'ok' && orow.cd && orow.coin) {
+                var orp = rangePos(orow.cd, parseFloat(orow.coin.lastPrice));
+                if (!sideRelevant(orp, isLong)) { orow.offPos = orp; offRows.push(orow); continue; }
+            }
+            shownRows.push(orow);
+        }
+        if (showOff) shownRows = shownRows.concat(offRows);
+    }
+    lastShownSyms = [];
+    for (var si = 0; si < shownRows.length; si++) lastShownSyms.push(shownRows[si].t.name);
     lastCtx  = { isLong: isLong, btcStats: btcStats, ratio: ratio,
                  stressMult: stressMult, target: target, btc: btc };
     var stressBadge = STRESS_BADGE[currentStress];
     var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
     var html = '';
 
-    rows.forEach(function(row, pos) {
+    shownRows.forEach(function(row, pos) {
         var t = row.t;
         if (row.state === 'nopair') {
             html += '<div class="no-data-card">'
@@ -1860,30 +1976,21 @@ function update() {
             liqHtml = '<div style="font-size:0.82em;color:#777;">Беты нет \u2014 прогноз и ликвидации от прогноза недоступны</div>';
         }
 
-        // Min / позиция / Max со стрелками к процентам (правка Босса 08.08).
+        // Min / позиция / Max — одна компактная строка без переносов (правка
+        // Босса 09.08). Стрелки-проценты убраны: они ломали вёрстку карточки,
+        // а то же самое есть в строке причины и в разделе доски «Диапазон 90д».
         var minClass = dynPos <= 25 ? 'light-blink' : '';
         var minColor = dynPos <= 25 ? 'var(--red)' : 'var(--accent)';
         var maxClass = dynPos >= 75 ? 'light-blink' : '';
         var maxColor = dynPos >= 75 ? 'var(--green)' : 'var(--accent)';
         var rangeHtml = '';
         if (has(minP) && has(maxP) && minP > 0 && maxP > 0) {
-            var upFromMin = (cur / minP - 1) * 100;
-            var dnFromMax = (cur / maxP - 1) * 100;
-            var upColor = upFromMin >= 60 ? 'var(--red)' : (upFromMin <= 10 ? 'var(--green)' : '#9a9aa4');
-            var dnColor = dnFromMax <= -40 ? 'var(--green)' : (dnFromMax >= -10 ? 'var(--red)' : '#9a9aa4');
-            // Стрелки-проценты — только в ЛОНГ/ШОРТ. В ОБЗОРЕ они убраны
-            // (правка Босса 09.08): то же самое есть в строке причины и на доске.
-            var upArrow = sideOn
-                ? ' <span style="color:' + upColor + ';font-style:normal;font-weight:700;">\u2192+' + upFromMin.toFixed(1) + '%</span>' : '';
-            var dnArrow = sideOn
-                ? ' <span style="color:' + dnColor + ';font-style:normal;font-weight:700;">\u2192' + dnFromMax.toFixed(1) + '%</span>' : '';
-            rangeHtml = '<div class="extra-data">'
-                + 'Min: <span class="' + minClass + '" style="color:' + minColor + ';">' + fmtP(minP) + '</span>'
-                + upArrow
-                + ' | <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;margin:0 4px;">'
-                + dynPos.toFixed(0) + '%</span> | '
-                + 'Max: <span class="' + maxClass + '" style="color:' + maxColor + ';">' + fmtP(maxP) + '</span>'
-                + dnArrow
+            rangeHtml = '<div class="extra-data range-line">'
+                + '<span class="' + minClass + '" style="color:' + minColor + ';">' + fmtP(minP) + '</span>'
+                + ' <span style="color:#fff;font-size:1.1em;font-weight:bold;font-family:monospace;">'
+                + dynPos.toFixed(0) + '%</span> '
+                + '<span class="' + maxClass + '" style="color:' + maxColor + ';">' + fmtP(maxP) + '</span>'
+                + ' <span style="color:#666;font-size:0.8em;font-style:normal;">90\u0434</span>'
                 + '</div>';
         }
 
@@ -1893,10 +2000,12 @@ function update() {
         }
 
         // Блок входа переехал в полноэкранную доску: карточка остаётся витриной.
+        // Подпись кнопки следует за режимом (правка Босса 09.08).
         var entryHtml = '';
         if (sideOn) {
             entryHtml = '<button class="qbtn wide call" onclick="openEntry(\'' + t.name + '\','
-                + numAttr(cur) + ')">CRYPTO FUTURE</button>';
+                + numAttr(cur) + ',\'' + currentSide + '\')">CRYPTO FUTURE '
+                + (isLong ? 'LONG' : 'SHORT') + '</button>';
         }
 
         var dynPosRounded = Math.round(dynPos);
@@ -1904,12 +2013,20 @@ function update() {
         if (dynPosRounded <= 1)       edgeClass = ' edge-min';
         else if (dynPosRounded >= 99) edgeClass = ' edge-max';
 
+        // Имя монеты — кнопка входа в доску (правка Босса 09.08). В ОБЗОРЕ
+        // стороны нет, поэтому она выбирается по положению в диапазоне:
+        // нижняя половина -> лонг, верхняя -> шорт. Внутри доски переключается.
+        var autoSide = sideOn ? currentSide : (dynPos < 50 ? 'long' : 'short');
+        var nameHtml = '<span class="token-name tap" onclick="openEntry(\'' + t.name + '\','
+            + numAttr(cur) + ',\'' + autoSide + '\')">' + t.name
+            + '<span class="tap-mark">\u25B8</span></span>';
+
         html += '<div class="card' + edgeClass + '" style="border-left:4px solid ' + p24hColor + ';">'
             + '<div class="card-main">'
             + rankHtml
             + tierHtml
             + '<div class="row">'
-            +   '<span class="token-name">' + t.name + badgeHtml
+            +   '<span>' + nameHtml + badgeHtml
             +     ' <span class="pct-24h" style="color:' + p24hColor + ';">'
             +       (p24 > 0 ? '+' : '') + p24.toFixed(2) + '%</span>'
             +   '</span>'
@@ -1947,6 +2064,19 @@ function update() {
             + entryHtml
             + '</div>';
     });
+
+    // Полоса свёрнутых монет: сколько скрыто и почему.
+    if (sideOn && offRows.length) {
+        var offNames = [];
+        for (var fi = 0; fi < offRows.length; fi++) offNames.push(offRows[fi].t.name);
+        html += '<div class="off-strip" onclick="toggleOff()">'
+            + '<span class="off-cnt">' + offRows.length + '</span> '
+            + (isLong ? '\u043C\u043E\u043D\u0435\u0442 \u0443 \u0432\u0435\u0440\u0445\u043D\u0435\u0433\u043E \u043A\u0440\u0430\u044F 90\u0434 \u2014 \u043B\u043E\u043D\u0433 \u043D\u0435 \u0440\u0430\u0441\u0441\u043C\u0430\u0442\u0440\u0438\u0432\u0430\u0435\u043C'
+                      : '\u043C\u043E\u043D\u0435\u0442 \u0443 \u043D\u0438\u0436\u043D\u0435\u0433\u043E \u043A\u0440\u0430\u044F 90\u0434 \u2014 \u0448\u043E\u0440\u0442 \u043D\u0435 \u0440\u0430\u0441\u0441\u043C\u0430\u0442\u0440\u0438\u0432\u0430\u0435\u043C')
+            + '<div class="off-names">' + offNames.join(' \u00B7 ') + '</div>'
+            + '<div class="off-act">' + (showOff ? '\u0421\u041A\u0420\u042B\u0422\u042C' : '\u041F\u041E\u041A\u0410\u0417\u0410\u0422\u042C \u0412\u0421\u0401 \u0420\u0410\u0412\u041D\u041E') + '</div>'
+            + '</div>';
+    }
 
     var resultsEl = document.getElementById('results');
     if (resultsEl) resultsEl.innerHTML = html;
