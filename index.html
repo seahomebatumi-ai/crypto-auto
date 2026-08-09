@@ -89,12 +89,14 @@
         }
         /* Свёрнутые монеты вне сценария */
         .off-strip {
-            margin: 4px 0 8px; padding: 11px 13px; cursor: pointer;
-            border: 1px dashed #3a3a46; border-radius: 12px; background: #16161c;
-            font-size: 0.8em; color: #8a8a98; line-height: 1.4;
+            margin: 6px 0 8px; padding: 12px 14px; cursor: pointer;
+            border: 1px dashed #43434f; border-radius: 12px;
+            background: linear-gradient(180deg, #191920 0%, #131318 100%);
+            font-size: 0.82em; color: #a0a0ae; line-height: 1.4;
         }
         .off-cnt { color: var(--accent); font-weight: 900; font-size: 1.15em; }
-        .off-names { color: #5c5c68; font-size: 0.9em; margin-top: 4px; word-break: break-word; }
+        .off-names { color: #82828f; font-size: 0.88em; margin-top: 6px; line-height: 1.55;
+                     word-break: break-word; letter-spacing: 0.02em; }
         .off-act {
             color: var(--cyan); font-weight: 800; font-size: 0.85em;
             letter-spacing: 0.1em; margin-top: 6px;
@@ -256,10 +258,21 @@
             letter-spacing: 0.02em; white-space: nowrap; pointer-events: none;
         }
         /* Кнопка вызова доски */
+        /* Мягкий золотой пульс — единственный анимированный акцент на карточке.
+           2.9 с, без резких скачков яркости: премиальный, не мигалка. */
+        @keyframes goldPulse {
+            0%   { color: #d9a52f; border-color: rgba(243,186,47,0.38);
+                   box-shadow: 0 0 0 rgba(243,186,47,0); }
+            50%  { color: #ffd97a; border-color: rgba(243,186,47,0.95);
+                   box-shadow: 0 0 20px rgba(243,186,47,0.20), inset 0 0 14px rgba(243,186,47,0.07); }
+            100% { color: #d9a52f; border-color: rgba(243,186,47,0.38);
+                   box-shadow: 0 0 0 rgba(243,186,47,0); }
+        }
         .qbtn.call {
             background: linear-gradient(180deg, rgba(243,186,47,0.14), rgba(243,186,47,0.04));
             border: 1px solid rgba(243,186,47,0.55); color: var(--accent);
             font-weight: 900; letter-spacing: 0.14em;
+            animation: goldPulse 2.9s ease-in-out infinite;
         }
 
         /* ─────────── ДОСКА CRYPTO FUTURE (полный экран) ─────────── */
@@ -280,7 +293,7 @@
             border-bottom: 1px solid #24242c;
         }
         .bd-title { font-size: 1.02em; font-weight: 900; letter-spacing: 0.14em; }
-        .bd-sub   { font-size: 0.64em; color: #6e6e7c; letter-spacing: 0.1em; margin-top: 3px; }
+        .bd-sub   { font-size: 0.64em; color: #9296a4; letter-spacing: 0.1em; margin-top: 3px; }
         .bd-x {
             position: absolute; left: 12px; top: calc(env(safe-area-inset-top) + 8px);
             width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
@@ -296,7 +309,7 @@
         }
         .bd-h {
             font-size: 0.63em; font-weight: 900; letter-spacing: 0.2em;
-            color: #6f6f7e; text-transform: uppercase; margin-bottom: 10px;
+            color: #8f8fa0; text-transform: uppercase; margin-bottom: 10px;
         }
         /* Герой-вердикт */
         .bd-hero {
@@ -304,18 +317,17 @@
             border-radius: 18px; padding: 15px 15px 13px; border: 1px solid #34343f;
             background: linear-gradient(180deg, #1f1f28 0%, #131318 100%);
         }
+        /* Подсветка героя семантическая: зелёная = плечо проходит, красная = нет.
+           Сторону сделки несут подпись и сегмент ЛОНГ/ШОРТ, а не цвет. */
         .bd-hero::after {
             content: ''; position: absolute; inset: 0; pointer-events: none;
             background: radial-gradient(80% 120% at 100% 0%, rgba(48,209,88,0.16) 0%, rgba(0,0,0,0) 62%);
-        }
-        .bd-hero.s-short::after {
-            background: radial-gradient(80% 120% at 100% 0%, rgba(255,69,58,0.16) 0%, rgba(0,0,0,0) 62%);
         }
         .bd-hero.s-stop::after {
             background: radial-gradient(80% 120% at 100% 0%, rgba(255,69,58,0.22) 0%, rgba(0,0,0,0) 62%);
         }
         .bd-vlabel { position: relative; z-index: 1; font-size: 0.62em; font-weight: 900;
-                     letter-spacing: 0.24em; color: #75758a; }
+                     letter-spacing: 0.24em; color: #9292a6; }
         .bd-vnum {
             position: relative; z-index: 1; font-size: 3.4em; font-weight: 900;
             line-height: 0.92; letter-spacing: -0.035em; margin: 2px 0 1px;
@@ -323,7 +335,7 @@
         }
         .bd-vstop { position: relative; z-index: 1; font-size: 1.35em; font-weight: 900;
                     line-height: 1.15; letter-spacing: 0.01em; color: var(--red); margin: 4px 0 2px; }
-        .bd-vwhy  { position: relative; z-index: 1; font-size: 0.8em; color: #a0a0b0; line-height: 1.4; }
+        .bd-vwhy  { position: relative; z-index: 1; font-size: 0.8em; color: #b6b6c6; line-height: 1.4; }
         /* Строка выбранного плеча — единственное место, где живёт нажатая
            кнопка. Отделена рамкой, чтобы её нельзя было спутать с ИТОГОМ. */
         .bd-pick {
@@ -346,9 +358,9 @@
         /* Строка «метка → значение» */
         .bd-kv { display: flex; justify-content: space-between; align-items: baseline;
                  gap: 10px; margin: 7px 0; font-size: 0.86em; }
-        .bd-k  { color: #8d8d9c; }
+        .bd-k  { color: #a2a2b2; }
         .bd-v  { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .bd-note { font-size: 0.76em; color: #74748a; line-height: 1.45; margin-top: 8px; }
+        .bd-note { font-size: 0.76em; color: #91919f; line-height: 1.45; margin-top: 8px; }
         .bd-warn { font-size: 0.78em; color: var(--accent); line-height: 1.45; margin-top: 8px; }
         .bd-bad  { font-size: 0.78em; color: var(--red);    line-height: 1.45; margin-top: 8px; }
         /* Точка входа: крупная цена между большими шагами */
@@ -364,7 +376,7 @@
         }
         .bd-price { font-size: 1.5em; font-weight: 900; color: var(--accent);
                     font-variant-numeric: tabular-nums; line-height: 1.05; }
-        .bd-pricesub { font-size: 0.66em; color: #7e7e8c; margin-top: 3px; letter-spacing: 0.06em; }
+        .bd-pricesub { font-size: 0.66em; color: #9a9aa8; margin-top: 3px; letter-spacing: 0.06em; }
         .bd-chips { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; margin-top: 8px; }
         .bd-chip {
             padding: 9px 0; border-radius: 9px; font-size: 11px; font-weight: 800;
@@ -386,9 +398,9 @@
         }
         .bd-node.n-acc::before { border-color: var(--accent); }
         .bd-node.n-red::before { border-color: var(--red); }
-        .bd-nl { font-size: 0.72em; letter-spacing: 0.1em; color: #79798a; font-weight: 800; }
+        .bd-nl { font-size: 0.72em; letter-spacing: 0.1em; color: #9797a8; font-weight: 800; }
         .bd-nv { font-size: 1.05em; font-weight: 900; font-variant-numeric: tabular-nums; }
-        .bd-nd { font-size: 0.74em; color: #74748a; }
+        .bd-nd { font-size: 0.74em; color: #91919f; }
         /* Плечи */
         .bd-levs { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; }
         .bd-lev {
@@ -398,19 +410,33 @@
         }
         .bd-lev .lp { display: block; font-size: 8.5px; font-weight: 700; margin-top: 3px;
                       letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-        .bd-lev.ok  { border-color: rgba(48,209,88,0.5); color: var(--green); }
-        .bd-lev.bad { border-color: rgba(255,69,58,0.32); color: #8b524c; }
-        .bd-lev.sel { background: var(--accent); border-color: var(--accent); color: #1a1206; }
+        .bd-lev.ok  { border-color: rgba(48,209,88,0.5);  color: var(--green); }
+        .bd-lev.bad { border-color: rgba(255,69,58,0.34); color: #b0605a; }
+        /* Заливка = выбрано, цвет заливки = проходит/не проходит. */
+        .bd-lev.ok.sel  { background: rgba(48,209,88,0.20); border-color: var(--green);
+                          color: var(--green); box-shadow: inset 0 0 0 1px rgba(48,209,88,0.5); }
+        .bd-lev.bad.sel { background: rgba(255,69,58,0.18); border-color: var(--red);
+                          color: var(--red); box-shadow: inset 0 0 0 1px rgba(255,69,58,0.45); }
         /* Полоски вероятности */
         .bd-prow { display: grid; grid-template-columns: 52px 1fr 46px; gap: 9px;
                    align-items: center; margin: 8px 0; }
-        .bd-plab { font-size: 0.74em; color: #8d8d9c; font-weight: 700; letter-spacing: 0.06em; }
+        .bd-plab { font-size: 0.74em; color: #a2a2b2; font-weight: 700; letter-spacing: 0.06em; }
         .bd-track { height: 7px; border-radius: 5px; background: #26262e; overflow: hidden; }
         .bd-fill  { height: 100%; border-radius: 5px; }
         .bd-pval  { font-size: 0.8em; font-weight: 900; text-align: right;
                     font-variant-numeric: tabular-nums; }
         /* Диапазон 90 дней */
-        .bd-rng { position: relative; height: 12px; border-radius: 7px; margin: 20px 0 8px;
+        .bd-center { text-align: center; }
+        /* Положение цены — крупное белое число по центру. Плавающая подпись над
+           маркером убрана: у краёв она наезжала на МИН/МАКС. */
+        .bd-rpct {
+            text-align: center; color: #fff; font-weight: 900;
+            font-size: 2.15em; line-height: 1; letter-spacing: -0.03em;
+            margin: 2px 0 12px; font-variant-numeric: tabular-nums;
+            text-shadow: 0 2px 14px rgba(255,255,255,0.14);
+        }
+        .bd-rpct-s { font-size: 0.46em; font-weight: 800; margin-left: 2px; opacity: 0.75; }
+        .bd-rng { position: relative; height: 12px; border-radius: 7px; margin: 4px 0 10px;
                   box-shadow: inset 0 1px 3px rgba(0,0,0,0.55); }
         .bd-rmark {
             position: absolute; top: -6px; width: 4px; height: 24px; border-radius: 3px;
@@ -423,7 +449,7 @@
         }
         .bd-rends { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
         .bd-rend  { font-size: 0.76em; line-height: 1.35; }
-        .bd-rcap  { font-size: 0.82em; letter-spacing: 0.12em; font-weight: 800; color: #6f6f7e; }
+        .bd-rcap  { font-size: 0.8em; letter-spacing: 0.16em; font-weight: 900; }
         .bd-rnum  { font-size: 1.02em; font-weight: 900; font-variant-numeric: tabular-nums; }
         /* Доверие к модели */
         .bd-conf { display: grid; grid-template-columns: 1fr 62px; gap: 11px; align-items: center; }
@@ -1359,11 +1385,13 @@ function boardHtml(row, pos) {
 
     // ── 1. Вердикт ──
     var okSelHero = dec.ok && currentLev <= dec.L;
-    h += '<div class="bd-hero ' + (dec.ok ? (isLong ? 's-long' : 's-short') : 's-stop') + '">';
+    // Цвет героя семантический: зелёный = плечо проходит, красный = нет.
+    // Сторону несут подпись и сегмент ЛОНГ/ШОРТ (правка Босса 09.08).
+    h += '<div class="bd-hero ' + (dec.ok ? 's-pass' : 's-stop') + '">';
     if (dec.ok) {
         h += '<div class="bd-vlabel">\u0418\u0422\u041E\u0413 \u00B7 ' + sideName
            + ' \u00B7 \u041F\u041E\u0422\u041E\u041B\u041E\u041A</div>'
-           + '<div class="bd-vnum" style="color:' + sideColor + ';">' + dec.L + 'X</div>'
+           + '<div class="bd-vnum" style="color:var(--green);">' + dec.L + 'X</div>'
            + '<div class="bd-vwhy">\u0416\u0451\u0441\u0442\u0447\u0435 \u0432\u0441\u0435\u0433\u043E \u0440\u0435\u0436\u0435\u0442 \u00AB' + dec.binding
            + '\u00BB. \u042D\u0442\u043E \u043F\u0440\u0435\u0434\u0435\u043B \u0441\u0438\u0441\u0442\u0435\u043C\u044B \u2014 \u043E\u0442 \u043A\u043D\u043E\u043F\u043E\u043A \u043F\u043B\u0435\u0447\u0430 \u043E\u043D \u041D\u0415 \u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F.</div>';
     } else {
@@ -1484,7 +1512,9 @@ function boardHtml(row, pos) {
     var lh = '';
     for (var L = 2; L <= 7; L++) {
         var okL = dec.ok && L <= dec.L;
-        var cls = 'bd-lev' + (L === currentLev ? ' sel' : (okL ? ' ok' : ' bad'));
+        // Цвет = проходит/не проходит. Заливка = выбрано. Два признака не
+        // смешиваются: раньше выбор перекрашивал кнопку в золото и терял смысл.
+        var cls = 'bd-lev ' + (okL ? 'ok' : 'bad') + (L === currentLev ? ' sel' : '');
         lh += '<button class="' + cls + '" onclick="setLev(' + L + ')">' + L + 'X'
             + '<span class="lp">' + fmtPBare(liqPrice(E, L, isLong)) + '</span></button>';
     }
@@ -1519,11 +1549,16 @@ function boardHtml(row, pos) {
         if (has(fr)) {
             var payMe = isLong ? (fr < 0) : (fr > 0);
             var cost  = Math.abs(fr) * 21 * Lp * 100;
+            // Весь блок одним цветом: зелёный — платят мне, красный — плачу я
+            // (правка Босса 09.08). Смысл и расчёт не тронуты.
+            var fCol  = payMe ? 'var(--green)' : 'var(--red)';
             h += '<div class="bd-kv" style="border-top:1px solid #2b2b34;padding-top:9px;margin-top:11px;">'
-               + '<span class="bd-k">Funding ' + (fr >= 0 ? '+' : '') + (fr * 100).toFixed(4) + '%/8\u0447</span>'
-               + '<span class="bd-v" style="color:' + (payMe ? 'var(--green)' : 'var(--red)') + ';">'
+               + '<span class="bd-k" style="color:' + fCol + ';">Funding ' + (fr >= 0 ? '+' : '')
+               + (fr * 100).toFixed(4) + '%/8\u0447</span>'
+               + '<span class="bd-v" style="color:' + fCol + ';">'
                + (payMe ? '+' : '\u2212') + cost.toFixed(2) + '% \u043C\u0430\u0440\u0436\u0438 / 7\u0434</span></div>'
-               + '<div class="bd-note">' + (payMe ? '\u041F\u043B\u0430\u0442\u044F\u0442 \u043C\u043D\u0435' : '\u041F\u043B\u0430\u0447\u0443 \u044F')
+               + '<div class="bd-note" style="color:' + fCol + ';opacity:0.82;">'
+               + (payMe ? '\u041F\u043B\u0430\u0442\u044F\u0442 \u043C\u043D\u0435' : '\u041F\u043B\u0430\u0447\u0443 \u044F')
                + ' \u2014 \u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0443\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u044F \u043D\u0435\u0434\u0435\u043B\u0438 \u043F\u0440\u0438 ' + Lp + 'X.</div>';
         }
         h += '</div>';
@@ -1555,26 +1590,27 @@ function boardHtml(row, pos) {
     var mn = cd.min_price, mx = cd.max_price;
     if (has(mn) && has(mx) && mx > mn && mn > 0) {
         var rp = Math.max(0, Math.min(100, (cur - mn) / (mx - mn) * 100));
-        var lblPos = Math.max(9, Math.min(91, rp));
-        var grad = isLong
-            ? 'linear-gradient(90deg, rgba(48,209,88,0.9) 0%, rgba(243,186,47,0.75) 52%, rgba(255,69,58,0.85) 100%)'
-            : 'linear-gradient(90deg, rgba(255,69,58,0.85) 0%, rgba(243,186,47,0.75) 48%, rgba(48,209,88,0.9) 100%)';
+        // Шкала цены, а не качества сделки: низ диапазона красный, верх зелёный
+        // (правка Босса 09.08). Одинаково для лонга и шорта — цвет обязан
+        // означать одно и то же в обоих режимах.
+        var grad = 'linear-gradient(90deg, rgba(255,69,58,0.9) 0%, '
+                 + 'rgba(243,186,47,0.75) 50%, rgba(48,209,88,0.9) 100%)';
         var upMin = (cur / mn - 1) * 100;
         var dnMax = (1 - cur / mx) * 100;
         var mnCls = rp <= 25 ? 'light-blink' : '';
         var mxCls = rp >= 75 ? 'light-blink' : '';
-        var mnCol = rp <= 25 ? 'var(--red)'   : 'var(--accent)';
-        var mxCol = rp >= 75 ? 'var(--green)' : 'var(--accent)';
-        h += '<div class="bd-sec"><div class="bd-h">\u0414\u0418\u0410\u041F\u0410\u0417\u041E\u041D 90 \u0414\u041D\u0415\u0419</div>'
+        var mnCol = 'var(--red)';
+        var mxCol = 'var(--green)';
+        h += '<div class="bd-sec"><div class="bd-h bd-center">\u0414\u0418\u0410\u041F\u0410\u0417\u041E\u041D 90 \u0414\u041D\u0415\u0419</div>'
+           + '<div class="bd-rpct">' + rp.toFixed(0) + '<span class="bd-rpct-s">%</span></div>'
            + '<div class="bd-rng" style="background:' + grad + ';">'
-           +   '<div class="bd-rpos" style="left:' + lblPos.toFixed(1) + '%;">' + rp.toFixed(0) + '%</div>'
            +   '<div class="bd-rmark" style="left:' + rp.toFixed(1) + '%;"></div>'
            + '</div>'
            + '<div class="bd-rends">'
-           +   '<div class="bd-rend"><div class="bd-rcap">\u041C\u0418\u041D</div>'
+           +   '<div class="bd-rend"><div class="bd-rcap" style="color:' + mnCol + ';">\u041C\u0418\u041D</div>'
            +     '<div class="bd-rnum ' + mnCls + '" style="color:' + mnCol + ';">' + fmtP(mn) + '</div>'
            +     '<div class="bd-nd">\u0446\u0435\u043D\u0430 \u0432\u044B\u0448\u0435 \u043D\u0430 ' + upMin.toFixed(1) + '%</div></div>'
-           +   '<div class="bd-rend" style="text-align:right;"><div class="bd-rcap">\u041C\u0410\u041A\u0421</div>'
+           +   '<div class="bd-rend" style="text-align:right;"><div class="bd-rcap" style="color:' + mxCol + ';">\u041C\u0410\u041A\u0421</div>'
            +     '<div class="bd-rnum ' + mxCls + '" style="color:' + mxCol + ';">' + fmtP(mx) + '</div>'
            +     '<div class="bd-nd">\u0446\u0435\u043D\u0430 \u043D\u0438\u0436\u0435 \u043D\u0430 ' + dnMax.toFixed(1) + '%</div></div>'
            + '</div></div>';
