@@ -722,6 +722,11 @@ var posMargin = 100;
 var sizeMode = 'usdt';
 var posQty   = 0;
 var SHOW_LEVS = [3, 4, 5];
+// Пороги «созревания» шорта. Живут ОДНИМ числом на два места: их читает
+// scoreCandidate (штраф счёта) и блок «ШОРТ СОЗРЕЕТ, КОГДА» (что показать
+// Боссу). Разъехавшись, они начали бы врать друг про друга.
+var EFF_TREND    = 0.6;   // |eff14| выше -> движение идёт прямой линией
+var PACE_Z       = 0.25;  // порог, с которого темп считается сломанным
 var VOL_ABNORMAL = 2.0;   // vol7/vol90 -> потолок 3X
 var VOL_HARD     = 0.02;  // 2%/ч      -> потолок 2X
 var VOL_STOP     = 0.03;  // 3%/ч      -> плечо не выдаётся
@@ -1214,6 +1219,46 @@ function volRegime(cd) {
     return cd.vol7 / cd.volatility;
 }
 
+// ── Созревание шорта ────────────────────────────────────────────────────────
+// «ШОРТ СОЗРЕЕТ, КОГДА» — два условия ТЕМПА, которые прямо сейчас режут счёт
+// шорт-кандидата в scoreCandidate. Раньше Босс проверял эти два числа глазами.
+// Ноль новых запросов: eff14, r7, r30 и volatility уже приходят от бота.
+// Нет ни одного из двух наборов -> null -> блок не рисуется (инвариант 9).
+function shortMaturity(cd) {
+    var rows = [], done = 0, known = 0;
+
+    // Условие 1. Прямолинейность роста за 14д. Выше EFF_TREND тренд вверх не
+    // сломан, и счёт шорта умножается на 0.5 — это самый дорогой штраф.
+    if (has(cd.eff14)) {
+        var okEff = cd.eff14 <= EFF_TREND;
+        known++; if (okEff) done++;
+        rows.push({ k: '\u0422\u0440\u0435\u043D\u0434 \u0432\u0432\u0435\u0440\u0445 \u0441\u043B\u043E\u043C\u0430\u0435\u0442\u0441\u044F', ok: okEff,
+                    now: cd.eff14.toFixed(2),
+                    need: '\u2264' + EFF_TREND.toFixed(2),
+                    d: 'eff14 \u2014 \u043D\u0430\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u043B\u0438\u043D\u0438\u0435\u0439 \u0448\u0451\u043B \u0440\u043E\u0441\u0442 \u0437\u0430 14 \u0434\u043D\u0435\u0439. \u0412\u044B\u0448\u0435 ' + EFF_TREND.toFixed(2) + ' \u0441\u0447\u0451\u0442 \u0448\u043E\u0440\u0442\u0430 \u0434\u0435\u043B\u0438\u0442\u0441\u044F \u043D\u0430 2' });
+    } else {
+        rows.push({ k: '\u0422\u0440\u0435\u043D\u0434 \u0432\u0432\u0435\u0440\u0445 \u0441\u043B\u043E\u043C\u0430\u0435\u0442\u0441\u044F', ok: null, now: '\u2014', need: '\u2014', d: '\u0431\u043E\u0442 \u043D\u0435 \u0434\u0430\u043B eff14 \u2014 \u0443\u0441\u043B\u043E\u0432\u0438\u0435 \u043D\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043E' });
+    }
+
+    // Условие 2. Темп недели против темпа месяца. Порог тот же, по которому
+    // карточка уже пишет «рост выдыхается»: z <= -PACE_Z.
+    if (has(cd.r7) && has(cd.r30) && has(cd.volatility) && cd.volatility > 0) {
+        var sd7    = sigmaDay(cd.volatility) * Math.sqrt(7);
+        var pace   = cd.r30 * (7 / 30);
+        var needR7 = pace - PACE_Z * sd7;
+        var okPace = cd.r7 <= needR7;
+        known++; if (okPace) done++;
+        rows.push({ k: '\u0420\u043E\u0441\u0442 \u0432\u044B\u0434\u043E\u0445\u043D\u0435\u0442\u0441\u044F', ok: okPace,
+                    now: pctTxt(cd.r7), need: '\u2264' + pctTxt(needR7),
+                    d: 'r7 \u043F\u0440\u043E\u0442\u0438\u0432 \u0442\u0435\u043C\u043F\u0430 r30, \u043F\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u043D\u043D\u043E\u0433\u043E \u043D\u0430 \u0442\u0443 \u0436\u0435 \u043D\u0435\u0434\u0435\u043B\u044E (' + pctTxt(pace) + '), \u0441 \u0437\u0430\u043F\u0430\u0441\u043E\u043C \u0432 \u0447\u0435\u0442\u0432\u0435\u0440\u0442\u044C \u043D\u0435\u0434\u0435\u043B\u044C\u043D\u043E\u0439 \u0441\u0438\u0433\u043C\u044B' });
+    } else {
+        rows.push({ k: '\u0420\u043E\u0441\u0442 \u0432\u044B\u0434\u043E\u0445\u043D\u0435\u0442\u0441\u044F', ok: null, now: '\u2014', need: '\u2014', d: '\u0431\u043E\u0442 \u043D\u0435 \u0434\u0430\u043B r7/r30 \u2014 \u0443\u0441\u043B\u043E\u0432\u0438\u0435 \u043D\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043E' });
+    }
+
+    if (!known) return null;
+    return { rows: rows, done: done, known: known };
+}
+
 // ── Уровень инвалидации ─────────────────────────────────────────────────────
 // Опора — экстремум последних 30 дней (при их отсутствии в coeffs.json —
 // 90-дневный, инвариант 9), сдвинутый на полсигмы за него. Пол 2 дневные
@@ -1359,8 +1404,8 @@ function scoreCandidate(cd, sym, cur, p24, qv, isLong) {
         var pEx  = clamp01((Math.max(-1, Math.min(1, raw)) + 1) / 2);
         parts.push(pEx); ws.push(0.25);
         reasons.push({ w: pEx * 0.25, s: isLong
-            ? (raw > 0.25 ? 'падение замедлилось' : (raw < -0.25 ? 'падение ускоряется' : 'темп падения ровный'))
-            : (raw > 0.25 ? 'рост выдыхается'     : (raw < -0.25 ? 'рост ускоряется'    : 'темп роста ровный')) });
+            ? (raw > PACE_Z ? 'падение замедлилось' : (raw < -PACE_Z ? 'падение ускоряется' : 'темп падения ровный'))
+            : (raw > PACE_Z ? 'рост выдыхается'     : (raw < -PACE_Z ? 'рост ускоряется'    : 'темп роста ровный')) });
     }
     // Дивергенция оборота: цена растёт, а оборот ниже нормы — топливо кончается.
     if (!isLong && has(cd.vol_ratio) && has(cd.r7) && cd.r7 > 0 && cd.vol_ratio < 0.9) {
@@ -1389,8 +1434,8 @@ function scoreCandidate(cd, sym, cur, p24, qv, isLong) {
     var mult = 1, flags = [];
     if (vr !== null && vr > VOL_ABNORMAL) { mult *= 0.5; flags.push('волатильность \u00D7' + vr.toFixed(1)); }
     if (has(cd.eff14)) {
-        if (isLong && cd.eff14 < -0.6)  { mult *= 0.6; flags.push('падает прямой линией'); }
-        if (!isLong && cd.eff14 > 0.6)  { mult *= 0.5; flags.push('тренд вверх не сломан'); }
+        if (isLong && cd.eff14 < -EFF_TREND)  { mult *= 0.6; flags.push('падает прямой линией'); }
+        if (!isLong && cd.eff14 > EFF_TREND)  { mult *= 0.5; flags.push('тренд вверх не сломан'); }
     }
     if (isLong && has(cd.fdv_mc) && cd.fdv_mc > 3) {
         mult *= 0.7; flags.push('FDV ' + cd.fdv_mc.toFixed(1) + '\u00D7 — проверить разлоки');
@@ -1579,6 +1624,52 @@ function boardHtml(row, pos) {
         }
         if (sc.reasons.length) {
             sWhy += '<div class="bd-note" style="color:var(--cyan);">' + sc.reasons.join(' \u00B7 ') + '</div>';
+        }
+        // «ШОРТ СОЗРЕЕТ, КОГДА» — только на стороне ШОРТ и только внутри
+        // блока ПОЧЕМУ ЭТА МОНЕТА: своей секции не заводим, чтобы не трогать
+        // порядок 12 блоков (инвариант 15).
+        if (!isLong) {
+            var mat = shortMaturity(cd);
+            if (mat) {
+                var matCol = mat.done === mat.known ? 'var(--green)'
+                           : (mat.done > 0 ? 'var(--accent)' : '#8f8fa0');
+                sWhy += '<div class="bd-kv" style="border-top:1px solid #2b2b34;'
+                   + 'padding-top:11px;margin-top:12px;margin-bottom:6px;">'
+                   + '<span class="bd-k" style="font-weight:900;letter-spacing:0.14em;'
+                   + 'font-size:0.86em;color:#8f8fa0;">\u0428\u041E\u0420\u0422 \u0421\u041E\u0417\u0420\u0415\u0415\u0422, \u041A\u041E\u0413\u0414\u0410</span>'
+                   + '<span class="bd-v" style="color:' + matCol + ';">'
+                   + mat.done + ' / ' + mat.known + '</span></div>';
+                for (var mi = 0; mi < mat.rows.length; mi++) {
+                    var mr  = mat.rows[mi];
+                    var mCl = mr.ok === null ? '#6f6f7e'
+                            : (mr.ok ? 'var(--green)' : 'var(--accent)');
+                    var mIc = mr.ok === null ? '?' : (mr.ok ? '\u2713' : '\u2715');
+                    sWhy += '<div class="bd-kv" style="margin-bottom:1px;">'
+                       + '<span class="bd-k" style="color:' + mCl + ';">'
+                       + mIc + ' ' + mr.k + '</span>'
+                       + '<span class="bd-v" style="color:' + mCl + ';">'
+                       + mr.now + ' \u2192 ' + mr.need + '</span></div>'
+                       + '<div class="bd-nd" style="margin-bottom:8px;">' + mr.d + '</div>';
+                }
+                // Сводка. Ветка «известно только одно условие» обязательна:
+                // без неё при отсутствии eff14 доска писала «ни одно не
+                // выполнено» про условие, которое вообще не проверялось.
+                var matTxt;
+                if (mat.known < 2) {
+                    matTxt = '\u041F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043E \u043E\u0434\u043D\u043E \u0443\u0441\u043B\u043E\u0432\u0438\u0435 \u0438\u0437 \u0434\u0432\u0443\u0445 \u2014 \u0432\u0442\u043E\u0440\u043E\u0433\u043E \u043D\u0435\u0442 \u0432 \u0434\u0430\u043D\u043D\u044B\u0445 \u0431\u043E\u0442\u0430. '
+                           + (mat.done ? '\u041F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043D\u043E\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E.' : '\u041F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043D\u043E\u0435 \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E.');
+                } else if (mat.done === 2) {
+                    matTxt = '\u041E\u0431\u0430 \u0443\u0441\u043B\u043E\u0432\u0438\u044F \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u044B \u2014 \u0442\u0435\u043C\u043F \u0440\u043E\u0441\u0442\u0430 \u0441\u043B\u043E\u043C\u0430\u043D. \u0414\u0430\u043B\u044C\u0448\u0435 \u0440\u0435\u0448\u0430\u044E\u0442 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u0432\u0445\u043E\u0434\u0430 \u0438 \u043F\u043E\u0442\u043E\u043B\u043E\u043A \u043F\u043B\u0435\u0447\u0430.';
+                } else if (mat.done === 1) {
+                    matTxt = '\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E 1 \u0438\u0437 2. \u041F\u043E\u043A\u0430 \u0432\u0442\u043E\u0440\u043E\u0435 \u0434\u0435\u0440\u0436\u0438\u0442\u0441\u044F, \u0441\u0447\u0451\u0442 \u0448\u043E\u0440\u0442\u0430 \u0437\u0430\u043D\u0438\u0436\u0435\u043D \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u043D\u043E \u2014 \u044D\u0442\u043E \u043D\u0435 \u043E\u0448\u0438\u0431\u043A\u0430 \u043C\u043E\u0434\u0435\u043B\u0438.';
+                } else {
+                    matTxt = '\u041D\u0438 \u043E\u0434\u043D\u043E \u0443\u0441\u043B\u043E\u0432\u0438\u0435 \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E \u2014 \u0440\u043E\u0441\u0442 \u0438\u0434\u0451\u0442 \u043F\u0440\u0435\u0436\u043D\u0438\u043C \u0442\u0435\u043C\u043F\u043E\u043C \u0438 \u043F\u0440\u044F\u043C\u043E\u0439 \u043B\u0438\u043D\u0438\u0435\u0439. \u0421\u0430\u043C\u044B\u0439 \u0434\u043E\u0440\u043E\u0433\u043E\u0439 \u043C\u043E\u043C\u0435\u043D\u0442 \u0434\u043B\u044F \u0448\u043E\u0440\u0442\u0430.';
+                }
+                sWhy += '<div class="bd-note" style="color:' + matCol + ';">'
+                   + matTxt
+                   + '</div>'
+                   + '<div class="bd-note">\u042D\u0442\u043E \u0443\u0441\u043B\u043E\u0432\u0438\u044F \u0422\u0415\u041C\u041F\u0410, \u0430 \u043D\u0435 \u0446\u0435\u043D\u044B: \u043E\u043D\u0438 \u043D\u0435 \u0437\u0430\u043C\u0435\u043D\u044F\u044E\u0442 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u0432\u0445\u043E\u0434\u0430 \u0438 \u043D\u0435 \u043E\u0442\u043C\u0435\u043D\u044F\u044E\u0442 \u043F\u043E\u0442\u043E\u043B\u043E\u043A \u043F\u043B\u0435\u0447\u0430.</div>';
+            }
         }
         sWhy += '<div class="bd-note">\u042D\u0442\u043E \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F, \u0430 \u043D\u0435 \u0441\u0438\u0433\u043D\u0430\u043B \u0432\u0445\u043E\u0434\u0430: \u0441\u0447\u0451\u0442 \u0433\u043E\u0432\u043E\u0440\u0438\u0442, \u043D\u0430 \u043A\u0430\u043A\u0438\u0435 \u043C\u043E\u043D\u0435\u0442\u044B \u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043F\u0435\u0440\u0432\u044B\u043C\u0438.</div>'
            + '</div>';
