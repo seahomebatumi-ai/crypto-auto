@@ -1,0 +1,74 @@
+# .github/workflows/backtest_bench.yml
+# Разовый стенд бэктеста скоринга. Запуск ТОЛЬКО руками (workflow_dispatch).
+# Часовой бот не трогает, Gist не пишет, КЛЮЧ CoinGecko НЕ НУЖЕН и месячная
+# квота Demo (10 000 вызовов) не расходуется: цены берутся с Binance.
+name: Backtest bench (ручной запуск)
+
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: "Глубина истории в годах (3 = ~156 дат, различим IC >= 0.03)"
+        default: "3"
+      source:
+        description: "Источник цен: binance (без ключа) или cg (Demo, максимум 1 год)"
+        default: "binance"
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install numpy requests
+
+      # Кэш свечей переживает прогоны: повторный запуск не качает заново.
+      - uses: actions/cache@v4
+        with:
+          path: bench/cache
+          key: bench-${{ inputs.source }}-${{ inputs.years }}y-v1
+
+      - name: Самопроверка стенда (офлайн, без сети)
+        run: |
+          cd bench
+          python backtest_bench.py --selftest --seeds 10 \
+            --html ../index.html --bot ../main.py | tee selftest.txt
+
+      - name: Закачка истории
+        env:
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+        run: |
+          cd bench
+          python backtest_bench.py --fetch --source ${{ inputs.source }} \
+            --years ${{ inputs.years }} --html ../index.html --bot ../main.py \
+            | tee fetch.txt
+
+      # Ключевая проверка при чужом источнике цен: совпадают ли восстановленные
+      # поля с теми, что прямо сейчас лежат в coeffs.json и стоят на экране.
+      - name: Сверка восстановления с живым coeffs.json
+        run: |
+          cd bench
+          python backtest_bench.py --verify --bot ../main.py | tee verify.txt
+
+      - name: Прогон
+        run: |
+          cd bench
+          for H in 3 7 14; do
+            python backtest_bench.py --run --horizon $H --step 7 \
+              --html ../index.html --bot ../main.py | tee -a report.txt
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backtest-report
+          path: |
+            bench/selftest.txt
+            bench/fetch.txt
+            bench/verify.txt
+            bench/report.txt
+            bench/run_raw.json
