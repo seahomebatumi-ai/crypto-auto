@@ -1,0 +1,722 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+СТЕНД БЭКТЕСТА СКОРИНГА  —  SYSTEM_MAP §10 п.1
+==============================================================================
+Отвечает на ОДИН вопрос: сортирует ли scoreCandidate внимание лучше, чем монетка.
+НЕ даёт права крутить веса (это было бы переобучение) — только вердикт
+«работает / шум / инвертирован».
+
+ГЛАВНЫЙ ИНВАРИАНТ СТЕНДА: ноль копий продакшн-математики.
+  • scoreCandidate + has/clamp01/sigmaDay/volRegime + EFF_TREND/PACE_Z/VOL_ABNORMAL
+    вырезаются ИЗ HTML при каждом запуске и исполняются настоящим движком (node).
+  • cur/min/max/volatility/eff14/r7/r14/r30/vol7/vol_ratio считаются кодом,
+    вырезанным ИЗ get_token_betas бота (AST), включая window_stats/window_vol/
+    volume_expansion — теми же функциями, что писали coeffs.json.
+Правка любого из двух файлов автоматически меняет стенд. Расхождению взяться неоткуда.
+
+РЕЖИМЫ
+  --selftest              офлайн: синтетика с известным ответом (проверка стенда)
+  --fetch --years 2       разовая закачка CoinGecko в кэш (нужен COINGECKO_API_KEY)
+  --run                   прогон по кэшу
+  --run --quality-const   чувствительность: ранг/оборот берутся СЕГОДНЯШНИЕ
+                          (в них зашит взгляд в будущее — только для сравнения)
+==============================================================================
+"""
+
+import os, re, ast, sys, json, time, math, argparse, subprocess, textwrap, bisect
+import numpy as np
+
+HOUR_MS = 3600 * 1000
+DAY_MS = 86400 * 1000
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DEF_HTML = os.path.join(HERE, "Скрипт_Код_CriptoCalculator.html")
+DEF_BOT = os.path.join(HERE, "Код_для_Bota_на_GitHub.py")
+CACHE = os.path.join(HERE, "cache")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. ВЫРЕЗКА JS: scoreCandidate и его зависимости — из HTML, без копий
+# ─────────────────────────────────────────────────────────────────────────────
+JS_FUNCS = ["has", "clamp01", "sigmaDay", "volRegime", "scoreCandidate"]
+JS_VARS = ["EFF_TREND", "PACE_Z", "VOL_ABNORMAL"]
+
+
+def _skip_to_matching_brace(s, i):
+    """i указывает на '{'. Возвращает индекс ПОСЛЕ парной '}'.
+    Пропускает строки '..' ".." и комментарии // /* */ — иначе '}' внутри
+    строки развалила бы вырезку."""
+    depth = 0
+    n = len(s)
+    while i < n:
+        c = s[i]
+        if c in "'\"":
+            q = c
+            i += 1
+            while i < n and s[i] != q:
+                i += 2 if s[i] == "\\" else 1
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and s[i + 1] == "/":
+            while i < n and s[i] != "\n":
+                i += 1
+            continue
+        if c == "/" and i + 1 < n and s[i + 1] == "*":
+            i = s.find("*/", i + 2) + 2
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+    raise ValueError("незакрытая функция")
+
+
+def extract_js(html_path):
+    src = open(html_path, encoding="utf-8").read()
+    out = []
+    for name in JS_FUNCS:
+        m = re.search(r"\nfunction\s+" + name + r"\s*\(", src)
+        if not m:
+            raise ValueError("в HTML не найдена функция " + name)
+        b = src.index("{", m.end())
+        out.append(src[m.start() + 1:_skip_to_matching_brace(src, b)])
+    for name in JS_VARS:
+        m = re.search(r"\nvar\s+" + name + r"\s*=\s*([^;\n]+);", src)
+        if not m:
+            raise ValueError("в HTML не найдена константа " + name)
+        out.append("var " + name + " = " + m.group(1).strip() + ";")
+    return "\n".join(out)
+
+
+JS_DRIVER = r"""
+var fs = require('fs');
+var cachedFunding = {};
+__EXTRACTED__
+var job = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+var out = [];
+for (var i = 0; i < job.length; i++) {
+    var j = job[i];
+    cachedFunding = {};
+    if (j.fr !== null && j.fr !== undefined) cachedFunding[j.sym] = j.fr;
+    var r = null;
+    try { r = scoreCandidate(j.cd, j.sym, j.cur, j.p24, j.qv, j.isLong); } catch (e) { r = null; }
+    out.push(r === null ? null : r.score);
+}
+fs.writeFileSync(process.argv[3], JSON.stringify(out));
+"""
+
+
+class JsScorer:
+    """Пакетный вызов настоящего scoreCandidate одним процессом node."""
+
+    def __init__(self, html_path):
+        self.path = os.path.join(HERE, "_score_bridge.js")
+        open(self.path, "w", encoding="utf-8").write(
+            JS_DRIVER.replace("__EXTRACTED__", extract_js(html_path)))
+        r = subprocess.run(["node", "--check", self.path], capture_output=True)
+        if r.returncode:
+            raise RuntimeError("node --check провалился:\n" + r.stderr.decode())
+
+    def score(self, jobs):
+        fi = os.path.join(HERE, "_job.json")
+        fo = os.path.join(HERE, "_out.json")
+        json.dump(jobs, open(fi, "w"), allow_nan=False)
+        r = subprocess.run(["node", self.path, fi, fo], capture_output=True)
+        if r.returncode:
+            raise RuntimeError("node упал: " + r.stderr.decode()[:800])
+        return json.load(open(fo))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. ВЫРЕЗКА PYTHON: блок метрик монеты — из get_token_betas бота, без копий
+# ─────────────────────────────────────────────────────────────────────────────
+def extract_bot_block(bot_path):
+    src = open(bot_path, encoding="utf-8").read()
+    lines = src.splitlines()
+    tree = ast.parse(src)
+
+    fns = {}
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name in (
+                "window_stats", "window_vol", "volume_expansion"):
+            fns[node.name] = "\n".join(lines[node.lineno - 1:node.end_lineno])
+    if len(fns) != 3:
+        raise ValueError("в боте не найдены window_stats/window_vol/volume_expansion")
+
+    gtb = next(n for n in tree.body
+               if isinstance(n, ast.FunctionDef) and n.name == "get_token_betas")
+    tryn = next(n for n in gtb.body if isinstance(n, ast.Try))
+    stop = next(st for st in tryn.body
+                if isinstance(st, ast.Assign)
+                and getattr(st.targets[0], "id", "") == "coin_buckets")
+    block = textwrap.dedent(
+        "\n".join(lines[tryn.body[0].lineno - 1:stop.lineno - 1]))
+
+    ns = {"np": np}
+    exec("\n\n".join(fns.values()), ns)
+    return compile(block, "<bot-block>", "exec"), ns
+
+
+class CdBuilder:
+    """Собирает запись coeffs.json на момент t тем же кодом, что и бот."""
+
+    def __init__(self, bot_path):
+        self.code, self.ns = extract_bot_block(bot_path)
+
+    def build(self, prices, volumes, i, pts=None, vts=None):
+        """prices/volumes: списки [ts_ms, value] по возрастанию; i — индекс «сейчас».
+        pts/vts — заранее посчитанные метки времени (иначе прогон квадратичен
+        по длине истории). Кэшировать их по id(list) НЕЛЬЗЯ: Python переиспользует
+        id освобождённых объектов, и на втором посеве кэш отдал бы чужой ряд.
+        Берётся ровно скользящее окно 90 дней, как у бота из /market_chart?days=90."""
+        t_end = prices[i][0]
+        cut = t_end - 90 * DAY_MS
+        if pts is None:
+            pts = [p[0] for p in prices]
+        lo = bisect.bisect_left(pts, cut, 0, i + 1)
+        seg = prices[lo:i + 1]
+        if len(seg) < 200:
+            return None
+        segv = None
+        if volumes:
+            if vts is None:
+                vts = [v[0] for v in volumes]
+            segv = volumes[bisect.bisect_left(vts, cut):bisect.bisect_right(vts, t_end)]
+
+        g = dict(self.ns)
+        g.update({"c_data": {"prices": seg, "total_volumes": segv},
+                  "debug": {}, "np": np})
+        exec(self.code, g)
+        return {
+            "min_price": g["min_p"], "max_price": g["max_p"],
+            "price_pos": float(g["price_pos"]), "volatility": g["volatility"],
+            "r7": g["r7"], "r14": g["r14"], "r30": g["r30"],
+            "min30": g["mn30"], "max30": g["mx30"], "vol7": g["vol7"],
+            "eff14": g["eff14"], "vol_ratio": g["vratio"],
+            "rank": None, "rank_prev": None, "fdv_mc": None,
+        }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. ДВИЖОК ПРОГОНА
+# ─────────────────────────────────────────────────────────────────────────────
+def spearman(a, b):
+    a = np.asarray(a, float)
+    b = np.asarray(b, float)
+    if len(a) < 4:
+        return None
+    ra = np.argsort(np.argsort(a)).astype(float)
+    rb = np.argsort(np.argsort(b)).astype(float)
+    ra -= ra.mean()
+    rb -= rb.mean()
+    d = math.sqrt(float((ra ** 2).sum()) * float((rb ** 2).sum()))
+    return float((ra * rb).sum() / d) if d > 0 else None
+
+
+def block_bootstrap_ci(x, n=4000, block=3, seed=7):
+    """ДИ среднего по ряду дат. Блоки — против автокорреляции соседних недель."""
+    x = np.asarray([v for v in x if v is not None], float)
+    if len(x) < 5:
+        return (None, None)
+    rng = np.random.default_rng(seed)
+    nb = int(math.ceil(len(x) / block))
+    means = np.empty(n)
+    for k in range(n):
+        st = rng.integers(0, max(1, len(x) - block + 1), nb)
+        means[k] = np.concatenate([x[s:s + block] for s in st])[:len(x)].mean()
+    return (float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5)))
+
+
+def run_walk(series, cdb, scorer, horizon_d=7, step_d=7, warm_d=90,
+             quality_const=None, verbose=True):
+    """series: {sym: {'prices': [[ts,p]...], 'volumes': [[ts,v]...]}} — часовой шаг.
+    Возвращает список наблюдений по датам."""
+    syms = sorted(series)
+    ts = {s: np.array([p[0] for p in series[s]["prices"]]) for s in syms}
+    px = {s: np.array([p[1] for p in series[s]["prices"]]) for s in syms}
+    pts = {s: [p[0] for p in series[s]["prices"]] for s in syms}
+    vts = {s: [v[0] for v in series[s]["volumes"]] for s in syms}
+
+    # Панель НЕСБАЛАНСИРОВАНА, и это штатно: LIT торгуется с августа 2026.
+    # Границы по max(начало)/min(конец) обрезали бы весь прогон до истории самой
+    # молодой монеты — сетка строится по объединению, а на каждую дату монета
+    # входит, только если у неё есть 90 дней позади и полный горизонт впереди.
+    t0 = min(ts[s][0] for s in syms) + warm_d * DAY_MS
+    t1 = max(ts[s][-1] for s in syms) - horizon_d * DAY_MS
+    if t1 <= t0:
+        raise ValueError("истории не хватает даже на одну дату")
+    grid = list(range(int(t0), int(t1) + 1, step_d * DAY_MS))
+
+    dates = []
+    for t in grid:
+        jobs, meta = [], []
+        for s in syms:
+            i = int(np.searchsorted(ts[s], t, "right")) - 1
+            if i < 100 or abs(ts[s][i] - t) > 6 * HOUR_MS:
+                continue
+            j24 = int(np.searchsorted(ts[s], t - DAY_MS, "right")) - 1
+            iF = int(np.searchsorted(ts[s], t + horizon_d * DAY_MS, "right")) - 1
+            # Ряд оборвался внутри горизонта -> доходность вышла бы за более
+            # короткий срок и тихо попала в общую выборку. Такую монету не берём.
+            if iF <= i or ts[s][iF] < t + horizon_d * DAY_MS - 12 * HOUR_MS:
+                continue
+            cd = cdb.build(series[s]["prices"], series[s]["volumes"], i, pts[s], vts[s])
+            if cd is None:
+                continue
+            if quality_const:
+                cd["rank"] = quality_const.get(s, {}).get("rank")
+                cd["rank_prev"] = cd["rank"]
+            cur = float(px[s][i])
+            p24 = float(px[s][i] / px[s][j24] - 1) * 100 if j24 >= 0 and px[s][j24] > 0 else None
+            qv = (quality_const or {}).get(s, {}).get("qv")
+            path = px[s][i:iF + 1]
+            meta.append({
+                "sym": s, "cur": cur,
+                "fwd": float(path[-1] / cur - 1),
+                "mae_long": float(path.min() / cur - 1),
+                "mae_short": float(path.max() / cur - 1),
+                # факторы-одиночки для сравнения с композитом
+                "f_low": -float((cur - cd["min_price"]) / cur) / (cd["volatility"] * math.sqrt(24) or 1e-9),
+                "f_r7": cd["r7"] if cd["r7"] is not None else 0.0,
+            })
+            # Абляция «без штрафов»: eff14 и p24 сняты, поэтому множители
+            # «падает прямой линией» и «нож ещё летит» физически не могут
+            # сработать. Сама функция НЕ трогается — отсутствие полей это
+            # штатный путь продакшна (инвариант 9).
+            cdA = dict(cd); cdA["eff14"] = None
+            for cdx, pl, is_long in ((cd, p24, True), (cd, p24, False),
+                                     (cdA, None, True)):
+                jobs.append({"cd": cdx, "sym": s, "cur": cur, "p24": pl,
+                             "qv": qv, "isLong": is_long, "fr": None})
+        if len(meta) < 8:
+            continue
+        sc = scorer.score(jobs)
+        for k, m in enumerate(meta):
+            m["long"] = sc[3 * k]
+            m["short"] = sc[3 * k + 1]
+            m["long_nopen"] = sc[3 * k + 2]
+        fw = np.array([m["fwd"] for m in meta])
+        for m in meta:
+            m["exc"] = m["fwd"] - float(fw.mean())
+        dates.append({"t": t, "coins": meta})
+        if verbose and len(dates) % 10 == 0:
+            print("  дат посчитано: %d" % len(dates), flush=True)
+    return dates
+
+
+def metrics(dates, key="long", sgn=1.0, topn=3):
+    """sgn = +1 лонг (хотим рост), −1 шорт (хотим падение).
+    Цель — ИЗБЫТОЧНАЯ доходность к среднему по списку: счёт решает задачу
+    «какую из 28 взять», а не «куда пойдёт рынок»."""
+    mkey = "mae_long" if sgn > 0 else "mae_short"
+    ic, top, base_low, base_r7, rnd, rndtop, ncoins = [], [], [], [], [], [], []
+    rng = np.random.default_rng(11)
+    mae_b = {0: [], 1: [], 2: []}
+    for d in dates:
+        cs = [c for c in d["coins"] if c.get(key) is not None]
+        if len(cs) < 8:
+            continue
+        y = np.array([sgn * c["exc"] for c in cs])
+        s = np.array([c[key] for c in cs])
+        ic.append(spearman(s, y)); ncoins.append(len(cs))
+        base_low.append(spearman(np.array([c["f_low"] for c in cs]), y))
+        base_r7.append(spearman(np.array([-c["f_r7"] for c in cs]), y))
+        p = rng.permutation(s)
+        rnd.append(spearman(p, y))
+        o = np.argsort(-s)
+        top.append(float(y[o[:topn]].mean() - y.mean()))
+        op = np.argsort(-p)
+        rndtop.append(float(y[op[:topn]].mean() - y.mean()))
+        q = max(1, len(cs) // 3)
+        for b, idx in enumerate((o[:q], o[q:len(cs) - q], o[len(cs) - q:])):
+            mae_b[b] += [cs[i][mkey] for i in idx]
+    icv = [v for v in ic if v is not None]
+    mn = lambda a: float(np.mean([v for v in a if v is not None])) if a else None
+    return {
+        "n_dates": len(icv), "n_coins": mn(ncoins),
+        "ic_mean": mn(icv), "ic_ci": block_bootstrap_ci(icv),
+        "ic_se": float(np.std(icv, ddof=1) / math.sqrt(len(icv))) if len(icv) > 2 else None,
+        "top_mean": mn(top), "top_ci": block_bootstrap_ci(top),
+        "base_low": mn(base_low), "base_r7": mn(base_r7),
+        "random": mn(rnd), "random_top": mn(rndtop),
+        "mae": {b: float(np.median(v)) if v else None for b, v in mae_b.items()},
+    }
+
+
+def verdict(m):
+    """Правило РЕГИСТРИРУЕТСЯ ДО прогона. Менять его после — подгонка."""
+    if m["ic_mean"] is None:
+        return "НЕТ ДАННЫХ"
+    lo, hi = m["ic_ci"]
+    if lo is not None and lo > 0 and m["ic_mean"] >= 0.05:
+        return "РАБОТАЕТ — счёт сортирует внимание лучше монетки"
+    if hi is not None and hi < 0 and m["ic_mean"] <= -0.02:
+        return "ИНВЕРТИРОВАН — счёт вреден, гасить"
+    return "ШУМ — от монетки не отличим"
+
+
+def report(title, m):
+    print("\n" + "═" * 62)
+    print(title)
+    print("═" * 62)
+    print("дат (независимых наблюдений): %d · монет на дату в среднем %.1f"
+          % (m["n_dates"], m["n_coins"] or float("nan")))
+    if m["ic_mean"] is None:
+        print("нет данных")
+        return
+    print("IC (ранговая связь счёт↔будущее): %+.3f  ДИ95 [%+.3f; %+.3f]  SE %.3f"
+          % (m["ic_mean"], m["ic_ci"][0] or float("nan"),
+             m["ic_ci"][1] or float("nan"), m["ic_se"] or float("nan")))
+    print("   контроль: перемешанный счёт %+.3f (обязан быть ≈0)" % m["random"])
+    print("   фактор «у мин90» как сигнал этой стороны  %+.3f" % (m["base_low"] or float("nan")))
+    print("   фактор «упал за 7д» как сигнал этой стороны %+.3f" % (m["base_r7"] or float("nan")))
+    print("ТОП-3 минус среднее по списку: %+.2f%%  ДИ95 [%+.2f%%; %+.2f%%]  (случайный выбор %+.2f%%)"
+          % (100 * m["top_mean"], 100 * (m["top_ci"][0] or float("nan")),
+             100 * (m["top_ci"][1] or float("nan")), 100 * m["random_top"]))
+    print("медиана худшей просадки внутри окна: топ %+.1f%% · середина %+.1f%% · низ %+.1f%%"
+          % tuple(100 * (m["mae"][b] or float("nan")) for b in (0, 1, 2)))
+    print("ВЕРДИКТ: " + verdict(m))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. ДАННЫЕ: CoinGecko, 90-дневными кусками, с кэшем и проверкой шага
+# ─────────────────────────────────────────────────────────────────────────────
+def tokens_from_html(html_path):
+    """Список пар — из фронта, а не из отдельной копии (инвариант 2: список монет
+    живёт в одном месте). Разбирается настоящим node, а не регуляркой."""
+    src = open(html_path, encoding="utf-8").read()
+    m = re.search(r"\nvar\s+tokens\s*=\s*\[", src)
+    if not m:
+        raise ValueError("в HTML не найден массив tokens[]")
+    i = src.index("[", m.end() - 1)
+    d = 0
+    while i < len(src):
+        if src[i] == "[":
+            d += 1
+        elif src[i] == "]":
+            d -= 1
+            if d == 0:
+                break
+        i += 1
+    js = os.path.join(HERE, "_tokens.js")
+    open(js, "w", encoding="utf-8").write(
+        "var tokens = " + src[src.index("[", m.end() - 1):i + 1]
+        + ";\nconsole.log(JSON.stringify(tokens));\n")
+    out = subprocess.run(["node", js], capture_output=True)
+    if out.returncode:
+        raise RuntimeError("не разобрать tokens[]: " + out.stderr.decode()[:400])
+    return json.loads(out.stdout)
+
+
+def _save(sym, P, V, src_name):
+    """Общий выход обеих качалок + гарды. Часовой шаг обязателен: вся математика
+    бота часовая (√336, √168, Vol в %/час) — дневной ряд молча дал бы бред."""
+    pr = [P[k] for k in sorted(P)]
+    if len(pr) < 2600:                      # < ~110 дней: даже на прогрев не хватит
+        print("  %-7s МАЛО ИСТОРИИ (%d ч) — пропуск" % (sym, len(pr)))
+        return False
+    ts = [p[0] for p in pr]
+    step = float(np.median(np.diff(ts))) / HOUR_MS
+    if not (0.8 < step < 1.5):
+        sys.exit("СТОП: %s — шаг %.2f ч, не часовой. Стенд недействителен." % (sym, step))
+    span = (ts[-1] - ts[0]) / HOUR_MS + 1
+    gaps = 1.0 - len(pr) / span
+    if gaps > 0.05:
+        print("  %-7s ДЫР %.1f%% — пропуск" % (sym, 100 * gaps))
+        return False
+    json.dump({"prices": pr, "volumes": [V[k] for k in sorted(V)], "src": src_name},
+              open(os.path.join(CACHE, sym + ".json"), "w"))
+    print("  %-7s ok  %5d ч  дыр %.1f%%  (%s)" % (sym, len(pr), 100 * gaps, src_name))
+    return True
+
+
+def fetch_binance(html_path, years=3):
+    """ИСТОЧНИК ПО УМОЛЧАНИЮ. Ключ не нужен, месячной квоты нет, история глубже
+    года, шаг родной часовой, и это ровно те цены, по которым Босс торгует.
+    Спот; для fut:true и при отказе спота — перп."""
+    import requests
+    os.makedirs(CACHE, exist_ok=True)
+    toks = tokens_from_html(html_path) + [{"name": "BTC", "s": "BTCUSDT"}]
+    t_end = int(time.time() * 1000)
+    t_beg = t_end - int(years * 365 * DAY_MS)
+    ok = 0
+    for t in toks:
+        sym, pair = t["name"], t["s"]
+        if os.path.exists(os.path.join(CACHE, sym + ".json")):
+            print("  %-7s уже в кэше" % sym); ok += 1; continue
+        for host, path in ((("https://fapi.binance.com", "/fapi/v1/klines"),)
+                           if t.get("fut") else
+                           (("https://api.binance.com", "/api/v3/klines"),
+                            ("https://fapi.binance.com", "/fapi/v1/klines"))):
+            rows, cur, dead = [], t_beg, False
+            while cur < t_end:
+                r = requests.get(host + path, timeout=30, params={
+                    "symbol": pair, "interval": "1h",
+                    "startTime": cur, "endTime": t_end, "limit": 1000})
+                if r.status_code in (429, 418):
+                    time.sleep(30); continue
+                if r.status_code != 200:
+                    dead = True; break
+                j = r.json()
+                if not j:
+                    break
+                rows += j
+                cur = int(j[-1][0]) + HOUR_MS
+                time.sleep(0.25)
+            if dead or len(rows) < 2600:
+                continue
+            # Цена = закрытие часа, помеченное КОНЦОМ часа: на метке t известна.
+            P = {}
+            close, qv = [], []
+            for k in rows:
+                b = (int(k[0]) + HOUR_MS) // HOUR_MS
+                P[b] = [int(k[0]) + HOUR_MS, float(k[4])]
+                close.append(float(k[4])); qv.append(float(k[7]))
+            # Оборот: скользящая сумма за 24 ч — та же величина, что CoinGecko
+            # отдаёт в total_volumes. Масштаб одной биржи роли не играет:
+            # vol_ratio делит её на собственную медиану за 90д (шкала сокращается).
+            cs = np.concatenate([[0.0], np.cumsum(qv)])
+            V = {}
+            keys = sorted(P)
+            for n in range(23, len(keys)):
+                V[keys[n]] = [P[keys[n]][0], float(cs[n + 1] - cs[n + 1 - 24])]
+            if _save(sym, P, V, "binance" + ("-perp" if "fapi" in host else "-spot")):
+                ok += 1
+            break
+        else:
+            print("  %-7s НЕТ ДАННЫХ ни на споте, ни на перпе" % sym)
+    print("монет в кэше: %d" % ok)
+
+
+def fetch_cg(bot_path, years=1):
+    """ЗАПАСНОЙ источник — бесплатный тариф Demo (10 000 вызовов/мес, история
+    365 дней, часовой шаг только кусками ≤90 дней). Годится для сверки с ботом,
+    не для основного прогона: 365 дней = ~39 дат, а этого мало (см. мощность)."""
+    import requests
+    src = open(bot_path, encoding="utf-8").read()
+    tokens = ast.literal_eval(re.search(r"TOKENS\s*=\s*(\{.*?\n\})", src, re.S).group(1))
+    tokens["BTC"] = "bitcoin"
+    key = os.environ.get("COINGECKO_API_KEY")
+    years = min(years, 1.0)                 # жёсткий потолок тарифа Demo
+    os.makedirs(CACHE, exist_ok=True)
+    now = int(time.time())
+    chunks = [(now - (k + 1) * 90 * 86400, now - k * 90 * 86400)
+              for k in range(int(math.ceil(years * 365 / 90)))][::-1]
+    calls = 0
+    for sym, cid in tokens.items():
+        if os.path.exists(os.path.join(CACHE, sym + ".json")):
+            print("  %-7s уже в кэше" % sym); continue
+        P, V = {}, {}
+        for (a, b) in chunks:
+            r = requests.get(
+                "https://api.coingecko.com/api/v3/coins/%s/market_chart/range" % cid,
+                params={"vs_currency": "usd", "from": a, "to": b},
+                headers=({"x-cg-demo-api-key": key} if key else {}), timeout=30)
+            calls += 1
+            if r.status_code == 429:
+                time.sleep(65); continue
+            if r.status_code != 200:
+                print("  %-7s чанк -> %d" % (sym, r.status_code)); time.sleep(2); continue
+            j = r.json()
+            for ts, p in j.get("prices", []):
+                P[int(ts) // HOUR_MS] = [int(ts), float(p)]
+            for ts, v in j.get("total_volumes", []):
+                V[int(ts) // HOUR_MS] = [int(ts), float(v)]
+            time.sleep(2.5)
+        _save(sym, P, V, "coingecko-demo")
+    print("вызовов CoinGecko: %d (месячный лимит Demo — 10 000)" % calls)
+
+
+def verify_against_live(bot_path):
+    """Сверка восстановленной записи с ЖИВЫМ coeffs.json.
+    Синтетика доказывает, что стенд правильно меряет; эта сверка доказывает,
+    что он меряет ТУ ЖЕ монету, что показывает экран. Расхождение больше
+    процента = кэш и продакшн разошлись, прогону верить нельзя."""
+    import requests
+    live = requests.get(
+        "https://gist.githubusercontent.com/seahomebatumi-ai/"
+        "3f50574a29bc37434c18cc8480779ccb/raw/coeffs.json", timeout=30).json()
+    ref = {d["symbol"]: d for d in live["analysis_data"]} if isinstance(
+        live.get("analysis_data"), list) else live["analysis_data"]
+    cdb = CdBuilder(bot_path)
+    keys = ["min_price", "max_price", "volatility", "r7", "r14", "r30",
+            "vol7", "eff14", "vol_ratio", "min30", "max30"]
+    print("монета  " + "  ".join("%-9s" % k for k in keys))
+    worst = 0.0
+    for sym, ser in sorted(load_cache().items()):
+        r = ref.get(sym)
+        if not r:
+            continue
+        cd = cdb.build(ser["prices"], ser["volumes"], len(ser["prices"]) - 1)
+        row, cells = [], []
+        for k in keys:
+            a, b = cd.get(k), r.get(k)
+            if a is None or b is None or not isinstance(b, (int, float)):
+                cells.append("   —     "); continue
+            d = abs(a - b) / max(1e-12, abs(b))
+            worst = max(worst, d)
+            cells.append("%8.2f%% " % (100 * d))
+        print("%-7s " % sym + " ".join(cells))
+    print("\nмаксимальное расхождение: %.2f%%  → %s" % (
+        100 * worst,
+        "восстановление совпадает с продакшном" if worst < 0.02 else
+        "РАСХОЖДЕНИЕ: проверить свежесть кэша и шаг данных"))
+
+
+def load_cache():
+    out = {}
+    for f in sorted(os.listdir(CACHE)):
+        if f.endswith(".json") and not f.startswith("_"):
+            out[f[:-5]] = json.load(open(os.path.join(CACHE, f)))
+    out.pop("BTC", None)
+    return out
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. САМОПРОВЕРКА: синтетика с ИЗВЕСТНЫМ ответом
+# ─────────────────────────────────────────────────────────────────────────────
+def synth(mode, n_coins=28, hours=8760, seed=3):
+    """noise — чистое блуждание (ответ: IC≈0)
+       revert — возврат к среднему (ответ: IC>0 у лонга)
+       trend  — импульс (ответ: IC<0 у лонга)"""
+    rng = np.random.default_rng(seed)
+    t0 = 1700000000000
+    mkt = np.cumsum(rng.normal(0, 0.004, hours))
+    out = {}
+    for c in range(n_coins):
+        lp = np.zeros(hours)
+        idio = rng.normal(0, 0.010, hours)
+        k = {"noise": 0.0, "revert": 0.004, "trend": -0.0015}[mode]
+        run, cnt = 0.0, 0
+        for i in range(1, hours):
+            run += lp[i - 1]
+            cnt += 1
+            if i > 720:
+                run -= lp[i - 721]
+                cnt -= 1
+            anchor = run / cnt if i > 24 else 0.0
+            lp[i] = lp[i - 1] - k * (lp[i - 1] - anchor) + idio[i] + 0.7 * (mkt[i] - mkt[i - 1])
+        p = 10.0 * np.exp(lp)
+        ts = [t0 + i * HOUR_MS for i in range(hours)]
+        out["C%02d" % c] = {"prices": [[ts[i], float(p[i])] for i in range(hours)],
+                            "volumes": [[ts[i], float(1e7 * (1 + 0.3 * rng.random()))]
+                                        for i in range(hours)]}
+    return out
+
+
+def selftest(html, bot, n_seeds=10):
+    scorer = JsScorer(html)
+    cdb = CdBuilder(bot)
+    print("Т1 · вырезка кода: JS-мост собран, node --check пройден; блок бота разобран AST — ОК")
+
+    # Т2 — отсутствие взгляда в будущее
+    s = synth("noise", n_coins=2, hours=3000)
+    key = list(s)[0]
+    pr, vo = s[key]["prices"], s[key]["volumes"]
+    i = 2600
+    a = cdb.build(pr, vo, i)
+    b = cdb.build(pr[:i + 1], [v for v in vo if v[0] <= pr[i][0]], i)
+    same = json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+    print("Т2 · взгляд в будущее: запись на дату t из полного ряда и из обрезанного %s"
+          % ("совпадает — ОК" if same else "РАСХОДИТСЯ — СТОП"))
+    if not same:
+        sys.exit(1)
+
+    # Т3 — счёт реагирует на вход как задумано
+    probe = {"min_price": 10.0, "max_price": 20.0, "price_pos": 0, "volatility": 0.01,
+             "r7": -0.05, "r14": -0.08, "r30": -0.20, "min30": 10.0, "max30": 15.0,
+             "vol7": 0.011, "eff14": -0.2, "vol_ratio": 1.0,
+             "rank": None, "rank_prev": None, "fdv_mc": None}
+    jj = [{"cd": probe, "sym": "X", "cur": 10.2, "p24": -1.0, "qv": None, "isLong": True, "fr": None},
+          {"cd": probe, "sym": "X", "cur": 19.5, "p24": -1.0, "qv": None, "isLong": True, "fr": None}]
+    r = scorer.score(jj)
+    print("Т3 · монотонность: у минимума %.1f · у максимума %.1f — %s"
+          % (r[0], r[1], "ОК" if r[0] > r[1] else "СТОП"))
+
+    # Т4 — Монте-Карло по мирам с ИЗВЕСТНЫМ ответом.
+    # Один посев не доказывает ничего: при SE(IC) ≈ 0.026 любая из статистик
+    # уходит на 2 SE примерно в каждом двадцатом прогоне. Судим по РАСПРЕДЕЛЕНИЮ.
+    exp = {"noise": "0", "revert": "+", "trend": "\u2212"}
+    acc = {}
+    for mode in ("noise", "revert", "trend"):
+        rows = []
+        for sd in range(1, n_seeds + 1):
+            d = run_walk(synth(mode, seed=sd), cdb, scorer, verbose=False)
+            mL = metrics(d, "long")
+            rows.append({"ctl": mL["base_low"], "full": mL["ic_mean"],
+                         "nopen": metrics(d, "long_nopen")["ic_mean"],
+                         "rnd": mL["random"], "se": mL["ic_se"], "nd": mL["n_dates"]})
+        acc[mode] = rows
+        f = lambda k: np.array([r[k] for r in rows], float)
+        good = int((f("ctl") > 0).sum() if exp[mode] == "+"
+                   else (f("ctl") < 0).sum() if exp[mode] == "\u2212"
+                   else (np.abs(f("ctl")) < 2 * f("se")).sum())
+        print("\nМИР \u00ab%s\u00bb  (эталонный фактор обязан дать \u00ab%s\u00bb), посевов %d"
+              % (mode, exp[mode], n_seeds))
+        print("  эталон \u00abблизость к мин90\u00bb  IC = %+.3f \u00b1 %.3f   нужный знак %d/%d"
+              % (f("ctl").mean(), f("ctl").std(ddof=1), good, n_seeds))
+        print("  перемешанный счёт (нуль)   IC = %+.3f \u00b1 %.3f" % (f("rnd").mean(), f("rnd").std(ddof=1)))
+        print("  scoreCandidate целиком     IC = %+.3f \u00b1 %.3f" % (f("full").mean(), f("full").std(ddof=1)))
+        print("  он же без двух штрафов     IC = %+.3f \u00b1 %.3f" % (f("nopen").mean(), f("nopen").std(ddof=1)))
+
+    g = lambda m, k: np.array([r[k] for r in acc[m]], float)
+    se = float(np.mean(g("noise", "se")))
+    ok_null = abs(g("noise", "ctl").mean()) < se and abs(g("noise", "rnd").mean()) < se
+    ok_pow = g("revert", "ctl").mean() > 0.10 and g("trend", "ctl").mean() < -0.10
+    print("\n" + "\u2550" * 62)
+    print("ИТОГ САМОПРОВЕРКИ")
+    print("\u2550" * 62)
+    print("нулевой мир не даёт ложного сигнала: %s" % ("ДА" if ok_null else "НЕТ"))
+    print("миры со знаком распознаются верно:   %s" % ("ДА" if ok_pow else "НЕТ"))
+    print("мощность: SE(IC) \u2248 %.3f при %d датах \u2192 отличим |IC| \u2273 %.3f"
+          % (se, int(np.mean(g("noise", "nd"))), 2 * se))
+    print("ВЕРДИКТ СТЕНДА: %s" % ("измеряет то, что должен"
+                                  if (ok_null and ok_pow) else "НЕИСПРАВЕН \u2014 результатам не верить"))
+    return 0 if (ok_null and ok_pow) else 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--fetch", action="store_true")
+    ap.add_argument("--run", action="store_true")
+    ap.add_argument("--verify", action="store_true")
+    ap.add_argument("--years", type=float, default=3)
+    ap.add_argument("--source", default="binance", choices=["binance", "cg"])
+    ap.add_argument("--horizon", type=int, default=7)
+    ap.add_argument("--step", type=int, default=7)
+    ap.add_argument("--quality-const", action="store_true")
+    ap.add_argument("--seeds", type=int, default=10)
+    ap.add_argument("--html", default=DEF_HTML)
+    ap.add_argument("--bot", default=DEF_BOT)
+    a = ap.parse_args()
+
+    if a.fetch:
+        return (fetch_cg(a.bot, a.years) if a.source == "cg"
+                else fetch_binance(a.html, a.years))
+    if a.verify:
+        return verify_against_live(a.bot)
+    if a.selftest:
+        return selftest(a.html, a.bot, a.seeds)
+    if a.run:
+        qc = None
+        if a.quality_const:
+            qc = json.load(open(os.path.join(CACHE, "_quality_today.json")))
+        d = run_walk(load_cache(), CdBuilder(a.bot), JsScorer(a.html),
+                     a.horizon, a.step, quality_const=qc)
+        for side in ("long", "short"):
+            report("РЕАЛЬНЫЕ ДАННЫЕ · %s · горизонт %dд%s"
+                   % (side.upper(), a.horizon,
+                      " · ранг/оборот сегодняшние" if qc else ""),
+                   metrics(d, side, 1.0 if side == "long" else -1.0))
+        json.dump(d, open(os.path.join(HERE, "run_raw.json"), "w"))
+        return 0
+    ap.print_help()
+
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)
