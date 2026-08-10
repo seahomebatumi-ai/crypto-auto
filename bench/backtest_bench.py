@@ -433,62 +433,174 @@ def _save(sym, P, V, src_name):
     return True
 
 
-def fetch_binance(html_path, years=3):
-    """ИСТОЧНИК ПО УМОЛЧАНИЮ. Ключ не нужен, месячной квоты нет, история глубже
-    года, шаг родной часовой, и это ровно те цены, по которым Босс торгует.
-    Спот; для fut:true и при отказе спота — перп."""
+HOSTS = [
+    ("vision", "архив data.binance.vision",
+     "https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-06.zip"),
+    ("dataapi", "зеркало data-api.binance.vision",
+     "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=1"),
+    ("binance", "боевой api.binance.com",
+     "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=1"),
+    ("fapi", "боевой fapi.binance.com",
+     "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1h&limit=1"),
+    ("cg", "api.coingecko.com",
+     "https://api.coingecko.com/api/v3/ping"),
+]
+
+
+def probe(verbose=True):
+    """20 секунд на диагноз. Binance закрывает публичные данные для США (HTTP 451),
+    а раннеры GitHub стоят именно там — прогон 10.08 умер ровно на этом и не сказал
+    об этом ни слова, потому что код глотал код ответа. Больше не глотает."""
     import requests
+    alive = []
+    for key, name, url in HOSTS:
+        try:
+            r = requests.get(url, timeout=20)
+            code, note = r.status_code, ""
+            if code == 451:
+                note = " — доступ закрыт по географии (раннер в США)"
+            elif code == 200:
+                alive.append(key)
+        except Exception as e:
+            code, note = "нет связи", " — " + type(e).__name__
+        if verbose:
+            print("  %-32s %s%s" % (name, code, note))
+    return alive
+
+
+def _rows_from_zip(blob):
+    """CSV из архива Binance: те же 12 колонок, что и у REST. У свежих файлов
+    появилась строка заголовка, а метки времени переехали в микросекунды —
+    обе разновидности распознаются по содержимому, а не по дате файла."""
+    import zipfile, io, csv
+    out = []
+    with zipfile.ZipFile(io.BytesIO(blob)) as z:
+        with z.open(z.namelist()[0]) as f:
+            for row in csv.reader(io.TextIOWrapper(f, "utf-8")):
+                if not row:
+                    continue
+                try:
+                    t = float(row[0])
+                except ValueError:
+                    continue                      # строка заголовка
+                if t > 1e14:                      # микросекунды -> миллисекунды
+                    t /= 1000.0
+                out.append([int(t), row[1], row[2], row[3], row[4], row[5],
+                            0, row[7]])
+    return out
+
+
+def _vision_rows(pair, is_fut, t_beg, t_end):
+    import requests
+    base = ("https://data.binance.vision/data/futures/um" if is_fut
+            else "https://data.binance.vision/data/spot")
+    beg = time.gmtime(t_beg / 1000)
+    end = time.gmtime(t_end / 1000)
+    months, y, m = [], beg.tm_year, beg.tm_mon
+    while (y, m) <= (end.tm_year, end.tm_mon):
+        months.append("%04d-%02d" % (y, m))
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    rows, miss = [], 0
+    for mo in months:
+        u = "%s/monthly/klines/%s/1h/%s-1h-%s.zip" % (base, pair, pair, mo)
+        r = requests.get(u, timeout=60)
+        if r.status_code == 200:
+            rows += _rows_from_zip(r.content)
+        else:
+            miss += 1
+    # Текущий месяц выкладывается посуточно — добираем его дневными файлами.
+    for d in range(0, 40):
+        ts = t_end - d * DAY_MS
+        if ts < t_beg:
+            break
+        day = time.strftime("%Y-%m-%d", time.gmtime(ts / 1000))
+        if day[:7] != months[-1]:
+            break
+        u = "%s/daily/klines/%s/1h/%s-1h-%s.zip" % (base, pair, pair, day)
+        r = requests.get(u, timeout=60)
+        if r.status_code == 200:
+            rows += _rows_from_zip(r.content)
+    return rows, miss
+
+
+def _rest_rows(host, path, pair, t_beg, t_end):
+    import requests
+    rows, cur = [], t_beg
+    while cur < t_end:
+        r = requests.get(host + path, timeout=30, params={
+            "symbol": pair, "interval": "1h",
+            "startTime": cur, "endTime": t_end, "limit": 1000})
+        if r.status_code in (429, 418):
+            time.sleep(30); continue
+        if r.status_code != 200:
+            return None, r.status_code
+        j = r.json()
+        if not j:
+            break
+        rows += [[int(k[0]), k[1], k[2], k[3], k[4], k[5], 0, k[7]] for k in j]
+        cur = int(j[-1][0]) + HOUR_MS
+        time.sleep(0.25)
+    return rows, 200
+
+
+def _series_from_rows(rows):
+    """Цена = закрытие часа, помеченное КОНЦОМ часа: на метке t она уже известна.
+    Оборот — скользящая сумма за 24 ч, то же, что CoinGecko кладёт в total_volumes.
+    Масштаб одной биржи не мешает: vol_ratio делит на собственную медиану за 90д."""
+    d = {}
+    for k in rows:
+        d[int(k[0]) // HOUR_MS] = (float(k[4]), float(k[7]))
+    keys = sorted(d)
+    P = {b: [b * HOUR_MS + HOUR_MS, d[b][0]] for b in keys}
+    cs = np.concatenate([[0.0], np.cumsum([d[b][1] for b in keys])])
+    V = {keys[n]: [P[keys[n]][0], float(cs[n + 1] - cs[n + 1 - 24])]
+         for n in range(23, len(keys))}
+    return P, V
+
+
+def fetch_prices(html_path, bot_path, years=3, source="auto"):
     os.makedirs(CACHE, exist_ok=True)
+    print("Проверка доступности источников:")
+    alive = probe()
+    if source == "auto":
+        source = next((k for k in ("vision", "dataapi", "binance", "cg") if k in alive), None)
+        if source is None:
+            sys.exit("СТОП: ни один источник не отвечает — прогон невозможен.")
+    print("Источник: %s\n" % source)
+    if source == "cg":
+        return fetch_cg(bot_path, min(years, 1.0))
+
     toks = tokens_from_html(html_path) + [{"name": "BTC", "s": "BTCUSDT"}]
     t_end = int(time.time() * 1000)
     t_beg = t_end - int(years * 365 * DAY_MS)
     ok = 0
     for t in toks:
-        sym, pair = t["name"], t["s"]
+        sym, pair, fut = t["name"], t["s"], bool(t.get("fut"))
         if os.path.exists(os.path.join(CACHE, sym + ".json")):
             print("  %-7s уже в кэше" % sym); ok += 1; continue
-        for host, path in ((("https://fapi.binance.com", "/fapi/v1/klines"),)
-                           if t.get("fut") else
-                           (("https://api.binance.com", "/api/v3/klines"),
-                            ("https://fapi.binance.com", "/fapi/v1/klines"))):
-            rows, cur, dead = [], t_beg, False
-            while cur < t_end:
-                r = requests.get(host + path, timeout=30, params={
-                    "symbol": pair, "interval": "1h",
-                    "startTime": cur, "endTime": t_end, "limit": 1000})
-                if r.status_code in (429, 418):
-                    time.sleep(30); continue
-                if r.status_code != 200:
-                    dead = True; break
-                j = r.json()
-                if not j:
-                    break
-                rows += j
-                cur = int(j[-1][0]) + HOUR_MS
-                time.sleep(0.25)
-            if dead or len(rows) < 2600:
-                continue
-            # Цена = закрытие часа, помеченное КОНЦОМ часа: на метке t известна.
-            P = {}
-            close, qv = [], []
-            for k in rows:
-                b = (int(k[0]) + HOUR_MS) // HOUR_MS
-                P[b] = [int(k[0]) + HOUR_MS, float(k[4])]
-                close.append(float(k[4])); qv.append(float(k[7]))
-            # Оборот: скользящая сумма за 24 ч — та же величина, что CoinGecko
-            # отдаёт в total_volumes. Масштаб одной биржи роли не играет:
-            # vol_ratio делит её на собственную медиану за 90д (шкала сокращается).
-            cs = np.concatenate([[0.0], np.cumsum(qv)])
-            V = {}
-            keys = sorted(P)
-            for n in range(23, len(keys)):
-                V[keys[n]] = [P[keys[n]][0], float(cs[n + 1] - cs[n + 1 - 24])]
-            if _save(sym, P, V, "binance" + ("-perp" if "fapi" in host else "-spot")):
-                ok += 1
-            break
-        else:
-            print("  %-7s НЕТ ДАННЫХ ни на споте, ни на перпе" % sym)
-    print("монет в кэше: %d" % ok)
+        rows, why = [], ""
+        for is_fut in ((True,) if fut else (False, True)):
+            if source == "vision":
+                rows, miss = _vision_rows(pair, is_fut, t_beg, t_end)
+                why = "нет %d месячных файлов" % miss
+            else:
+                host = (("https://fapi.binance.com", "/fapi/v1/klines") if is_fut else
+                        (("https://data-api.binance.vision", "/api/v3/klines")
+                         if source == "dataapi" else
+                         ("https://api.binance.com", "/api/v3/klines")))
+                rows, code = _rest_rows(host[0], host[1], pair, t_beg, t_end)
+                rows, why = rows or [], "HTTP %s" % code
+            if len(rows) >= 2600:
+                break
+        if len(rows) < 2600:
+            print("  %-7s НЕТ ДАННЫХ (%s, строк %d)" % (sym, why, len(rows)))
+            continue
+        P, V = _series_from_rows(rows)
+        if _save(sym, P, V, source + ("-perp" if fut else "")):
+            ok += 1
+    print("монет в кэше: %d из %d" % (ok, len(toks)))
+    if ok < 8:
+        sys.exit("СТОП: монет меньше восьми — прогон бессмыслен.")
 
 
 def fetch_cg(bot_path, years=1):
@@ -545,13 +657,16 @@ def verify_against_live(bot_path):
     keys = ["min_price", "max_price", "volatility", "r7", "r14", "r30",
             "vol7", "eff14", "vol_ratio", "min30", "max30"]
     print("монета  " + "  ".join("%-9s" % k for k in keys))
-    worst = 0.0
+    worst, cmp_n = 0.0, 0
     for sym, ser in sorted(load_cache().items()):
         r = ref.get(sym)
         if not r:
             continue
         cd = cdb.build(ser["prices"], ser["volumes"], len(ser["prices"]) - 1)
-        row, cells = [], []
+        if cd is None:
+            continue
+        cmp_n += 1
+        cells = []
         for k in keys:
             a, b = cd.get(k), r.get(k)
             if a is None or b is None or not isinstance(b, (int, float)):
@@ -560,8 +675,11 @@ def verify_against_live(bot_path):
             worst = max(worst, d)
             cells.append("%8.2f%% " % (100 * d))
         print("%-7s " % sym + " ".join(cells))
-    print("\nмаксимальное расхождение: %.2f%%  → %s" % (
-        100 * worst,
+    if cmp_n == 0:
+        sys.exit("СТОП: сверять нечего — в кэше ноль монет. "
+                 "Это провал закачки, а не успешная сверка.")
+    print("\nсверено монет: %d · максимальное расхождение: %.2f%%  → %s" % (
+        cmp_n, 100 * worst,
         "восстановление совпадает с продакшном" if worst < 0.02 else
         "РАСХОЖДЕНИЕ: проверить свежесть кэша и шаг данных"))
 
@@ -685,8 +803,10 @@ def main():
     ap.add_argument("--fetch", action="store_true")
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--verify", action="store_true")
+    ap.add_argument("--probe", action="store_true")
     ap.add_argument("--years", type=float, default=3)
-    ap.add_argument("--source", default="binance", choices=["binance", "cg"])
+    ap.add_argument("--source", default="auto",
+                    choices=["auto", "vision", "dataapi", "binance", "cg"])
     ap.add_argument("--horizon", type=int, default=7)
     ap.add_argument("--step", type=int, default=7)
     ap.add_argument("--quality-const", action="store_true")
@@ -695,9 +815,10 @@ def main():
     ap.add_argument("--bot", default=DEF_BOT)
     a = ap.parse_args()
 
+    if a.probe:
+        print("Проверка доступности источников:"); probe(); return 0
     if a.fetch:
-        return (fetch_cg(a.bot, a.years) if a.source == "cg"
-                else fetch_binance(a.html, a.years))
+        return fetch_prices(a.html, a.bot, a.years, a.source)
     if a.verify:
         return verify_against_live(a.bot)
     if a.selftest:
@@ -706,7 +827,11 @@ def main():
         qc = None
         if a.quality_const:
             qc = json.load(open(os.path.join(CACHE, "_quality_today.json")))
-        d = run_walk(load_cache(), CdBuilder(a.bot), JsScorer(a.html),
+        ser = load_cache()
+        if len(ser) < 8:
+            sys.exit("СТОП: в кэше %d монет. Сначала должна отработать закачка "
+                     "(--fetch), прогон на пустом кэше смысла не имеет." % len(ser))
+        d = run_walk(ser, CdBuilder(a.bot), JsScorer(a.html),
                      a.horizon, a.step, quality_const=qc)
         for side in ("long", "short"):
             report("РЕАЛЬНЫЕ ДАННЫЕ · %s · горизонт %dд%s"
