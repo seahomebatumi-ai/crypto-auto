@@ -368,8 +368,16 @@ def main():
         btc_pos   = ((float(btc_p[-1]) - btc_min) / (btc_max - btc_min) * 100) \
                     if btc_max != btc_min else 0.0
         btc_vol   = float(np.std(np.diff(btc_p) / btc_p[:-1])) if len(btc_p) > 1 else 0.0
+        # Доходность самого BTC за 7/14/30д — из ТОГО ЖЕ ответа, доп. запросов НЕТ.
+        # Нужны фронту для остаточной доходности res7 = r7 − β90·r7_BTC (§10 п.1):
+        # отличают «упала вместе с рынком» от «упала сама». Та же window_stats,
+        # что и для альтов, — один горизонт, одна формула, сопоставимые числа.
+        btc_r7,  _b_mn7,  _b_mx7  = window_stats(b_data['prices'], 7)
+        btc_r14, _b_mn14, _b_mx14 = window_stats(b_data['prices'], 14)
+        btc_r30, _b_mn30, _b_mx30 = window_stats(b_data['prices'], 30)
         btc_stats = {"min_price": btc_min, "max_price": btc_max,
-                     "price_pos": float(btc_pos), "volatility": btc_vol}
+                     "price_pos": float(btc_pos), "volatility": btc_vol,
+                     "r7": btc_r7, "r14": btc_r14, "r30": btc_r30}
 
         results    = []
         debug_info = {"timestamp": generated_at, "details": {}}
