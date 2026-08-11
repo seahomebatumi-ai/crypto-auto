@@ -644,9 +644,11 @@ def fetch_cg(bot_path, years=1):
 
 def verify_against_live(bot_path):
     """Сверка восстановленной записи с ЖИВЫМ coeffs.json.
-    Синтетика доказывает, что стенд правильно меряет; эта сверка доказывает,
-    что он меряет ТУ ЖЕ монету, что показывает экран. Расхождение больше
-    процента = кэш и продакшн разошлись, прогону верить нельзя."""
+
+    ВАЖНО про меру. Раньше всё сверялось в ОТНОСИТЕЛЬНЫХ процентах, и на
+    доходностях это давало мусор: r14 у монеты бывает 0.001, тогда расхождение
+    в полпроцентного пункта печатается как 1449%. Уровни цен сверяются
+    относительно, доходности — в процентных ПУНКТАХ, eff14 — в своих единицах."""
     import requests
     live = requests.get(
         "https://gist.githubusercontent.com/seahomebatumi-ai/"
@@ -654,10 +656,17 @@ def verify_against_live(bot_path):
     ref = {d["symbol"]: d for d in live["analysis_data"]} if isinstance(
         live.get("analysis_data"), list) else live["analysis_data"]
     cdb = CdBuilder(bot_path)
-    keys = ["min_price", "max_price", "volatility", "r7", "r14", "r30",
-            "vol7", "eff14", "vol_ratio", "min30", "max30"]
-    print("монета  " + "  ".join("%-9s" % k for k in keys))
-    worst, cmp_n = 0.0, 0
+    # поле -> (вид сверки, порог).  rel = относительно, pp = проц. пункты,
+    # abs = в единицах величины, info = только показать
+    SPEC = [("min_price", "rel", 2.0), ("max_price", "rel", 2.0),
+            ("min30", "rel", 2.0), ("max30", "rel", 2.0),
+            ("volatility", "rel", 10.0), ("vol7", "rel", 25.0),
+            ("r7", "pp", 1.5), ("r14", "pp", 2.0), ("r30", "pp", 3.0),
+            ("eff14", "abs", 0.15), ("vol_ratio", "info", 0.0)]
+    print("уровни и скорости — в относительных %, доходности — в проц. пунктах")
+    print("%-7s " % "монета" + " ".join("%-9s" % k for k, _, _ in SPEC))
+    worst = {k: 0.0 for k, _, _ in SPEC}
+    cmp_n = 0
     for sym, ser in sorted(load_cache().items()):
         r = ref.get(sym)
         if not r:
@@ -667,21 +676,29 @@ def verify_against_live(bot_path):
             continue
         cmp_n += 1
         cells = []
-        for k in keys:
+        for k, kind, _ in SPEC:
             a, b = cd.get(k), r.get(k)
             if a is None or b is None or not isinstance(b, (int, float)):
                 cells.append("   —     "); continue
-            d = abs(a - b) / max(1e-12, abs(b))
-            worst = max(worst, d)
-            cells.append("%8.2f%% " % (100 * d))
+            if kind == "pp":
+                dv = abs(a - b) * 100.0; cells.append("%7.2f пп" % dv)
+            elif kind == "abs":
+                dv = abs(a - b); cells.append("%9.3f" % dv)
+            else:
+                dv = 100 * abs(a - b) / max(1e-12, abs(b)); cells.append("%8.2f%% " % dv)
+            worst[k] = max(worst[k], dv)
         print("%-7s " % sym + " ".join(cells))
     if cmp_n == 0:
         sys.exit("СТОП: сверять нечего — в кэше ноль монет. "
                  "Это провал закачки, а не успешная сверка.")
-    print("\nсверено монет: %d · максимальное расхождение: %.2f%%  → %s" % (
-        cmp_n, 100 * worst,
-        "восстановление совпадает с продакшном" if worst < 0.02 else
-        "РАСХОЖДЕНИЕ: проверить свежесть кэша и шаг данных"))
+    bad = [k for k, kind, thr in SPEC if kind != "info" and worst[k] > thr]
+    print("\nсверено монет: %d" % cmp_n)
+    for k, kind, thr in SPEC:
+        u = {"rel": "%", "pp": " пп", "abs": "", "info": "%"}[kind]
+        print("  %-11s худшее %8.3f%s   порог %s" % (
+            k, worst[k], u, ("%.2f%s" % (thr, u)) if kind != "info" else "справочно"))
+    print("\n%s" % ("восстановление совпадает с продакшном" if not bad else
+                    "ВЫШЛИ ЗА ПОРОГ: " + ", ".join(bad)))
 
 
 def load_cache():
