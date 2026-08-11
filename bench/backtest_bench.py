@@ -555,7 +555,7 @@ def tokens_from_html(html_path):
     return json.loads(out.stdout)
 
 
-def _save(sym, P, V, src_name):
+def _save(sym, P, V, src_name, HL=None):
     """Общий выход обеих качалок + гарды. Часовой шаг обязателен: вся математика
     бота часовая (√336, √168, Vol в %/час) — дневной ряд молча дал бы бред."""
     pr = [P[k] for k in sorted(P)]
@@ -571,8 +571,10 @@ def _save(sym, P, V, src_name):
     if gaps > 0.05:
         print("  %-7s ДЫР %.1f%% — пропуск" % (sym, 100 * gaps))
         return False
-    json.dump({"prices": pr, "volumes": [V[k] for k in sorted(V)], "src": src_name},
-              open(os.path.join(CACHE, sym + ".json"), "w"))
+    doc = {"prices": pr, "volumes": [V[k] for k in sorted(V)], "src": src_name}
+    if HL:
+        doc["hl"] = [HL[k] for k in sorted(HL)]     # additive; old readers unaffected
+    json.dump(doc, open(os.path.join(CACHE, sym + ".json"), "w"))
     print("  %-7s ok  %5d ч  дыр %.1f%%  (%s)" % (sym, len(pr), 100 * gaps, src_name))
     return True
 
@@ -690,16 +692,21 @@ def _rest_rows(host, path, pair, t_beg, t_end):
 def _series_from_rows(rows):
     """Цена = закрытие часа, помеченное КОНЦОМ часа: на метке t она уже известна.
     Оборот — скользящая сумма за 24 ч, то же, что CoinGecko кладёт в total_volumes.
-    Масштаб одной биржи не мешает: vol_ratio делит на собственную медиану за 90д."""
+    Масштаб одной биржи не мешает: vol_ratio делит на собственную медиану за 90д.
+    HL: high/low of the hour under the same end-of-hour stamp. Needed by --stops
+    only: a stop/liquidation is a TOUCH event (§3.3), and close-only series
+    systematically undercount touches — an error in the dangerous direction."""
     d = {}
     for k in rows:
-        d[int(k[0]) // HOUR_MS] = (float(k[4]), float(k[7]))
+        d[int(k[0]) // HOUR_MS] = (float(k[4]), float(k[7]),
+                                   float(k[2]), float(k[3]))
     keys = sorted(d)
     P = {b: [b * HOUR_MS + HOUR_MS, d[b][0]] for b in keys}
+    HL = {b: [b * HOUR_MS + HOUR_MS, d[b][2], d[b][3]] for b in keys}
     cs = np.concatenate([[0.0], np.cumsum([d[b][1] for b in keys])])
     V = {keys[n]: [P[keys[n]][0], float(cs[n + 1] - cs[n + 1 - 24])]
          for n in range(23, len(keys))}
-    return P, V
+    return P, V, HL
 
 
 def fetch_prices(html_path, bot_path, years=3, source="auto"):
@@ -751,8 +758,8 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
         if len(rows) < 2600:
             print("  %-7s НЕТ ДАННЫХ (%s, строк %d)" % (sym, why, len(rows)))
             continue
-        P, V = _series_from_rows(rows)
-        if _save(sym, P, V, source + ("-perp" if fut else "")):
+        P, V, HL = _series_from_rows(rows)
+        if _save(sym, P, V, source + ("-perp" if fut else ""), HL):
             ok += 1
     print("монет в кэше: %d из %d" % (ok, len(toks)))
     if ok < 8:
@@ -1030,6 +1037,774 @@ def selftest(html, bot, n_seeds=10):
     return 0 if (ok_null and ok_pow) else 1
 
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. EXPERIMENT LAB — three pre-registered measurements (12.08.2026)
+#
+# Registered BEFORE any real data is seen (invariant 23). One PRIMARY claim per
+# experiment; every other cell is exploration and gets the doubled bar that the
+# regime study already set as precedent (|IC| >= 0.10, CI99). A positive primary
+# does NOT wire anything into the product by itself: the standing rule is a
+# fresh confirmation run after +26 weeks of new data before any product change.
+#
+#   A. --stops    Is the invalidation layer honest? PRIMARY: pooled per-side
+#                 calibration ratio measured/model of 7d stop-touch frequency.
+#                 CI95 contains 1.0 -> the normal model is honest at 7d;
+#                 lower bound > 1.0 -> tails heavier than normal, board
+#                 probabilities understate risk by that factor (record in §7);
+#                 upper bound < 1.0 -> model overstates (errs safe), no action.
+#                 Hit and whipsaw rates are DESCRIPTIVE (no auto-thresholds:
+#                 acting on them is a separate, separately-argued change).
+#   B. --res7     Does the residual-vs-BTC factor rank coins? PRIMARY: LONG,
+#                 7d, contrarian orientation (factor = -z: fell on its own ->
+#                 long candidate). Bar identical to the scoring study:
+#                 IC >= +0.05 and CI95 clear of zero. Short side, momentum
+#                 orientation, 3/14d, and the r30 factor are exploration.
+#   C. --funding  Does funding crowding predict? PRIMARY: SHORT, 7d,
+#                 factor = z of 3-day mean funding within its trailing 30-day
+#                 distribution (crowded longs -> future underperformance).
+#                 Same bar: IC >= +0.05, CI95 clear of zero. Long side, 3/14d,
+#                 and the raw-level variant are exploration.
+#
+# Multiplicity is named, not hidden: three primaries in one session. Any single
+# positive at 0.05 therefore carries a family-wise caveat in its verdict line,
+# and the +26-week confirmation rule above is what actually gates product use.
+# ─────────────────────────────────────────────────────────────────────────────
+FACT_BAR = 0.05          # primary bar — identical to the scoring study
+EXPL_BAR = 0.10          # exploration bar — identical to the regime study
+EXPL_LEVEL = 99.0
+
+
+def factor_verdict(m, primary):
+    if m["ic_mean"] is None:
+        return "НЕТ ДАННЫХ"
+    lo, hi = m["ic_ci"]
+    off0 = lo is not None and hi is not None and lo * hi > 0
+    if primary:
+        if off0 and m["ic_mean"] >= FACT_BAR:
+            return ("ПЛАНКА ВЗЯТА (семейная оговорка: 3 первичных теста; "
+                    "в продукт — только после подтверждения на +26 неделях)")
+        if off0 and m["ic_mean"] <= -0.02:
+            return "ИНВЕРТИРОВАН — знак противоположен гипотезе"
+        return "ШУМ — от монетки не отличим"
+    if off0 and abs(m["ic_mean"]) >= EXPL_BAR:
+        return "сигнал выше разведочной планки — кандидат в отдельный пре-регистрированный тест"
+    return "разведка: вердикта не выносится"
+
+
+def factor_report(title, m, primary):
+    print("\n" + ("═" if primary else "─") * 62)
+    print(("ПЕРВИЧНЫЙ ТЕСТ · " if primary else "разведка · ") + title)
+    if m["ic_mean"] is None:
+        print("  нет данных")
+        return
+    lv = 95 if primary else int(EXPL_LEVEL)
+    print("  дат %d · монет на дату %.1f" % (m["n_dates"], m["n_coins"] or 0))
+    print("  IC = %+.3f   ДИ%d [%+.3f; %+.3f]   SE %.3f   контроль %+.3f"
+          % (m["ic_mean"], lv, m["ic_ci"][0] or float("nan"),
+             m["ic_ci"][1] or float("nan"), m["ic_se"] or float("nan"),
+             m["random"] or 0))
+    print("  ТОП-3 минус среднее: %+.2f%%" % (100 * (m["top_mean"] or 0)))
+    print("  ВЕРДИКТ: " + factor_verdict(m, primary))
+
+
+def walk_grid(series, horizon_d=7, step_d=7, warm_d=90, fwd_extra_d=0):
+    """Date grid + per-coin index pairs. Mirrors run_walk's admission guards
+    verbatim (6h staleness, 12h end-of-horizon tolerance, i >= 100, unbalanced
+    panel by construction); run_walk itself is left untouched — it is the
+    validated scoring path. fwd_extra_d extends the REQUIRED forward history
+    (e.g. whipsaw needs 7d past the 7d touch window) without changing the
+    measurement horizon."""
+    syms = sorted(series)
+    ts = {s: np.array([p[0] for p in series[s]["prices"]]) for s in syms}
+    need = (horizon_d + fwd_extra_d) * DAY_MS
+    t0 = min(ts[s][0] for s in syms) + warm_d * DAY_MS
+    t1 = max(ts[s][-1] for s in syms) - need
+    if t1 <= t0:
+        raise ValueError("истории не хватает даже на одну дату")
+    grid = list(range(int(t0), int(t1) + 1, step_d * DAY_MS))
+    out = []
+    for t in grid:
+        row = []
+        for s in syms:
+            i = int(np.searchsorted(ts[s], t, "right")) - 1
+            if i < 100 or abs(ts[s][i] - t) > 6 * HOUR_MS:
+                continue
+            iF = int(np.searchsorted(ts[s], t + horizon_d * DAY_MS, "right")) - 1
+            iX = int(np.searchsorted(ts[s], t + need, "right")) - 1
+            if iF <= i or ts[s][iF] < t + horizon_d * DAY_MS - 12 * HOUR_MS:
+                continue
+            if fwd_extra_d and (iX <= iF or ts[s][iX] < t + need - 12 * HOUR_MS):
+                continue
+            row.append((s, i, iF, iX))
+        if row:
+            out.append((t, row))
+    return out
+
+
+# ── 7. --stops · honesty of the invalidation layer ──────────────────────────
+INV_JS_FUNCS = ["has", "firstNum", "normCdf", "sigmaDay", "touchProb",
+                "invalidationInfo"]
+INV_JS_VARS = ["LIQ_MMR", "RISK_Z", "INV_FLOOR_SD", "INV_CAP_SD"]
+
+INV_DRIVER = r"""
+var fs = require('fs');
+__EXTRACTED__
+var job = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+var out = [];
+for (var i = 0; i < job.length; i++) {
+    var j = job[i], r = null;
+    try {
+        var inv = invalidationInfo(j.cd, j.E, j.isLong);
+        if (inv) {
+            // Log-distance of the stop barrier, same construction that
+            // liqTouchProb applies to the liquidation barrier (§3.3).
+            var b = j.isLong ? -Math.log(1 - inv.dist) : Math.log(1 + inv.dist);
+            r = { dist: inv.dist, price: inv.price, src: inv.src,
+                  floored: inv.floored, capped: inv.capped,
+                  p: touchProb(j.cd.volatility, b, j.hours) };
+        }
+    } catch (e) { r = null; }
+    out.push(r);
+}
+fs.writeFileSync(process.argv[3], JSON.stringify(out));
+"""
+
+
+def _extract_js_set(html_path, funcs, jvars, driver, bridge_name):
+    src = open(html_path, encoding="utf-8").read()
+    out = []
+    for name in funcs:
+        m = re.search(r"\nfunction\s+" + name + r"\s*\(", src)
+        if not m:
+            raise ValueError("в HTML не найдена функция " + name)
+        b = src.index("{", m.end())
+        out.append(src[m.start() + 1:_skip_to_matching_brace(src, b)])
+    for name in jvars:
+        m = re.search(r"\nvar\s+" + name + r"\s*=\s*([^;\n]+);", src)
+        if not m:
+            raise ValueError("в HTML не найдена константа " + name)
+        out.append("var " + name + " = " + m.group(1).strip() + ";")
+    path = os.path.join(HERE, bridge_name)
+    open(path, "w", encoding="utf-8").write(
+        driver.replace("__EXTRACTED__", "\n".join(out)))
+    r = subprocess.run(["node", "--check", path], capture_output=True)
+    if r.returncode:
+        raise RuntimeError("node --check провалился:\n" + r.stderr.decode())
+    return path
+
+
+class JsBridge:
+    """Same batch pattern as JsScorer: one node process per date."""
+
+    def __init__(self, html_path, funcs, jvars, driver, name):
+        self.path = _extract_js_set(html_path, funcs, jvars, driver, name)
+        self.fi = os.path.join(HERE, "_job2.json")
+        self.fo = os.path.join(HERE, "_out2.json")
+
+    def call(self, jobs):
+        json.dump(jobs, open(self.fi, "w"), allow_nan=False)
+        r = subprocess.run(["node", self.path, self.fi, self.fo],
+                           capture_output=True)
+        if r.returncode:
+            raise RuntimeError("node упал: " + r.stderr.decode()[:800])
+        return json.load(open(self.fo))
+
+
+def run_stops(series, bot, html, horizon_d=7, step_d=7, verbose=True):
+    """Measure the invalidation layer on real touches.
+
+    Per (date, coin, side): production invalidationInfo -> stop level; the
+    forward 7d of high/low decides whether it was TOUCHED; the production
+    touchProb gives the model figure for the same barrier. Whipsaw: among
+    touched setups, the share where price is back at entry within the 7 days
+    AFTER the touch — a stop that fired and then un-fired, i.e. paid-for noise.
+    Requires 'hl' in cache (refetch after 12.08 — cache key v4)."""
+    for s in series:
+        if "hl" not in series[s]:
+            sys.exit("СТОП: в кэше %s нет high/low. Перекачать историю "
+                     "(--fetch, ключ кэша v4): касание по закрытиям — "
+                     "заниженный, то есть опасный, замер." % s)
+    cdb = CdBuilder(bot)
+    br = JsBridge(html, INV_JS_FUNCS, INV_JS_VARS, INV_DRIVER, "_inv_bridge.js")
+    px = {s: np.array([p[1] for p in series[s]["prices"]]) for s in series}
+    hlt = {s: np.array([h[0] for h in series[s]["hl"]]) for s in series}
+    hi = {s: np.array([h[1] for h in series[s]["hl"]]) for s in series}
+    lo = {s: np.array([h[2] for h in series[s]["hl"]]) for s in series}
+    pts = {s: [p[0] for p in series[s]["prices"]] for s in series}
+    vts = {s: [v[0] for v in series[s]["volumes"]] for s in series}
+    H = horizon_d * 24
+    dates = []
+    for t, row in walk_grid(series, horizon_d, step_d, fwd_extra_d=horizon_d):
+        jobs, meta = [], []
+        for s, i, iF, iX in row:
+            cd = cdb.build(series[s]["prices"], series[s]["volumes"], i,
+                           pts[s], vts[s])
+            if cd is None:
+                continue
+            E = float(px[s][i])
+            for isL in (True, False):
+                jobs.append({"cd": cd, "E": E, "isLong": isL, "hours": H})
+                meta.append((s, i, E, isL))
+        if len(meta) < 16:
+            continue
+        res = br.call(jobs)
+        obs = []
+        for (s, i, E, isL), r in zip(meta, res):
+            if r is None:
+                continue
+            t_i = series[s]["prices"][i][0]
+            j0 = int(np.searchsorted(hlt[s], t_i, "right"))
+            j1 = int(np.searchsorted(hlt[s], t_i + H * HOUR_MS, "right"))
+            if j1 - j0 < H - 12:            # hl series must cover the window
+                continue
+            seg_hi, seg_lo = hi[s][j0:j1], lo[s][j0:j1]
+            touch = (seg_lo <= r["price"]) if isL else (seg_hi >= r["price"])
+            hit = bool(touch.any())
+            whip = None
+            if hit:
+                k = int(np.argmax(touch))
+                k1 = min(j0 + k + H, len(hlt[s]))
+                back = (hi[s][j0 + k:k1] >= E) if isL else (lo[s][j0 + k:k1] <= E)
+                whip = bool(back.any())
+            cat = ("capped" if r["capped"] else
+                   "floored" if r["floored"] else "struct")
+            obs.append({"side": "long" if isL else "short", "cat": cat,
+                        "hit": hit, "whip": whip, "p": r["p"],
+                        "dist": r["dist"]})
+        if obs:
+            dates.append({"t": t, "obs": obs})
+        if verbose and len(dates) % 20 == 0 and dates:
+            print("  дат посчитано: %d" % len(dates), flush=True)
+    return dates
+
+
+def stops_summary(dates, level=95.0):
+    """Pooled and per-category rates with date-block bootstrap CIs. The unit of
+    independence is the DATE (cross-coin correlation within a week is heavy),
+    so resampling is over dates, pooling their setups."""
+    def pool(sel):
+        rows = [[o for o in d["obs"] if sel(o)] for d in dates]
+        rows = [r for r in rows if r]
+        if len(rows) < 5:
+            return None
+        def agg(rs):
+            f = [o for r in rs for o in r]
+            hitv = np.array([1.0 if o["hit"] else 0.0 for o in f])
+            pv = np.array([o["p"] for o in f], float)
+            hits = [o for o in f if o["hit"] and o["whip"] is not None]
+            wv = (np.mean([1.0 if o["whip"] else 0.0 for o in hits])
+                  if hits else None)
+            return (float(hitv.mean()), float(pv.mean()), wv,
+                    float(np.median([o["dist"] for o in f])), len(f))
+        hit, mod, whip, med_d, n = agg(rows)
+        rng = np.random.default_rng(17)
+        bh, br_, bw = [], [], []
+        for _ in range(2000):
+            take = [rows[k] for k in rng.integers(0, len(rows), len(rows))]
+            h, mo, w, _, _ = agg(take)
+            bh.append(h)
+            br_.append(h / mo if mo > 0 else np.nan)
+            if w is not None:
+                bw.append(w)
+        a = (100 - level) / 2
+        ci = lambda v: (float(np.nanpercentile(v, a)),
+                        float(np.nanpercentile(v, 100 - a)))
+        return {"n": n, "hit": hit, "hit_ci": ci(bh), "model": mod,
+                "ratio": hit / mod if mod > 0 else None, "ratio_ci": ci(br_),
+                "whip": whip, "whip_ci": ci(bw) if bw else (None, None),
+                "med_dist": med_d}
+    out = {}
+    for side in ("long", "short"):
+        out[side] = pool(lambda o, sd=side: o["side"] == sd)
+        for cat in ("floored", "struct", "capped"):
+            out[side + "." + cat] = pool(
+                lambda o, sd=side, c=cat: o["side"] == sd and o["cat"] == c)
+    return out
+
+
+def report_stops(sm):
+    print("\n" + "═" * 62)
+    print("СЛОЙ ИНВАЛИДАЦИИ · касание стопа за 7д · факт против модели")
+    print("═" * 62)
+    for side, nm in (("long", "ЛОНГ"), ("short", "ШОРТ")):
+        m = sm.get(side)
+        if not m:
+            print("%s: данных мало" % nm)
+            continue
+        print("\n%s · сетапов %d · медианная дистанция %.1f%%"
+              % (nm, m["n"], 100 * m["med_dist"]))
+        print("  выбито за 7д: %.1f%% [%.1f; %.1f] · модель %.1f%%"
+              % (100 * m["hit"], 100 * m["hit_ci"][0], 100 * m["hit_ci"][1],
+                 100 * m["model"]))
+        print("  калибровка факт/модель: %.2f [%.2f; %.2f]"
+              % (m["ratio"], m["ratio_ci"][0], m["ratio_ci"][1]))
+        if m["whip"] is not None:
+            print("  из выбитых вернулись ко входу за следующие 7д: %.0f%% [%.0f; %.0f]"
+                  % (100 * m["whip"], 100 * (m["whip_ci"][0] or 0),
+                     100 * (m["whip_ci"][1] or 0)))
+        lo_, hi_ = m["ratio_ci"]
+        v = ("нормальная модель честна на 7д (ДИ95 содержит 1.0)"
+             if lo_ <= 1.0 <= hi_ else
+             "ХВОСТЫ ТЯЖЕЛЕЕ НОРМАЛИ в ~%.1f раза — вероятности на доске "
+             "занижены; множитель зафиксировать в §7" % m["ratio"]
+             if lo_ > 1.0 else
+             "модель завышает риск (ошибка в безопасную сторону) — не менять")
+        print("  ВЕРДИКТ (первичный, правило до прогона): " + v)
+        for cat, cn in (("floored", "пол 2σ"), ("struct", "структурный"),
+                        ("capped", "обрезан 6σ")):
+            c = sm.get(side + "." + cat)
+            if c:
+                print("    %-11s n=%-5d выбито %.1f%% · модель %.1f%% · возврат %s"
+                      % (cn, c["n"], 100 * c["hit"], 100 * c["model"],
+                         "—" if c["whip"] is None else "%.0f%%" % (100 * c["whip"])))
+
+
+# ── 8. --res7 · residual-vs-BTC as a ranking factor ─────────────────────────
+def bot_functions(bot_path, names):
+    """AST-cut top-level bot functions into a namespace (invariant 21)."""
+    src = open(bot_path, encoding="utf-8").read()
+    lines = src.splitlines()
+    tree = ast.parse(src)
+    got = {}
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name in names:
+            got[node.name] = "\n".join(lines[node.lineno - 1:node.end_lineno])
+    if len(got) != len(names):
+        raise ValueError("в боте не найдены: "
+                         + ", ".join(sorted(set(names) - set(got))))
+    ns = {"np": np}
+    # Module-level constants the cut functions reference (BUCKET_SECONDS etc.):
+    # every top-level UPPERCASE assignment with a literal value comes along.
+    for node in tree.body:
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id.isupper()):
+            try:
+                ns[node.targets[0].id] = ast.literal_eval(node.value)
+            except (ValueError, SyntaxError):
+                pass
+    exec("\n\n".join(got.values()), ns)
+    return ns
+
+
+RES_JS_FUNCS = ["has", "residual7"]
+RES_JS_VARS = ["RES_Z", "RES_R2_CAP", "H_NOISE"]
+RES_DRIVER = r"""
+var fs = require('fs');
+__EXTRACTED__
+var job = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+var out = [];
+for (var i = 0; i < job.length; i++) {
+    var r = null;
+    try { r = residual7(job[i].cd, job[i].btc); } catch (e) { r = null; }
+    out.push(r === null ? null : { z: r.z, own: r.own, cls: r.cls });
+}
+fs.writeFileSync(process.argv[3], JSON.stringify(out));
+"""
+
+
+class BetaWalk:
+    """Rolling 90d up/down beta+R2 vs BTC from the SAME bot functions the
+    production pipeline uses: bucket_prices, paired_hourly_returns, fit_stats,
+    asymmetric_beta (AST-cut, zero copies). The >=120 matched-hours guard is
+    §2's admission rule, restated here because it lives inside get_token_betas'
+    request plumbing, not in the math functions."""
+
+    def __init__(self, bot_path, btc_prices):
+        self.ns = bot_functions(bot_path, ["bucket_prices", "fit_stats",
+                                           "paired_hourly_returns",
+                                           "asymmetric_beta"])
+        self.btc_b = self.ns["bucket_prices"](btc_prices)
+        self.btc_keys = np.array(sorted(self.btc_b))
+
+    def betas(self, prices, i, pts):
+        t_end = prices[i][0]
+        cut = t_end - 90 * DAY_MS
+        lo_i = bisect.bisect_left(pts, cut, 0, i + 1)
+        cb = self.ns["bucket_prices"](prices[lo_i:i + 1])
+        k0 = int(np.searchsorted(self.btc_keys, t_end // HOUR_MS - 90 * 24))
+        k1 = int(np.searchsorted(self.btc_keys, t_end // HOUR_MS, "right"))
+        bb = {int(k): self.btc_b[int(k)] for k in self.btc_keys[k0:k1]}
+        common = sorted(set(bb) & set(cb))
+        if len(common) < 120:
+            return None
+        b_r, c_r = self.ns["paired_hourly_returns"](bb, cb, common)
+        if len(b_r) < 120:
+            return None
+        up_b, up_r2, dn_b, dn_r2 = self.ns["asymmetric_beta"](b_r, c_r)
+        return {"up_beta_90": up_b, "up_r2_90": up_r2,
+                "down_beta_90": dn_b, "down_r2_90": dn_r2}
+
+
+def run_res7(series, btc, bot, html, horizon_d=7, step_d=7, verbose=True):
+    cdb = CdBuilder(bot)
+    bw = BetaWalk(bot, btc["prices"])
+    br = JsBridge(html, RES_JS_FUNCS, RES_JS_VARS, RES_DRIVER, "_res_bridge.js")
+    px = {s: np.array([p[1] for p in series[s]["prices"]]) for s in series}
+    pts = {s: [p[0] for p in series[s]["prices"]] for s in series}
+    vts = {s: [v[0] for v in series[s]["volumes"]] for s in series}
+    bpts = [p[0] for p in btc["prices"]]
+    bts = np.array(bpts)
+    dates = []
+    for t, row in walk_grid(series, horizon_d, step_d):
+        bi = int(np.searchsorted(bts, t, "right")) - 1
+        if bi < 100 or abs(bts[bi] - t) > 6 * HOUR_MS:
+            continue
+        bcd = cdb.build(btc["prices"], [], bi, bpts, [])
+        if bcd is None or bcd["r7"] is None:
+            continue
+        jobs, meta = [], []
+        for s, i, iF, _ in row:
+            cd = cdb.build(series[s]["prices"], series[s]["volumes"], i,
+                           pts[s], vts[s])
+            if cd is None:
+                continue
+            bet = bw.betas(series[s]["prices"], i, pts[s])
+            if bet is None:
+                continue
+            cd.update(bet)
+            cur = float(px[s][i])
+            path = px[s][i:iF + 1]
+            jobs.append({"cd": cd, "btc": {"r7": bcd["r7"]}})
+            meta.append({
+                "sym": s, "fwd": float(path[-1] / cur - 1),
+                "mae_long": float(path.min() / cur - 1),
+                "mae_short": float(path.max() / cur - 1),
+                "f_low": -float((cur - cd["min_price"]) / cur)
+                         / (cd["volatility"] * math.sqrt(24) or 1e-9),
+                "f_r7": cd["r7"] if cd["r7"] is not None else 0.0,
+                "r30c": -(cd["r30"] if cd["r30"] is not None else 0.0),
+            })
+        if len(meta) < 8:
+            continue
+        out = br.call(jobs)
+        keep = []
+        for m, r in zip(meta, out):
+            if r is None or r["z"] is None:
+                continue
+            m["res_c"] = -r["z"]        # contrarian: fell on its own -> long
+            m["res_m"] = r["z"]         # momentum orientation (exploration)
+            keep.append(m)
+        if len(keep) < 8:
+            continue
+        fw = np.array([m["fwd"] for m in keep])
+        for m in keep:
+            m["exc"] = m["fwd"] - float(fw.mean())
+        dates.append({"t": t, "coins": keep})
+        if verbose and len(dates) % 20 == 0:
+            print("  дат посчитано: %d" % len(dates), flush=True)
+    return dates
+
+
+# ── 9. --funding · crowding as a directional factor ─────────────────────────
+def _fund_rows_from_zip(blob):
+    """fundingRate CSV: column layout drifted over the years, so columns are
+    recognised by content — the ms timestamp and the small |rate|<0.05 float."""
+    import zipfile, io, csv
+    out = []
+    with zipfile.ZipFile(io.BytesIO(blob)) as z:
+        with z.open(z.namelist()[0]) as f:
+            for row in csv.reader(io.TextIOWrapper(f, "utf-8")):
+                ts, rate = None, None
+                for cell in row:
+                    try:
+                        v = float(cell)
+                    except ValueError:
+                        continue
+                    if v > 1e12:
+                        ts = int(v / 1000.0) if v > 1e14 else int(v)
+                    elif abs(v) < 0.05 and cell not in ("0", "0.0"):
+                        rate = v
+                    elif abs(v) < 0.05 and rate is None:
+                        rate = v
+                if ts is not None and rate is not None:
+                    out.append([ts, rate])
+    return out
+
+
+def fetch_funding(html_path, years=3):
+    import requests
+    os.makedirs(CACHE, exist_ok=True)
+    toks = tokens_from_html(html_path)
+    t_end = int(time.time() * 1000)
+    t_beg = t_end - int(years * 365 * DAY_MS)
+    beg = time.gmtime(t_beg / 1000)
+    end = time.gmtime(t_end / 1000)
+    months, y, m = [], beg.tm_year, beg.tm_mon
+    while (y, m) <= (end.tm_year, end.tm_mon):
+        months.append("%04d-%02d" % (y, m))
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    ok = 0
+    for t in toks:
+        sym, pair = t["name"], t["s"]
+        f = os.path.join(CACHE, "_fund_%s.json" % sym)
+        if os.path.exists(f):
+            print("  %-7s funding уже в кэше" % sym)
+            ok += 1
+            continue
+        rows, miss = [], 0
+        for mo in months:
+            u = ("https://data.binance.vision/data/futures/um/monthly/"
+                 "fundingRate/%s/%s-fundingRate-%s.zip" % (pair, pair, mo))
+            r = requests.get(u, timeout=60)
+            if r.status_code == 200:
+                rows += _fund_rows_from_zip(r.content)
+            else:
+                miss += 1
+        rows.sort()
+        if len(rows) < 200:                 # < ~67 days of 8h prints
+            print("  %-7s funding МАЛО (%d выплат, нет %d мес.)"
+                  % (sym, len(rows), miss))
+            continue
+        json.dump({"rates": rows}, open(f, "w"))
+        print("  %-7s funding ok  %5d выплат" % (sym, len(rows)))
+        ok += 1
+    print("funding в кэше: %d из %d" % (ok, len(toks)))
+    if ok < 8:
+        sys.exit("СТОП: funding меньше чем у восьми монет — тест бессмыслен.")
+
+
+def load_funding():
+    out = {}
+    for f in sorted(os.listdir(CACHE)):
+        if f.startswith("_fund_") and f.endswith(".json"):
+            out[f[6:-5]] = json.load(open(os.path.join(CACHE, f)))["rates"]
+    return out
+
+
+def fund_factor(rates_ts, rates_v, t):
+    """z of the 3-day mean funding within its trailing 30-day distribution.
+    Registered choice: single prints are noisy, the 9-print mean is the
+    crowding STATE; the 30d window is the coin's own recent norm."""
+    j1 = int(np.searchsorted(rates_ts, t, "right"))
+    j0 = int(np.searchsorted(rates_ts, t - 30 * DAY_MS, "left"))
+    w = rates_v[j0:j1]
+    if len(w) < 60:
+        return None, None
+    sd = float(np.std(w, ddof=1))
+    if sd <= 0:
+        return None, None
+    j3 = int(np.searchsorted(rates_ts, t - 3 * DAY_MS, "left"))
+    m3 = rates_v[j3:j1]
+    if len(m3) < 6:
+        return None, None
+    z = (float(np.mean(m3)) - float(np.mean(w))) / sd
+    lvl = float(np.mean(m3))
+    return z, lvl
+
+
+def run_funding(series, fund, bot, horizon_d=7, step_d=7, verbose=True):
+    cdb = CdBuilder(bot)
+    px = {s: np.array([p[1] for p in series[s]["prices"]]) for s in series}
+    pts = {s: [p[0] for p in series[s]["prices"]] for s in series}
+    vts = {s: [v[0] for v in series[s]["volumes"]] for s in series}
+    fts = {s: np.array([r[0] for r in fund[s]], float) for s in fund}
+    fvs = {s: np.array([r[1] for r in fund[s]], float) for s in fund}
+    dates = []
+    for t, row in walk_grid(series, horizon_d, step_d):
+        meta = []
+        for s, i, iF, _ in row:
+            if s not in fts:
+                continue
+            z, lvl = fund_factor(fts[s], fvs[s], t)
+            if z is None:
+                continue
+            cd = cdb.build(series[s]["prices"], series[s]["volumes"], i,
+                           pts[s], vts[s])
+            if cd is None:
+                continue
+            cur = float(px[s][i])
+            path = px[s][i:iF + 1]
+            meta.append({
+                "sym": s, "fwd": float(path[-1] / cur - 1),
+                "mae_long": float(path.min() / cur - 1),
+                "mae_short": float(path.max() / cur - 1),
+                "f_low": -float((cur - cd["min_price"]) / cur)
+                         / (cd["volatility"] * math.sqrt(24) or 1e-9),
+                "f_r7": cd["r7"] if cd["r7"] is not None else 0.0,
+                "fz": z, "fp": lvl,
+            })
+        if len(meta) < 8:
+            continue
+        fw = np.array([m["fwd"] for m in meta])
+        for m in meta:
+            m["exc"] = m["fwd"] - float(fw.mean())
+        dates.append({"t": t, "coins": meta})
+        if verbose and len(dates) % 20 == 0:
+            print("  дат посчитано: %d" % len(dates), flush=True)
+    return dates
+
+
+# ── 10. --lab-selftest · known-answer worlds for the three experiments ──────
+def synth_hl(mode, n_coins=16, hours=16000, seed=3, sub=6):
+    """Hourly series WITH intra-hour high/low built from `sub` substeps.
+    normal — iid gaussian substeps: measured touch must match the model;
+    wick   — the same diffusion plus rare one-sided intra-hour wicks
+             (~1.7/week per side, 6..14 sigma-hour deep) that fully retrace
+             before the close. Close-based sigma is provably blind to them,
+             so the barrier and the model p do not move while true touches
+             do. Known answer: ratio > 1 — the exact error class the primary
+             exists to catch (stop-hunt wicks).
+    Lessons recorded during control construction, BEFORE real data (inv. 23):
+    (1) VOLATILITY CLUSTERING at the 2-sigma floor pushes the ratio BELOW 1 —
+    touch probability is concave in sigma near 40-55%, so regime mixing
+    LOWERS the average versus the flat-vol model. A real-run ratio < 1 is
+    therefore explainable by clustering and errs in the safe direction.
+    (2) Symmetric diffusive jumps mostly land IN the estimated sigma: the
+    barrier scales with it and the ratio stays ~1 — variance-like fat tails
+    are already absorbed by the engine's own vol measurement."""
+    rng = np.random.default_rng(seed)
+    t0 = 1700000000000
+    out = {}
+    for c in range(n_coins):
+        v = 0.006 + 0.006 * rng.random()            # hourly vol 0.6–1.2%
+        e = rng.normal(0, v / math.sqrt(sub), (hours, sub))
+        cum = np.cumsum(e.reshape(-1))
+        lp = np.concatenate([[0.0], cum]).reshape(-1)
+        # per-hour path: lp[i*sub] .. lp[(i+1)*sub]
+        P, HL = [], []
+        base = 10.0
+        wick_lo = np.zeros(hours)
+        wick_hi = np.zeros(hours)
+        if mode == "wick":
+            ev = rng.random(hours) < 0.02            # ~1.7 events/week per side
+            side = rng.random(hours) < 0.5
+            depth = rng.uniform(6, 14, hours) * v
+            wick_lo[ev & side] = depth[ev & side]
+            wick_hi[ev & ~side] = depth[ev & ~side]
+        for i in range(hours):
+            seg = lp[i * sub:(i + 1) * sub + 1]
+            ts = t0 + (i + 1) * HOUR_MS
+            P.append([ts, float(base * math.exp(seg[-1]))])
+            HL.append([ts, float(base * math.exp(seg.max() + wick_hi[i])),
+                       float(base * math.exp(seg.min() - wick_lo[i]))])
+        V = [[P[i][0], 1e7] for i in range(hours)]
+        out["C%02d" % c] = {"prices": P, "volumes": V, "hl": HL}
+    return out
+
+
+def synth_res(mode, n_coins=20, hours=12000, seed=3, beta=0.7):
+    """resnull — idio is a random walk: residual factor must read 0.
+    resrev  — idio LEVEL mean-reverts to 0 with ~3.5-day half-life: a coin
+    that fell on its own move rebounds -> contrarian res7 must go positive."""
+    rng = np.random.default_rng(seed)
+    t0 = 1700000000000
+    mkt = np.cumsum(rng.normal(0, 0.004, hours))
+    k = {"resnull": 0.0, "resrev": 1 - 0.5 ** (1 / 84.0)}[mode]
+    out = {"__mkt": mkt}
+    for c in range(n_coins):
+        e = rng.normal(0, 0.010, hours)
+        x = np.zeros(hours)
+        for i in range(1, hours):
+            x[i] = x[i - 1] * (1 - k) + e[i]
+        lp = beta * mkt + x
+        p = 10.0 * np.exp(lp)
+        ts = [t0 + (i + 1) * HOUR_MS for i in range(hours)]
+        out["C%02d" % c] = {"prices": [[ts[i], float(p[i])] for i in range(hours)],
+                            "volumes": [[ts[i], 1e7] for i in range(hours)]}
+    btc = {"prices": [[t0 + (i + 1) * HOUR_MS, float(50000 * math.exp(mkt[i]))]
+                      for i in range(hours)], "volumes": []}
+    out.pop("__mkt")
+    return out, btc
+
+
+def synth_fund(coupled, n_coins=20, hours=12000, seed=5, g=5e-4):
+    """Prices + synthetic 8h funding. coupled=True: a causal negative drift
+    -g*z_fund(t) is injected into each coin's idio — crowded funding must
+    predict underperformance and the SHORT primary must go positive.
+    coupled=False: funding exists but is wired to nothing — must read 0."""
+    rng = np.random.default_rng(seed)
+    t0 = 1700000000000
+    mkt = np.cumsum(rng.normal(0, 0.004, hours))
+    ser, fund = {}, {}
+    for c in range(n_coins):
+        n8 = hours // 8 + 40
+        f = np.zeros(n8)
+        for i in range(1, n8):
+            f[i] = 0.97 * f[i - 1] + rng.normal(0, 8e-5)
+        fts = [t0 + i * 8 * HOUR_MS for i in range(n8)]
+        fund["C%02d" % c] = [[fts[i], float(f[i])] for i in range(n8)]
+        fsd = float(np.std(f)) or 1e-9
+        lp = np.zeros(hours)
+        for i in range(1, hours):
+            drift = -g * (f[min(i // 8, n8 - 1)] / fsd) if coupled else 0.0
+            lp[i] = lp[i - 1] + drift + rng.normal(0, 0.010) + 0.7 * (mkt[i] - mkt[i - 1])
+        p = 10.0 * np.exp(lp)
+        ts = [t0 + (i + 1) * HOUR_MS for i in range(hours)]
+        ser["C%02d" % c] = {"prices": [[ts[i], float(p[i])] for i in range(hours)],
+                            "volumes": [[ts[i], 1e7] for i in range(hours)]}
+    return ser, fund
+
+
+def lab_selftest(html, bot, seeds=3):
+    """Known-answer worlds for all three experiments. Direction of error is
+    safe by construction: a healthy stand can flag itself broken on an unlucky
+    seed, never the reverse claim."""
+    ok = True
+
+    # A · stops: extraction + calibration on flat vol, detection on clustered
+    print("A · --stops")
+    sm_n = stops_summary(run_stops(synth_hl("normal"), bot, html, verbose=False))
+    sm_c = stops_summary(run_stops(synth_hl("wick"), bot, html, verbose=False))
+    for side in ("long", "short"):
+        n, c = sm_n[side], sm_c[side]
+        in1 = n["ratio_ci"][0] <= 1.0 <= n["ratio_ci"][1] or 0.85 <= n["ratio"] <= 1.10
+        det = c["ratio"] > n["ratio"] and c["ratio_ci"][0] > 1.0
+        print("  %-5s flat ratio %.2f [%.2f;%.2f] %s · wick %.2f [%.2f;%.2f] %s"
+              % (side, n["ratio"], n["ratio_ci"][0], n["ratio_ci"][1],
+                 "ОК" if in1 else "СТОП",
+                 c["ratio"], c["ratio_ci"][0], c["ratio_ci"][1],
+                 "ОК" if det else "СТОП"))
+        ok = ok and in1 and det
+
+    # B · res7: beta recovery + null reads 0 + reversion reads +
+    print("B · --res7")
+    icn, icr, bset = [], [], []
+    for sd in range(1, seeds + 1):
+        ser, btc = synth_res("resnull", seed=sd)
+        bw = BetaWalk(bot, btc["prices"])
+        s0 = sorted(ser)[0]
+        b = bw.betas(ser[s0]["prices"], len(ser[s0]["prices"]) - 1,
+                     [p[0] for p in ser[s0]["prices"]])
+        bset += [b["up_beta_90"], b["down_beta_90"]]
+        d = run_res7(ser, btc, bot, html, verbose=False)
+        icn.append(metrics(d, "res_c", 1.0)["ic_mean"])
+        ser, btc = synth_res("resrev", seed=sd)
+        d = run_res7(ser, btc, bot, html, verbose=False)
+        icr.append(metrics(d, "res_c", 1.0)["ic_mean"])
+    se = 0.03
+    b_ok = all(bb is not None and 0.5 < bb < 0.9 for bb in bset)
+    n_ok = abs(float(np.mean(icn))) < 2 * se / math.sqrt(seeds)
+    r_ok = float(np.mean(icr)) > 0.10
+    print("  беты восстановлены: %s (среднее %.2f) · нулевой мир IC %+.3f %s · "
+          "возвратный мир IC %+.3f %s"
+          % ("ОК" if b_ok else "СТОП", float(np.mean([b for b in bset if b])),
+             float(np.mean(icn)), "ОК" if n_ok else "СТОП",
+             float(np.mean(icr)), "ОК" if r_ok else "СТОП"))
+    ok = ok and b_ok and n_ok and r_ok
+
+    # C · funding: uncoupled reads 0, coupled reads + on the SHORT primary
+    print("C · --funding")
+    icn, icc = [], []
+    for sd in range(1, seeds + 1):
+        ser, fund = synth_fund(False, seed=sd)
+        icn.append(metrics(run_funding(ser, fund, bot, verbose=False),
+                           "fz", -1.0)["ic_mean"])
+        ser, fund = synth_fund(True, seed=sd)
+        icc.append(metrics(run_funding(ser, fund, bot, verbose=False),
+                           "fz", -1.0)["ic_mean"])
+    n_ok = abs(float(np.mean(icn))) < 2 * se / math.sqrt(seeds)
+    c_ok = float(np.mean(icc)) > 0.10
+    print("  нулевой мир IC %+.3f %s · связанный мир IC %+.3f %s"
+          % (float(np.mean(icn)), "ОК" if n_ok else "СТОП",
+             float(np.mean(icc)), "ОК" if c_ok else "СТОП"))
+    ok = ok and n_ok and c_ok
+
+    print("\nВЕРДИКТ ЛАБОРАТОРИИ: %s"
+          % ("измеряет то, что должна" if ok else "НЕИСПРАВНА — результатам не верить"))
+    return 0 if ok else 1
+
 # ─────────────────────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser()
@@ -1039,6 +1814,12 @@ def main():
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--probe", action="store_true")
     ap.add_argument("--regimes", action="store_true")
+    ap.add_argument("--stops", action="store_true")
+    ap.add_argument("--res7", action="store_true")
+    ap.add_argument("--funding", action="store_true")
+    ap.add_argument("--fetch-funding", action="store_true")
+    ap.add_argument("--lab-selftest", action="store_true")
+    ap.add_argument("--lab-seeds", type=int, default=3)
     ap.add_argument("--years", type=float, default=3)
     ap.add_argument("--source", default="auto",
                     choices=["auto", "vision", "dataapi", "binance", "cg"])
@@ -1052,6 +1833,54 @@ def main():
 
     if a.regimes:
         return run_regimes(a.html, a.bot, a.horizon, a.step)
+    if a.lab_selftest:
+        return lab_selftest(a.html, a.bot, a.lab_seeds)
+    if a.fetch_funding:
+        return fetch_funding(a.html, a.years)
+    if a.stops:
+        ser = load_cache()
+        if len(ser) < 8:
+            sys.exit("СТОП: в кэше %d монет." % len(ser))
+        sm = stops_summary(run_stops(ser, a.bot, a.html, a.horizon, a.step))
+        report_stops(sm)
+        json.dump(sm, open(os.path.join(HERE, "stops_raw.json"), "w"))
+        return 0
+    if a.res7:
+        ser = load_cache()
+        btc = load_cache(keep_btc=True).get("BTC")
+        if btc is None:
+            sys.exit("СТОП: в кэше нет BTC — остаток считать не от чего.")
+        if len(ser) < 8:
+            sys.exit("СТОП: в кэше %d монет." % len(ser))
+        d = run_res7(ser, btc, a.bot, a.html, a.horizon, a.step)
+        pri = (a.horizon == 7)
+        factor_report("ОСТАТОК К BTC · контр (лонг) · %dд" % a.horizon,
+                      metrics(d, "res_c", 1.0, level=95.0 if pri else EXPL_LEVEL),
+                      pri)
+        for ttl, key, sg in (("остаток · моментум (лонг)", "res_m", 1.0),
+                             ("остаток · контр (шорт)", "res_m", -1.0),
+                             ("r30 · контр (лонг)", "r30c", 1.0)):
+            factor_report("%s · %dд" % (ttl, a.horizon),
+                          metrics(d, key, sg, level=EXPL_LEVEL), False)
+        json.dump([{"t": x["t"]} for x in d],
+                  open(os.path.join(HERE, "res7_dates.json"), "w"))
+        return 0
+    if a.funding:
+        ser = load_cache()
+        fund = load_funding()
+        if len(fund) < 8:
+            sys.exit("СТОП: funding есть у %d монет. Сначала --fetch-funding."
+                     % len(fund))
+        d = run_funding(ser, fund, a.bot, a.horizon, a.step)
+        pri = (a.horizon == 7)
+        factor_report("FUNDING · перегрев лонгов (шорт) · %dд" % a.horizon,
+                      metrics(d, "fz", -1.0, level=95.0 if pri else EXPL_LEVEL),
+                      pri)
+        for ttl, key, sg in (("funding-уровень (шорт)", "fp", -1.0),
+                             ("funding z (лонг, зеркало)", "fz", 1.0)):
+            factor_report("%s · %dд" % (ttl, a.horizon),
+                          metrics(d, key, sg, level=EXPL_LEVEL), False)
+        return 0
     if a.probe:
         print("Проверка доступности источников:"); probe(); return 0
     if a.fetch:
