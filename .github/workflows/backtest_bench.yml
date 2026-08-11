@@ -34,7 +34,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: bench/cache
-          key: bench-${{ inputs.source }}-${{ inputs.years }}y-v2
+          key: bench-${{ inputs.source }}-${{ inputs.years }}y-v3
 
       # 20 секунд: какие источники вообще отвечают с этого раннера.
       - name: Диагностика источников
@@ -65,6 +65,12 @@ jobs:
           done
 
       # Артефакт нужен именно тогда, когда что-то упало.
+      - name: Деление по режиму BTC
+        run: |
+          cd bench
+          python backtest_bench.py --regimes --horizon 7 --step 7 \
+            --html ../index.html --bot ../main.py 2>&1 | tee regimes.txt
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -75,5 +81,7 @@ jobs:
             bench/fetch.txt
             bench/verify.txt
             bench/report.txt
+            bench/regimes.txt
+            bench/regimes.json
             bench/run_raw.json
           if-no-files-found: warn
