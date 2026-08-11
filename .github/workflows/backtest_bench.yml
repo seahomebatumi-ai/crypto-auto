@@ -34,7 +34,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: bench/cache
-          key: bench-${{ inputs.source }}-${{ inputs.years }}y-v3
+          key: bench-${{ inputs.source }}-${{ inputs.years }}y-v4   # v4: cache carries high/low for --stops
 
       # 20 секунд: какие источники вообще отвечают с этого раннера.
       - name: Диагностика источников
@@ -46,12 +46,24 @@ jobs:
           python backtest_bench.py --selftest --seeds 10 \
             --html ../index.html --bot ../main.py 2>&1 | tee selftest.txt
 
+      - name: Самопроверка лаборатории (офлайн, миры с известным ответом)
+        run: |
+          cd bench
+          python backtest_bench.py --lab-selftest \
+            --html ../index.html --bot ../main.py 2>&1 | tee lab.txt
+
       - name: Закачка истории
         run: |
           cd bench
           python backtest_bench.py --fetch --source ${{ inputs.source }} \
             --years ${{ inputs.years }} --html ../index.html --bot ../main.py \
             2>&1 | tee fetch.txt
+
+      - name: Закачка funding (архив, монтные ZIP)
+        run: |
+          cd bench
+          python backtest_bench.py --fetch-funding --years ${{ inputs.years }} \
+            --html ../index.html 2>&1 | tee fund_fetch.txt
 
       - name: Сверка восстановления с живым coeffs.json
         run: cd bench && python backtest_bench.py --verify --bot ../main.py 2>&1 | tee verify.txt
@@ -62,6 +74,28 @@ jobs:
           for H in 3 7 14; do
             python backtest_bench.py --run --horizon $H --step 7 \
               --html ../index.html --bot ../main.py 2>&1 | tee -a report.txt
+          done
+
+      - name: Слой инвалидации (--stops)
+        run: |
+          cd bench
+          python backtest_bench.py --stops --horizon 7 --step 7 \
+            --html ../index.html --bot ../main.py 2>&1 | tee stops.txt
+
+      - name: Фактор res7 (--res7, первичный — 7д)
+        run: |
+          cd bench
+          for H in 3 7 14; do
+            python backtest_bench.py --res7 --horizon $H --step 7 \
+              --html ../index.html --bot ../main.py 2>&1 | tee -a res7.txt
+          done
+
+      - name: Фактор funding (--funding, первичный — 7д)
+        run: |
+          cd bench
+          for H in 3 7 14; do
+            python backtest_bench.py --funding --horizon $H --step 7 \
+              --html ../index.html --bot ../main.py 2>&1 | tee -a funding.txt
           done
 
       # Артефакт нужен именно тогда, когда что-то упало.
@@ -84,4 +118,10 @@ jobs:
             bench/regimes.txt
             bench/regimes.json
             bench/run_raw.json
+            bench/lab.txt
+            bench/fund_fetch.txt
+            bench/stops.txt
+            bench/stops_raw.json
+            bench/res7.txt
+            bench/funding.txt
           if-no-files-found: warn
