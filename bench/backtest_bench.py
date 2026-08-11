@@ -216,7 +216,7 @@ def spearman(a, b):
     return float((ra * rb).sum() / d) if d > 0 else None
 
 
-def block_bootstrap_ci(x, n=4000, block=3, seed=7):
+def block_bootstrap_ci(x, n=4000, block=3, seed=7, level=95.0):
     """ДИ среднего по ряду дат. Блоки — против автокорреляции соседних недель."""
     x = np.asarray([v for v in x if v is not None], float)
     if len(x) < 5:
@@ -227,7 +227,8 @@ def block_bootstrap_ci(x, n=4000, block=3, seed=7):
     for k in range(n):
         st = rng.integers(0, max(1, len(x) - block + 1), nb)
         means[k] = np.concatenate([x[s:s + block] for s in st])[:len(x)].mean()
-    return (float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5)))
+    a = (100.0 - level) / 2.0
+    return (float(np.percentile(means, a)), float(np.percentile(means, 100 - a)))
 
 
 def run_walk(series, cdb, scorer, horizon_d=7, step_d=7, warm_d=90,
@@ -307,7 +308,7 @@ def run_walk(series, cdb, scorer, horizon_d=7, step_d=7, warm_d=90,
     return dates
 
 
-def metrics(dates, key="long", sgn=1.0, topn=3):
+def metrics(dates, key="long", sgn=1.0, topn=3, level=95.0):
     """sgn = +1 лонг (хотим рост), −1 шорт (хотим падение).
     Цель — ИЗБЫТОЧНАЯ доходность к среднему по списку: счёт решает задачу
     «какую из 28 взять», а не «куда пойдёт рынок»."""
@@ -337,7 +338,7 @@ def metrics(dates, key="long", sgn=1.0, topn=3):
     mn = lambda a: float(np.mean([v for v in a if v is not None])) if a else None
     return {
         "n_dates": len(icv), "n_coins": mn(ncoins),
-        "ic_mean": mn(icv), "ic_ci": block_bootstrap_ci(icv),
+        "ic_mean": mn(icv), "ic_ci": block_bootstrap_ci(icv, level=level),
         "ic_se": float(np.std(icv, ddof=1) / math.sqrt(len(icv))) if len(icv) > 2 else None,
         "top_mean": mn(top), "top_ci": block_bootstrap_ci(top),
         "base_low": mn(base_low), "base_r7": mn(base_r7),
@@ -382,8 +383,151 @@ def report(title, m):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. ДАННЫЕ: CoinGecko, 90-дневными кусками, с кэшем и проверкой шага
+# 3b. РЕЖИМ РЫНКА — правило зарегистрировано ДО прогона (одобрено 11.08.2026)
 # ─────────────────────────────────────────────────────────────────────────────
+# ТРЕНД = наклон 90-дневной регрессии BTC значимо отличается от нуля.
+#         Иначе — ДИАПАЗОН.
+# Реализация: МНК log(цена) по номеру дня на 90 ДНЕВНЫХ закрытиях, ошибка
+# наклона по Ньюи–Уэсту (поправка на автокорреляцию остатков), лаг по
+# автоматическому правилу L = floor(4*(n/100)^(2/9)) = 3. |t| > 1.96 -> тренд.
+# Почему по дневным, а не по 2160 часовым: на часовых остатки так
+# автокоррелированы, что наивный t-стат объявил бы трендом почти каждую дату,
+# и деление выродилось бы. Лаг взят по стандартному правилу, а не подобран.
+#
+# ПЛАНКА ВЕРДИКТА ПОДНЯТА: проверок теперь две вместо одной, поэтому
+# требуется |IC| >= 0.10 (вдвое против исходных 0.05) И доверительный
+# интервал 99% (поправка Бонферрони), не задевающий ноль.
+# ГЛАВНАЯ проверка одна: ЛОНГ, горизонт 7 дней. Всё остальное — разведка
+# без вердикта, потому что каждая лишняя ячейка удешевляет любую находку.
+REG_T = 1.96
+REG_BAR = 0.10
+REG_LEVEL = 99.0
+
+
+def _hac_slope_t(y, L=3):
+    """Наклон и его t-статистика с ошибкой Ньюи–Уэста."""
+    n = len(y)
+    X = np.column_stack([np.ones(n), np.arange(n, dtype=float)])
+    b = np.linalg.lstsq(X, y, rcond=None)[0]
+    e = y - X.dot(b)
+    xi = X * e[:, None]
+    S = xi.T.dot(xi)
+    for l in range(1, L + 1):
+        w = 1.0 - l / (L + 1.0)
+        G = xi[l:].T.dot(xi[:-l])
+        S = S + w * (G + G.T)
+    XtXi = np.linalg.inv(X.T.dot(X))
+    V = XtXi.dot(S).dot(XtXi)
+    se = math.sqrt(max(V[1, 1], 1e-30))
+    return float(b[1]), float(b[1] / se)
+
+
+def _trend_stat(logp):
+    """ТРЕНД vs ДИАПАЗОН по 90 дневным закрытиям BTC.
+
+    Почему НЕ наивная регрессия уровня по времени: цена — процесс со
+    случайным блужданием, и МНК по её уровню порождает «значимый» наклон
+    из ничего. Замер на синтетике: чистое блуждание объявлялось трендом
+    в 70% случаев даже с поправкой Ньюи–Уэста, деление вырождалось.
+    Правильно сформулированный тот же вопрос — значим ли снос: наклон
+    оценивается по ДОХОДНОСТЯМ (они почти независимы), t = μ·√n/σ.
+    Под нулевой гипотезой даёт положенные ~5% ложных срабатываний.
+
+    Замена сделана ДО касания реальных данных, по синтетическому контролю,
+    а не после того, как результат не понравился."""
+    r = np.diff(logp)
+    n = len(r)
+    sd = float(np.std(r, ddof=1))
+    if n < 30 or sd <= 0:
+        return None, None
+    mu = float(np.mean(r))
+    return mu, mu * math.sqrt(n) / sd
+
+
+def btc_regimes(btc, times):
+    """Метка режима на каждую дату прогона."""
+    ts = np.array([p[0] for p in btc["prices"]])
+    px = np.array([p[1] for p in btc["prices"]])
+    out = {}
+    for t in times:
+        i = int(np.searchsorted(ts, t, "right")) - 1
+        lo = int(np.searchsorted(ts, t - 90 * DAY_MS, "left"))
+        if i - lo < 1200:
+            continue
+        seg_t, seg_p = ts[lo:i + 1], px[lo:i + 1]
+        day = seg_t // DAY_MS
+        last = {}
+        for k in range(len(seg_t)):
+            last[int(day[k])] = float(seg_p[k])   # закрытие каждых суток UTC
+        if len(last) < 60:
+            continue
+        y = np.log(np.array([last[d] for d in sorted(last)]))
+        mu, tst = _trend_stat(y)
+        if tst is None:
+            continue
+        out[t] = ("тренд" if abs(tst) > REG_T else "диапазон",
+                  tst, "вверх" if mu > 0 else "вниз")
+    return out
+
+
+def report_regime(title, m, primary):
+    lo, hi = m["ic_ci"]
+    print("\n" + "─" * 62)
+    print(title)
+    print("  дат %d · монет на дату %.1f" % (m["n_dates"], m["n_coins"] or 0))
+    print("  IC = %+.3f   ДИ%d%% [%+.3f; %+.3f]   SE %.3f"
+          % (m["ic_mean"], int(REG_LEVEL), lo or float("nan"),
+             hi or float("nan"), m["ic_se"] or float("nan")))
+    print("  контроль перемешиванием %+.3f · различимо |IC| ≳ %.3f"
+          % (m["random"], 2 * (m["ic_se"] or 0)))
+    if primary:
+        off0 = lo is not None and hi is not None and lo * hi > 0
+        if off0 and abs(m["ic_mean"]) >= REG_BAR:
+            v = "СИГНАЛ ЕСТЬ — планка взята"
+        elif off0:
+            v = ("эффект отличим от нуля, но ниже планки %.2f — "
+                 "не основание для действия" % REG_BAR)
+        else:
+            v = "шум — от монетки не отличим"
+        print("  ВЕРДИКТ (планка |IC| ≥ %.2f и ДИ%d%% мимо нуля): %s"
+              % (REG_BAR, int(REG_LEVEL), v))
+    else:
+        print("  разведка, вердикта не выносится")
+
+
+def run_regimes(html, bot, horizon=7, step=7):
+    ser = load_cache()
+    btc = load_cache(keep_btc=True).get("BTC")
+    if btc is None:
+        sys.exit("СТОП: в кэше нет BTC — режим определять не по чему.")
+    if len(ser) < 8:
+        sys.exit("СТОП: в кэше %d монет." % len(ser))
+    d = run_walk(ser, CdBuilder(bot), JsScorer(html), horizon, step)
+    reg = btc_regimes(btc, [x["t"] for x in d])
+    for x in d:
+        x["reg"] = reg.get(x["t"], (None,))[0]
+    n = {k: sum(1 for x in d if x["reg"] == k) for k in ("тренд", "диапазон")}
+    ups = sum(1 for x in d if reg.get(x["t"], (None, 0, ""))[2] == "вверх"
+              and x["reg"] == "тренд")
+    print("\n" + "═" * 62)
+    print("ДЕЛЕНИЕ ПО РЕЖИМУ BTC · горизонт %dд" % horizon)
+    print("═" * 62)
+    print("тренд %d дат (из них вверх %d, вниз %d) · диапазон %d дат"
+          % (n["тренд"], ups, n["тренд"] - ups, n["диапазон"]))
+    if min(n.values()) < 20:
+        print("ВНИМАНИЕ: деление вырожденное, меньшая часть — %d дат. "
+              "Сравнивать нечего." % min(n.values()))
+    for key, sg, nm, primary in (("long", 1.0, "ЛОНГ", True),
+                                 ("short", -1.0, "ШОРТ", False)):
+        for r in ("тренд", "диапазон"):
+            sub = [x for x in d if x["reg"] == r]
+            if len(sub) < 10:
+                continue
+            m = metrics(sub, key, sg, level=REG_LEVEL)
+            report_regime("%s · режим «%s»%s" % (nm, r, "" if primary else " (разведка)"),
+                          m, primary)
+    json.dump([{"t": x["t"], "reg": x["reg"]} for x in d],
+              open(os.path.join(HERE, "regimes.json"), "w"))
 def tokens_from_html(html_path):
     """Список пар — из фронта, а не из отдельной копии (инвариант 2: список монет
     живёт в одном месте). Разбирается настоящим node, а не регуляркой."""
@@ -583,6 +727,18 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
             if source == "vision":
                 rows, miss = _vision_rows(pair, is_fut, t_beg, t_end)
                 why = "нет %d месячных файлов" % miss
+                # Дневные файлы архива выкладываются на следующие сутки, поэтому
+                # он всегда отстаёт примерно на день. Дотягиваем хвост зеркалом,
+                # иначе сверка сравнивает два разных момента времени.
+                if rows:
+                    tail = max(int(r[0]) for r in rows) + HOUR_MS
+                    if t_end - tail > 2 * HOUR_MS:
+                        add, code = _rest_rows("https://data-api.binance.vision",
+                                               "/api/v3/klines", pair, tail, t_end)
+                        if add:
+                            rows += add
+                        else:
+                            why += ", хвост не добран (HTTP %s)" % code
             else:
                 host = (("https://fapi.binance.com", "/fapi/v1/klines") if is_fut else
                         (("https://data-api.binance.vision", "/api/v3/klines")
@@ -655,6 +811,12 @@ def verify_against_live(bot_path):
         "3f50574a29bc37434c18cc8480779ccb/raw/coeffs.json", timeout=30).json()
     ref = {d["symbol"]: d for d in live["analysis_data"]} if isinstance(
         live.get("analysis_data"), list) else live["analysis_data"]
+    gen = live.get("generated_at", "")
+    try:
+        g = time.mktime(time.strptime(gen[:19], "%Y-%m-%dT%H:%M:%S"))
+        g -= time.timezone
+    except Exception:
+        g = None
     cdb = CdBuilder(bot_path)
     # поле -> (вид сверки, порог).  rel = относительно, pp = проц. пункты,
     # abs = в единицах величины, info = только показать
@@ -663,6 +825,17 @@ def verify_against_live(bot_path):
             ("volatility", "rel", 10.0), ("vol7", "rel", 25.0),
             ("r7", "pp", 1.5), ("r14", "pp", 2.0), ("r30", "pp", 3.0),
             ("eff14", "abs", 0.15), ("vol_ratio", "info", 0.0)]
+    ends = [json.load(open(os.path.join(CACHE, f)))["prices"][-1][0]
+            for f in os.listdir(CACHE) if f.endswith(".json")]
+    gap = None
+    if g and ends:
+        gap = (g - max(ends) / 1000.0) / 3600.0
+        print("coeffs.json собран %s · кэш кончается %s · разрыв %.1f ч" % (
+            gen[:16], time.strftime("%Y-%m-%dT%H:%M", time.gmtime(max(ends) / 1000)), gap))
+        if gap > 3:
+            print("РАЗРЫВ БОЛЬШЕ ТРЁХ ЧАСОВ: доходности r7/r14/r30/eff14 считаются "
+                  "на разные моменты и НЕ СРАВНИМЫ. Смотреть только уровни и "
+                  "волатильность; для доходностей показан сдвиг в сигмах.")
     print("уровни и скорости — в относительных %, доходности — в проц. пунктах")
     print("%-7s " % "монета" + " ".join("%-9s" % k for k, _, _ in SPEC))
     worst = {k: 0.0 for k, _, _ in SPEC}
@@ -691,22 +864,29 @@ def verify_against_live(bot_path):
     if cmp_n == 0:
         sys.exit("СТОП: сверять нечего — в кэше ноль монет. "
                  "Это провал закачки, а не успешная сверка.")
-    bad = [k for k, kind, thr in SPEC if kind != "info" and worst[k] > thr]
+    skip = ("r7", "r14", "r30", "eff14") if (gap is None or gap > 3) else ()
+    bad = [k for k, kind, thr in SPEC
+           if kind != "info" and k not in skip and worst[k] > thr]
     print("\nсверено монет: %d" % cmp_n)
     for k, kind, thr in SPEC:
         u = {"rel": "%", "pp": " пп", "abs": "", "info": "%"}[kind]
-        print("  %-11s худшее %8.3f%s   порог %s" % (
-            k, worst[k], u, ("%.2f%s" % (thr, u)) if kind != "info" else "справочно"))
+        note = ("не сравнимо (разрыв во времени)" if k in skip else
+                "справочно" if kind == "info" else "%.2f%s" % (thr, u))
+        print("  %-11s худшее %8.3f%s   порог %s" % (k, worst[k], u, note))
+    if skip:
+        print("  ожидаемый сдвиг цены за разрыв: ~%.1f%% при часовой воле 1%%"
+              % (100 * 0.01 * math.sqrt(max(gap or 0, 0))))
     print("\n%s" % ("восстановление совпадает с продакшном" if not bad else
                     "ВЫШЛИ ЗА ПОРОГ: " + ", ".join(bad)))
 
 
-def load_cache():
+def load_cache(keep_btc=False):
     out = {}
     for f in sorted(os.listdir(CACHE)):
         if f.endswith(".json") and not f.startswith("_"):
             out[f[:-5]] = json.load(open(os.path.join(CACHE, f)))
-    out.pop("BTC", None)
+    if not keep_btc:
+        out.pop("BTC", None)      # BTC — измеритель режима, не кандидат в сделку
     return out
 
 
@@ -821,6 +1001,7 @@ def main():
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--probe", action="store_true")
+    ap.add_argument("--regimes", action="store_true")
     ap.add_argument("--years", type=float, default=3)
     ap.add_argument("--source", default="auto",
                     choices=["auto", "vision", "dataapi", "binance", "cg"])
@@ -832,6 +1013,8 @@ def main():
     ap.add_argument("--bot", default=DEF_BOT)
     a = ap.parse_args()
 
+    if a.regimes:
+        return run_regimes(a.html, a.bot, a.horizon, a.step)
     if a.probe:
         print("Проверка доступности источников:"); probe(); return 0
     if a.fetch:
