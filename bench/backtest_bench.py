@@ -804,7 +804,17 @@ def verify_against_live(bot_path):
     ВАЖНО про меру. Раньше всё сверялось в ОТНОСИТЕЛЬНЫХ процентах, и на
     доходностях это давало мусор: r14 у монеты бывает 0.001, тогда расхождение
     в полпроцентного пункта печатается как 1449%. Уровни цен сверяются
-    относительно, доходности — в процентных ПУНКТАХ, eff14 — в своих единицах."""
+    относительно, доходности — в процентных ПУНКТАХ, eff14 — в своих единицах.
+
+    ВАЖНО про вердикт (11.08.2026). Это единственный режим, который умеет
+    ошибиться в ОПАСНУЮ сторону — напечатать «совпадает». Поэтому:
+      • код возврата ненулевой при любом провале (раньше был всегда 0, и
+        упавшая сверка выглядела в workflow зелёной — тот же класс, что инв. 25);
+      • считается число сверок ПО КАЖДОМУ ПОЛЮ, а не только число монет:
+        поле, которого нет в живом coeffs.json ни у одной монеты, раньше
+        проходило порог с нулём сравнений (инв. 22);
+      • поля, не сравнимые из-за разрыва во времени, названы в вердикте —
+        «совпадает» без оговорки о них больше не печатается."""
     import requests
     live = requests.get(
         "https://gist.githubusercontent.com/seahomebatumi-ai/"
@@ -825,8 +835,12 @@ def verify_against_live(bot_path):
             ("volatility", "rel", 10.0), ("vol7", "rel", 25.0),
             ("r7", "pp", 1.5), ("r14", "pp", 2.0), ("r30", "pp", 3.0),
             ("eff14", "abs", 0.15), ("vol_ratio", "info", 0.0)]
+    # Same filter as load_cache: '_'-prefixed files are side data, not series.
+    # --run --quality-const legitimately keeps _quality_today.json right here,
+    # and reading ["prices"] out of it crashed the whole check.
     ends = [json.load(open(os.path.join(CACHE, f)))["prices"][-1][0]
-            for f in os.listdir(CACHE) if f.endswith(".json")]
+            for f in os.listdir(CACHE)
+            if f.endswith(".json") and not f.startswith("_")]
     gap = None
     if g and ends:
         gap = (g - max(ends) / 1000.0) / 3600.0
@@ -839,6 +853,7 @@ def verify_against_live(bot_path):
     print("уровни и скорости — в относительных %, доходности — в проц. пунктах")
     print("%-7s " % "монета" + " ".join("%-9s" % k for k, _, _ in SPEC))
     worst = {k: 0.0 for k, _, _ in SPEC}
+    seen = {k: 0 for k, _, _ in SPEC}          # comparisons actually performed
     cmp_n = 0
     for sym, ser in sorted(load_cache().items()):
         r = ref.get(sym)
@@ -860,6 +875,7 @@ def verify_against_live(bot_path):
             else:
                 dv = 100 * abs(a - b) / max(1e-12, abs(b)); cells.append("%8.2f%% " % dv)
             worst[k] = max(worst[k], dv)
+            seen[k] += 1
         print("%-7s " % sym + " ".join(cells))
     if cmp_n == 0:
         sys.exit("СТОП: сверять нечего — в кэше ноль монет. "
@@ -867,17 +883,38 @@ def verify_against_live(bot_path):
     skip = ("r7", "r14", "r30", "eff14") if (gap is None or gap > 3) else ()
     bad = [k for k, kind, thr in SPEC
            if kind != "info" and k not in skip and worst[k] > thr]
+    # A field the live JSON never carried compares zero times and keeps
+    # worst = 0.0, i.e. it passes its threshold without a single comparison.
+    # That is invariant 22 verbatim, one level down: count, then judge.
+    never = [k for k, kind, _ in SPEC
+             if kind != "info" and k not in skip and seen[k] == 0]
     print("\nсверено монет: %d" % cmp_n)
     for k, kind, thr in SPEC:
         u = {"rel": "%", "pp": " пп", "abs": "", "info": "%"}[kind]
         note = ("не сравнимо (разрыв во времени)" if k in skip else
                 "справочно" if kind == "info" else "%.2f%s" % (thr, u))
-        print("  %-11s худшее %8.3f%s   порог %s" % (k, worst[k], u, note))
+        print("  %-11s сверок %2d   худшее %8.3f%s   порог %s"
+              % (k, seen[k], worst[k], u, note))
     if skip:
         print("  ожидаемый сдвиг цены за разрыв: ~%.1f%% при часовой воле 1%%"
               % (100 * 0.01 * math.sqrt(max(gap or 0, 0))))
-    print("\n%s" % ("восстановление совпадает с продакшном" if not bad else
-                    "ВЫШЛИ ЗА ПОРОГ: " + ", ".join(bad)))
+    print("")
+    if never:
+        print("НЕ СВЕРЕНО НИ РАЗУ: " + ", ".join(never)
+              + " — поля нет в живом coeffs.json. Нулевое число сравнений "
+                "не является совпадением.")
+    if bad:
+        print("ВЫШЛИ ЗА ПОРОГ: " + ", ".join(bad))
+    if not bad and not never:
+        checked = [k for k, kind, _ in SPEC if kind != "info" and k not in skip]
+        print("совпадает с продакшном по сверенным полям: " + ", ".join(checked))
+    if skip:
+        print("НЕ СВЕРЯЛОСЬ (разрыв во времени %s): %s"
+              % ("неизвестен" if gap is None else "%.1f ч" % gap, ", ".join(skip)))
+    # Non-zero exit is the whole point: a workflow step must go red on failure.
+    # A time gap is an expected operational state of the archive, not a failure,
+    # so it downgrades the claim in words instead of failing the step.
+    return 1 if (bad or never) else 0
 
 
 def load_cache(keep_btc=False):
