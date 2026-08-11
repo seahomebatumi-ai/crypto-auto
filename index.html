@@ -776,6 +776,19 @@ var VOL_STOP     = 0.03;  // 3%/ч      -> плечо не выдаётся
 var RES_Z        = 1.0;   // |остаток| в недельных сигмах ОСТАТКА -> «своим ходом»
 var RES_R2_CAP   = 0.90;  // потолок R² в √(1−R²): защита от деления на почти ноль
 
+// ── Position protection (§3.11) ────────────────────────────────────────────
+// Taker fee of ONE leg, Binance USDⓈ-M. Both legs are priced as taker on
+// purpose: a stop exit is a stop-MARKET order, and assuming taker on entry
+// as well errs on the safe side of break-even.
+var FEE_TAKER   = 0.0005;
+// Funding payments inside the 7-day horizon: 3 per day x 7 days. Read by the
+// funding block AND by the break-even price - one number per system (inv. 20).
+var FUND_PAY_7D = 21;
+// Break-even trigger, in units of R (entry -> structural stop). R is the only
+// risk unit this system actually measures, so the classic 1R rule costs no
+// new assumption. The block always prints the price of acting on it.
+var ARM_R       = 1.0;
+
 var botData          = { analysis_data: [], generated_at: null };
 var cachedMarketData = [];
 var cachedFunding    = {};
@@ -1204,6 +1217,17 @@ function liqPrice(E, L, isLong) {
     return isLong ? E * (1 - 1 / L + LIQ_MMR) : E * (1 + 1 / L - LIQ_MMR);
 }
 
+// Probability of TOUCHING a level b log-units away within `hours`
+// (reflection principle, zero drift). Extracted from liqTouchProb so that the
+// break-even stop (§3.11) and the liquidation ladder (§3.3) cannot drift apart:
+// the formula now lives in exactly one place.
+function touchProb(vol, b, hours) {
+    if (!has(vol) || vol <= 0 || !has(b) || b < 0) return null;
+    var q = vol * Math.sqrt(hours);
+    if (!(q > 0)) return 0;
+    return Math.max(0, Math.min(1, 2 * (1 - normCdf(b / q))));
+}
+
 // Вероятность КАСАНИЯ ликвидации за hours часов (без стопа, без долива).
 function liqTouchProb(vol, L, isLong, hours) {
     if (!has(vol) || vol <= 0) return null;
@@ -1212,9 +1236,7 @@ function liqTouchProb(vol, L, isLong, hours) {
     var b;
     if (isLong) { if (d >= 1) return 1; b = -Math.log(1 - d); }
     else        { b = Math.log(1 + d); }
-    var q = vol * Math.sqrt(hours);
-    if (!(q > 0)) return 0;
-    return Math.max(0, Math.min(1, 2 * (1 - normCdf(b / q))));
+    return touchProb(vol, b, hours);
 }
 
 // Потолок по СТРУКТУРЕ: ликвидация обязана лежать за уровнем инвалидации
@@ -1492,6 +1514,86 @@ function fixHint(cd, E, isLong, binding, vol, inv) {
     return 'Монета слишком резко ходит за BTC — только спот или меньший размер.';
 }
 
+// ── Position protection (§3.11) ─────────────────────────────────────────────
+// Everything else on the board answers "may I open this, and how big".
+// This answers the question that starts the moment the position exists:
+// when does the trade stop being able to lose money, and what does that cost.
+//
+// THREE NUMBERS, all of them already measured elsewhere in the system:
+//   break-even  = entry moved by round-trip fee + funding over the 7-day
+//                 horizon. Funding is signed: when it pays the position, the
+//                 break-even sits BEFORE the entry, and the block says so.
+//   arm price   = entry +- ARM_R * dist, dist = distance to the structural
+//                 stop (invalidationInfo). Never closer than break-even: a
+//                 stop below break-even locks in a loss, not a scratch.
+//   scratch     = touchProb(be), i.e. the chance ordinary noise drags price
+//                 back to break-even within H_NOISE and closes the trade flat.
+//
+// The scratch probability is the POINT of the block, not decoration: moving a
+// stop to break-even is normally sold as free, and it is not - on a 2-sigma
+// stop it scratches the trade in roughly half of the weeks. No threshold and
+// no traffic light is attached to it deliberately: the trade-off depends on
+// the Boss's own hit rate, which the system has never measured (see §8, "TP
+// before SL"). It prints the price and leaves the call.
+//
+// Nothing here feeds scoreCandidate, the leverage engine or the ranking, and
+// no field is read from the bot that was not already on the board: pure
+// display over existing measurements, zero new API calls.
+// Missing volatility -> probabilities are null and their rows disappear;
+// missing invalidation level -> break-even alone survives (invariant 9).
+function protectionPlan(E, cur, isLong, vol, inv, fr, notional, mrg, qty, L, capL) {
+    if (!has(E) || E <= 0 || !has(cur) || cur <= 0) return null;
+    var feeFrac = 2 * FEE_TAKER;
+    var fundFrac = 0, fundKnown = false;
+    if (has(fr)) {
+        fundKnown = true;
+        // Sign is the economic direction for THIS side, same rule as the
+        // funding block: negative rate pays a long, positive pays a short.
+        var payMe = isLong ? (fr < 0) : (fr > 0);
+        fundFrac = (payMe ? -1 : 1) * Math.abs(fr) * FUND_PAY_7D;
+    }
+    // Clamp guards a pathological rate only (|fr| above ~4%/8h would push a
+    // short break-even to zero or below). Never binds on live data.
+    var costFrac = Math.max(-0.9, Math.min(0.9, feeFrac + fundFrac));
+    var be = isLong ? E * (1 + costFrac) : E * (1 - costFrac);
+    var hasSize = has(qty) && qty > 0 && has(notional) && notional > 0;
+    var hasMrg  = hasSize && has(mrg) && mrg > 0;
+    var out = {
+        fundKnown: fundKnown, costFrac: costFrac, be: be,
+        costUsd: hasSize ? costFrac * notional : null,
+        moveFrac: isLong ? (cur / E - 1) : (1 - cur / E),
+        arm: null, armAtBe: false, capped: !!(inv && inv.capped),
+        pArm: null, pNow: null, riskUsd: null, riskPct: null,
+        stage: 'wait', addMargin: null, addLiq: null
+    };
+    if (inv && has(inv.dist) && inv.dist > 0) {
+        var arm = isLong ? E * (1 + ARM_R * inv.dist) : E * (1 - ARM_R * inv.dist);
+        if (isLong ? (arm <= be) : (arm >= be)) { arm = be; out.armAtBe = true; }
+        out.arm  = arm;
+        out.pArm = touchProb(vol, Math.abs(Math.log(arm / be)), H_NOISE);
+        // Same money the block «ЕСЛИ ИДЕЯ НЕ СРАБОТАЕТ» already prints; kept as
+        // a share of margin only, so the two blocks do not restate each other.
+        if (hasSize && has(inv.price)) out.riskUsd = qty * Math.abs(E - inv.price);
+        if (hasMrg && out.riskUsd !== null) out.riskPct = out.riskUsd / mrg;
+    }
+    var passedBe = isLong ? (cur >= be) : (cur <= be);
+    if (!passedBe) {
+        out.stage = 'cost';
+    } else {
+        out.pNow  = touchProb(vol, Math.abs(Math.log(cur / be)), H_NOISE);
+        out.stage = (out.arm !== null && (isLong ? cur >= out.arm : cur <= out.arm))
+                  ? 'armed' : 'wait';
+    }
+    // The only lever an ALREADY OPEN position still has: leverage is fixed at
+    // entry, effective leverage is not. Adding margin to an isolated position
+    // moves the liquidation price exactly as if it had been opened at capL.
+    if (has(capL) && capL > 0 && has(L) && L > capL && hasMrg) {
+        var need = notional / capL - mrg;
+        if (need > 0) { out.addMargin = need; out.addLiq = liqPrice(E, capL, isLong); }
+    }
+    return out;
+}
+
 // ── Скоринг кандидатов ──────────────────────────────────────────────────────
 // ВАЖНО: это инструмент СОРТИРОВКИ внимания («на какие три монеты смотреть
 // первыми»), а НЕ сигнал входа. Веса — обоснованный приор, не результат
@@ -1614,6 +1716,12 @@ function probColor(p) {
     return p <= 0.10 ? 'var(--green)' : (p <= 0.25 ? 'var(--accent)' : 'var(--red)');
 }
 
+// One place that turns a probability into text: the liquidation ladder and
+// the break-even stop must round and clip the same way (inv. 20).
+function probTxt(p) {
+    return p < 0.005 ? '&lt;1%' : Math.round(p * 100) + '%';
+}
+
 function probRow(label, p) {
     if (p === null) return '';
     var c = probColor(p);
@@ -1622,7 +1730,7 @@ function probRow(label, p) {
          + '<div class="bd-plab">' + label + '</div>'
          + '<div class="bd-track"><div class="bd-fill" style="width:' + w + '%;background:' + c + ';"></div></div>'
          + '<div class="bd-pval" style="color:' + c + ';">'
-         + (p < 0.005 ? '&lt;1%' : Math.round(p * 100) + '%') + '</div>'
+         + probTxt(p) + '</div>'
          + '</div>';
 }
 
@@ -2015,6 +2123,76 @@ function boardHtml(row, pos) {
         sWin += '</div>';
     }
 
+    // -- 4e. Position protection (section 3.11) --
+    // Computed here because it needs qty/mrg/notional from the size block;
+    // its place in the reading order lives ONLY in the glue below (inv. 15).
+    var prot = protectionPlan(E, cur, isLong, cd.volatility, dec.inv,
+                              cachedFunding[pair], notional, mrg, qty,
+                              currentLev, dec.ok ? dec.L : null);
+    var sProt = '';
+    if (prot) {
+        var protNow = (Math.abs(prot.moveFrac) < 0.0005)
+            ? '\u0421\u0435\u0439\u0447\u0430\u0441: \u0446\u0435\u043d\u0430 \u043d\u0430 \u0432\u0445\u043e\u0434\u0435.'
+            : '\u0421\u0435\u0439\u0447\u0430\u0441: ' + pctTxt(prot.moveFrac, 1) + ' \u043e\u0442 \u0432\u0445\u043e\u0434\u0430 \u00B7 '
+              + pctTxt(prot.moveFrac * currentLev, 0) + ' \u043c\u0430\u0440\u0436\u0438.';
+        if (prot.stage === 'cost') {
+            protNow += ' \u0414\u043e \u0431\u0435\u0437\u0443\u0431\u044b\u0442\u043a\u0430 '
+                     + (Math.abs(prot.be - cur) / E * 100).toFixed(1) + '%.';
+        } else if (prot.stage === 'wait') {
+            protNow += prot.arm !== null
+                ? ' \u0414\u043e \u0437\u0430\u0449\u0451\u043b\u043a\u0438 \u0435\u0449\u0451 ' + (Math.abs(prot.arm - cur) / E * 100).toFixed(1) + '%.'
+                : ' \u0421\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u043d\u043e\u0433\u043e \u0441\u0442\u043e\u043f\u0430 \u043d\u0435\u0442 \u2014 \u0437\u0430\u0449\u0451\u043b\u043a\u0443 \u0441\u0447\u0438\u0442\u0430\u0442\u044c \u043d\u0435 \u043e\u0442 \u0447\u0435\u0433\u043e.';
+        } else {
+            protNow += ' \u0417\u0430\u0449\u0451\u043b\u043a\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430: \u0441\u043d\u0438\u043c\u0430\u0435\u0442 \u0440\u0438\u0441\u043a \u0441\u0442\u043e\u043f\u0430'
+                     + (prot.riskPct !== null ? ' (' + (prot.riskPct * 100).toFixed(0) + '% \u043c\u0430\u0440\u0436\u0438)' : '')
+                     + '.';
+        }
+        sProt += '<div class="bd-sec"><div class="bd-h">\u0417\u0410\u0429\u0418\u0422\u0410 \u041f\u041e\u0417\u0418\u0426\u0418\u0418</div>'
+           + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k">\u0411\u0435\u0437\u0443\u0431\u044b\u0442\u043e\u043a \u00B7 7\u0434</span>'
+           + '<span class="bd-v" style="color:var(--accent);">' + fmtP(prot.be) + '</span></div>'
+           + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k"></span>'
+           + '<span class="bd-v" style="font-size:0.9em;color:#8f8fa0;">'
+           + (prot.costFrac >= 0
+               ? '\u0438\u0437\u0434\u0435\u0440\u0436\u043a\u0438 ' + (prot.costFrac * 100).toFixed(2) + '% \u043e\u0431\u044a\u0451\u043c\u0430'
+               : 'funding \u043f\u0435\u0440\u0435\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u043a\u043e\u043c\u0438\u0441\u0441\u0438\u0438 \u043d\u0430 ' + (-prot.costFrac * 100).toFixed(2) + '% \u043e\u0431\u044a\u0451\u043c\u0430')
+           + (prot.costUsd !== null
+               ? ' \u00B7 ' + (prot.costFrac >= 0 ? fmtUsd(prot.costUsd) : '+' + fmtUsd(-prot.costUsd))
+               : '') + '</span></div>';
+        if (prot.arm !== null) {
+            sProt += '<div class="bd-kv" style="margin-top:9px;"><span class="bd-k">\u0421\u0442\u043e\u043f \u0432 \u0431\u0435\u0437\u0443\u0431\u044b\u0442\u043e\u043a \u0441</span>'
+               + '<span class="bd-v" style="color:var(--green);">' + fmtP(prot.arm) + '</span></div>'
+               + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k"></span>'
+               + '<span class="bd-v" style="font-size:0.9em;color:#8f8fa0;">'
+               + (prot.armAtBe
+                   ? '\u0440\u043e\u0432\u043d\u043e \u0431\u0435\u0437\u0443\u0431\u044b\u0442\u043e\u043a \u2014 1R \u043d\u0435 \u043e\u043a\u0443\u043f\u0430\u0435\u0442 \u0438\u0437\u0434\u0435\u0440\u0436\u0435\u043a'
+                   : pctTxt(prot.arm / E - 1, 1) + ' \u043e\u0442 \u0432\u0445\u043e\u0434\u0430 \u00B7 1R'
+                     + (prot.capped ? ' \u00B7 \u043e\u043f\u043e\u0440\u044b \u043d\u0435\u0442, \u0441\u0442\u043e\u043f \u043d\u0430\u0440\u0438\u0441\u043e\u0432\u0430\u043d \u043f\u043e 6\u03C3' : ''))
+               + '</span></div>';
+            // Armed -> the honest question is "from HERE", so the row switches
+            // to pNow. Two near-identical percentages on one screen read as a
+            // contradiction; exactly one number is on screen at any time.
+            var pShow = (prot.stage === 'armed' && prot.pNow !== null) ? prot.pNow : prot.pArm;
+            if (pShow !== null && !prot.armAtBe) {
+                sProt += '<div class="bd-kv" style="margin-top:9px;">'
+                   + '<span class="bd-k">\u0428\u0443\u043c \u0432\u0435\u0440\u043d\u0451\u0442 \u043a \u0431\u0435\u0437\u0443\u0431\u044b\u0442\u043a\u0443 \u0437\u0430 7\u0434</span>'
+                   + '<span class="bd-v">' + probTxt(pShow) + '</span></div>';
+            }
+        }
+        sProt += '<div class="bd-note">' + protNow + '</div>';
+        if (prot.addMargin !== null) {
+            sProt += '<div class="bd-warn">\u26A0 \u0415\u0441\u043b\u0438 \u043f\u043e\u0437\u0438\u0446\u0438\u044f \u0443\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u0430 \u043d\u0430 ' + currentLev
+               + 'X: \u0434\u043e\u043b\u0438\u0442\u044c ' + fmtUsd(prot.addMargin) + ' \u043c\u0430\u0440\u0436\u0438 \u2014 \u044d\u0444\u0444\u0435\u043a\u0442\u0438\u0432\u043d\u043e\u0435 \u043f\u043b\u0435\u0447\u043e \u0441\u0442\u0430\u043d\u0435\u0442 '
+               + dec.L + 'X, \u043b\u0438\u043a\u0432\u0438\u0434\u0430\u0446\u0438\u044f \u0443\u0435\u0434\u0435\u0442 \u043d\u0430 ' + fmtP(prot.addLiq)
+               + '. \u0421\u0430\u043c\u043e \u043f\u043b\u0435\u0447\u043e \u043f\u043e\u0441\u043b\u0435 \u0432\u0445\u043e\u0434\u0430 \u043d\u0435 \u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f, \u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u043c\u0430\u0440\u0436\u0430.</div>';
+        }
+        sProt += '<div class="bd-note">\u0417\u0430\u0449\u0451\u043b\u043a\u0430 \u2014 \u0446\u0435\u043d\u0430, \u0441 \u043a\u043e\u0442\u043e\u0440\u043e\u0439 \u0441\u0442\u043e\u043f \u043c\u043e\u0436\u043d\u043e \u043f\u0435\u0440\u0435\u043d\u0435\u0441\u0442\u0438 \u0432 \u0431\u0435\u0437\u0443\u0431\u044b\u0442\u043e\u043a: '
+           + '\u0441\u0434\u0435\u043b\u043a\u0430 \u043f\u0435\u0440\u0435\u0441\u0442\u0430\u0451\u0442 \u0442\u0435\u0440\u044f\u0442\u044c \u0434\u0435\u043d\u044c\u0433\u0438, \u043d\u043e \u0432\u0437\u0430\u043c\u0435\u043d \u0448\u0443\u043c \u043f\u043e\u043b\u0443\u0447\u0430\u0435\u0442 \u043f\u0440\u0430\u0432\u043e \u0437\u0430\u043a\u0440\u044b\u0442\u044c \u0435\u0451 \u0432 \u043d\u043e\u043b\u044c. '
+           + '1R \u2014 \u0440\u0430\u0441\u0441\u0442\u043e\u044f\u043d\u0438\u0435 \u0434\u043e \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u043d\u043e\u0433\u043e \u0441\u0442\u043e\u043f\u0430. \u0418\u0437\u0434\u0435\u0440\u0436\u043a\u0438: \u043a\u043e\u043c\u0438\u0441\u0441\u0438\u0438 '
+           + (2 * FEE_TAKER * 100).toFixed(2) + '% \u043e\u0431\u044a\u0451\u043c\u0430 (\u0442\u0435\u0439\u043a\u0435\u0440, \u043e\u0431\u0435 \u043d\u043e\u0433\u0438) + funding \u0437\u0430 7 \u0434\u043d\u0435\u0439'
+           + (prot.fundKnown ? '' : ' (\u0441\u0442\u0430\u0432\u043a\u0430 \u043d\u0435 \u043f\u0440\u0438\u0448\u043b\u0430 \u2014 \u0432 \u0431\u0435\u0437\u0443\u0431\u044b\u0442\u043a\u0435 \u0442\u043e\u043b\u044c\u043a\u043e \u043a\u043e\u043c\u0438\u0441\u0441\u0438\u0438)') + '.</div>'
+           + '</div>';
+    }
+
     var sBounds = '';
     // ── 5. Границы сделки ──
     var liqSel = liqPrice(E, currentLev, isLong);
@@ -2088,11 +2266,13 @@ function boardHtml(row, pos) {
         var fr = cachedFunding[pair];
         if (has(fr)) {
             var payMe = isLong ? (fr < 0) : (fr > 0);
-            var cost  = Math.abs(fr) * 21 * Lp * 100;
-            // Деньги, а не только проценты (правка Босса 10.08). 21 = 3 выплаты
-            // в сутки x 7 дней. Ставка берётся от ОБЪЁМА позиции, поэтому
-            // costUsd = |fr| * 21 * notional; это ровно cost% от маржи.
-            var costUsd = Math.abs(fr) * 21 * notional;
+            var cost  = Math.abs(fr) * FUND_PAY_7D * Lp * 100;
+            // Деньги, а не только проценты (правка Босса 10.08).
+            // FUND_PAY_7D = 21 = 3 выплаты в сутки x 7 дней; с 11.08 это
+            // именованная константа, её же читает безубыток (§3.11, инв. 20).
+            // Ставка берётся от ОБЪЁМА позиции, поэтому
+            // costUsd = |fr| * FUND_PAY_7D * notional; это ровно cost% от маржи.
+            var costUsd = Math.abs(fr) * FUND_PAY_7D * notional;
             // Весь блок одним цветом: зелёный — платят мне, красный — плачу я
             // (правка Босса 09.08). Смысл и расчёт не тронуты.
             var fCol  = payMe ? 'var(--green)' : 'var(--red)';
@@ -2241,8 +2421,9 @@ function boardHtml(row, pos) {
        + sTime                     //  8. ЦЕНА ВРЕМЕНИ
        + sLoss                     //  9. ЕСЛИ ИДЕЯ НЕ СРАБОТАЕТ
        + sWin                      // 10. ЕСЛИ СРАБОТАЕТ
-       + sSrc                      // 11. ОТКУДА ПЛЕЧО
-       + sTrust;                   // 12. ДОВЕРИЕ К МОДЕЛИ
+       + sProt                     // 11. ЗАЩИТА ПОЗИЦИИ
+       + sSrc                      // 12. ОТКУДА ПЛЕЧО
+       + sTrust;                   // 13. ДОВЕРИЕ К МОДЕЛИ
 
     h += '<button class="qbtn wide" style="margin-top:14px;" onclick="closeEntry(\'' + sym + '\')">\u0417\u0410\u041A\u0420\u042B\u0422\u042C</button>';
     h += '</div>';
