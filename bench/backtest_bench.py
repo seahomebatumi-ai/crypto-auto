@@ -1214,10 +1214,14 @@ for (var i = 0; i < job.length; i++) {
         if (inv) {
             // Log-distance of the stop barrier, same construction that
             // liqTouchProb applies to the liquidation barrier (§3.3).
+            // Extreme-vol longs can cap the distance at >= 100 % of price
+            // (6-sigma of a 3.5+%/h coin): log(<=0) is NaN and the touch
+            // model is undefined there — mark p null, Python counts them out.
             var b = j.isLong ? -Math.log(1 - inv.dist) : Math.log(1 + inv.dist);
+            var pm = touchProb(j.cd.volatility, b, j.hours);
             r = { dist: inv.dist, price: inv.price, src: inv.src,
                   floored: inv.floored, capped: inv.capped,
-                  p: touchProb(j.cd.volatility, b, j.hours) };
+                  p: (isFinite(b) && isFinite(pm)) ? pm : null };
         }
     } catch (e) { r = null; }
     out.push(r);
@@ -1290,6 +1294,7 @@ def run_stops(series, bot, html, horizon_d=7, step_d=7, verbose=True):
     vts = {s: [v[0] for v in series[s]["volumes"]] for s in series}
     H = horizon_d * 24
     dates = []
+    n_undef = [0]
     for t, row in walk_grid(series, horizon_d, step_d, fwd_extra_d=horizon_d):
         jobs, meta = [], []
         for s, i, iF, iX in row:
@@ -1307,6 +1312,9 @@ def run_stops(series, bot, html, horizon_d=7, step_d=7, verbose=True):
         obs = []
         for (s, i, E, isL), r in zip(meta, res):
             if r is None:
+                continue
+            if r.get("p") is None:
+                n_undef[0] += 1        # stop >= 100 % away: not a measurable setup
                 continue
             t_i = series[s]["prices"][i][0]
             j0 = int(np.searchsorted(hlt[s], t_i, "right"))
@@ -1331,6 +1339,9 @@ def run_stops(series, bot, html, horizon_d=7, step_d=7, verbose=True):
             dates.append({"t": t, "obs": obs})
         if verbose and len(dates) % 20 == 0 and dates:
             print("  дат посчитано: %d" % len(dates), flush=True)
+    if n_undef[0]:
+        print("  исключено сетапов с dist >= 100%% (модель касания не "
+              "определена, экстремальная волатильность): %d" % n_undef[0])
     return dates
 
 
@@ -1344,7 +1355,10 @@ def stops_summary(dates, level=95.0):
         if len(rows) < 5:
             return None
         def agg(rs):
-            f = [o for r in rs for o in r]
+            f = [o for r in rs for o in r
+                 if o["p"] is not None and np.isfinite(o["p"])]
+            if not f:
+                return (float("nan"), 0.0, None, float("nan"), 0)
             hitv = np.array([1.0 if o["hit"] else 0.0 for o in f])
             pv = np.array([o["p"] for o in f], float)
             hits = [o for o in f if o["hit"] and o["whip"] is not None]
@@ -1392,20 +1406,28 @@ def report_stops(sm):
         print("  выбито за 7д: %.1f%% [%.1f; %.1f] · модель %.1f%%"
               % (100 * m["hit"], 100 * m["hit_ci"][0], 100 * m["hit_ci"][1],
                  100 * m["model"]))
-        print("  калибровка факт/модель: %.2f [%.2f; %.2f]"
-              % (m["ratio"], m["ratio_ci"][0], m["ratio_ci"][1]))
+        cal_ok = m["ratio"] is not None and np.isfinite(m["ratio"])
+        if cal_ok:
+            print("  калибровка факт/модель: %.2f [%.2f; %.2f]"
+                  % (m["ratio"], m["ratio_ci"][0], m["ratio_ci"][1]))
+        else:
+            print("  калибровка факт/модель: не считается (модель не "
+                  "определена на этих сетапах)")
         if m["whip"] is not None:
             print("  из выбитых вернулись ко входу за следующие 7д: %.0f%% [%.0f; %.0f]"
                   % (100 * m["whip"], 100 * (m["whip_ci"][0] or 0),
                      100 * (m["whip_ci"][1] or 0)))
-        lo_, hi_ = m["ratio_ci"]
-        v = ("нормальная модель честна на 7д (ДИ95 содержит 1.0)"
-             if lo_ <= 1.0 <= hi_ else
-             "ХВОСТЫ ТЯЖЕЛЕЕ НОРМАЛИ в ~%.1f раза — вероятности на доске "
-             "занижены; множитель зафиксировать в §7" % m["ratio"]
-             if lo_ > 1.0 else
-             "модель завышает риск (ошибка в безопасную сторону) — не менять")
-        print("  ВЕРДИКТ (первичный, правило до прогона): " + v)
+        if cal_ok:
+            lo_, hi_ = m["ratio_ci"]
+            v = ("нормальная модель честна на 7д (ДИ95 содержит 1.0)"
+                 if lo_ <= 1.0 <= hi_ else
+                 "ХВОСТЫ ТЯЖЕЛЕЕ НОРМАЛИ в ~%.1f раза — вероятности на доске "
+                 "занижены; множитель зафиксировать в §7" % m["ratio"]
+                 if lo_ > 1.0 else
+                 "модель завышает риск (ошибка в безопасную сторону) — не менять")
+            print("  ВЕРДИКТ (первичный, правило до прогона): " + v)
+        else:
+            print("  ВЕРДИКТ: не выносится — модель не определена")
         for cat, cn in (("floored", "пол 2σ"), ("struct", "структурный"),
                         ("capped", "обрезан 6σ")):
             c = sm.get(side + "." + cat)
