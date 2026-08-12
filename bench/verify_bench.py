@@ -24,9 +24,11 @@ spec.loader.exec_module(bb)
 
 HOUR = 3600 * 1000
 fails = []
+checks = [0]
 
 
 def ok(name, cond, info=''):
+    checks[0] += 1
     if not cond:
         fails.append(name + (('  [' + info + ']') if info else ''))
 
@@ -83,7 +85,7 @@ class FakeResp(object):
         return self._p
 
 
-def run_verify(cache_dir, live):
+def run_verify(cache_dir, live, html=None):
     """Executes --verify offline; returns (exit_code, printed_text)."""
     fake = types.ModuleType('requests')
     fake.get = lambda *a, **k: FakeResp(live)
@@ -94,7 +96,7 @@ def run_verify(cache_dir, live):
     code = 0
     try:
         with contextlib.redirect_stdout(buf):
-            code = bb.verify_against_live(BOT)
+            code = bb.verify_against_live(BOT, html)
     except SystemExit as e:
         code = e.code if isinstance(e.code, int) else 1
     except Exception as e:
@@ -186,9 +188,49 @@ make_cache(tmp, {})
 code, out = run_verify(tmp, {'generated_at': '2026-08-11T10:00:00', 'analysis_data': []})
 ok('empty cache exits non-zero', code != 0, 'exit=%s' % code)
 
+# 9. threshold semantics (12.08.2026): a reconstruction defect is systemic or
+#    huge; single small outliers are SOURCE noise and must warn, not kill the
+#    pipeline that has experiments queued behind the step.
+def bump_one_small(rec):
+    if rec['symbol'] == 'AAA':
+        rec['min_price'] = rec['min_price'] * 1.03      # 3 % = 1.5x threshold
+
+make_cache(tmp, coins)
+code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_one_small))
+ok('single small outlier exits 0', code == 0, 'exit=%s' % code)
+ok('single small outlier prints a named warning',
+   'ПРЕДУПРЕЖДЕНИЕ' in out and 'AAA' in out.split('ПРЕДУПРЕЖДЕНИЕ')[-1],
+   out.strip().splitlines()[-1][:150])
+
+def bump_one_huge(rec):
+    if rec['symbol'] == 'AAA':
+        rec['min_price'] = rec['min_price'] * 1.10      # 10 % = 5x threshold
+
+code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_one_huge))
+ok('single huge outlier still fails', code != 0, 'exit=%s' % code)
+
+# 10. fut basis lane: with html naming AAA as fut:true, a big return gap on AAA
+#     is labelled as basis and does not fail; the same gap without html does.
+html_fut = os.path.join(tmp, '_toks.html')
+io.open(html_fut, 'w', encoding='utf-8').write(
+    'x\nvar tokens = [{name:"AAA", s:"AAAUSDT", fut:true},'
+    '{name:"BBB", s:"BBBUSDT"}, {name:"CCC", s:"CCCUSDT"}];\nx')
+
+def bump_fut_ret(rec):
+    if rec['symbol'] == 'AAA':
+        rec['r30'] = (rec['r30'] or 0.0) + 0.10         # 10 pp = above 3x threshold
+
+code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_fut_ret),
+                       html=html_fut)
+ok('fut basis gap exits 0 with html', code == 0, 'exit=%s' % code)
+ok('fut basis gap is named as basis', 'БАЗИС ПЕРП/СПОТ' in out and 'AAA' in out,
+   out.strip().splitlines()[-1][:150])
+code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_fut_ret))
+ok('same gap without html still fails (3x rule)', code != 0, 'exit=%s' % code)
+
 shutil.rmtree(tmp, ignore_errors=True)
 
-print('checks run: %d   FAIL %d' % (29, len(fails)))
+print('checks run: %d   FAIL %d' % (checks[0], len(fails)))
 for f in fails:
     print('  FAIL: ' + f)
 sys.exit(1 if fails else 0)
