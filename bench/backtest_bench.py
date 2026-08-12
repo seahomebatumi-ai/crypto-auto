@@ -805,7 +805,7 @@ def fetch_cg(bot_path, years=1):
     print("вызовов CoinGecko: %d (месячный лимит Demo — 10 000)" % calls)
 
 
-def verify_against_live(bot_path):
+def verify_against_live(bot_path, html_path=None):
     """Сверка восстановленной записи с ЖИВЫМ coeffs.json.
 
     ВАЖНО про меру. Раньше всё сверялось в ОТНОСИТЕЛЬНЫХ процентах, и на
@@ -821,7 +821,26 @@ def verify_against_live(bot_path):
         поле, которого нет в живом coeffs.json ни у одной монеты, раньше
         проходило порог с нулём сравнений (инв. 22);
       • поля, не сравнимые из-за разрыва во времени, названы в вердикте —
-        «совпадает» без оговорки о них больше не печатается."""
+        «совпадает» без оговорки о них больше не печатается.
+
+    ВАЖНО про порог (12.08.2026, после первого боевого прогона v4). Дефект
+    ВОССТАНОВЛЕНИЯ либо системный (ломает все монеты разом — сломанная граница
+    окна), либо огромный (одна монета, но в разы). Единичный же выброс на
+    1.2–2 порога — это расхождение ИСТОЧНИКОВ (композит CoinGecko против одной
+    биржи: один тик — и std уехал), и он не должен убивать конвейер, в котором
+    за сверкой стоят эксперименты. Правило: поле ПРОВАЛЕНО, если монет за
+    порогом >= 3, или за порогом ВСЕ сравнённые (>= 2), или любая монета
+    >= 3x порога. Единичные выбросы ниже этой планки печатаются предупреждением
+    поимённо — видимы, но не смертельны.
+
+    БАЗИС ПЕРП/СПОТ (12.08.2026). У монет с fut:true спота на Binance НЕТ:
+    кэш стенда — перп-свечи, а бот считает по композитному споту CoinGecko.
+    Их доходности (r7/r14/r30/eff14) расходятся базисом до нескольких пп
+    (§7) — это два РАЗНЫХ настоящих инструмента, а не дефект восстановления.
+    При переданном html такие поля у fut-монет печатаются «базис — справочно»
+    и в провал не идут; уровни и волатильность сверяются как у всех. Первый
+    прогон v4 упал ровно на этом: XMR r30 6.7 пп срубил сверку, и эксперименты
+    не запустились."""
     import requests
     live = requests.get(
         "https://gist.githubusercontent.com/seahomebatumi-ai/"
@@ -835,6 +854,14 @@ def verify_against_live(bot_path):
     except Exception:
         g = None
     cdb = CdBuilder(bot_path)
+    fut = set()
+    if html_path:
+        try:
+            fut = {t["name"] for t in tokens_from_html(html_path) if t.get("fut")}
+        except Exception as e:
+            print("tokens[] из HTML не разобраны (%s) — базис-поблажки нет"
+                  % type(e).__name__)
+    RET_FIELDS = ("r7", "r14", "r30", "eff14")
     # поле -> (вид сверки, порог).  rel = относительно, pp = проц. пункты,
     # abs = в единицах величины, info = только показать
     SPEC = [("min_price", "rel", 2.0), ("max_price", "rel", 2.0),
@@ -861,6 +888,8 @@ def verify_against_live(bot_path):
     print("%-7s " % "монета" + " ".join("%-9s" % k for k, _, _ in SPEC))
     worst = {k: 0.0 for k, _, _ in SPEC}
     seen = {k: 0 for k, _, _ in SPEC}          # comparisons actually performed
+    breach = {k: [] for k, _, _ in SPEC}       # (sym, dev) over threshold
+    basis = []                                 # fut-coin return gaps: informative
     cmp_n = 0
     for sym, ser in sorted(load_cache().items()):
         r = ref.get(sym)
@@ -883,13 +912,29 @@ def verify_against_live(bot_path):
                 dv = 100 * abs(a - b) / max(1e-12, abs(b)); cells.append("%8.2f%% " % dv)
             worst[k] = max(worst[k], dv)
             seen[k] += 1
+            thr_k = next(t for kk, _, t in SPEC if kk == k)
+            kind_k = next(kd for kk, kd, _ in SPEC if kk == k)
+            if kind_k != "info" and dv > thr_k:
+                if k in RET_FIELDS and sym in fut:
+                    basis.append((sym, k, dv))
+                else:
+                    breach[k].append((sym, dv))
         print("%-7s " % sym + " ".join(cells))
     if cmp_n == 0:
         sys.exit("СТОП: сверять нечего — в кэше ноль монет. "
                  "Это провал закачки, а не успешная сверка.")
-    skip = ("r7", "r14", "r30", "eff14") if (gap is None or gap > 3) else ()
+    skip = RET_FIELDS if (gap is None or gap > 3) else ()
+    def field_fails(k, thr):
+        br = breach[k]
+        if not br:
+            return False
+        return (len(br) >= 3 or (cmp_n >= 2 and len(br) >= cmp_n)
+                or any(dv >= 3 * thr for _, dv in br))
     bad = [k for k, kind, thr in SPEC
-           if kind != "info" and k not in skip and worst[k] > thr]
+           if kind != "info" and k not in skip and field_fails(k, thr)]
+    warn = [(k, breach[k]) for k, kind, thr in SPEC
+            if kind != "info" and k not in skip and breach[k]
+            and k not in bad]
     # A field the live JSON never carried compares zero times and keeps
     # worst = 0.0, i.e. it passes its threshold without a single comparison.
     # That is invariant 22 verbatim, one level down: count, then judge.
@@ -910,6 +955,16 @@ def verify_against_live(bot_path):
         print("НЕ СВЕРЕНО НИ РАЗУ: " + ", ".join(never)
               + " — поля нет в живом coeffs.json. Нулевое число сравнений "
                 "не является совпадением.")
+    for k, br in warn:
+        print("ПРЕДУПРЕЖДЕНИЕ %s: единичные выбросы (%s) — источники, не "
+              "восстановление; конвейер не останавливается"
+              % (k, ", ".join("%s %.2f" % (sy, dv) for sy, dv in br)))
+    if basis:
+        by = {}
+        for sy, k, dv in basis:
+            by.setdefault(sy, []).append("%s %.1f" % (k, dv))
+        print("БАЗИС ПЕРП/СПОТ (fut-монеты, справочно, не провал): "
+              + " · ".join(sy + ": " + ", ".join(v) for sy, v in sorted(by.items())))
     if bad:
         print("ВЫШЛИ ЗА ПОРОГ: " + ", ".join(bad))
     if not bad and not never:
@@ -1886,7 +1941,7 @@ def main():
     if a.fetch:
         return fetch_prices(a.html, a.bot, a.years, a.source)
     if a.verify:
-        return verify_against_live(a.bot)
+        return verify_against_live(a.bot, a.html)
     if a.selftest:
         return selftest(a.html, a.bot, a.seeds)
     if a.run:
