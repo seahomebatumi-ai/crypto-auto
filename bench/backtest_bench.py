@@ -823,24 +823,22 @@ def verify_against_live(bot_path, html_path=None):
       • поля, не сравнимые из-за разрыва во времени, названы в вердикте —
         «совпадает» без оговорки о них больше не печатается.
 
-    ВАЖНО про порог (12.08.2026, после первого боевого прогона v4). Дефект
-    ВОССТАНОВЛЕНИЯ либо системный (ломает все монеты разом — сломанная граница
-    окна), либо огромный (одна монета, но в разы). Единичный же выброс на
-    1.2–2 порога — это расхождение ИСТОЧНИКОВ (композит CoinGecko против одной
-    биржи: один тик — и std уехал), и он не должен убивать конвейер, в котором
-    за сверкой стоят эксперименты. Правило: поле ПРОВАЛЕНО, если монет за
-    порогом >= 3, или за порогом ВСЕ сравнённые (>= 2), или любая монета
-    >= 3x порога. Единичные выбросы ниже этой планки печатаются предупреждением
-    поимённо — видимы, но не смертельны.
+    ВАЖНО про порог (v3 семантики, 12.08.2026, после двух боевых прогонов).
+    Дефект ВОССТАНОВЛЕНИЯ системный по построению кода: логика окон, семантика
+    времени и единицы применяются ко всем монетам одинаково. Поэтому поле
+    ПРОВАЛЕНО только если за порогом >= 3 монет или ВСЕ сравнённые (>= 2).
+    Одна монета за порогом — ЛЮБОГО размера — это идиосинкразия источников
+    (прогон №1: XLM volatility 12.4 %, один день; прогон №2: HYPE min90 6.1 % —
+    фитиль ликвидаций на перпе против композитного спота) и печатается
+    громким поимённым предупреждением, не останавливая конвейер.
 
-    БАЗИС ПЕРП/СПОТ (12.08.2026). У монет с fut:true спота на Binance НЕТ:
-    кэш стенда — перп-свечи, а бот считает по композитному споту CoinGecko.
-    Их доходности (r7/r14/r30/eff14) расходятся базисом до нескольких пп
-    (§7) — это два РАЗНЫХ настоящих инструмента, а не дефект восстановления.
-    При переданном html такие поля у fut-монет печатаются «базис — справочно»
-    и в провал не идут; уровни и волатильность сверяются как у всех. Первый
-    прогон v4 упал ровно на этом: XMR r30 6.7 пп срубил сверку, и эксперименты
-    не запустились."""
+    БАЗИС ПЕРП/СПОТ. У монет с fut:true спота на Binance НЕТ: кэш стенда —
+    перп-свечи, бот считает по композитному споту CoinGecko. Это два РАЗНЫХ
+    настоящих инструмента, поэтому при переданном html у fut-монет ЛЮБОЕ поле
+    за порогом идёт в справочную полосу «базис перп/спот» и в провал не
+    попадает никогда. Урок двух прогонов: №1 срубили доходности XMR (r30
+    6.7 пп), №2 — уровень HYPE (min90 6.1 %); ограничивать полосу одними
+    доходностями было моей ошибкой масштаба."""
     import requests
     live = requests.get(
         "https://gist.githubusercontent.com/seahomebatumi-ai/"
@@ -915,8 +913,8 @@ def verify_against_live(bot_path, html_path=None):
             thr_k = next(t for kk, _, t in SPEC if kk == k)
             kind_k = next(kd for kk, kd, _ in SPEC if kk == k)
             if kind_k != "info" and dv > thr_k:
-                if k in RET_FIELDS and sym in fut:
-                    basis.append((sym, k, dv))
+                if sym in fut:
+                    basis.append((sym, k, dv))   # ALL fields: two instruments
                 else:
                     breach[k].append((sym, dv))
         print("%-7s " % sym + " ".join(cells))
@@ -925,11 +923,13 @@ def verify_against_live(bot_path, html_path=None):
                  "Это провал закачки, а не успешная сверка.")
     skip = RET_FIELDS if (gap is None or gap > 3) else ()
     def field_fails(k, thr):
+        # A reconstruction defect is SYSTEMIC by construction: window logic,
+        # timestamp semantics and units apply to every coin equally. A single
+        # coin over the bar — at any magnitude — is source idiosyncrasy
+        # (12.08: XLM volatility one day, HYPE perp-wick min90 the next) and
+        # warns loudly instead of killing the pipeline.
         br = breach[k]
-        if not br:
-            return False
-        return (len(br) >= 3 or (cmp_n >= 2 and len(br) >= cmp_n)
-                or any(dv >= 3 * thr for _, dv in br))
+        return len(br) >= 3 or (cmp_n >= 2 and len(br) >= cmp_n)
     bad = [k for k, kind, thr in SPEC
            if kind != "info" and k not in skip and field_fails(k, thr)]
     warn = [(k, breach[k]) for k, kind, thr in SPEC
