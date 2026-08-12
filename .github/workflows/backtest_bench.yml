@@ -66,7 +66,10 @@ jobs:
             --html ../index.html 2>&1 | tee fund_fetch.txt
 
       - name: Сверка восстановления с живым coeffs.json
-        run: cd bench && python backtest_bench.py --verify --bot ../main.py 2>&1 | tee verify.txt
+        run: |
+          cd bench
+          python backtest_bench.py --verify --bot ../main.py \
+            --html ../index.html 2>&1 | tee verify.txt
 
       - name: Прогон
         run: |
