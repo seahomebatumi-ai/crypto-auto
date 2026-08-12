@@ -65,20 +65,6 @@ jobs:
           python backtest_bench.py --fetch-funding --years ${{ inputs.years }} \
             --html ../index.html 2>&1 | tee fund_fetch.txt
 
-      - name: Сверка восстановления с живым coeffs.json
-        run: |
-          cd bench
-          python backtest_bench.py --verify --bot ../main.py \
-            --html ../index.html 2>&1 | tee verify.txt
-
-      - name: Прогон
-        run: |
-          cd bench
-          for H in 3 7 14; do
-            python backtest_bench.py --run --horizon $H --step 7 \
-              --html ../index.html --bot ../main.py 2>&1 | tee -a report.txt
-          done
-
       - name: Слой инвалидации (--stops)
         run: |
           cd bench
@@ -100,6 +86,20 @@ jobs:
             python backtest_bench.py --funding --horizon $H --step 7 \
               --html ../index.html --bot ../main.py 2>&1 | tee -a funding.txt
           done
+
+      - name: Прогон
+        run: |
+          cd bench
+          for H in 3 7 14; do
+            python backtest_bench.py --run --horizon $H --step 7 \
+              --html ../index.html --bot ../main.py 2>&1 | tee -a report.txt
+          done
+
+      - name: Сверка восстановления с живым coeffs.json
+        run: |
+          cd bench
+          python backtest_bench.py --verify --bot ../main.py \
+            --html ../index.html 2>&1 | tee verify.txt
 
       # Артефакт нужен именно тогда, когда что-то упало.
       - name: Деление по режиму BTC
