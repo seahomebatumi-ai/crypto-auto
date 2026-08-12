@@ -207,7 +207,9 @@ def bump_one_huge(rec):
         rec['min_price'] = rec['min_price'] * 1.10      # 10 % = 5x threshold
 
 code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_one_huge))
-ok('single huge outlier still fails', code != 0, 'exit=%s' % code)
+ok('single outlier of ANY size warns, exits 0 (v3: defects are systemic)',
+   code == 0 and 'ПРЕДУПРЕЖДЕНИЕ' in out and 'AAA' in out.split('ПРЕДУПРЕЖДЕНИЕ')[-1],
+   'exit=%s' % code)
 
 # 10. fut basis lane: with html naming AAA as fut:true, a big return gap on AAA
 #     is labelled as basis and does not fail; the same gap without html does.
@@ -218,15 +220,25 @@ io.open(html_fut, 'w', encoding='utf-8').write(
 
 def bump_fut_ret(rec):
     if rec['symbol'] == 'AAA':
-        rec['r30'] = (rec['r30'] or 0.0) + 0.10         # 10 pp = above 3x threshold
+        rec['r30'] = (rec['r30'] or 0.0) + 0.10         # 10 pp
+
+def bump_fut_level(rec):
+    if rec['symbol'] == 'AAA':
+        rec['min_price'] = rec['min_price'] * 1.06      # the HYPE case of 12.08
 
 code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_fut_ret),
                        html=html_fut)
-ok('fut basis gap exits 0 with html', code == 0, 'exit=%s' % code)
-ok('fut basis gap is named as basis', 'БАЗИС ПЕРП/СПОТ' in out and 'AAA' in out,
+ok('fut basis: return gap exits 0 with html', code == 0, 'exit=%s' % code)
+ok('fut basis: return gap named as basis', 'БАЗИС ПЕРП/СПОТ' in out and 'AAA' in out,
    out.strip().splitlines()[-1][:150])
-code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_fut_ret))
-ok('same gap without html still fails (3x rule)', code != 0, 'exit=%s' % code)
+code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_fut_level),
+                       html=html_fut)
+ok('fut basis: LEVEL gap also exits 0 with html (all fields covered)',
+   code == 0 and 'БАЗИС ПЕРП/СПОТ' in out and 'min_price' in out.split('БАЗИС')[-1],
+   'exit=%s' % code)
+# systemic detection power is intact: all three coins over the bar still fails
+code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_level))
+ok('systemic breach (all coins) still fails after v3', code != 0, 'exit=%s' % code)
 
 shutil.rmtree(tmp, ignore_errors=True)
 
