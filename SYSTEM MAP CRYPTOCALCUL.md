@@ -1,7 +1,7 @@
 # SYSTEM_MAP — Pro Crypto Tool
 
 Единый источник правды. Сверяться ПЕРЕД любой правкой кода и при интерпретации метрик.
-Актуально на 11.08.2026 (`--verify` §3.10; чистка мёртвого CSS §9; блок «ЗАЩИТА ПОЗИЦИИ» §3.11); прежняя редакция — (жёсткий потолок риска маржи §3.4, доска CRYPTO FUTURE, движок плеча на трёх потолках, размер в монетах, якорь прокрутки, «ШОРТ СОЗРЕЕТ, КОГДА», остаток к BTC `res7`).
+Актуально на 14.08.2026 (аналитический слой ЗАКРЫТ §10 + §3.10b «потолок разрешения» + §3.10c «следующие ворота»; `--verify` §3.10; чистка мёртвого CSS §9; блок «ЗАЩИТА ПОЗИЦИИ» §3.11); прежняя редакция — (жёсткий потолок риска маржи §3.4, доска CRYPTO FUTURE, движок плеча на трёх потолках, размер в монетах, якорь прокрутки, «ШОРТ СОЗРЕЕТ, КОГДА», остаток к BTC `res7`).
 
 > **Language rule (project instructions V9, in force from 11.08.2026):** new
 > sections of this map and new code comments are written in ENGLISH. Sections
@@ -466,11 +466,187 @@ demonstrating the same thing. **The ordering carries no information —
 the ranking is a geometry/risk shortlist, not an opportunity detector,
 and №1 does not deserve directional trust over №5.**
 
+**Capital-efficiency follow-up (14.08.2026, same `run_raw.json`).** The
+Boss's question — rank candidates by expected outcome for a $1–2k futures
+position — reduces exactly: P&L per dollar of margin = L · move, and the
+engine sets L ≈ risk_budget / dist, so P&L/margin ≈ risk_budget · move/dist
+= risk_budget · R-multiple. Ranking by capital EV is therefore ranking by
+expected R-multiple, nothing else. Measured (R = realized return ÷ realized
+MAE inside the window, floored at 2 % and capped at ±5 — hindsight risk in
+the denominator, i.e. the construction FAVOURS the hypothesis): LONG
+IC(score, R) = −0.027 [−0.069; +0.015], SHORT +0.014 [−0.027; +0.057];
+№1 above the list's median R on 47 % of dates on both sides; №1 R-excess
++0.08 / +0.24 with CI covering zero. Null with a handicap → null without.
+The cost side is deterministic and already priced on the board: at $1.5k
+margin × 4X = $6k notional, round-trip taker = $6, funding at 0.01 %/8h
+≈ $12.6/week (0.05 %/8h ≈ $63) against a typical 14d absolute move of
+9.5 % median / 13.9 % mean = $570–830. Cross-candidate cost SPREAD is
+~6 % of a typical move whose SIGN is unpredictable (IC ≈ 0) — sorting by
+it is sorting the second decimal of an unknown number. No EV ranking.
+
+**Regime follow-up (14.08.2026) — supersedes the degenerate 13/132 split.**
+The original split («trend = BTC 90d drift significant») left 13 trend
+dates and was unpowered. Rebuilt look-ahead-free: BTC 14d return is exact
+in the raw dump (`fwd − exc`, cross-coin sd = 0), so the TRAILING 14d BTC
+return at date t is the forward return of date t−2 (weekly grid). Buckets:
+trend-up > +5 % (51 dates) · range ±5 % (50) · trend-down < −5 % (41);
+plus an expansion split on trailing mean |14d move| across the list, high
+vs low half (70 / 72 dates). Score IC by bucket, both sides, doubled bar
+(|IC| ≥ 0.10, CI99 clear of zero): every one of the ten cells is null;
+the largest |IC| anywhere is 0.058 (SHORT · trend-down) with CI99 spanning
+zero, and no bucket even reaches the single bar of 0.05. Powered split,
+same answer → RANGE/TREND/EXPANSION conditioning is measured worthless as
+a directional switch. Expansion already lives where it is defensible — in
+risk, as the production caps `vol7/vol90 > 2 → 3X`, `Vol ≥ 2 %/h → 2X`,
+`Vol ≥ 3 %/h → no leverage` (§3.2).
+
 Both live directional hypotheses from §10 are now measured zeros: the
 directional layer remains human (catalysts + REVIEW) by design, and the
 tool's edge — risk, sizing, honesty — is confirmed as a result, not a
 fallback. Re-running a lab mode requires a new external argument, not a
 re-roll of the same data.
+
+### 3.10b Resolution ceiling — what this bench can and cannot see (14.08.2026)
+
+<!-- EDIT-MARKER 2026-08-14b-RESOLUTION-CEILING -->
+
+A permanent property of the SAMPLE, not of any one experiment. Fixed here so
+that no future proposal has to re-derive it, and so that no future null is
+misread as «данных мало».
+
+Sample: 145 weekly dates x ~24.4 coins/date. Measured block-bootstrap
+SE(IC) = 0.020-0.023 (0.0215 used below); the block SE runs ~1.35x the iid
+value, and that ratio is what rescales the figure to other universe widths.
+
+| Test family | z* (FWER 5%) | true \|IC\| needed for 80% power |
+|---|---|---|
+| one pre-registered primary | 1.96 | 0.060 |
+| ~15 cells (one experiment + its exploration) | 2.90 | 0.080 |
+| 45-66 pairwise interactions | 3.21-3.31 | 0.087-0.089 |
+| 66 pairs x 2 sides x 3 horizons | 3.68 | 0.097 |
+
+Two consequences, both load-bearing:
+
+1. **Everything measured so far sits inside the null.** ~40 cells have been
+   run (score 6, res7 12, funding 9, regime 10, R-multiple 2). In a world
+   with zero signal anywhere, the EXPECTED largest \|IC\| across 40
+   correlated cells is 0.049, 90th pct 0.063. Observed largest: 0.058
+   (SHORT · trend-down, CI99 through zero). The entire body of exploration
+   is statistically indistinguishable from pure noise — which is the
+   correct reading of it, and the reason nothing has ever been promoted.
+2. **Universe width is the binding constraint, and it cannot be bought.**
+   SE(IC) scales as 1/sqrt(n-3): at 24.4 coins/date the detectable \|IC\|
+   is 0.068; at 6 coins/date, 0.181; at 4, 0.314. Calendar time helps only
+   as 1/sqrt(D) — doubling to 290 weekly dates (another 2.75 years of
+   waiting) moves the single-test bar from 0.060 only to 0.043. The
+   standing decision «новые монеты не добавляем» (§10) therefore also
+   fixes this system's measurement resolution permanently. That is a
+   deliberate trade — a list the Boss can actually watch, against the
+   ability to validate weak factors — and it is settled in favour of the
+   watchable list.
+
+### 3.10c Next architectural gate — what would reopen advanced ranking (14.08.2026)
+
+<!-- EDIT-MARKER 2026-08-14c-NEXT-GATE -->
+
+§3.10b states the resolution ceiling. This section states what would MOVE it,
+what that costs, and the exact evidence that reopens the layer. Nothing here
+is built. It exists so the answer is decided BEFORE the next proposal
+arrives, not after.
+
+**The binding dimension is universe width, and only universe width.**
+SE(IC) = 1.198 / sqrt((n-3)*D), calibrated on the measured 0.0215 at
+n = 24.4, D = 145. Moving one dimension at a time:
+
+| Target \|IC\| | via coins alone | via history alone |
+|---|---|---|
+| 0.040 | n = 52 | D = 329 (6.3 years) |
+| 0.030 | n = 89 | D = 585 (11.2 years) |
+| 0.020 | n = 197 | D = 1315 (25.2 years) |
+
+**Sampling more often is worth exactly zero — measured, not assumed.**
+Sampling the same calendar span daily instead of weekly gives 7x the rows
+and a **1.00x** improvement in SE, because consecutive daily dates share 6/7
+of the same forward window (simulation, 4000 replications). Independent
+periods are calendar time divided by holding horizon; that identity cannot
+be worked around. Shortening the horizon to 1d would multiply periods by 7
+but would validate a factor we do not trade, in the most arbitraged part of
+the market. Rejected.
+
+**Detection is not the whole bar: fitting costs signal.** Out-of-sample IC
+actually delivered by a fitted cross-sectional ranker when the TRUE IC is
+0.030, k = fitted parameters, 12 replications per cell:
+
+| Configuration | detection bar | k=6 | k=15 | k=60 |
+|---|---|---|---|---|
+| today: 24 coins x 2.8y | 0.060 | 0.021 | 0.019 | 0.003 |
+| wide bench: 120 x 2.8y | 0.026 | 0.025 | 0.019 | 0.016 |
+| wide + 5.6y | 0.018 | 0.026 | 0.023 | 0.018 |
+| wide + 11.1y | 0.013 | 0.032 | 0.027 | 0.021 |
+
+A cell passes only where delivered exceeds the bar. Three tiers follow, with
+different fates:
+
+- **Tier 1 — a SINGLE pre-specified factor, nothing fitted.** Unlocked by
+  universe width alone: bar 0.060 -> 0.026 at n = 120. This is the class
+  every incoming proposal actually belongs to (basis, funding variants, a
+  named interaction term specified in advance). Reachable today.
+- **Tier 2 — a fitted multi-factor / interaction model (k >= 15).** Needs
+  the wide bench AND ~5.6 years — wide bench plus 2.8 more years of
+  accumulation. Reachable ~2029, not before.
+- **Tier 3 — ML ranking (k ~ 60 effective parameters).** Needs the wide
+  bench AND ~11 years. **ML ranking is therefore PERMANENTLY rejected for
+  this system, not conditionally** — this upgrades the §8/§10 line from a
+  judgement call to an arithmetic fact.
+
+**Research-universe specification, if and when tier 1 is triggered**
+`[решение принято мной]`: Binance USDS-M perpetuals, target **n = 120**
+(150 buys only 0.026 -> 0.023 for 25 % more fetch; below 100 the tier-1
+unlock is lost). Filters in order: (1) >= 3 years of continuous hourly
+candles in `data.binance.vision`, no listing gap > 48 h — the binding
+filter; (2) median 24h notional over the sample >= $30M; (3) exclude
+wrapped duplicates, pegged assets and 1000X-style pairs — they inflate n
+without adding independent cross-section; (4) **delisted perps MUST be
+included for the period they traded.** Point 4 is not optional: today's
+28-coin bench is survivorship-biased by construction (it is today's list).
+At n = 24 with everything null that bias is harmless; at n = 120 with a
+factor near threshold it could manufacture the result. Cost: ~120 pairs x
+36 monthly ZIPs, bench-only, production untouched, no new runtime
+dependency, no new failure point in the hourly bot.
+
+**Transfer gate — a VETO, never a confirmation.** Any factor passing on the
+wide universe is re-measured on the 28 traded coins; required: same sign,
+and the 28-coin point estimate inside the wide-universe CI95. That test
+resolves only \|IC\| >= 0.060, so it can KILL a factor (a small-cap /
+illiquid effect absent from our segment — exactly the failure mode the
+external literature predicts) but can never bless one. Blessing stays with
+the wide-universe primary plus the standing +26-week fresh-data confirmation
+run (§3.10a).
+
+**The prize, sized honestly.** A validated IC = 0.030 factor is worth
+0.57 % per selection to the top-1 pick over the list mean (cross-sectional
+sd of 14d excess return 9.8 %, E[best of 24] = 1.95 sigma) — about $34 per
+trade at $1.5k margin x 4X, ~$890/year at 26 selections. Real, but 17x
+smaller than a typical 14d move, and it would take ~2300 live trades to
+separate from luck. **Even a fully validated factor could therefore never be
+confirmed by the Boss's own trading experience — using it would be an act of
+trust in the bench.** That is the true size of the prize, and it is why the
+gate is deliberately expensive.
+
+**BUILD TRIGGER — the archive is not perishable.** The wide bench is NOT
+built now. Waiting costs nothing in data: `data.binance.vision` is
+historical, so building it in 2027 yields 2027's history including
+everything back to 2023. Building it now with no hypothesis queued costs a
+large fetch, CI time and a second universe to keep in sync, and buys a
+fishing expedition — precisely what pre-registration exists to prevent.
+Discarded alternative: build it now to «be ready»; rejected because
+readiness carries no expiry advantage here.
+
+**THE GATE, IN ONE LINE.** The wide bench is built the first time a named
+tier-1 hypothesis arrives carrying an external effect size **>= 0.030 IC,
+measured on a LIQUID cross-section (top-100 by volume or equivalent), at a
+7-14 day horizon.** An effect size from a small-cap universe, or a claim of
+predictiveness with no number attached, does not open the gate.
 
 ## 4. Инварианты — НЕ ЛОМАТЬ
 1. Схема `coeffs.json` — только аддитивные изменения; `err_result` в боте синхронен по ключам с успешным результатом.
@@ -608,8 +784,72 @@ re-roll of the same data.
 | Подгонка весов `scoreCandidate` | Измеренный ноль на 3 годах и 28 монетах при достаточной мощности (§10, «Сделано»). Крутить веса под нулевой результат — чистое переобучение. Правило «не трогать веса ни при каком исходе» было зарегистрировано ДО прогона и соблюдено |
 | Режим рынка как выключатель скоринга | Правило «тренд = снос BTC за 90д значим» даёт вырожденное деление: 13 трендовых дат против 132 диапазонных за 2.75 года. По корректно сформулированному критерию крипта почти всегда в диапазоне. Другое определение, выбранное ПОСЛЕ этого результата, было бы подгонкой под выборку |
 | CoinGecko как источник для стенда | Бесплатный тариф: 365 дней истории → 39 дат → различимо только \|IC\| ≳ 0.060. Годится для сверки, не для теста |
+| **Open Interest — ЗАКРЫТ НАВСЕГДА 14.08.2026** (и как сигнал, и как отображение) | Три независимых довода. (1) Funding — рыночная ЦЕНА того же дисбаланса, что OI измеряет количеством; z-скученность и уровень измерены нулём с узким ДИ (§3.10a), поэтому условная вероятность, что количественная мера несёт сигнал, которого нет в цене, много ниже 10 %. (2) Мощность: 145 недельных дат × 24 монеты различают \|IC\| ≳ 0.06; правдоподобный эффект OI на 7–14д лежит ниже этого порога, то есть даже честный прогон не смог бы отличить его от нуля — тест без разрешающей способности не проводят. (3) Отображение «новые деньги / закрытие позиций» держалось только на будущей направленной пользе: без неё это метрика, не меняющая решение — прямой запрет из правил. Цена отказа нулевая: 28 запросов / 5 мин и новая точка отказа не появляются. Развернёт только внешнее свидетельство, что позиционирование Binance предсказывает 7д-доходность крупных капитализаций **при размере эффекта, различимом на нашей выборке** |
+| Ранжирование по ожидаемой прибыли на капитал ($1–2k) | Сводится тождеством к ранжированию по ожидаемому R-мультипликатору (движок уже выравнивает риск на маржу: P&L/маржа ≈ бюджет риска · ход/дистанция). Измерено с форой гипотезе — риск взят задним числом — IC −0.027 / +0.014, №1 выше медианы R в 47 % дат (§3.10a). Издержки (комиссия, funding) детерминированы, уже стоят на доске в USDT, и их РАЗБРОС между кандидатами ≈ 6 % типичного хода, знак которого непредсказуем. Ликвидность на размере $3–10k номинала не различает 28 перпов (та же причина, что строкой «Ликвидность фьючерсов») |
+| Режим RANGE/TREND/EXPANSION как условие скоринга | Мощное деление построено 14.08 (тренд вверх 51 дата / диапазон 50 / тренд вниз 41; расширение 70 / сжатие 72, всё без взгляда в будущее) — десять ячеек из десяти нулевые, максимум \|IC\| = 0.058 при ДИ99 через ноль (§3.10a). Прежняя строка «вырожденное деление» больше не единственный довод: теперь ноль измерен на выборке, которая эффект увидела бы. Расширение уже реализовано там, где оно законно — в потолках риска §3.2 |
+| **Нелинейный слой взаимодействий факторов — ОТКЛОНЁН 14.08.2026** | Три независимых довода. (1) **Сегмент не тот.** Источник (взаимодействия на 40 характеристиках, 500+ монет, 2017–2023) сам показывает сетевым анализом, что прибыль аномалий живёт в МАЛЫХ и НЕЛИКВИДНЫХ монетах, где издержки мешают арбитражу, а ведущие пары — меры ликвидности (оборот, спред) с мерами риска. Наш список — 28 топовых перпов Binance, ровно дополнение к этому сегменту. (2) **Механика не переносится.** Двойная сортировка 5×5 при 500 монетах даёт 20 монет в корзине; при наших 24.4 — ОДНУ. Сортировать нечего. (3) **Мощность.** Семейство из 45–66 парных взаимодействий требует истинного \|IC\| ≈ 0.087–0.089 (§3.10b) — в полтора раза больше максимума, когда-либо измеренного в системе (0.058), который сам равен ожидаемому максимуму ЧИСТОГО шума при нашем числе ячеек. Плюс: взаимодействие с наибольшим приором — фактор × режим — уже измерено на мощном делении, 10 ячеек из 10 нулевые |
+| **Order flow / микроструктура как фактор ранжирования — ОТКЛОНЁН 14.08.2026** | Ошибка категории в самом источнике применительно к нашей задаче: предиктор там — **world order flow**, агрегат потоков в 11 фиатных валютах, то есть ОДНО число на дату, общее для всех монет. Величина, постоянная по кросс-секции, имеет кросс-секционный IC = 0 тождественно: это таймер РЫНКА, а наша задача — «какую из 28 взять». Приводимые R² 10.4 % (день) / 19.6 % (неделя) относятся к синхронной (одновременной) связи потока с доходностью, не к предсказанию. Данных нет и не будет: поток в 11 фиатах — платный агрегат по венчурам; Binance открыто отдаёт только `aggTrades` по USDT-парам одной биржи, то есть заведомо не «world». Цена — терабайты тиков и постоянный ETL против уже принятого решения по внутридневной микроструктуре (§10: масштаб времени сигнала — часы, удержание Босса 1–14 дней) |
+| **Кросс-секционный базис срочных фьючерсов — ОТКЛОНЁН 14.08.2026** | Развилка из двух ветвей, обе закрыты. (а) Базис ПЕРПЕТУАЛА = премиум-индекс, из которого Binance и считает funding — та же величина в другом виде (строка «Спот/перп базис» выше), а funding измерен нулём: IC +0.003, ДИ95 [−0.030; +0.039]. (б) Базис СРОЧНОГО контракта — величина действительно независимая, но её нет на нашем списке: квартальные поставочные Binance это USDⓈ-M только BTC/ETH и COIN-M BTC/ETH/BNB/ADA/LINK/BCH/XRP/DOT/LTC; пересечение с нашими 28 — **шесть монет** (ETH, BNB, ADA, LINK, BCH, XRP), все COIN-M. Кросс-секция из шести различает только \|IC\| ≳ 0.18 (§3.10b) — теста с таким разрешением не проводят. Третий довод из самого источника: доходность базисного фактора сильна на ДНЕВНОМ шаге, СЛАБЕЕ на недельном, незначима на месячном — эффект затухает ровно на нашем горизонте 7–14д |
 
 ## 9. Журнал миграций
+- 2026-08-14c: **next architectural gate defined in numbers — §3.10c.
+  Map-only diff, zero code, nothing built.** The Boss asked what would have
+  to change before advanced predictive technology could responsibly reopen.
+  Answer: universe width, and nothing else. Coins are elastic (n = 89
+  reaches \|IC\| 0.030), history is not (the same bar needs 11.2 years);
+  sampling daily instead of weekly is measured worth 1.00x because
+  consecutive dates share 6/7 of the forward window. Fitting costs signal on
+  top of detection, which splits the roadmap into three tiers with different
+  fates: single pre-specified factors unlock on a 120-coin research bench
+  today, fitted multi-factor models need ~5.6 years, ML ranking needs ~11
+  and is now permanently rejected on arithmetic rather than judgement.
+  Research-universe spec, transfer-gate-as-veto, and the survivorship
+  requirement (delisted perps included for their live period — today's bench
+  is survivorship-biased by construction) are all fixed in §3.10c. The prize
+  is sized: a validated 0.030 factor is worth ~$34/trade and ~2300 live
+  trades to prove, i.e. never confirmable from the Boss's own experience.
+  **Nothing built:** the archive is not perishable, so deferring costs zero
+  data; the build trigger is a named tier-1 hypothesis carrying an external
+  effect size >= 0.030 IC on a liquid cross-section at 7-14 days.
+- 2026-08-14b: **three external research directions assessed, all three
+  REJECTED; the analytical layer is declared COMPLETE at the current
+  evidence level. Map-only diff — zero code, zero product change.**
+  (1) Nonlinear interaction layer: the source effect lives in small,
+  illiquid coins by its own network analysis and needs a 500-coin
+  cross-section to double-sort — our 5x5 grid would hold 1 coin per bucket,
+  and an interaction search needs true |IC| ~0.087-0.089 against a system
+  maximum of 0.058 that is itself the expected maximum of pure noise.
+  (2) Order flow: the source predictor is WORLD order flow — one number per
+  date shared by all coins, so its cross-sectional IC is zero by
+  construction; the quoted R2 are contemporaneous, not predictive; the data
+  is a paid 11-fiat aggregate that Binance's public API cannot reproduce;
+  intraday microstructure was already out of scope on holding-period
+  grounds. (3) Futures basis: perp basis is mechanically the premium index
+  behind funding (measured null, tight CI); dated-futures basis exists for
+  6 of our 28 coins, a cross-section resolving only |IC| >= 0.18, and the
+  source's own horizon gradient has the factor dying between daily and
+  weekly. New **§3.10b** records the bench's permanent resolution ceiling
+  so no future proposal re-derives it; **§8** gains three rows; **§10**
+  gains the admission rule for any future factor. Header date corrected
+  11.08 -> 14.08 (it contradicted the migration log).
+- 2026-08-14: **analytical layer CLOSED — three questions answered by
+  measurement, zero code, zero product change.** (1) Capital-efficient
+  ranking for a $1–2k position: proved identical to ranking by expected
+  R-multiple (the engine already equalises risk per margin), measured with
+  hindsight risk in the denominator as a handicap in favour of the
+  hypothesis — still null on both sides, №1 above median R on 47 % of
+  dates; costs are deterministic, already on the board, and their
+  cross-candidate spread is ~6 % of a move whose sign is unpredictable.
+  Rejected in §8. (2) OI: closed PERMANENTLY as signal and as display —
+  funding is the price of the same imbalance and reads zero with a tight
+  CI, our sample resolves only |IC| ≳ 0.06 so the test would have no
+  power, and the display was justified solely by the directional value
+  that does not exist. §10 queue item struck; yesterday's pre-gate void
+  with its feature. (3) Regime RANGE/TREND/EXPANSION: the degenerate
+  13/132 split replaced by a powered look-ahead-free one (51/50/41 by
+  trailing BTC 14d, 70/72 by trailing expansion) — ten of ten cells null,
+  max |IC| 0.058 with CI99 through zero. Expansion stays where it is
+  legitimate: the §3.2 risk caps. Numbers in §3.10a.
 - 2026-08-13: **directional-intelligence audit — layer CLOSED; leverage
   calibration — leave unchanged. Map-only diff, zero code.** (1) Rank-1
   follow-up computed from run №4's own `run_raw.json` answers the Boss's
@@ -738,17 +978,14 @@ re-roll of the same data.
 Порядок — результат аудита 10.08 (пять пунктов Босса + три идеи его ассистента). Внутри каждого пункта указана цена и что именно он меняет.
 
 **Принято, ждёт очереди**
-~~0. **Lab runs (12.08.2026)** — `--stops`, `--res7`, `--funding` delivered with
-   green lab selftest, `verify_bench` 29/0 and the original `--selftest`
-   passing; awaits a manual `workflow_dispatch` (cache key v4 forces a refetch
-   that now carries high/low). Verdict rules are fixed in §3.10a; results are
-   to be read against them verbatim, no post-hoc re-framing.~~
+~~0. **Lab runs (12.08.2026)** — `--stops`, `--res7`, `--funding`, verdict rules fixed in §3.10a, awaiting a manual `workflow_dispatch` on cache key v4.~~
    — **закрыт 12.08 вечером, run №4: см. §3.10a Results и «Сделано»**
 ~~3. Потолок риска маржи жёстким.~~ — **закрыт 11.08, см. «Сделано»**
 
 <!-- `MAX_MARGIN_LOSS = 0.35` сейчас справочный (§3.4). Расчёт: включённый целиком, он связывает 15 типовых комбинаций из 16 и роняет ИТОГ ниже `L_MIN` в семи. Причина — дистанция, упёршаяся в `INV_CAP_SD`: там стоп нарисованный, и денежное правило применять к нему нельзя. Версия, которую стоит обсуждать: жёсткий потолок при `inv.capped = false` И `inv.src ≠ 'вход'`, справочная строка во всех остальных случаях.
 -->
-1. **Open Interest** — отложен до недели стабильной работы расчёта плеча; цена 28 запросов/5 мин и новая точка отказа; показывать одним состоянием («новые деньги» / «закрытие позиций»), не сырыми числами. **С 13.08: перед реализацией ОБЯЗАТЕЛЕН бэктест позиционирования из архива метрик vision (см. решение в «Directional layer CLOSED» ниже) — сначала измерить, потом показывать.**
+~~1. **Open Interest** — отложен; показывать одним состоянием «новые деньги / закрытие позиций», не сырыми числами. Ворота-бэктест позиционирования добавлены 13.08.~~
+   — **ЗАКРЫТ НАВСЕГДА 14.08.2026, см. §8.** Ворота-бэктест из записи 13.08 тем самым отменены вместе с самой фичей: измерять нечего, если показывать нечего.
 ~~2. **Мёртвый CSS**~~ — **закрыт 11.08, см. «Сделано»**
 
 **Решения, которые не пересматриваем без новых аргументов**
@@ -781,11 +1018,45 @@ re-roll of the same data.
   clearing PRICE of the same imbalance and measured zero with a tight CI, so
   the conditional prior for the quantity measure is well under 10 %, against
   a ~30k-file fetch. Discarded alternative: run it anyway for completeness.
-  Reversal conditions: external evidence that Binance positioning ratios
-  predict 7d large-cap returns, or the OI display feature graduating from
-  the deferred queue — in which case this backtest becomes its mandatory
-  PRE-GATE (measure first, display second). Until then the machine owns
-  risk, sizing and honesty; the human owns catalysts via REVIEW. Final.**
+  ~~Reversal conditions (13.08): external evidence on Binance positioning ratios, or the deferred OI feature proceeding — in which case this backtest is its mandatory pre-gate.~~
+  **Superseded 14.08.2026: OI closed permanently as signal AND display (§8),
+  so the pre-gate is void with its feature. Any reversal now requires an
+  external effect size our sample could actually resolve (|IC| ≳ 0.06), not
+  merely a claim of predictiveness.** Until then the machine owns risk,
+  sizing and honesty; the human owns catalysts via REVIEW. Final.
+- **ANALYTICAL LAYER — COMPLETE at the current evidence level. Verdict
+  14.08.2026, after the three external directions the Boss forwarded
+  (nonlinear interactions / order flow / cross-sectional futures basis)
+  were assessed and all three rejected — §8.**
+  <!-- EDIT-MARKER 2026-08-14b-LAYER-COMPLETE -->
+  This is NOT «мы исчерпали идеи». It is a measured statement about this
+  system's resolution. Three independent facts, each sufficient alone:
+  (1) every directional cell ever measured here — ~40 of them — lies inside
+  the null distribution for that number of tests (§3.10b);
+  (2) the effect sizes in the external literature are produced on
+  cross-sections of 84 to 500+ coins, 3-20x our width, and the published
+  mechanisms locate the profit in small, illiquid, high-cost assets — the
+  exact complement of a 28-coin top-perp list;
+  (3) our detection threshold is set by universe width, which the standing
+  «новые монеты не добавляем» decision fixes permanently at |IC| ~0.06-0.07
+  for a single pre-registered test and ~0.09 for any search.
+  **Operative rule from here:** a new ranking factor is admissible ONLY on
+  an external prior that names an effect size THIS sample could resolve, on
+  a cross-section shaped like ours, at a 7-14 day horizon. «Предсказывает в
+  литературе» is not such a prior and never was. Absent that, additions to
+  the analytical layer buy complexity and false precision, not accuracy.
+  The division of labour is final: the machine owns risk, sizing, honesty
+  and geometry; the human owns direction via catalysts and REVIEW.
+  **Refined 14.08.2026 — §3.10c now states the NEXT GATE in numbers:** the
+  only elastic dimension is universe width (n = 120 research universe moves
+  the bar 0.060 -> 0.026, bench-only); daily resampling is measured worth
+  exactly 1.00x; tier-1 single factors become testable at once, fitted
+  multi-factor models need ~5.6 years, and ML ranking needs ~11 years and is
+  therefore permanently — not conditionally — rejected. The wide bench is
+  NOT built now: the archive is historical, so deferring costs nothing,
+  while building it without a queued hypothesis buys a fishing expedition.
+  Build trigger: a named single-factor hypothesis with an external effect
+  size >= 0.030 IC on a LIQUID cross-section at 7-14 days.
 - **Новые монеты — НЕ добавляем** (решение Босса 10.08). Работаем со списком из 28 пар.
 - **Переключатель горизонта 7д/30д** — не реализован намеренно: масштабирование ручное (√H), лишний орган управления даёт соблазн подкрутить горизонт под желаемое плечо. Вернуться, если срок удержания начнёт меняться систематически.
 - Карта ликвидаций, вероятность «TP раньше SL», спот/перп базис — отклонены, причины в §8.
