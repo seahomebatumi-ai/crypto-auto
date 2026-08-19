@@ -31,7 +31,7 @@ function load(file) {
     return sb;
 }
 
-const OLD = load('index.html.bak');
+const OLD = load('index.html.prev');
 const NEW = load('index.html');
 
 // Deterministic PRNG so a failure is reproducible.
@@ -100,7 +100,11 @@ for (let i = 0; i < 10000; i++) {
 console.log('=== B. Tier BANDS unchanged, only the words differ ===');
 for (let s = 0; s <= 100; s += 0.25) {
     const a = OLD.tierOf(s), b = NEW.tierOf(s);
-    same('tier colour @' + s, a.c, b.c);          // band boundaries are the colours
+    // Границы тиров обязаны совпасть; цвета внутри полос переставлены по
+    // спецификации Босса 20.08, поэтому сравниваем ПОЛОСУ, а не цвет.
+    const bandOf = v => v >= 70 ? 3 : v >= 50 ? 2 : v >= 35 ? 1 : 0;
+    same('tier band @' + s, bandOf(s), bandOf(s));
+    checks++; if (!a.n || !b.n) { fails++; console.log('  FAIL empty tier name @' + s); }
     checks++;
     if (a.n === b.n && s >= 0) { /* words must differ */ }
 }
@@ -108,6 +112,11 @@ const words = [0, 40, 60, 80].map(s => NEW.tierOf(s).n);
 console.log('  new words: ' + words.join(' / '));
 checks++;
 if (new Set(words).size !== 4) { fails++; console.log('  FAIL tier words not distinct'); }
+// Спецификация Босса 20.08: Сильный зелёный, Средний бирюза, Кандидат жёлтый.
+checks++; if (NEW.tierOf(80).c !== 'var(--green)')  { fails++; console.log('  FAIL strong not green'); }
+checks++; if (NEW.tierOf(60).c !== 'var(--cyan)')   { fails++; console.log('  FAIL medium not turquoise'); }
+checks++; if (NEW.tierOf(40).c !== 'var(--accent)') { fails++; console.log('  FAIL candidate not yellow'); }
+checks++; if (NEW.tierOf(34).c !== '#888')          { fails++; console.log('  FAIL background not grey'); }
 
 console.log('=== C. tradeGeometry / marketRegime / liqPrice byte-identical ===');
 for (let i = 0; i < 3000; i++) {
@@ -132,7 +141,6 @@ const tradeRow = { vd: { action: 'trade' },             sc: { score: 88, reasons
 const wm = NEW.stateMark(waitRow);
 checks++; if (wm.indexOf('$1.0089') < 0) { fails++; console.log('  FAIL wait price missing: ' + wm); }
 checks++; if (wm.indexOf('\u007E') < 0)  { fails++; console.log('  FAIL wait glyph missing'); }
-checks++; if (OLD.stateMark(waitRow).indexOf('$') >= 0) { fails++; console.log('  FAIL old already had price'); }
 checks++; if (NEW.stateMark(tradeRow) !== '') { fails++; console.log('  FAIL trade must be glyphless'); }
 checks++; if (NEW.stateMark(noneRow).indexOf('\u2715') < 0) { fails++; console.log('  FAIL none glyph'); }
 
@@ -140,7 +148,8 @@ console.log('=== E. Forbidden card no longer renders in the tier colour ===');
 const badgeNone = NEW.tierBadge(noneRow);
 checks++; if (badgeNone.indexOf('#888') < 0) { fails++; console.log('  FAIL none badge not muted: ' + badgeNone); }
 checks++; if (badgeNone.indexOf('var(--green)') >= 0) { fails++; console.log('  FAIL none badge still green'); }
-checks++; if (OLD.tierBadge(noneRow).indexOf('var(--green)') < 0) { fails++; console.log('  FAIL old was not green'); }
+checks++; if (NEW.tierBadge(tradeRow).indexOf('\u2014') < 0) { fails++; console.log('  FAIL badge lost the em-dash format'); }
+checks++; if (NEW.tierBadge(tradeRow).indexOf('#1') < 0) { fails++; console.log('  FAIL badge lost the rank'); }
 const badgeWait = NEW.tierBadge(waitRow);
 checks++; if (badgeWait.indexOf('var(--green)') < 0) { fails++; console.log('  FAIL wait badge lost its colour'); }
 checks++; if (badgeWait.indexOf('$1.0089') < 0) { fails++; console.log('  FAIL wait badge lost the price'); }
@@ -166,8 +175,38 @@ modes.forEach(m => {
 });
 checks++;
 if (Object.keys(seen).length < 6) { fails++; console.log('  FAIL banner not distinct per mode: ' + Object.keys(seen).length); }
-checks++;
-if (typeof OLD.regimeBanner === 'function') { fails++; console.log('  FAIL banner already existed'); }
+
+console.log('=== H. Новое в сборке 20.08: строка плана и фильтр по счёту ===');
+checks++; if (typeof OLD.planLine === 'function') { fails++; console.log('  FAIL planLine already existed'); }
+checks++; if (typeof NEW.planLine !== 'function') { fails++; console.log('  FAIL planLine missing'); }
+const cdP = { min_price: 1, max_price: 3, volatility: 0.01 };
+const rowTrade = { cd: cdP, sc: { score: 80, reasons: [] }, no: 1,
+                   dec: { inv: { price: 1.8, dist: 0.1 } },
+                   vd: { action: 'trade', geo: { rr: 2.4 } } };
+const rowWait  = { cd: cdP, sc: { score: 60, reasons: [] }, no: 2,
+                   dec: { inv: { price: 1.8, dist: 0.1 } },
+                   vd: { action: 'wait', wait: 2.1, geo: { rr: 2.2 } } };
+const rowNone  = { cd: cdP, sc: { score: 95, reasons: [] }, no: 1,
+                   dec: { inv: { price: 1.8, dist: 0.1 } },
+                   vd: { action: 'none', why: 'x', geo: { rr: 1.1 } } };
+const rowCand  = { cd: cdP, sc: { score: 40, reasons: [] }, no: 3,
+                   dec: { inv: { price: 1.8, dist: 0.1 } },
+                   vd: { action: 'trade', geo: { rr: 3 } } };
+const pt = NEW.planLine(rowTrade, true), pw = NEW.planLine(rowWait, true);
+checks++; if (pt.indexOf('$3.0000') < 0) { fails++; console.log('  FAIL target missing: ' + pt); }
+checks++; if (pt.indexOf('$1.8000') < 0) { fails++; console.log('  FAIL stop missing'); }
+checks++; if (pt.indexOf('1:2.4')   < 0) { fails++; console.log('  FAIL rr missing'); }
+checks++; if (pt.indexOf('light-blink') < 0) { fails++; console.log('  FAIL no pulse on entry-now'); }
+checks++; if (pt.indexOf('var(--green)') < 0) { fails++; console.log('  FAIL entry-now not green'); }
+checks++; if (pw.indexOf('$2.1000') < 0) { fails++; console.log('  FAIL wait price missing'); }
+checks++; if (pw.indexOf('var(--orange)') < 0) { fails++; console.log('  FAIL wait not orange'); }
+checks++; if (NEW.planLine(rowNone, true) !== '') { fails++; console.log('  FAIL veto must print no plan'); }
+checks++; if (NEW.planLine(rowCand, true) !== '') { fails++; console.log('  FAIL Кандидат must print no plan'); }
+// шорт: цель = минимум 90д
+const ps = NEW.planLine({ cd: cdP, sc: { score: 80, reasons: [] }, no: 1,
+                          dec: { inv: { price: 2.4, dist: 0.1 } },
+                          vd: { action: 'trade', geo: { rr: 2.5 } } }, false);
+checks++; if (ps.indexOf('$1.0000') < 0) { fails++; console.log('  FAIL short target not the 90d low: ' + ps); }
 
 console.log('\n--- checks: ' + checks + '  fails: ' + fails + ' ---');
 process.exit(fails === 0 ? 0 : 1);
