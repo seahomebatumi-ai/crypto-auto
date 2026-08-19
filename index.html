@@ -1678,10 +1678,10 @@ function scoreFinish(cd, sym, p24, qv, sd, isLong, parts, ws, reasons, trendPena
 // МДЛ ✕ на всех карточках. Разрешение на сделку живёт ТОЛЬКО в глифе.
 // Арифметика счёта, пороги тиров и порядок списка не тронуты.
 function tierOf(s) {
-    if (s >= TIER_STRONG) return { n: '\u0412\u041d\u0418\u041c\u0410\u041d\u0418\u0415', c: 'var(--green)' };
-    if (s >= TIER_MID)    return { n: '\u0421\u0420\u0415\u0414\u041d\u0415\u0415',       c: 'var(--accent)' };
-    if (s >= TIER_MIN)    return { n: '\u0421\u041b\u0410\u0411\u041e\u0415',              c: 'var(--cyan)' };
-    return { n: '\u0424\u041e\u041d', c: '#888' };
+    if (s >= TIER_STRONG) return { n: '\u0421\u0438\u043b\u044c\u043d\u044b\u0439',  c: 'var(--green)' };
+    if (s >= TIER_MID)    return { n: '\u0421\u0440\u0435\u0434\u043d\u0438\u0439',  c: 'var(--cyan)' };
+    if (s >= TIER_MIN)    return { n: '\u041a\u0430\u043d\u0434\u0438\u0434\u0430\u0442', c: 'var(--accent)' };
+    return { n: '\u0424\u043e\u043d', c: '#888' };
 }
 
 // ── Слой 0. Режим рынка ────────────────────────────────────────────────────
@@ -1930,8 +1930,8 @@ function tierBadge(row) {
     // цвет тира остаётся только там, где сделка разрешена или ждёт отката.
     var act = row.vd ? row.vd.action : 'none';
     return '<span class="tier-badge" style="color:' + (act === 'none' ? '#888' : tier.c) + ';">'
-         + (row.no > 0 ? '#' + row.no + ' ' : '')
-         + tier.n + ' ' + Math.round(row.sc.score) + stateMark(row) + '</span>';
+         + tier.n + (row.no > 0 ? ' #' + row.no : '')
+         + ' \u2014 ' + Math.round(row.sc.score) + stateMark(row) + '</span>';
 }
 
 // Одна строка над списком: какой приор сейчас разрешён и открыта ли сторона.
@@ -1962,6 +1962,39 @@ function regimeBanner(reg, isLong) {
     }
     return '<div style="margin:2px 0 8px;padding:6px 10px;border-left:3px solid ' + col
          + ';font-size:0.82em;letter-spacing:0.04em;color:' + col + ';">' + txt + '</div>';
+}
+
+// Строка плана сделки. Печатается ТОЛЬКО когда модель сделку разрешила
+// (`trade` или `wait`) и только для тиров Сильный/Средний — требование Босса
+// 20.08. Ни одно число здесь не вычисляется заново: цель — тот же экстремум
+// 90д, что берёт `tradeGeometry`, стоп — тот же `dec.inv.price`, что печатает
+// доска, R:R — тот же `geo.rr` (инв. 20). При `action === 'none'` строка пуста:
+// печатать «вход» там, где движок отказал, значило бы выдумать рекомендацию.
+function planLine(row, isLong) {
+    if (!row.vd || !row.sc || !has(row.sc.score)) return '';
+    if (row.sc.score < TIER_MID) return '';
+    var act = row.vd.action;
+    if (act !== 'trade' && act !== 'wait') return '';
+    var geo = row.vd.geo;
+    if (!geo) return '';
+    var tgt = isLong ? row.cd.max_price : row.cd.min_price;
+    if (!has(tgt) || !(tgt > 0) || (isLong ? tgt <= 0 : false)) return '';
+    var out = [];
+    if (act === 'trade') {
+        out.push('<span class="light-blink" style="color:var(--green);font-weight:800;">'
+               + '\u0412\u0425\u041e\u0414 \u0421\u0415\u0419\u0427\u0410\u0421</span>');
+    } else {
+        if (!has(row.vd.wait)) return '';
+        out.push('<span class="light-blink" style="color:var(--orange);font-weight:800;">'
+               + '\u0412\u0425\u041e\u0414 ' + fmtP(row.vd.wait) + '</span>');
+    }
+    out.push('<span style="color:var(--green);">\u0426\u0415\u041b\u042c ' + fmtP(tgt) + '</span>');
+    if (row.dec && row.dec.inv && has(row.dec.inv.price) && row.dec.inv.price > 0) {
+        out.push('<span style="color:var(--red);">\u0421\u0422\u041e\u041f ' + fmtP(row.dec.inv.price) + '</span>');
+    }
+    if (has(geo.rr)) out.push('<span style="color:#9a9aa8;">R:R 1:' + geo.rr.toFixed(1) + '</span>');
+    return '<div style="font-size:0.78em;font-weight:700;letter-spacing:0.02em;'
+         + 'margin:3px 0 5px;line-height:1.5;">' + out.join(' \u00B7 ') + '</div>';
 }
 
 // Режим последнего рендера — читается доской, не пересчитывается там (инв. 15).
@@ -2968,8 +3001,15 @@ function update() {
         for (var oi = 0; oi < rows.length; oi++) {
             var orow = rows[oi];
             if (orow.state === 'ok' && orow.cd && orow.coin) {
+                // Порядок причин важен: слабый счёт сильнее положения в
+                // диапазоне, иначе одна монета попадала бы в обе группы.
+                if (!orow.sc || !has(orow.sc.score) || orow.sc.score < TIER_MIN) {
+                    orow.off = true; orow.offWhy = 'low'; offRows.push(orow); continue;
+                }
                 var orp = rangePos(orow.cd, parseFloat(orow.coin.lastPrice));
-                if (!sideRelevant(orp, isLong)) { orow.offPos = orp; orow.off = true; offRows.push(orow); continue; }
+                if (!sideRelevant(orp, isLong)) {
+                    orow.offPos = orp; orow.off = true; orow.offWhy = 'pos'; offRows.push(orow); continue;
+                }
             }
             shownRows.push(orow);
         }
@@ -3061,7 +3101,11 @@ function update() {
                 if (rDelta > 0) { rColor = 'var(--green)'; rArrow = '\u2191' + rDelta; }
                 else            { rColor = 'var(--red)';   rArrow = '\u2193' + (-rDelta); }
             }
-            badgeInner += '<span style="color:' + rColor + ';">#' + cd.rank + rArrow + '</span>';
+            // «#» принадлежит ТОЛЬКО месту в рейтинге счёта. Два разных «#»
+            // на одной карточке («#54» капитализация и «#2» рейтинг) — та самая
+            // «смешанная логика», о которой писал Босс 20.08.
+            badgeInner += '<span style="color:' + rColor + ';">\u043a\u0430\u043f '
+                        + cd.rank + rArrow + '</span>';
         }
         // FDV в ЛОНГ/ШОРТ вынесен из бейджа в правый нижний угол карточки
         // (правка Босса 09.08): там свободно, стрелок перестановки в этом
@@ -3181,6 +3225,7 @@ function update() {
         if (sideOn && row.vd && (row.vd.why || (row.sc && row.sc.reasons.length))) {
             reasonHtml = '<div class="reason-line">' + verdictLine(row) + '</div>';
         }
+        if (sideOn) reasonHtml = planLine(row, isLong) + reasonHtml;
 
         // Блок входа переехал в полноэкранную доску: карточка остаётся витриной.
         // Подпись кнопки следует за режимом (правка Босса 09.08).
@@ -3250,14 +3295,39 @@ function update() {
             + '</div>';
     });
 
+    // Ни одного кандидата 35+ — честная пустая доска (требование Босса 20.08).
+    if (sideOn) {
+        var nCand = 0;
+        for (var ci = 0; ci < shownRows.length; ci++) {
+            var cr = shownRows[ci];
+            if (!cr.off && cr.sc && has(cr.sc.score) && cr.sc.score >= TIER_MIN) nCand++;
+        }
+        // Деградированные строки (нет пары / мёртвый рынок / нет метрик) НЕ
+        // прячутся: это операционные предупреждения, а не кандидаты.
+        if (!nCand) {
+            html += '<div class="off-strip" style="border-style:solid;text-align:center;color:#c8c8d4;">'
+                 + '\u041d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u043e\u0440\u043e\u043d\u0435 \u043d\u0435\u0442 \u043a\u0430\u043d\u0434\u0438\u0434\u0430\u0442\u043e\u0432 \u0441\u043e \u0441\u0447\u0451\u0442\u043e\u043c '
+                 + TIER_MIN + '+. \u0414\u043e\u0441\u043a\u0430 \u043f\u0443\u0441\u0442\u0430 \u043d\u0430\u043c\u0435\u0440\u0435\u043d\u043d\u043e.'
+                 + '</div>';
+        }
+    }
+
     // Полоса свёрнутых монет: сколько скрыто и почему.
     if (sideOn && offRows.length) {
         var offNames = [];
         for (var fi = 0; fi < offRows.length; fi++) offNames.push(offRows[fi].t.name);
+        var nLow = 0, nPos = 0;
+        for (var fj = 0; fj < offRows.length; fj++) {
+            if (offRows[fj].offWhy === 'low') nLow++; else nPos++;
+        }
+        var offTxt = [];
+        if (nLow) offTxt.push(nLow + ' \u0441\u043e \u0441\u0447\u0451\u0442\u043e\u043c \u043d\u0438\u0436\u0435 ' + TIER_MIN);
+        if (nPos) offTxt.push(nPos + (isLong
+            ? ' \u0443 \u0432\u0435\u0440\u0445\u043d\u0435\u0433\u043e \u043a\u0440\u0430\u044f 90\u0434'
+            : ' \u0443 \u043d\u0438\u0436\u043d\u0435\u0433\u043e \u043a\u0440\u0430\u044f 90\u0434'));
         html += '<div class="off-strip" onclick="toggleOff()">'
             + '<span class="off-cnt">' + offRows.length + '</span> '
-            + (isLong ? '\u043C\u043E\u043D\u0435\u0442 \u0443 \u0432\u0435\u0440\u0445\u043D\u0435\u0433\u043E \u043A\u0440\u0430\u044F 90\u0434 \u2014 \u043B\u043E\u043D\u0433 \u043D\u0435 \u0440\u0430\u0441\u0441\u043C\u0430\u0442\u0440\u0438\u0432\u0430\u0435\u043C'
-                      : '\u043C\u043E\u043D\u0435\u0442 \u0443 \u043D\u0438\u0436\u043D\u0435\u0433\u043E \u043A\u0440\u0430\u044F 90\u0434 \u2014 \u0448\u043E\u0440\u0442 \u043D\u0435 \u0440\u0430\u0441\u0441\u043C\u0430\u0442\u0440\u0438\u0432\u0430\u0435\u043C')
+            + '\u043c\u043e\u043d\u0435\u0442 \u0432\u043d\u0435 \u0434\u043e\u0441\u043a\u0438: ' + offTxt.join(' \u00B7 ')
             + '<div class="off-names">' + offNames.join(' \u00B7 ') + '</div>'
             + '<div class="off-act">' + (showOff ? '\u0421\u041A\u0420\u042B\u0422\u042C' : '\u041F\u041E\u041A\u0410\u0417\u0410\u0422\u042C \u0412\u0421\u0401 \u0420\u0410\u0412\u041D\u041E') + '</div>'
             + '</div>';
