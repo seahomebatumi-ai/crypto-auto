@@ -12,6 +12,8 @@
             --bg: #0f0f12; --card: #1a1a20; --accent: #f3ba2f;
             --lilac: #bf5af2; --cyan: #0ad1c8; --red: #ff453a;
             --green: #30d158; --text: #ffffff;
+            /* Оранжевый — СОСТОЯНИЕ входа (ЖДАТЬ), не тир счёта. */
+            --orange: #ff9f0a;
         }
         body {
             background-color: var(--bg); color: var(--text);
@@ -726,6 +728,12 @@ var ENTRY_CHASE_SD = 0.5;
 var REG_STRESS_Z   = 2.0;
 // Окно катализатора в днях: событие дальше него на решение недели не влияет.
 var CAT_WINDOW_D   = 14;
+// Границы тиров счёта. Читаются tierOf (имя и цвет) И assignRanks (кому
+// вообще положен номер) — одно число на систему (инв. 20). Ниже TIER_MIN
+// карточка серая и без номера: слабый счёт не навязывается как сделка.
+var TIER_STRONG    = 70;
+var TIER_MID       = 50;
+var TIER_MIN       = 35;
 
 var botData          = { analysis_data: [], generated_at: null };
 var cachedMarketData = [];
@@ -1664,10 +1672,10 @@ function scoreFinish(cd, sym, p24, qv, sd, isLong, parts, ws, reasons, trendPena
 }
 
 function tierOf(s) {
-    if (s >= 70) return { n: 'Сильный',   c: 'var(--green)' };
-    if (s >= 50) return { n: 'Кандидат',  c: 'var(--accent)' };
-    if (s >= 35) return { n: 'Наблюдать', c: 'var(--cyan)' };
-    return { n: 'Слабый', c: '#888' };
+    if (s >= TIER_STRONG) return { n: '\u0421\u0438\u043b\u044c\u043d\u044b\u0439',   c: 'var(--green)' };
+    if (s >= TIER_MID)    return { n: '\u0421\u0440\u0435\u0434\u043d\u0438\u0439',   c: 'var(--accent)' };
+    if (s >= TIER_MIN)    return { n: '\u041a\u0430\u043d\u0434\u0438\u0434\u0430\u0442',  c: 'var(--cyan)' };
+    return { n: '\u041d\u0430\u0431\u043b\u044e\u0434\u0430\u0442\u044c', c: '#888' };
 }
 
 // ── Слой 0. Режим рынка ────────────────────────────────────────────────────
@@ -1814,24 +1822,28 @@ function catalystCheck(sym, isLong, nowMs) {
 function directionVerdict(cd, pair, name, cur, p24, qv, isLong, reg, dec, hi24, lo24, rc7, nowMs) {
     var v = { action: 'none', score: null, why: '', wait: null,
               ch: '', reasons: [], geo: null, note: null };
-    if (reg.mode === 'stress') { v.why = '\u0441\u0442\u0440\u0435\u0441\u0441 \u0440\u044b\u043d\u043a\u0430'; return v; }
 
-    var use = null;
+    // Счёт считается ВСЕГДА и при ЛЮБОМ исходе. Карточка без счёта невидима
+    // для сортировки, а ранжирование строго по фактическому счёту —
+    // требование Босса от 19.08. Запрет торговать живёт в action, а не в
+    // отсутствии числа: инвариант 30 держится action'ом, а не немотой.
+    var mr = scoreCandidate(cd, pair, cur, p24, qv, isLong);
+    var mo = (reg.mode === 'trend')
+           ? momentumScore(cd, pair, cur, p24, qv, rc7, isLong) : null;
+    var use = mo || mr;
+    v.ch = mo ? '\u0438\u043c\u043f\u0443\u043b\u044c\u0441' : '\u0432\u043e\u0437\u0432\u0440\u0430\u0442';
+    if (use && has(use.score)) { v.score = use.score; v.reasons = use.reasons; }
+
+    if (reg.mode === 'stress') { v.why = '\u0441\u0442\u0440\u0435\u0441\u0441 \u0440\u044b\u043d\u043a\u0430'; return v; }
     if (reg.mode === 'trend') {
         if (reg.dir !== (isLong ? 1 : -1)) { v.why = '\u043f\u0440\u043e\u0442\u0438\u0432 \u0442\u0440\u0435\u043d\u0434\u0430 \u0440\u044b\u043d\u043a\u0430'; return v; }
-        use = momentumScore(cd, pair, cur, p24, qv, rc7, isLong);
-        v.ch = '\u0438\u043c\u043f\u0443\u043b\u044c\u0441';
+        if (!mo || !has(mo.score)) { v.why = '\u043d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445 \u0434\u043b\u044f \u0438\u043c\u043f\u0443\u043b\u044c\u0441\u0430'; return v; }
     } else {
-        var mine  = scoreCandidate(cd, pair, cur, p24, qv, isLong);
         var other = scoreCandidate(cd, pair, cur, p24, qv, !isLong);
-        if (mine && other && has(mine.score) && has(other.score)
-            && mine.score <= other.score) { v.why = '\u043e\u0431\u0440\u0430\u0442\u043d\u0430\u044f \u0441\u0442\u043e\u0440\u043e\u043d\u0430 \u0441\u0438\u043b\u044c\u043d\u0435\u0435'; return v; }
-        use  = mine;
-        v.ch = '\u0432\u043e\u0437\u0432\u0440\u0430\u0442';
+        if (mr && other && has(mr.score) && has(other.score)
+            && mr.score <= other.score) { v.why = '\u043e\u0431\u0440\u0430\u0442\u043d\u0430\u044f \u0441\u0442\u043e\u0440\u043e\u043d\u0430 \u0441\u0438\u043b\u044c\u043d\u0435\u0435'; return v; }
     }
-    if (!use || !has(use.score)) { v.why = '\u043d\u0435\u0442 \u043c\u0435\u0442\u0440\u0438\u043a'; return v; }
-    v.score   = use.score;
-    v.reasons = use.reasons;
+    if (!has(v.score)) { v.why = '\u043d\u0435\u0442 \u043c\u0435\u0442\u0440\u0438\u043a'; return v; }
 
     var geo = tradeGeometry(cd, cur, isLong, dec, hi24, lo24);
     if (!geo) { v.why = '\u043d\u0435\u0442 \u0433\u0435\u043e\u043c\u0435\u0442\u0440\u0438\u0438'; return v; }
@@ -1847,16 +1859,39 @@ function directionVerdict(cd, pair, name, cur, p24, qv, isLong, reg, dec, hi24, 
     return v;
 }
 
+// ── Порядок и нумерация списка (правка Босса 19.08) ────────────────────────
+// Сортировка — СТРОГО по фактическому счёту, без приоритета состояния.
+// Прежний порядок «сначала торгуемые» ронял лучшего кандидата вниз, если
+// его вход требовал отката: LIT со счётом выше ETH стоял под ним.
+function byScore(a, b) {
+    var ga = (a.sc && has(a.sc.score)) ? a.sc.score : -1;
+    var gb = (b.sc && has(b.sc.score)) ? b.sc.score : -1;
+    if (Math.abs(gb - ga) > 0.05) return gb - ga;
+    var ra = (a.cd && has(a.cd.rank)) ? a.cd.rank : 9999;
+    var rb = (b.cd && has(b.cd.rank)) ? b.cd.rank : 9999;
+    if (ra !== rb) return ra - rb;
+    var va = (a.cd && has(a.cd.volatility)) ? a.cd.volatility : 9;
+    var vb = (b.cd && has(b.cd.volatility)) ? b.cd.volatility : 9;
+    return va - vb;
+}
+
+// Номер получают только карточки, чей бейдж его несёт: торгуемые и ожидающие
+// со счётом не ниже TIER_MIN. Нумерация обязана быть СПЛОШНОЙ — дыра в ней
+// читается как поломка, а не как пропуск. Список уже отсортирован byScore.
+function assignRanks(rows) {
+    var n = 0;
+    for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var a = r.vd ? r.vd.action : 'none';
+        var s = (r.sc && has(r.sc.score)) ? r.sc.score : null;
+        r.no = ((a === 'trade' || a === 'wait') && s !== null && s >= TIER_MIN)
+             ? (++n) : 0;
+    }
+    return n;
+}
+
 // Режим последнего рендера — читается доской, не пересчитывается там (инв. 15).
 var lastRegime = null;
-
-// Порядок сортировки списка: торгуемые -> ожидающие -> наблюдение.
-function actRank(row) {
-    if (!row.vd) return 3;
-    if (row.vd.action === 'trade') return 0;
-    if (row.vd.action === 'wait')  return 1;
-    return 2;
-}
 
 // Строка причин карточки. Вердикт идёт ПЕРВЫМ: причина запрета важнее
 // причин счёта. Новых блоков и классов не добавляется — та же .reason-line.
@@ -2822,20 +2857,7 @@ function update() {
 
     // Сортировка по силе кандидата. Проблемные карточки уходят вниз.
     if (sideOn) {
-        rows.sort(function(a, b) {
-            // Сначала торгуемые, потом ожидающие, потом наблюдение (§3.12).
-            var aa = actRank(a), ab = actRank(b);
-            if (aa !== ab) return aa - ab;
-            var ga = (a.sc && has(a.sc.score)) ? a.sc.score : -1;
-            var gb = (b.sc && has(b.sc.score)) ? b.sc.score : -1;
-            if (Math.abs(gb - ga) > 0.05) return gb - ga;
-            var ra = (a.cd && has(a.cd.rank)) ? a.cd.rank : 9999;
-            var rb = (b.cd && has(b.cd.rank)) ? b.cd.rank : 9999;
-            if (ra !== rb) return ra - rb;
-            var va = (a.cd && has(a.cd.volatility)) ? a.cd.volatility : 9;
-            var vb = (b.cd && has(b.cd.volatility)) ? b.cd.volatility : 9;
-            return va - vb;
-        });
+        rows.sort(byScore);
     }
 
     var stressMult  = STRESS_MULT[currentStress];
@@ -2863,11 +2885,7 @@ function update() {
                  stressMult: stressMult, target: target, btc: btc };
     // Нумеруются ТОЛЬКО торгуемые кандидаты (§3.12): номер —
     // утверждение о сделке, а не порядковый номер строки.
-    var actNo = 0;
-    for (var ni = 0; ni < shownRows.length; ni++) {
-        var nrow = shownRows[ni];
-        nrow.no = (nrow.vd && nrow.vd.action === 'trade') ? (++actNo) : 0;
-    }
+    assignRanks(shownRows);
     var stressBadge = STRESS_BADGE[currentStress];
     var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
     var html = '';
@@ -2955,15 +2973,22 @@ function update() {
         var rankHtml = badgeInner ? '<span class="rank-badge">' + badgeInner + '</span>' : '';
 
         // Тир кандидата — по центру верха карточки, вне потока.
+        // Бейдж вердикта (правка Босса 19.08). Словари разведены: тир счёта
+        // именует КАЧЕСТВО кандидата, оранжевый — состояние входа, серый —
+        // отсутствие сделки. Одно слово больше не значит двух вещей.
         var tierHtml = '';
         if (sideOn && row.vd) {
-            if (row.vd.action === 'trade' && row.sc) {
+            var vAct  = row.vd.action;
+            var noTxt = row.no > 0 ? '#' + row.no + ' ' : '';
+            if (vAct === 'wait') {
+                // Пульс — тот же класс, что у мигания Min/Max (инв. 19):
+                // частота совпадает по построению, новых keyframes нет.
+                tierHtml = '<span class="tier-badge light-blink" style="color:var(--orange);">'
+                    + noTxt + '\u0416\u0414\u0410\u0422\u042c ' + fmtP(row.vd.wait) + '</span>';
+            } else if (vAct === 'trade' && row.no > 0) {
                 var tier = tierOf(row.sc.score);
-                tierHtml = '<span class="tier-badge" style="color:' + tier.c + ';">#'
-                    + row.no + ' ' + tier.n + ' ' + Math.round(row.sc.score) + '</span>';
-            } else if (row.vd.action === 'wait') {
-                tierHtml = '<span class="tier-badge" style="color:var(--accent);">\u0416\u0414\u0410\u0422\u042c '
-                    + fmtP(row.vd.wait) + '</span>';
+                tierHtml = '<span class="tier-badge" style="color:' + tier.c + ';">'
+                    + noTxt + tier.n + ' ' + Math.round(row.sc.score) + '</span>';
             } else {
                 tierHtml = '<span class="tier-badge" style="color:#888;">\u041d\u0410\u0411\u041b\u042e\u0414\u0410\u0422\u042c</span>';
             }
