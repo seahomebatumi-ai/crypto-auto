@@ -34,7 +34,7 @@ CONSTS = [
     "INV_FLOOR_SD", "INV_CAP_SD", "MAX_MARGIN_LOSS", "EFF_TREND", "PACE_Z",
     "VOL_ABNORMAL", "VOL_HARD", "VOL_STOP", "RES_Z", "RES_R2_CAP",
     "RR_MIN", "TGT_SIGMA_MIN", "ENTRY_CHASE_SD", "REG_STRESS_Z",
-    "CAT_WINDOW_D", "STRESS_MULT",
+    "CAT_WINDOW_D", "STRESS_MULT", "TIER_STRONG", "TIER_MID", "TIER_MIN",
 ]
 FUNCS = [
     "has", "firstNum", "clamp01", "sigmaDay", "normCdf", "touchProb",
@@ -43,6 +43,7 @@ FUNCS = [
     "leverageDecision", "scoreCandidate", "qualityScore", "scoreFinish",
     "tierOf", "marketRegime", "tradeGeometry", "momentumScore",
     "catalystCheck", "directionVerdict", "rangePos", "sideRelevant",
+    "byScore", "assignRanks",
     "fmtP", "pctTxt", "numAttr",
 ]
 
@@ -525,6 +526,123 @@ console.log(JSON.stringify(out));
     return not fails, msg, len(res)
 
 
+def check_display(n=4000, coins=28):
+    """Отображение и порядок (правка Босса 19.08).
+
+    Пре-регистрация — что стенд обязан подтвердить:
+      1) tierOf режет строго по TIER_STRONG/TIER_MID/TIER_MIN, четыре имени,
+         четыре цвета, границы включительно;
+      2) список отсортирован СТРОГО по счёту, состояние на порядок не влияет;
+      3) нумерация СПЛОШНАЯ 1..N без дыр, номер только у торгуемых и
+         ожидающих со счётом >= TIER_MIN;
+      4) ни одна монета не получает номер С ОБЕИХ сторон (инв. 30 в новом
+         отображении — теперь его проверяет не молчание счёта, а action).
+    """
+    code = harness(FUNCS, r"""
+var out = { tier: [], ordFail: 0, gapFail: 0, badNo: 0, bothNo: 0,
+            lists: 0, trades: 0, waits: 0, greys: 0 };
+// 1. Границы тиров
+var probe = [100, 70.0, 69.99, 50.0, 49.99, 35.0, 34.99, 0, -5];
+for (var i = 0; i < probe.length; i++) {
+  var t = tierOf(probe[i]);
+  out.tier.push([probe[i], t.n, t.c]);
+}
+function rnd(s){ s.x = (s.x * 1103515245 + 12345) & 0x7fffffff; return s.x / 0x7fffffff; }
+var st = { x: 20260819 };
+for (var L = 0; L < %d; L++) {
+  var vol = 0.003 + rnd(st) * 0.02;
+  var btc = { volatility: 0.003 + rnd(st) * 0.012,
+              r7: (rnd(st) - 0.5) * 0.3, r14: (rnd(st) - 0.5) * 0.5,
+              min_price: 50000, max_price: 90000 };
+  var reg = marketRegime(btc);
+  // Данные монет генерируются ОДИН раз и судятся обеими сторонами: иначе
+  // C5 в лонг-списке и C5 в шорт-списке — разные монеты, и проверка
+  // инварианта 30 ничего не проверяет.
+  var pool = [];
+  for (var c = 0; c < %d; c++) {
+    var v2 = 0.003 + rnd(st) * 0.02;
+    var mn = 1 + rnd(st) * 100;
+    var mx = mn * (1 + 0.05 + rnd(st) * 2.5);
+    var cur = mn * (1 + rnd(st) * (mx / mn - 1));
+    pool.push({ name: 'C' + c, cur: cur,
+      p24: (rnd(st) - 0.5) * 25, qv: Math.pow(10, 5 + rnd(st) * 4),
+      hi: cur * (1 + rnd(st) * 0.12), lo: cur * (1 - rnd(st) * 0.12),
+      cd: { volatility: v2, min_price: mn, max_price: mx,
+        min30: mn * (1 + rnd(st) * 0.3), max30: mx * (1 - rnd(st) * 0.3),
+        r7: (rnd(st) - 0.5) * 0.5, r14: (rnd(st) - 0.5) * 0.8,
+        r30: (rnd(st) - 0.5) * 1.0, vol7: v2 * (0.4 + rnd(st) * 2.5),
+        eff14: (rnd(st) - 0.5) * 5, vol_ratio: rnd(st) * 2,
+        rank: Math.floor(rnd(st) * 200) + 1,
+        rank_prev: Math.floor(rnd(st) * 200) + 1, fdv_mc: rnd(st) * 5,
+        up_beta_90: 0.5 + rnd(st) * 2, down_beta_90: 0.5 + rnd(st) * 2,
+        up_r2_90: rnd(st) * 0.7, down_r2_90: rnd(st) * 0.7 } });
+  }
+  var sides = {};
+  for (var sIdx = 0; sIdx < 2; sIdx++) {
+    var isLong = (sIdx === 0);
+    var rows = [];
+    for (var pi = 0; pi < pool.length; pi++) {
+      var pc = pool[pi];
+      var dec = leverageDecision(pc.cd, pc.cur, isLong, btc);
+      var vd = directionVerdict(pc.cd, 'P', pc.name, pc.cur, pc.p24, pc.qv,
+                 isLong, reg, dec, pc.hi, pc.lo,
+                 residual7(pc.cd, btc), Date.UTC(2026, 7, 19));
+      rows.push({ t: { name: pc.name }, cd: pc.cd, vd: vd,
+                  sc: (vd.score !== null) ? { score: vd.score } : null });
+    }
+    rows.sort(byScore);
+    assignRanks(rows);
+    out.lists++;
+    for (var i2 = 1; i2 < rows.length; i2++) {
+      var a = rows[i2 - 1].sc ? rows[i2 - 1].sc.score : -1;
+      var b = rows[i2].sc ? rows[i2].sc.score : -1;
+      if (b - a > 0.05) out.ordFail++;
+    }
+    var seen = 0;
+    for (var i3 = 0; i3 < rows.length; i3++) {
+      var r = rows[i3], act = r.vd.action;
+      var sc = r.sc ? r.sc.score : null;
+      var wants = (act === 'trade' || act === 'wait') && sc !== null && sc >= TIER_MIN;
+      if (wants) { seen++; if (r.no !== seen) out.gapFail++; }
+      else if (r.no !== 0) out.badNo++;
+      if (act === 'trade') out.trades++;
+      else if (act === 'wait') out.waits++;
+      else out.greys++;
+    }
+    sides[sIdx] = rows;
+  }
+  // 4. ни одна монета не пронумерована с обеих сторон
+  for (var c2 = 0; c2 < %d; c2++) {
+    var nA = 0, nB = 0;
+    for (var q = 0; q < sides[0].length; q++)
+      if (sides[0][q].t.name === 'C' + c2) nA = sides[0][q].no;
+    for (var q2 = 0; q2 < sides[1].length; q2++)
+      if (sides[1][q2].t.name === 'C' + c2) nB = sides[1][q2].no;
+    if (nA > 0 && nB > 0) out.bothNo++;
+  }
+}
+console.log(JSON.stringify(out));
+""" % (n // coins, coins, coins))
+    r = run_node(code)
+    want = {100: "Сильный", 70.0: "Сильный", 69.99: "Средний", 50.0: "Средний",
+            49.99: "Кандидат", 35.0: "Кандидат", 34.99: "Наблюдать",
+            0: "Наблюдать", -5: "Наблюдать"}
+    fails = []
+    for score, name, col in r["tier"]:
+        if want[score] != name:
+            fails.append("tierOf(%s) = %s, ждали %s" % (score, name, want[score]))
+    if r["ordFail"]: fails.append("порядок не по счёту: %d" % r["ordFail"])
+    if r["gapFail"]: fails.append("дыра в нумерации: %d" % r["gapFail"])
+    if r["badNo"]:   fails.append("номер там, где не положен: %d" % r["badNo"])
+    if r["bothNo"]:  fails.append("монета пронумерована с обеих сторон: %d" % r["bothNo"])
+    msg = ("отображение: %d списков -> торгуемых %d, ожиданий %d, серых %d; "
+           "границы тиров 70/50/35 включительно, нумерация сплошная"
+           % (r["lists"], r["trades"], r["waits"], r["greys"]))
+    if fails:
+        msg += "\n  ПРОВАЛ: " + "; ".join(fails)
+    return not fails, msg, r["lists"] * r["trades"] + len(r["tier"])
+
+
 def check_control(seeds=16, coins=70, days=360):
     """Контроль с ИЗВЕСТНЫМ ответом (инв. 23) — проверяется сам стенд.
 
@@ -619,13 +737,14 @@ console.log(JSON.stringify(out));
 
 def main():
     ap = argparse.ArgumentParser()
-    for f in ("identity", "props", "fixtures", "sim", "control", "all"):
+    for f in ("identity", "props", "fixtures", "display", "sim", "control", "all"):
         ap.add_argument("--" + f, action="store_true")
     a = ap.parse_args()
     todo = []
     if a.all or a.identity:  todo.append(("ТОЖДЕСТВО", check_identity))
     if a.all or a.props:     todo.append(("СВОЙСТВА", check_props))
     if a.all or a.fixtures:  todo.append(("ФИКСТУРЫ", check_fixtures))
+    if a.all or a.display:   todo.append(("ОТОБРАЖЕНИЕ", check_display))
     if a.all or a.control:   todo.append(("КОНТРОЛЬ", check_control))
     if a.all or a.sim:       todo.append(("СИНТЕТИКА", check_sim))
     if not todo:
