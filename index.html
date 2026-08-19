@@ -1672,11 +1672,16 @@ function scoreFinish(cd, sym, p24, qv, sd, isLong, parts, ws, reasons, trendPena
     return { score: score, reasons: top };
 }
 
+// Слова тира называют ОЧЕРЕДЬ ВНИМАНИЯ, а не качество сделки. Прежние
+// «Сильный / Средний / Кандидат» читались как рекомендация войти, хотя счёт —
+// это приор сортировки с измеренной нулевой предсказательной силой (§10) и
+// МДЛ ✕ на всех карточках. Разрешение на сделку живёт ТОЛЬКО в глифе.
+// Арифметика счёта, пороги тиров и порядок списка не тронуты.
 function tierOf(s) {
-    if (s >= TIER_STRONG) return { n: '\u0421\u0438\u043b\u044c\u043d\u044b\u0439',   c: 'var(--green)' };
-    if (s >= TIER_MID)    return { n: '\u0421\u0440\u0435\u0434\u043d\u0438\u0439',   c: 'var(--accent)' };
-    if (s >= TIER_MIN)    return { n: '\u041a\u0430\u043d\u0434\u0438\u0434\u0430\u0442',  c: 'var(--cyan)' };
-    return { n: '\u041d\u0430\u0431\u043b\u044e\u0434\u0430\u0442\u044c', c: '#888' };
+    if (s >= TIER_STRONG) return { n: '\u0412\u041d\u0418\u041c\u0410\u041d\u0418\u0415', c: 'var(--green)' };
+    if (s >= TIER_MID)    return { n: '\u0421\u0420\u0415\u0414\u041d\u0415\u0415',       c: 'var(--accent)' };
+    if (s >= TIER_MIN)    return { n: '\u0421\u041b\u0410\u0411\u041e\u0415',              c: 'var(--cyan)' };
+    return { n: '\u0424\u041e\u041d', c: '#888' };
 }
 
 // ── Слой 0. Режим рынка ────────────────────────────────────────────────────
@@ -1901,9 +1906,14 @@ function assignRanks(rows) {
 function stateMark(row) {
     var act = row.vd ? row.vd.action : 'none';
     if (act === 'trade') return '';
-    return act === 'wait'
-        ? ' <span class="light-blink" style="color:var(--orange);">\u007E</span>'
-        : ' <span style="color:var(--red);">\u2715</span>';
+    if (act === 'wait') {
+        // Правка Босса 19.08: глиф несёт исполняемое число. «~ $1.0089» само
+        // сообщает «сетап годен, вход по этой цене» — слово «ждать» лишнее и
+        // убрано из verdictNote, чтобы цена не печаталась дважды.
+        var px = (row.vd && has(row.vd.wait)) ? ' ' + fmtP(row.vd.wait) : '';
+        return ' <span class="light-blink" style="color:var(--orange);">\u007E' + px + '</span>';
+    }
+    return ' <span style="color:var(--red);">\u2715</span>';
 }
 
 // Бейдж кандидата — один канал на один смысл.
@@ -1915,9 +1925,43 @@ function stateMark(row) {
 function tierBadge(row) {
     if (!row.sc || !has(row.sc.score)) return '';
     var tier = tierOf(row.sc.score);
-    return '<span class="tier-badge" style="color:' + tier.c + ';">'
+    // Цвет — самый громкий канал на телефоне. Зелёный бейдж над красным ✕
+    // читался как разрешение войти. На запрещённой карточке бейдж гаснет:
+    // цвет тира остаётся только там, где сделка разрешена или ждёт отката.
+    var act = row.vd ? row.vd.action : 'none';
+    return '<span class="tier-badge" style="color:' + (act === 'none' ? '#888' : tier.c) + ';">'
          + (row.no > 0 ? '#' + row.no + ' ' : '')
          + tier.n + ' ' + Math.round(row.sc.score) + stateMark(row) + '</span>';
+}
+
+// Одна строка над списком: какой приор сейчас разрешён и открыта ли сторона.
+// Ничего не считает — только называет уже вычисленный marketRegime (инв. 15).
+function regimeBanner(reg, isLong) {
+    var txt, col;
+    if (!reg || !reg.known) {
+        txt = '\u0420\u0415\u0416\u0418\u041c \u041d\u0415\u0418\u0417\u0412\u0415\u0421\u0422\u0415\u041d \u2014 \u043d\u0435\u0442 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0438 BTC';
+        col = '#888';
+    } else if (reg.mode === 'stress') {
+        txt = '\u0421\u0422\u0420\u0415\u0421\u0421 \u0420\u042b\u041d\u041a\u0410 \u2014 \u0441\u0434\u0435\u043b\u043e\u043a \u043d\u0435\u0442 \u043d\u0438 \u043d\u0430 \u043e\u0434\u043d\u043e\u0439 \u0441\u0442\u043e\u0440\u043e\u043d\u0435';
+        col = 'var(--red)';
+    } else if (reg.mode === 'trend') {
+        var up = reg.dir > 0;
+        var dirTxt = up
+            ? '\u0422\u0420\u0415\u041d\u0414 \u0412\u0412\u0415\u0420\u0425'
+            : '\u0422\u0420\u0415\u041d\u0414 \u0412\u041d\u0418\u0417';
+        if (up === isLong) {
+            txt = dirTxt + ' \u2014 \u0441\u0447\u0451\u0442 \u043f\u043e \u043a\u0430\u043d\u0430\u043b\u0443 \u0438\u043c\u043f\u0443\u043b\u044c\u0441\u0430';
+            col = 'var(--green)';
+        } else {
+            txt = dirTxt + ' \u2014 \u0432\u0441\u044f \u044d\u0442\u0430 \u0441\u0442\u043e\u0440\u043e\u043d\u0430 \u0437\u0430\u043a\u0440\u044b\u0442\u0430, \u0441\u0447\u0451\u0442 \u2014 \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u044f';
+            col = 'var(--red)';
+        }
+    } else {
+        txt = '\u0414\u0418\u0410\u041f\u0410\u0417\u041e\u041d \u2014 \u0441\u0447\u0451\u0442 \u043f\u043e \u043a\u0430\u043d\u0430\u043b\u0443 \u0432\u043e\u0437\u0432\u0440\u0430\u0442\u0430';
+        col = 'var(--accent)';
+    }
+    return '<div style="margin:2px 0 8px;padding:6px 10px;border-left:3px solid ' + col
+         + ';font-size:0.82em;letter-spacing:0.04em;color:' + col + ';">' + txt + '</div>';
 }
 
 // Режим последнего рендера — читается доской, не пересчитывается там (инв. 15).
@@ -1935,8 +1979,7 @@ function verdictNote(row) {
     // причин, а не в бейдже качества. Формулировка одна на обе стороны —
     // «суточная опора» это минимум 24ч для лонга и максимум для шорта; старый
     // текст «вход выше…» был верен только для лонга.
-    if (v.action === 'wait') return '\u0436\u0434\u0430\u0442\u044c ' + fmtP(v.wait)
-        + ' \u2014 \u0432\u0445\u043e\u0434 \u0434\u0430\u043b\u0435\u043a\u043e \u043e\u0442 \u0441\u0443\u0442\u043e\u0447\u043d\u043e\u0439 \u043e\u043f\u043e\u0440\u044b';
+    if (v.action === 'wait') return '\u0432\u0445\u043e\u0434 \u0434\u0430\u043b\u0435\u043a\u043e \u043e\u0442 \u0441\u0443\u0442\u043e\u0447\u043d\u043e\u0439 \u043e\u043f\u043e\u0440\u044b';
     if (v.action === 'none' && v.why) return '\u043d\u0435\u0442 \u0441\u0434\u0435\u043b\u043a\u0438: ' + v.why;
     if (v.action === 'trade' && v.note) return '\u043a\u0430\u0442\u0430\u043b\u0438\u0437\u0430\u0442\u043e\u0440: ' + v.note;
     return '';
@@ -2942,6 +2985,10 @@ function update() {
     var stressBadge = STRESS_BADGE[currentStress];
     var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
     var html = '';
+    // Режим — единственный факт, объясняющий целую колонку красных ✕. Раньше
+    // он считался на каждой карточке и не печатался нигде: Босс видел 28
+    // запретов без причины. Один раз наверху вместо 28 раз внутри.
+    if (sideOn) html += regimeBanner(reg, isLong);
 
     shownRows.forEach(function(row, pos) {
         var t = row.t;
