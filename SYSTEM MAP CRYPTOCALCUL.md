@@ -1,7 +1,7 @@
 # SYSTEM_MAP — Pro Crypto Tool
 
 Единый источник правды. Сверяться ПЕРЕД любой правкой кода и при интерпретации метрик.
-Актуально на 14.08.2026 (аналитический слой ЗАКРЫТ §10 + §3.10b «потолок разрешения» + §3.10c «следующие ворота»; `--verify` §3.10; чистка мёртвого CSS §9; блок «ЗАЩИТА ПОЗИЦИИ» §3.11); прежняя редакция — (жёсткий потолок риска маржи §3.4, доска CRYPTO FUTURE, движок плеча на трёх потолках, размер в монетах, якорь прокрутки, «ШОРТ СОЗРЕЕТ, КОГДА», остаток к BTC `res7`).
+Актуально на 19.08.2026 (движок направления §3.12 + третья редакция отображения: рейтинг на каждой карточке, глиф состояния, инв. 33–34); прежняя опора — 14.08.2026 (аналитический слой ЗАКРЫТ §10 + §3.10b «потолок разрешения» + §3.10c «следующие ворота»; `--verify` §3.10; чистка мёртвого CSS §9; блок «ЗАЩИТА ПОЗИЦИИ» §3.11); прежняя редакция — (жёсткий потолок риска маржи §3.4, доска CRYPTO FUTURE, движок плеча на трёх потолках, размер в монетах, якорь прокрутки, «ШОРТ СОЗРЕЕТ, КОГДА», остаток к BTC `res7`).
 
 > **Language rule (project instructions V9, in force from 11.08.2026):** new
 > sections of this map and new code comments are written in ENGLISH. Sections
@@ -308,6 +308,272 @@ near-identical percentages side by side read as a contradiction, not as detail.
 Zero new API calls · zero new CSS classes · zero new state · `scoreCandidate`,
 the leverage engine and the ranking are untouched: pure display over
 measurements the system already had.
+
+### 3.12 Direction engine — veto cascade (19.08.2026)
+
+<!-- EDIT-MARKER 2026-08-19-DIRECTION-ENGINE -->
+
+**Why this exists.** On 18.08 the system produced two opposite conclusions on
+the same data: the board ranked GRAM as the #1 LONG candidate and ZEC as a
+SHORT candidate, while the market analysis called GRAM a SHORT and ZEC a LONG.
+Both were internally consistent and structurally incompatible: the board scores
+MEAN REVERSION (proximity to the 90-day extreme), the analysis traded TREND
+CONTINUATION with catalysts. Two opposite priors ran simultaneously on one
+screen with nothing arbitrating between them.
+
+The GRAM short was a real error and the system already held the evidence:
+target = min90 $1.3027 against entry $1.3190 is **1.2 %**, i.e. **0.27 σ** of
+the weekly noise, against a structural stop of 9.2 %. Reward/risk below 1:1 —
+negative expectancy, printed on the board and never read. The ZEC long was a
+different failure: the geometry was sound (R:R ≈ 1:2.5) and only the ENTRY was
+undisciplined — «wait for $495–505» existed as prose, not as a system state.
+
+**Principle: the direction is decided by a CASCADE OF VETOES, not by a sum of
+weights.** Nothing below predicts anything. Each layer either asserts «the
+geometry of this trade is bad» or «this prior is not admitted right now»; both
+are measurable without a forecast. This is why §3.12 does NOT reopen the
+predictive layer closed in §10 — no ranking factor is added, and no weight is
+tuned. See «Relation to §10» at the end of this section.
+
+```
+Layer 0  REGIME     one per list      trend | range | stress
+Layer 1  GEOMETRY   veto, no forecast R:R · noise floor · money · entry chase
+Layer 2  CHANNEL    exactly one       mean reversion  XOR  continuation
+Layer 3  CATALYSTS  veto only         manual registry, cannot raise a score
+Layer 4  VERDICT    default = NO      trade | wait | watch
+```
+
+#### Layer 0 — `marketRegime(btcStats)`
+
+```
+z   = btc.r7  / (btc.volatility·√H_NOISE)          weekly move of BTC in its own σ
+eff = btc.r14 / (btc.volatility·√(2·H_NOISE))      clipped to ±3
+stress  if  btc.volatility ≥ VOL_HARD  or  z ≤ −REG_STRESS_Z
+trend   if  |eff| ≥ EFF_TREND,  dir = sign(eff)
+range   otherwise
+```
+
+`eff` is deliberately the SAME formula the bot uses for a coin's `eff14`
+(`r14/(vol·√336)`, and `336 = 2·H_NOISE`), compared against the SAME
+`EFF_TREND`. One threshold per system (inv. 20); a second trend constant was
+rejected rather than tuned.
+
+**Known property, measured, not hidden:** under a driftless random walk
+`eff ~ N(0,1)`, so `|eff| ≥ 0.6` labels **~55 %** of pure-noise windows as
+«trend». The bench confirms it (7 of 14 flat-world dates). This is the same
+class of finding as inv. 23 and it is ACCEPTED, because a false trend label
+cannot produce a wrong direction: it switches the channel and narrows the
+admissible side to one, and on a driftless market both channels are worth
+exactly zero — proven by the walk control below. `[решение принято мной]`
+Discarded alternative: a dedicated `REG_TREND = 1.5`. Rejected because a second
+trend threshold violates inv. 20 immediately and cannot be validated on this
+sample (§3.10b). Reversal condition: the Boss reports the regime flapping
+between renders; the cheap fix is hysteresis, not a new constant.
+
+No `btcStats`, or no `volatility` → `mode = 'range'`, `known = false`. That is
+EXACTLY the pre-19.08 production behaviour (mean reversion always), so an old
+`coeffs.json` changes nothing (inv. 9).
+
+#### Layer 1 — `tradeGeometry(cd, E, isLong, dec, hi24, lo24)`
+
+Turns numbers the board ALREADY prints from advice into prohibition. Nothing is
+recomputed: the target is the 90-day extremum (the same `ЕСЛИ СРАБОТАЕТ` line),
+the risk is `dec.inv.dist`, the money veto is read from `dec.moneyBelowMin` so
+`MAX_MARGIN_LOSS` keeps living in exactly one place (inv. 20).
+
+| Veto | Condition | What it prevents |
+|---|---|---|
+| target passed | `tgt ≤ E` (long) / `tgt ≥ E` (short) | trading toward a target already behind price |
+| reward/risk | `reward/risk < RR_MIN` | the GRAM short: a trade that must be right more often than wrong |
+| noise floor | `reward/(vol·√H_NOISE) < TGT_SIGMA_MIN` | targets the market reaches by chop, where being right pays nothing |
+| money | `dec.moneyBelowMin` | a stop that costs more than `MAX_MARGIN_LOSS` even at `L_MIN` |
+| leverage | `!dec.ok` | «БЕЗ БЕЗОПАСНОГО ПЛЕЧА» becoming a tradable card |
+
+**Entry discipline — `wait`, not a veto.** Anchor = the 24-hour low for a long,
+the 24-hour high for a short (`highPrice`/`lowPrice`, already in the Binance
+ticker — zero new requests). Beyond `ENTRY_CHASE_SD` daily sigmas from that
+anchor the card enters state ЖДАТЬ and prints the price to wait for. The rule
+works in BOTH channels because it forbids not «buying high» but «buying AFTER
+the move» — chasing, not strength. On the 19.08 ZEC data it produces ≈ $500,
+which is the level that had existed only as prose.
+
+#### Layer 2 — `momentumScore` and the ban on adding channels
+
+`scoreCandidate` is the mean-reversion channel and is **not modified**. The
+continuation channel is its mirror: trend intactness (`eff14` in the side's
+direction), own strength (`res7` z in the side's direction), weekly pace vs
+monthly pace, quality. The two are NEVER summed — summing opposite priors is
+precisely what produced «GRAM long» and «GRAM short» at the same time. The
+regime admits one; the other is not computed.
+
+Quality and penalties are shared through `qualityScore` / `scoreFinish`, lifted
+out of `scoreCandidate` **without a single arithmetic change** — proven on
+200 000 random inputs, 0 mismatches. `trendPenalty = false` removes EXACTLY the
+two `eff14` penalties and only those: continuation wants the trend intact,
+mean reversion wants it broken.
+
+#### Layer 3 — `CATALYSTS` / `catalystCheck`
+
+The ONLY external input of the engine, filled by hand from market analysis.
+`{ d: ISO date, dir: long|short, t: short reason }`. Events older than one day
+or further than `CAT_WINDOW_D` are ignored. An unlock is always written
+`dir:'short'` — it vetoes a long and does not create a short.
+
+**Hard rule: a catalyst can only VETO a side.** It cannot raise a score and it
+can never override a geometry veto. A catalyst placed above geometry is what
+produced the GRAM short on the floor of its range; the ban is written against
+that specific error. It also keeps external input out of the ranking, which is
+what §3.10b forbids.
+
+#### Layer 4 — `directionVerdict` and the coherence guarantee
+
+Default is NO TRADE. A side is emitted only when everything lines up: regime
+admits the prior → channel ranks the coin → geometry passes → no catalyst veto
+→ the entry is not a chase.
+
+**One coin can never receive both ЛОНГ and ШОРТ. This is structural, not
+empirical:**
+
+```
+stress → neither side
+trend  → only the side matching reg.dir
+range  → only the side with the HIGHER mean-reversion score (tie → neither)
+```
+
+The range rule is load-bearing and was added after the bench showed that
+geometry ALONE does not guarantee it: a coin sitting mid-range with a wide
+90-day range can clear R:R ≥ 2 on both sides simultaneously (ZEC on 19.08:
+long 1:1.6, short 1:2.9 — both would have passed). Geometry filters bad trades;
+it does not arbitrate direction. The regime does.
+
+~~Only actionable candidates are numbered (`row.no`), so `#1` is an assertion
+about a trade rather than a row index.~~ — **reversed 19.08 (3):** it made the
+number an assertion at the price of erasing the ranking from 74 % of the list.
+`#N` is now the place in the score ranking, present on every scored card, and
+the trade assertion is carried by the glyph and by `.reason-line` (see the
+Display contract below and inv. 33–34). Zero new blocks, zero new CSS classes,
+zero new sections, zero new API calls (inv. 15 and 18 untouched — the board's
+block order and anchor keys did not move).
+
+#### Display contract (Boss's specification, 19.08.2026 — third revision)
+
+Two failures produced this contract, in opposite directions, one day apart.
+
+**First failure — one word, two meanings.** The badge reused `tierOf`'s
+vocabulary, so «Наблюдать» named both the 35–49 score tier (cyan, numbered)
+and the «no trade» verdict (grey, unnumbered). The Boss read two live SHORT
+candidates (ETH #1, SOL #2) as an empty short side.
+
+**Second failure — the fix ate the ranking.** Separating the vocabularies by
+STATE meant only tradable cards kept a number and a score; everything else
+collapsed into a flat grey «НАБЛЮДАТЬ». Measured on the shipped build: **74 %
+of scored cards printed no rank at all** (3538 of 4808 over 400 random lists).
+The list was sorted correctly and looked random, because the evidence of the
+order had been erased from four cards in five — the top-scoring coin stood
+first saying «НАБЛЮДАТЬ» while the second card said «#1 Средний 53».
+
+**Resolution — one channel, one meaning** (inv. 33):
+
+| Channel | Carries | Values |
+|---|---|---|
+| number `#N` | place in the ranking | contiguous 1..N in score order |
+| word + colour | quality of the score | Сильный ≥70 green · Средний ≥50 `--accent` · Кандидат ≥35 `--cyan` · Наблюдать below, grey |
+| glyph (`stateMark`) | state of the entry | `` trade · `~` pullback needed, pulsing `--orange` · `✕` no trade, `--red` |
+| `.reason-line` (`verdictNote`) | why, in words | «нет сделки: …» · «ждать $0.3337 — вход далеко от суточной опоры» · «катализатор: …» |
+
+So a card reads `#3 Средний 54 ✕` with «нет сделки: риск/прибыль 1:1.0»
+underneath: third by score, decent quality, not tradable, and the reason is
+stated. Nothing is inferred from an absence.
+
+The glyph vocabulary is borrowed from МДЛ (`✓ / ~ / ✕`), which already sits on
+the same card — no second language is introduced. The pulse reuses the existing
+`light-blink` class (the Min/Max pulse, inv. 19); no keyframe was added.
+
+**The board speaks the same words.** `stateMark` and `verdictNote` are single
+named functions used by both surfaces. Before this revision the board printed
+the tier and the score and said nothing at all about the refusal — with a rank
+now printed there too, silence would have read as permission.
+
+**Ranking is strictly by score, and neither the state nor the tier may take a
+number away.** `byScore` orders by score (ties within 0.05 points resolved by
+market-cap rank, then by volatility); `assignRanks` numbers every scored row of
+the shown list, contiguously. Rows folded away as irrelevant to the side carry
+`row.off` and get no number: they are outside this side's ranking, and a
+number would lie about their place.
+
+**`directionVerdict` always computes and exposes the score,** even when the
+side is refused at the regime or channel stage. A card without a score is
+invisible to sorting, and the Boss's standing requirement is «calculate
+accurately → rank accurately → display clearly». Invariant 30 is unaffected:
+coherence is enforced by `action`, never by withholding the number.
+
+**Validation — `bench/display_bench.py` and `bench/render_bench.py`.**
+The first proves the contract on the functions (24 598 checks, 0 failures) and
+carries a quantitative witness of the old defect. The second proves it on the
+rendered DOM: real `update()`, real `renderBoard()`, 123 scenarios,
+24 157 checks, 0 failures, including degraded rows, the expanded off-side
+block, an empty bot payload and ОБЗОР. Neither copies production logic —
+the `<script>` block is cut out of `index.html` and executed by node (inv. 21).
+
+#### Constants (all new ones in one place, inv. 20)
+
+```
+RR_MIN         = 2.0     the same 2 the board already prints in ЕСЛИ СРАБОТАЕТ
+TGT_SIGMA_MIN  = 1.0     target closer than one weekly σ is inside the chop
+ENTRY_CHASE_SD = 0.5     distance from the 24h anchor, in daily σ, that is a chase
+REG_STRESS_Z   = 2.0     BTC weekly move in its own σ that suspends new entries
+CAT_WINDOW_D   = 14      catalyst horizon
+```
+
+#### Validation — `bench/direction_bench.py`, 689 786 checks, 0 failures
+
+Inv. 21 is satisfied literally: no copy of production math anywhere. JS is cut
+out of `index.html` by name with brace matching and executed by real node;
+coin metrics are produced by `window_stats` / `window_vol` extracted from
+`main.py` through the AST. Editing either file changes the bench automatically.
+
+| Mode | Result |
+|---|---|
+| `--identity` | old vs new `scoreCandidate`: 200 000 inputs, **0** mismatches |
+| `--props` | 60 000 scenarios: never both sides tradable, never a trade in stress, never a trade under an active veto, never a trade below `RR_MIN`, never a trade while the entry is a chase |
+| `--fixtures` | reproduces the Boss's own board: GRAM long R:R **7.64** (board 7.7), ZEC short **2.86** (board 2.9) |
+| `--display` | tier boundaries 70/50/35 inclusive, order strictly by score, contiguous numbering, no coin numbered on both sides |
+| `--control` | driftless walk, untruncated barrier race: old system **−0.001** (2SE 0.080) |
+| `--sim` | trend world mean R **−0.748 → −0.345**; walk −0.540 → −0.400; mean-reversion world unchanged |
+
+**The control is the most important number in this section, and it is a
+LIMIT, not a win.** With zero drift, `P(target before stop) = risk/(risk+reward)`,
+so `E[R] = rr·risk/(risk+reward) − reward/(risk+reward) = 0` for ANY selection.
+Geometry therefore CANNOT raise mean R on a random walk — and is not supposed
+to. It works against costs and against drift. That is why the measured gain
+appears in the trend world and nowhere else, and why no claim of «better
+prediction» is made anywhere in this section.
+
+**Two honest limitations, recorded so they are not rediscovered:**
+
+1. **The live archive backtest was NOT run.** `data.binance.vision` is blocked
+   by the execution environment's network policy (HTTP 403, `host_not_allowed`),
+   so `backtest_bench.py --run` remains the Boss's to execute. Everything
+   provable offline is proven; nothing about live data is claimed.
+2. **Synthetic levels are an artefact, only differences are interpretable.**
+   The 30-day barrier race truncates the winning tail (a 5σ target needs longer
+   than a 2σ stop), which biases both arms negatively by the same construction.
+   The first run of the simulation FAILED and the failure was in the generator,
+   not the rule: BTC statistics were pinned flat, so the trend world was judged
+   by the mean-reversion channel and the regime switch was never exercised at
+   all; and a drift of ±0.35σ per hour produced a ~1900× move over 90 days. The
+   generator was fixed; the comparison rule was not touched (inv. 23).
+
+#### Relation to §10 — this is not a reopening of the predictive layer
+
+§10 closes the directional layer to new RANKING FACTORS, and that closure
+stands untouched. §3.12 adds none: no factor enters `scoreCandidate`, no weight
+is tuned, no new metric claims predictive power. What it adds is a filter with
+zero predictive content (geometry), a switch (regime), and a manual external
+veto (catalysts). The operative rule of §10 — «a new ranking factor is
+admissible ONLY on an external prior naming an effect size this sample could
+resolve» — is unaffected and still binding.
+
 
 ## 3.10 Стенд бэктеста скоринга — `bench/backtest_bench.py`
 
@@ -694,7 +960,20 @@ predictiveness with no number attached, does not open the gate.
 29. **Проверяющий режим обязан возвращать код выхода.** Функция без `return` даёт `None`, `sys.exit(main() or 0)` превращает его в ноль, и провалившаяся сверка выглядит успешной — при этом на экране честно напечатано «ВЫШЛИ ЗА ПОРОГ». Печать не является кодом возврата. Родственник инв. 25 (`| tee` съедал код Python) и инв. 22 (проверка без данных): все три — один и тот же способ соврать зелёным.
 28. **Класс, собираемый конкатенацией, невидим для текстового поиска.** В `renderButtons` живут ровно два таких места: `'side-btn' + ' a-' + mode` (mode = long/none/short) и `'stress-btn' + ' s-' + mode` (mode = normal/panic/crash). Поиск по файлу строк `a-long` или `s-panic` не находит НИЧЕГО — при чистке 11.08 они попали в список «мёртвых» и были бы удалены вместе с подсветкой нажатой стороны и режима стресса. Любая будущая чистка CSS обязана разрешать такие сайты по перечислению ИХ СОБСТВЕННОГО цикла: объединение двух перечислений в одно даёт обратную ошибку — выдумывает `s-long`/`s-short` и прячет настоящих сирот. Проверка автоматизирована в `bench/clean_bench.py`.
 27. **«ЗАЩИТА ПОЗИЦИИ» — чистое отображение.** Ни один её выход не входит в плечо, счёт, ранжирование и уровень инвалидации: она только читает уже посчитанное. Тот же класс, что `res7` (§3.9). Если когда-нибудь понадобится, чтобы защёлка влияла на решение — это отдельная правка с отдельным обоснованием, а не расширение блока.
+33. **Один канал — один смысл, и ни один канал не спорит с глифом (ред. 19.08 (4)).** На карточке и на доске: ЧИСЛО + СЛОВО говорят о МЕСТЕ в рейтинге и СИЛЕ ВНИМАНИЯ, ГЛИФ (`stateMark`) — о СОСТОЯНИИ входа: пусто = сделка, `~` = ждать откат, `✕` = сделки нет. Одно слово в двух ролях уже заставило Босса прочитать две живые шорт-сделки как пустую сторону (19.08); попытка развести их одним цветом продержалась один день и произвела обратную ошибку — рейтинг без номеров (19.08 (3)). Различие не имеет права нестись только цветом И не имеет права стирать число. Обе поверхности обязаны брать глиф и текст вердикта из ОДНИХ функций (`stateMark`, `verdictNote`): доска, молчащая о запрете карточки, — тот же дефект.
+    **Поправка 19.08 (4).** ЦВЕТ выведен из роли «качество счёта» в роль «состояние»: при `action === 'none'` бейдж гаснет до `#888`, цвет тира остаётся только на `trade` и `wait`. Причина — живая доска 19.08: на 10 из 10 карточек зелёный «#1 Сильный 90» стоял над красным `✕`, и Босс прочитал бейдж как рекомендацию. Цвет — самый громкий канал на телефоне, и он утверждал ровно обратное глифу. Это НЕ возврат к «различию одним цветом» (запрещено выше): глиф и число на месте, цвет лишь перестал их опровергать.
+    **Ред. 20.08 — Босс вернул словарь сделки.** «ВНИМАНИЕ / СРЕДНЕЕ / СЛАБОЕ / ФОН» → «Сильный / Средний / Кандидат / Фон», формат бейджа «Сильный #1 — 91», цвета: зелёный / бирюза (`--cyan`) / жёлтый (`--accent`) / серый. Решение Product Owner'а, оно перекрывает правку 19.08 (4). Риск («Сильный» звучит как разрешение войти) снят ДРУГИМИ средствами того же релиза: строка плана печатает вход/цель/стоп только там, где движок сделку разрешил, счёт ниже 35 вообще не выходит на доску, а запрещённая карточка по-прежнему гаснет до `#888`. Гашение сохранено вопреки букве спецификации `[решение принято мной]` — альтернатива (красить запрещённые карточки в цвет тира) возвращает ровно тот дефект, о котором Босс написал 19.08. Отменяется, если Босс сообщит, что теряет полосу тира на отклонённых карточках.
+    **Ранг капитализации потерял «#»** («кап 54↑2»): два разных «#» на одной карточке были той самой «смешанной логикой» из письма 20.08. Символ «#» теперь принадлежит только месту в рейтинге счёта.
+    **Прежняя формулировка 19.08 (4):** «Сильный / Средний / Кандидат / Наблюдать» → «ВНИМАНИЕ / СРЕДНЕЕ / СЛАБОЕ / ФОН». Счёт — приор сортировки с измеренной нулевой предсказательной силой (§10, IC ≈ 0.058) и МДЛ `✕` на всех карточках; слово «Сильный» присваивало ему качество, которого у него нет. Пороги 70/50/35 и `TIER_STRONG/TIER_MID/TIER_MIN` не сдвинуты.
+    **Цена отката вернулась в глиф:** `~ $1.0089` вместо голого `~` плюс «ждать $1.0089 — …» в строке причин. Это осознанная отмена части правки 19.08 (3), а не рецидив: цена по-прежнему печатается РОВНО ОДИН раз, слово «ждать» удалено как избыточное (сама цена рядом с `~` и есть рекомендация), а строка причин сохранила причину. Требование Босса от 19.08.
+34. **Номер = МЕСТО В РЕЙТИНГЕ, и он есть у каждой карточки со счётом.** Порядок — строго по счёту (`byScore`, окно ничьей 0.05 разрешается рангом капитализации), нумерация сплошная 1..N по показанному списку. Состояние входа не имеет права ни переставлять список (сортировка «сначала торгуемые» уронила лучшего шорт-кандидата LIT под две слабые карточки), ни отнимать номер (нумерация «только торгуемых» стёрла номер у 74 % карточек и превратила верный порядок в видимую случайность). Номера не получают только строки без счёта и свёрнутые как нерелевантные стороне (`row.off`). `byScore`, `assignRanks`, `tierBadge`, `stateMark`, `verdictNote` — отдельные функции именно затем, чтобы стенд мог их проверять.
+30. **Одна монета — ОДНА сторона.** Гарантия даётся НЕ геометрией, а слоем режима (§3.12, слой 4): стресс — ни одной, тренд — только по направлению рынка, диапазон — только сторона с большим счётом возврата. Стенд показал, что одной геометрии НЕ хватает: монета в середине широкого диапазона проходит R:R ≥ 2 С ОБЕИХ сторон (ZEC 19.08: 1:1.6 и 1:2.9). Убрать правило режима = вернуть противоречие 18.08.
+31. **Катализатор умеет ТОЛЬКО ветировать.** Ни поднять счёт, ни отменить вето геометрии он не может. Именно катализатор, поставленный выше геометрии, произвёл шорт GRAM на дне диапазона 18.08. Запрет держит внешний ввод вне ранжирования — то, что требует §3.10b.
+32. **Геометрия не предсказывает и не обязана.** На блуждании `E[R] = 0` при ЛЮБОМ отборе — это теорема, подтверждённая контролем `--control` (−0.001 при 2SE 0.080). Любое будущее утверждение вида «вето подняло точность» обязано сначала объяснить, откуда взялся снос или издержки.
 26. **Денежный потолок не убивает сделку.** `риск маржи` участвует в `min`, но с полом `L_MIN`: `убыток/маржа = dist·L` не зависит от размера позиции, то есть это правило про ДОЛЮ СЧЁТА, а не про выживание. «БЕЗ БЕЗОПАСНОГО ПЛЕЧА» имеют право выдавать только три первых потолка.
+
+35. **Цену входа и цель печатает только разрешённая сделка.** `planLine` выходит пустой при `action === 'none'`: напечатать «вход/цель» там, где геометрия или режим отказали, значит выдумать рекомендацию, которой у модели нет — это ровно тот запрет, который Босс сформулировал 20.08 («Do not invent or display a price if the calculation is not sufficiently reliable»). Ни одно число строки не считается заново: цель — тот же экстремум 90д, что берёт `tradeGeometry`, стоп — тот же `dec.inv.price`, R:R — тот же `geo.rr` (инв. 20). Строка живёт только у тиров Сильный и Средний.
+36. **Счёт ниже `TIER_MIN` не выходит на основную доску, но и не исчезает молча.** Такие монеты уходят в ту же раскрываемую полосу, что и монеты у нерелевантного края диапазона, с раздельными счётчиками причин. Порядок проверок фиксирован: сначала слабый счёт, потом положение — иначе одна монета попадала бы в обе группы и счётчики не сходились бы с длиной полосы. Деградированные строки (нет пары / мёртвый рынок / нет метрик) НЕ прячутся никогда: это операционные предупреждения, а не кандидаты. Если кандидатов 35+ нет вовсе, доска печатает одну нейтральную строку и остаётся пустой намеренно.
 
 ## 5. Лимиты
 - **CoinGecko: бот ходит БЕЗ КЛЮЧА.** В `main.yml` в env передаётся только
@@ -792,6 +1071,27 @@ predictiveness with no number attached, does not open the gate.
 | **Кросс-секционный базис срочных фьючерсов — ОТКЛОНЁН 14.08.2026** | Развилка из двух ветвей, обе закрыты. (а) Базис ПЕРПЕТУАЛА = премиум-индекс, из которого Binance и считает funding — та же величина в другом виде (строка «Спот/перп базис» выше), а funding измерен нулём: IC +0.003, ДИ95 [−0.030; +0.039]. (б) Базис СРОЧНОГО контракта — величина действительно независимая, но её нет на нашем списке: квартальные поставочные Binance это USDⓈ-M только BTC/ETH и COIN-M BTC/ETH/BNB/ADA/LINK/BCH/XRP/DOT/LTC; пересечение с нашими 28 — **шесть монет** (ETH, BNB, ADA, LINK, BCH, XRP), все COIN-M. Кросс-секция из шести различает только \|IC\| ≳ 0.18 (§3.10b) — теста с таким разрешением не проводят. Третий довод из самого источника: доходность базисного фактора сильна на ДНЕВНОМ шаге, СЛАБЕЕ на недельном, незначима на месячном — эффект затухает ровно на нашем горизонте 7–14д |
 
 ## 9. Журнал миграций
+- 2026-08-20: **сверка второй живой доски + отображение по спецификации Босса. Торговая математика не тронута ни на символ.**
+  **Сверка (`bench/board2_bench.js`, 129 проверок, 0 отказов; продакшн-функции исполняются из `index.html`, инв. 21).** Проверены девять карточек 02:04–02:07 и ДВА полных экрана CRYPTO FUTURE (XRP ЛОНГ 3X, UNI ШОРТ 3X). Сошлось точно: ликвидация 3X от прогноза и от входа; ликвидация после долива маржи (2X); перенос прогноза бетой; положение в диапазоне 90д; `gateState` на всех девяти (включая три новых `~`); безубыток 7д с издержками 0.31 % объёма у XRP и с ОТРИЦАТЕЛЬНЫМ costFrac у UNI (funding перекрывает комиссии); защёлка 1R; убыток по стопу и по ликвидации в деньгах и в долях маржи; размер долива; воспроизведение всех напечатанных R:R через `tradeGeometry`; непрерывность и уникальность номеров на обеих сторонах.
+  **Главная находка сверки — метрики не «поплыли».** Между 01:08 и 02:04 у всех монет изменились β и R², а МДЛ у трёх переехал с `✕` на `~`. Причина одна: слайдер перешёл через ноль, прогноз BTC стал ВЫШЕ цены, и доска переключилась с `down_*`-регрессии на `up_*` (`ratio >= 0 ? cd.up_beta : cd.down_beta`). Доказательство: ρ (`corr_90`) НЕ зависит от направления и совпал во всех шести сверенных парах до второго знака, тогда как β₉₀ разошлась (BNB 0.88→0.70, UNI 1.42→1.13, SKY 0.91→0.71). Данные стабильны, переключение — по проекту.
+  **Стороны не подавлены.** Счёт считается на обеих сторонах при любом исходе (проверено вызовом обоих каналов). Из шести ЛОНГ-карточек четыре закрыты вето R:R < 2.0 с напечатанной причиной, две выдали живой уровень входа (HBAR $0.0678, RENDER $1.2842). ШОРТ закрыт целиком слоем режима (инв. 30) — правило, а не сбой; строка режима над списком его называет.
+  **Сделано (7 участков, только отображение):** `tierOf` — словарь и цвета по спецификации (Сильный зелёный / Средний бирюза / Кандидат жёлтый / Фон серый); `tierBadge` — формат «Сильный #1 — 91»; ранг капитализации — «кап 54↑2» без «#»; новая `planLine` — ВХОД (зелёный пульс «СЕЙЧАС» либо оранжевый пульс с ценой) · ЦЕЛЬ · СТОП · R:R для тиров Сильный и Средний и только при разрешённой сделке; счёт ниже `TIER_MIN` уходит в раскрываемую полосу; полоса печатает раздельные счётчики причин; пустая доска печатает одну нейтральную строку.
+  **Не тронуто:** `scoreCandidate`, `momentumScore`, `qualityScore`, `scoreFinish`, `tradeGeometry`, `marketRegime`, `catalystCheck`, `directionVerdict`, `byScore`, `assignRanks`, `leverageDecision`, `invalidationInfo`, `protectionPlan`, `liqPrice`, схема `coeffs.json`, бот, CSS, keyframes (инв. 1, 9, 13, 15, 18, 19). Пульс — существующий `light-blink`. Ни одна константа не изменена; diff употреблений показал только НОВЫЕ чтения `TIER_MID` (+1) и `TIER_MIN` (+4).
+  **Валидация:** `bench/badge_bench.js` — 133 240 проверок, 0 отказов, прежняя и новая сборки грузятся обе и сравниваются на одних входах (числовая поверхность совпадает побитово); `bench/board2_bench.js` — 129; `bench/verify_board.js` (доска 19.08) — 108, всё ещё зелёный. `node --check` пройден. Новые инварианты 35–36, инвариант 33 переписан.
+- 2026-08-19 (4): **сверка живой доски + четвёртая редакция бейджа. Торговая математика не тронута ни на символ.**
+  **Повод.** Босс прислал скриншоты ЛОНГ и ШОРТ (01:08–01:09, 3X, Normal, BTC $69 727 / $69 589) и потребовал полной сверки: «почти на каждой монете красный ✕, включая Сильных; шорт-сторона особенно; и это противоречит твоему же анализу рынка».
+  **Что проверено и оказалось ВЕРНЫМ (`bench/verify_board.js`, 108 проверок на десяти живых карточках, продакшн-функции исполняются из `index.html`, инв. 21):** ликвидация 3X от прогноза (`liqPrice`, все 20 значений сходятся до 5e-4); перенос прогноза BTC бетой на монету (все 10, включая три карточки, отрисованные на промежуточном тике BTC ≈ $69 518 — расхождение −0.22 %/−0.29 %/−0.03 % объясняется ОДНИМ и тем же тиком, а не ошибкой); положение в диапазоне 90д (`rangePos`, все 10); границы тиров 70/50/35; порядок списка строго невозрастающий по счёту на обеих сторонах; вето R:R — все напечатанные 1:0.9, 1:0.7, 1:1.4 действительно ниже `RR_MIN = 2.0`; `gateState` — МДЛ `✕` на 10 из 10 карточек математически верен (Conf < 40 у восьми, R²₁₄ < 0.25 у XRP и AVAX). **Арифметических дефектов не найдено.**
+  **Почему шорт-сторона пуста целиком.** `marketRegime` вернул `trend`, `dir = +1` (BTC +7.9 % за сутки, eff14 выше `EFF_TREND`). Слой 4 `directionVerdict` закрывает сторону против тренда ЦЕЛИКОМ (инв. 30) — «против тренда рынка» на всех 28 карточках это работа правила, а не сбой. Дефект был в том, что режим НИГДЕ не печатался: Босс видел 28 запретов без единого объяснения.
+  **Сделано (5 участков, только отображение):** `tierOf` — слова тира на «ВНИМАНИЕ / СРЕДНЕЕ / СЛАБОЕ / ФОН»; `tierBadge` — бейдж гаснет до `#888` при `action === 'none'`; `stateMark` — цена отката печатается рядом с глифом (`~ $1.0089`); `verdictNote` — «ждать $X — » удалено, причина осталась; новая `regimeBanner` — одна строка над списком называет режим и говорит, открыта ли сторона.
+  **Не тронуто:** `scoreCandidate`, `momentumScore`, `qualityScore`, `scoreFinish`, `tradeGeometry`, `marketRegime`, `catalystCheck`, `directionVerdict`, `byScore`, `assignRanks`, `leverageDecision`, `liqPrice`, схема `coeffs.json`, бот, CSS, keyframes (инв. 1, 9, 13, 15, 18, 19). Ни одна константа не изменена и не переиспользована (сверка употреблений `TIER_*`, `RR_MIN`, `EFF_TREND`, `ENTRY_CHASE_SD`, `LIQ_MMR`, `MAX_MARGIN_LOSS`, `RES_Z`, `PACE_Z`, `TGT_SIGMA_MIN` — diff пустой).
+  **Валидация:** `bench/badge_bench.js` — 132 824 проверки, 0 отказов; старая и новая сборки грузятся ОБЕ и сравниваются на одних входах (40 000 вызовов `scoreCandidate`/`momentumScore`/`qualityScore`/`rangePos`/`gateState`, 6 000 вызовов `tradeGeometry`, 3 000 `marketRegime`/`liqPrice`) — числовая поверхность совпадает побитово. `node --check` пройден. Инвариант 33 переписан (поправка 19.08 (4)), новый пункт очереди в §10.
+- 2026-08-19 (3): **третья редакция отображения §3.12 — рейтинг снова виден.** Причина — видео Босса ЛОНГ/ШОРТ: список был отсортирован ВЕРНО, но номер и счёт печатались только у торгуемых карточек, остальные несли глухое серое «НАБЛЮДАТЬ». Замер на прежней сборке: **74 % карточек со счётом не печатали номер вообще** (3538 из 4808 на 400 случайных списках). На экране первой стояла монета с лучшим счётом с надписью «НАБЛЮДАТЬ», второй — «#1 Средний 53»: доказательство порядка было стёрто, и рейтинг читался как случайная россыпь. Попутно слово «Наблюдать» всё ещё значило две вещи — нижний тир и вердикт (инв. 33 держался только цветом, что он сам же и запрещает).
+  **Сделано:** `assignRanks` нумерует КАЖДУЮ карточку со счётом, сплошь 1..N по уже отсортированному списку; привязка номера к `TIER_MIN` и к состоянию удалена. Свёрнутые как нерелевантные стороне помечаются `row.off` и номера не получают — сквозной номер у монеты вне рейтинга стороны лгал бы о месте. Сборка бейджа вынесена из цикла отрисовки в `tierBadge(row)`, состояние — в `stateMark(row)`: бейдж стал тестируемым, а глиф — единым для карточки и доски. Вердикт словами вынесен из `verdictLine` в `verdictNote(row)` и напечатан ТЕМ ЖЕ текстом на доске, где его раньше не было вовсе. Цена отката переехала из бейджа в строку причин («ждать $0.3337 — вход далеко от суточной опоры»); попутно исправлена формулировка, верная только для лонга.
+  **Словарь после правки:** число + слово + цвет = МЕСТО и КАЧЕСТВО; глиф = СОСТОЯНИЕ входа (пусто = сделка, пульсирующий `~` = ждать откат, `✕` = сделки нет). Глифы взяты у МДЛ, который уже стоит на той же карточке — второго языка не заведено. Пульс — прежний `light-blink`, новых keyframes нет (инв. 19 цел).
+  **Математика, счёт, движок плеча, схема `coeffs.json`, бот, CSS, порядок блоков доски и ключи якоря не тронуты** (инв. 1, 9, 13, 15, 18). Дифф фронта: 5 участков, −33/+46 строк, из них 30 — комментарии.
+  **Валидация (продакшн-код исполняется из `index.html`, инв. 21):** `bench/display_bench.py` — 24 598 проверок, 0 отказов (порядок невозрастающий по счёту с производственным окном ничьей 0.05, нумерация сплошная и согласованная с порядком, номер и счёт присутствуют при любом вердикте, глифы, границы тиров 70/50/35 без сдвига) плюс количественный свидетель дефекта на прежней сборке. `bench/render_bench.py` — 123 сценария, 24 157 проверок, 0 отказов: реальный `update()` и реальный `renderBoard()` на данных формы `coeffs.json` + тикер Binance, включая деградированные строки (нет пары / мёртвый рынок / нет метрик), развёрнутый блок нерелевантных, пустой ответ бота и режим ОБЗОР. `node --check` и `py_compile` пройдены.
+- 2026-08-19 (2): **вторая редакция отображения §3.12 по спецификации Босса.** Причина — пост-деплой: слово «Наблюдать» означало и тир 35–49, и вердикт «сделки нет», из-за чего две активные шорт-сделки (ETH #1, SOL #2) были прочитаны как пустая сторона. Сделано: тиры переименованы (70+ Сильный / 50–69 Средний / 35–49 Кандидат / ниже — серый Наблюдать), границы вынесены в `TIER_STRONG/TIER_MID/TIER_MIN` (инв. 20); состояние ЖДАТЬ получило собственный цвет `--orange` и пульс через СУЩЕСТВУЮЩИЙ `light-blink` (новых keyframes нет, инв. 19 цел); сортировка переведена СТРОГО на счёт (`byScore`), нумерация — в `assignRanks`, приоритет состояния удалён вместе с `actRank`; `directionVerdict` теперь считает счёт ПРИ ЛЮБОМ исходе, чтобы ни одна карточка не выпадала из ранжирования. **Торговая математика и расчёт счёта НЕ тронуты:** тождество `scoreCandidate` снова проверено на 200 000 входах, 0 расхождений. Новый режим стенда `--display`; всего 747 447 проверок, провалов 0. Новые инварианты 33–34.
+- 2026-08-19: **Движок направления — каскад вето (§3.12).** Причина: 18.08 система выдала два противоположных вывода на одних данных (GRAM доска = лонг #1 / анализ = шорт; ZEC зеркально). Добавлены пять слоёв: `marketRegime` · `tradeGeometry` · `momentumScore` · `catalystCheck` · `directionVerdict`, плюс `verdictLine`/`actRank` для рендера. **Проверенная математика не тронута ни на символ:** `leverageDecision`, `invalidationInfo`, `protectionPlan`, `liqTouchProb`, `lStruct`, `lNoise`, `advBeta`, `lBtcCheck`, `residual7`, `shortMaturity`, `tierOf` сверены побайтово. Общий хвост счёта вынесен в `qualityScore`/`scoreFinish` без изменения арифметики — 200 000 случайных входов, 0 расхождений. Новый стенд `bench/direction_bench.py` (5 режимов, 689 786 проверок, провалов 0). Дифф фронта: 13 участков, −25/+307 строк. Бот, схема `coeffs.json`, CSS, порядок блоков доски и ключи якоря не изменены (инв. 1, 9, 15, 18). Новые инварианты 30–32. Живой архивный бэктест НЕ прогнан: `data.binance.vision` закрыт сетевой политикой среды (HTTP 403), остаётся за Боссом.
 - 2026-08-14c: **next architectural gate defined in numbers — §3.10c.
   Map-only diff, zero code, nothing built.** The Boss asked what would have
   to change before advanced predictive technology could responsibly reopen.
@@ -975,6 +1275,16 @@ predictiveness with no number attached, does not open the gate.
 - 2026-08-08 (3): по итогам видео-валидации — вход всегда Normal, строка сценариев с уровнями BTC, маркеры «слайдер не сдвинут» / «сценарий мягкий», кнопки плеча сокращены до 2X–7X.
 
 ## 10. На горизонте
+- **Слой контекста: как рыночная разведка попадает в калькулятор (архитектура принята 20.08, код НЕ написан).**
+  Вопрос Босса: почему прямой анализ рынка 19.08 оказался полезнее механической доски и можно ли встроить его систематически. **Ответ по существу: дело не в весах, а во входных данных.** Двигателем дня 19.08 был удвоенный выкуп длинных облигаций Минфином США — величина, которой нет ни в одном входе калькулятора. Никакая перенастройка `scoreCandidate` этого не исправляет; исправляют только новые данные. Отсюда деление на три класса и три разных режима допуска:
+  1. **Датированные проверяемые события** (голосование, разлок, заседание, слушание). Машинно представимы: `{sym, date, dir, kind, text, src}`. Потребитель уже есть — `catalystCheck`, и он по инв. 31 умеет ТОЛЬКО ветировать и подписывать, никогда не двигать счёт. Первый шаг: перенести `CATALYSTS` из литерала в `catalysts.json`, который кладёт рядом с `coeffs.json` тот же workflow, что гоняет бота. Схема аддитивная: отсутствие файла не меняет ни одного числа (инв. 1, 9).
+  2. **Непрерывные измеримые величины, которых бот не тянет** (нетто-приток в спот-ETF, комиссионная выручка протокола, открытый интерес, TVL, календарь разлоков как темп роста предложения). Объективны и воспроизводимы, но каждая — новый фактор, а значит §3.10 и инв. 32: сначала архивный бэктест на `data.binance.vision`, потом вход в счёт. Без бэктеста — только отображением.
+  3. **Суждение аналитика** (чтение режима, тезис, «это сквиз, а не тренд»). НЕ представимо машинно и НЕ должно попадать в модель: закодированное мнение — это переобучение на одного аналитика, а не сигнал. Место суждения — чат, а не веса.
+  **Порядок работ:** (1) `catalysts.json` + чтение во фронте, ноль изменений математики; (2) журнал «событие → вердикт доски → факт» — накопление выборки; (3) только когда выборка есть, бэктест одного фактора из класса 2. Пункт (3) не открывать, пока не закрыт (2).
+- **Цель геометрии не зависит от канала — структурное натяжение, СОЗНАТЕЛЬНО не исправлено 19.08 (4).**
+  `tradeGeometry` не принимает режим: цель всегда `cd.max_price` для лонга и `cd.min_price` для шорта, то есть экстремум 90д — цель ВОЗВРАТА. В режиме `trend` ранжирует `momentumScore` — канал ПРОДОЛЖЕНИЯ. Монета с сильным импульсом стоит близко к своему экстремуму 90д, оставшаяся до цели награда мала, и R:R разбивается о `RR_MIN = 2.0`. Живой замер 19.08: SKY счёт 90 → 1:0.9, ZEC 78 → 1:0.7, BNB 67 → 1:1.4 — ни одна карточка канала импульса не прошла ворота.
+  **Почему не тронуто.** Вето по существу ВЕРНО: покупка ZEC на $577 после +13.5 % за сутки, на 74 % диапазона, со структурным стопом в 24.5 % и 17 % до цели — плохая сделка независимо от канала. Механизм натяжения доказуем по коду, но утверждение «континуационная цель дала бы лучший исход» — гипотеза без бэктеста, а §3.10/инв. 32 запрещают менять ворота сделки на гипотезе. Строгой монотонности «выше счёт → ниже R:R» на живых данных НЕТ (SKY 0.9 против ZEC 0.7), так что даже направление эффекта на трёх точках не установлено.
+  **Условие открытия:** архивный бэктест на `data.binance.vision`, сравнивающий исход `RR ≥ 2` к экстремуму 90д против континуационной цели (например, `E + k·σ·√H`) на одних и тех же входах канала импульса. Без него — не трогать.
 Порядок — результат аудита 10.08 (пять пунктов Босса + три идеи его ассистента). Внутри каждого пункта указана цена и что именно он меняет.
 
 **Принято, ждёт очереди**
@@ -1057,6 +1367,21 @@ predictiveness with no number attached, does not open the gate.
   while building it without a queued hypothesis buys a fishing expedition.
   Build trigger: a named single-factor hypothesis with an external effect
   size >= 0.030 IC on a LIQUID cross-section at 7-14 days.
+- **DIRECTION ENGINE (§3.12) — built 19.08.2026, and it does NOT reopen the
+  layer closed above.** The closure stands: it bans new RANKING FACTORS, and
+  §3.12 adds none. No factor entered `scoreCandidate`, no weight was tuned, no
+  metric claims predictive power. What was added is a filter with zero
+  predictive content (geometry), a switch (regime) and a manual external veto
+  (catalysts). The measured control is explicit that geometry CANNOT raise
+  mean R on a driftless market — it works against costs and drift only.
+  The operative rule above («a new ranking factor is admissible ONLY on an
+  external prior naming an effect size this sample could resolve») is
+  unchanged and still binding.
+  **Open item, not built:** regime hysteresis. `EFF_TREND = 0.6` labels ~55 %
+  of driftless windows as trend (measured), which is harmless for direction
+  but can make the label flap between hourly renders and reshuffle the list.
+  Build trigger: the Boss reports flapping. Not built pre-emptively — that
+  would be a second trend constant against inv. 20 on speculation.
 - **Новые монеты — НЕ добавляем** (решение Босса 10.08). Работаем со списком из 28 пар.
 - **Переключатель горизонта 7д/30д** — не реализован намеренно: масштабирование ручное (√H), лишний орган управления даёт соблазн подкрутить горизонт под желаемое плечо. Вернуться, если срок удержания начнёт меняться систематически.
 - Карта ликвидаций, вероятность «TP раньше SL», спот/перп базис — отклонены, причины в §8.
