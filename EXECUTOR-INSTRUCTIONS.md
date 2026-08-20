@@ -53,43 +53,54 @@ strictly increasing and never reused.
 
 ## 3. Inbound filing — run before every task
 
-The Boss uploads Architect artifacts to the **repository root**, using whatever
-filename the upload produced. Names frequently arrive with spaces instead of hyphens;
-this is a known defect of the delivery path, not a decision.
+**TZ files arrive as attachments in this Claude Code session**, not through the
+repository. The Boss attaches the file and sends the trigger in the same message.
 
-Before executing a TZ, file whatever is loose in the root:
+**Filenames in transit are meaningless.** The delivery path strips or substitutes
+separators: `TZ-01-repo-hardening.md` has arrived as `TZ01repohardening.md`, and
+`SYSTEM_MAP_CRYPTOCALCUL.md` has arrived as `SYSTEM MAP CRYPTOCALCUL.md`. Never
+identify an artifact by the name it arrived under. **Every TZ states its own canonical
+filename in its header — use that.**
 
-| Found in root | Move to |
+Before executing, file every attached artifact:
+
+| Attached artifact | Commit as |
 |---|---|
-| `TZ-NN-*.md` (any spacing) | `CryptoTZ/TZ-NN-<short-name>.md` |
-| a System Map copy (any spacing) | `SYSTEM-MAP-CRYPTOCALCUL.md` |
-| an Executor-instructions copy (any spacing) | `EXECUTOR-INSTRUCTIONS.md` |
+| a TZ | the `Canonical filename` given in its own header |
+| a System Map copy | `SYSTEM-MAP-CRYPTOCALCUL.md` |
+| an Executor-instructions copy | `EXECUTOR-INSTRUCTIONS.md` |
 
-Use `git mv`. Never keep two copies of the same artifact under different names —
-if both a spaced and a hyphenated version exist, the **newer content wins** and the
-other is deleted. Verify content before choosing, do not assume the hyphenated one is
-current. Record every filing action in the report.
+Content must be byte-identical to the attachment; only the filename changes. Some
+artifacts — the System Map in particular — may instead arrive by direct upload to
+`main` through the GitHub web interface; §5 covers finding those.
+
+Never keep two copies of the same artifact under different names. If both a corrupted
+and a canonical version exist, the **correct content wins** and the other is deleted —
+verify content before choosing, never assume the better-looking name is current.
+Record every filing action under `## Inbound Filing` in the report.
 
 ---
 
 ## 4. Trigger protocol
 
-The Boss sends `EXECUTE TZ-NN`. On receipt:
+The Boss attaches the TZ file and sends `EXECUTE TZ-NN` in the same message. On receipt:
 
 1. Read this file.
-2. File loose root artifacts (§3).
-3. Locate `CryptoTZ/TZ-NN-*.md` and read it in full.
-4. **Run the System Map fingerprint gate (§5). If it fails, STOP.**
-5. Verify repository state: branch, clean tree, `git log -1`, and whether the
-   previous TZ's branch was merged.
-6. Execute the specification, and only the specification.
-7. Run the specified validation, in full.
-8. Write `CryptoReports/TZ-NN-<short-name>-report.md` in the §10 format.
-9. Commit, push the branch, open a pull request.
-10. Return the exact report path **and the pull-request URL**.
-
-If the TZ file is absent from both `CryptoTZ/` and the repository root, report
-BLOCKED and name the missing path.
+2. **`git fetch --all --prune`.** Always, before assessing anything. "Not in my working
+   tree" is not "not in the repository": the Boss commits artifacts to `main` through
+   the GitHub web interface, and a session clone that has not fetched cannot see them.
+   Never report an artifact missing without having fetched first.
+3. File the attached artifacts (§3).
+4. Read the TZ in full. If no TZ was attached and none exists at `CryptoTZ/TZ-NN-*.md`
+   after fetching, report BLOCKED and ask for the attachment — **never guess a scope.**
+5. **Run the System Map fingerprint gate (§5). If it fails, STOP.**
+6. Verify repository state across all branches: `git log --oneline --graph --all`,
+   whether the previous TZ's branch was merged, and whether the tree is clean.
+7. Execute the specification, and only the specification.
+8. Run the specified validation, in full.
+9. Write `CryptoReports/TZ-NN-<short-name>-report.md` in the §10 format.
+10. Commit, push the branch, open a pull request.
+11. Return the exact report path **and the pull-request URL**.
 
 ---
 

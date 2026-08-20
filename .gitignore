@@ -1,0 +1,33 @@
+# Generated artifacts only. Nothing here is an input to the product or to a
+# bench — every entry is something a tool writes and can rewrite.
+
+# Python bytecode. `python3 -m py_compile main.py` (a standing validation step)
+# leaves __pycache__/ in the repository root; the benches leave one in bench/.
+__pycache__/
+*.py[cod]
+
+# Bench scratch. Every bench that drives node from Python writes its bridge
+# script and its case file next to itself and does not clean up:
+#   display_bench.py    -> bench/_run.js, bench/_cases.json
+#   render_bench.py     -> bench/_render_run.js, bench/_render_cases.json
+#   backtest_bench.py   -> bench/_tokens.js, bench/_score_bridge.js,
+#                          bench/_inv_bridge.js, bench/_res_bridge.js,
+#                          bench/_job.json, bench/_out.json,
+#                          bench/_job2.json, bench/_out2.json
+# The names are derived at run time, so the prefix is matched rather than the
+# twelve names enumerated: no tracked file under bench/ begins with '_'.
+bench/_*
+
+# Downloaded history for backtest_bench.py. CACHE = os.path.join(HERE,
+# "cache") at bench/backtest_bench.py:36, i.e. bench/cache. It holds the
+# data.binance.vision archive and is restored from the Actions cache by
+# .github/workflows/backtest_bench.yml, never from the repository.
+bench/cache/
+
+# OS noise
+.DS_Store
+
+# NOT ignored, deliberately: index.html.prev and orig.html. They read as
+# debris and are the baselines badge_bench.js and direction_bench.py
+# --identity require. Ignoring them would foreclose sourcing them from git
+# history, which is TZ-03's job.
