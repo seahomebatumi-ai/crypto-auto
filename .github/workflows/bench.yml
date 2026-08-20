@@ -1,0 +1,62 @@
+# .github/workflows/bench.yml
+# Ворота стендов. Гоняет ТОЛЬКО те стенды, которым не нужен внешний архив
+# data.binance.vision и прогретый кэш. Бота не запускает, Gist не пишет,
+# ключ CoinGecko не нужен.
+#
+# Вне этих ворот намеренно оставлены:
+#   backtest_bench.py  — нужен архив/кэш, обслуживается backtest_bench.yml
+#   badge_bench.js     — читает index.html.prev, которого в репозитории нет
+#   clean_bench.py     — требует два позиционных HTML (before/after), их нет
+#   display_bench.py   — красный на текущем index.html (устаревший формат бейджа)
+#   render_bench.py    — красный по той же причине
+#   direction_bench.py --identity  — читает orig.html, которого нет
+#   direction_bench.py --display   — красный по той же причине, что display_bench
+name: Bench gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        # Без pipefail связка `python ... | tee` возвращает код tee, то есть
+        # ноль, и упавший шаг выглядит успешным (инв. 25). Здесь конвейеров
+        # нет вовсе, так что код интерпретатора доходит до раннера напрямую.
+        shell: bash -euo pipefail {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # verify_bench.py импортирует backtest_bench.py, а тот тянет numpy и
+      # requests на уровне модуля. Сеть при этом не используется: requests
+      # подменяется заглушкой внутри стенда.
+      - name: Зависимости
+        run: pip install numpy requests
+
+      - name: Доска 19.08 против продакшн-математики (verify_board.js)
+        run: node bench/verify_board.js
+
+      - name: Доска 20.08, LONG + SHORT + два экрана (board2_bench.js)
+        run: node bench/board2_bench.js
+
+      - name: Блок «ЗАЩИТА ПОЗИЦИИ» + фаззинг доски (prot_bench.js)
+        run: node bench/prot_bench.js index.html
+
+      - name: Офлайн-набор для --verify (verify_bench.py)
+        run: python3 bench/verify_bench.py
+
+      # --identity и --display исключены намеренно, причины в шапке файла.
+      - name: Движок направления (direction_bench.py)
+        run: python3 bench/direction_bench.py --props --fixtures --control --sim

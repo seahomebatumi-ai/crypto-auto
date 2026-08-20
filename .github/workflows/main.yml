@@ -1,8 +1,25 @@
 name: Crypto Update
 
 on:
+  # Часовой прогон — то, подо что откалиброваны STALE_WARN_MIN 75 /
+  # STALE_CRIT_MIN 130 на фронте (инв. 4) и что описывает §1 карты. До сих пор
+  # расписания в этом файле не было ни в одной ревизии: данные обновлялись
+  # только пушами, а TZ-01 сузил push и убрал последний случайный путь.
+  # paths-ignore ниже относится ТОЛЬКО к push и на schedule не влияет.
+  schedule:
+    - cron: '0 * * * *'
   push:
     branches: [ main ]
+    # Бот ПРОИЗВОДИТ coeffs.json; фронт и стенды его только ПОТРЕБЛЯЮТ.
+    # Коммит в них не даёт повода гонять 28 монет через CoinGecko без ключа
+    # и переписывать живой Gist посреди разработки. Правка main.py или
+    # main.yml повод даёт — они здесь не перечислены и запуск не гасят.
+    paths-ignore:
+      - 'bench/**'
+      - '**/*.md'
+      - 'index.html'
+      - '.github/workflows/bench.yml'
+      - '.github/workflows/backtest_bench.yml'
   workflow_dispatch:
 
 jobs:
