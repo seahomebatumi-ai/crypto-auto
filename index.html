@@ -786,11 +786,71 @@ var tokens = [
 //   t   — короткая причина для карточки
 // Событие старше суток и дальше CAT_WINDOW_D игнорируется. Разлок всегда
 // пишется dir:'short': он ветирует лонг и при этом не создаёт шорт.
-var CATALYSTS = {
-    ZEC:  [{ d: '2026-08-25', dir: 'long',  t: '\u0433\u043e\u043b\u043e\u0441\u043e\u0432\u0430\u043d\u0438\u0435 NU7 25.08' }],
-    AVAX: [{ d: '2026-09-18', dir: 'short', t: '\u0440\u0430\u0437\u043b\u043e\u043a 10.69M AVAX' }],
-    SOL:  [{ d: '2026-10-01', dir: 'long',  t: 'Alpenglow \u0432 \u043e\u043a\u0442\u044f\u0431\u0440\u0435' }]
-};
+// The registry itself no longer lives in this file. It is `catalysts.json` at
+// the repository root, loaded once at startup. It moved out because a veto is
+// the STRONGEST action in the engine and it was standing on the WEAKEST data in
+// the system: three hand-typed strings with no source. Only a `confirmed` entry
+// may close a side now; anything else may annotate and nothing more (inv. 39).
+// Entry fields: d · dir · kind · t · conf · src · added.
+var CATALYSTS  = {};
+var CAT_LOADED = false;
+var CAT_ERR    = null;
+
+// Install a payload. Kept apart from transport on purpose, so the bench can
+// exercise every rejection path without a server. Anything unexpected leaves
+// CATALYSTS empty AND CAT_ERR set: an empty registry and an unavailable
+// registry are different states and must not render the same (inv. 40).
+function catalystsApply(txt) {
+    var data;
+    try { data = JSON.parse(txt); }
+    catch (e) { CAT_ERR = '\u0444\u0430\u0439\u043b \u043d\u0435 \u0440\u0430\u0437\u043e\u0431\u0440\u0430\u043b\u0441\u044f'; return false; }
+    if (!data || data.v !== 1) { CAT_ERR = '\u0432\u0435\u0440\u0441\u0438\u044f \u0441\u0445\u0435\u043c\u044b \u043d\u0435 1'; return false; }
+    if (!data.items || typeof data.items !== 'object') { CAT_ERR = '\u043d\u0435\u0442 items'; return false; }
+    CATALYSTS  = data.items;
+    CAT_LOADED = true;
+    CAT_ERR    = null;
+    return true;
+}
+
+// ES5 XHR against a same-origin relative path: no fetch, no arrow functions, no
+// template literals — this page runs on the Boss's phone. The board NEVER waits
+// on it: update() runs whether or not the file has arrived, and a failed load
+// costs the veto layer, not the board.
+function loadCatalysts() {
+    var xhr;
+    try {
+        xhr = new XMLHttpRequest();
+        xhr.open('GET', 'catalysts.json?t=' + Date.now(), true);
+    } catch (e) {
+        CAT_ERR = '\u0437\u0430\u043f\u0440\u043e\u0441 \u043d\u0435 \u043e\u0442\u043a\u0440\u044b\u043b\u0441\u044f';
+        return;
+    }
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) return;
+        if (xhr.status !== 200) CAT_ERR = 'HTTP ' + xhr.status;
+        else catalystsApply(xhr.responseText);
+        update();
+    };
+    xhr.onerror = function() {
+        CAT_ERR = '\u0441\u0435\u0442\u044c \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430';
+        update();
+    };
+    try { xhr.send(); }
+    catch (e) { CAT_ERR = '\u0437\u0430\u043f\u0440\u043e\u0441 \u043d\u0435 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d'; }
+}
+
+// One visible line for as long as the layer is down, in regimeBanner's own
+// styling — no new CSS and no new keyframes (inv. 19). Saying nothing here
+// would be the exact defect inv. 37 names: a layer that loaded nothing looks
+// identical to a layer with nothing to say.
+function catalystBanner() {
+    if (CAT_LOADED) return '';
+    var why = CAT_ERR ? CAT_ERR : '\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430';
+    return '<div style="margin:2px 0 8px;padding:6px 10px;border-left:3px solid var(--red);'
+         + 'font-size:0.82em;letter-spacing:0.04em;color:var(--red);">'
+         + '\u0421\u041b\u041e\u0419 \u041a\u0410\u0422\u0410\u041b\u0418\u0417\u0410\u0422\u041e\u0420\u041e\u0412 \u041d\u0415\u0414\u041e\u0421\u0422\u0423\u041f\u0415\u041d \u2014 '
+         + why + '; \u0432\u0435\u0442\u043e \u043e\u0442\u043a\u043b\u044e\u0447\u0435\u043d\u043e</div>';
+}
 
 // ── Тикер только по нужным парам ────────────────────────────────────────────
 var useSymbolsParam = true;
@@ -1846,6 +1906,14 @@ function catalystCheck(sym, isLong, nowMs) {
         if (!isFinite(t)) continue;
         var days = (t - t0) / 86400000;
         if (days < -1 || days > CAT_WINDOW_D) continue;
+        // Inv. 39. An unverified entry may ANNOTATE and may never close a side.
+        // The window, the -1 back edge, the first-note-wins rule and the early
+        // return on veto are untouched: only the source of the authority to
+        // veto changed, not one number of the arithmetic around it.
+        if (c.conf !== 'confirmed') {
+            if (c.dir === mine && !out.note) out.note = c.t;
+            continue;
+        }
         if (c.dir !== mine) { out.veto = c.t; return out; }
         if (!out.note) out.note = c.t;
     }
@@ -3064,6 +3132,10 @@ function update() {
     // Режим — единственный факт, объясняющий целую колонку красных ✕. Раньше
     // он считался на каждой карточке и не печатался нигде: Босс видел 28
     // запретов без причины. Один раз наверху вместо 28 раз внутри.
+    // Unconditional, unlike the regime banner: a layer that is off has to say so
+    // whichever side is selected, and it is an operational warning, not a
+    // candidate (same standing as the degraded rows, inv. 36 / 40).
+    html += catalystBanner();
     if (sideOn) html += regimeBanner(reg, isLong);
 
     shownRows.forEach(function(row, pos) {
@@ -3376,6 +3448,7 @@ function update() {
 }
 
 function init() {
+    loadCatalysts();
     applySavedOrder();
     renderButtons();
     fetchBotData();

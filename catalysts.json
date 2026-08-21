@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "updated": "2026-08-21",
+  "items": {
+    "ZEC":  [{ "d": "2026-08-25", "dir": "long",  "kind": "protocol",
+               "t": "\u0433\u043e\u043b\u043e\u0441\u043e\u0432\u0430\u043d\u0438\u0435 NU7 25.08",
+               "conf": "disputed", "src": [], "added": "2026-08-21" }],
+    "AVAX": [{ "d": "2026-09-18", "dir": "short", "kind": "unlock",
+               "t": "\u0440\u0430\u0437\u043b\u043e\u043a 10.69M AVAX",
+               "conf": "disputed", "src": [], "added": "2026-08-21" }],
+    "SOL":  [{ "d": "2026-10-01", "dir": "long",  "kind": "protocol",
+               "t": "Alpenglow \u0432 \u043e\u043a\u0442\u044f\u0431\u0440\u0435",
+               "conf": "disputed", "src": [], "added": "2026-08-21" }]
+  }
+}

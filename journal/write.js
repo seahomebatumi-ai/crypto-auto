@@ -97,38 +97,56 @@ function extractScript(html) {
     return html.slice(a + '<script>'.length, b);
 }
 
-// Исходный текст литерала `var NAME = {...}` / `[...]`. Нужен только для
-// отпечатка: cat.hash обязан идентифицировать ВЕРСИЮ реестра, а не его
-// значение после разбора.
-function literalOf(src, name) {
-    const m = new RegExp('var\\s+' + name + '\\s*=\\s*').exec(src);
-    if (!m) throw new Error('index.html: `var ' + name + '` не найден');
-    const i = m.index + m[0].length;
-    const open = src[i];
-    if (open !== '{' && open !== '[') throw new Error('index.html: `' + name + '` не литерал');
-    const close = open === '{' ? '}' : ']';
-    let depth = 0, q = null, esc = false;
-    for (let j = i; j < src.length; j++) {
-        const c = src[j];
-        if (esc) { esc = false; continue; }
-        if (q) { if (c === '\\') esc = true; else if (c === q) q = null; continue; }
-        if (c === '"' || c === '\'') { q = c; continue; }
-        if (c === open) depth++;
-        else if (c === close) { depth--; if (depth === 0) return src.slice(i, j + 1); }
+// Каноническая сериализация: ключи объектов сортируются, порядок элементов
+// массива сохраняется (внутри монеты он значим — первая заметка выигрывает).
+// Хеш реестра обязан зависеть от СОДЕРЖИМОГО, а не от того, в каком порядке
+// редактор сохранил ключи: иначе перестановка строк в catalysts.json выглядела
+// бы сменой версии реестра, и записи разошлись бы без всякой причины.
+function canon(v) {
+    if (v === null || typeof v !== 'object') return JSON.stringify(v);
+    if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+    return '{' + Object.keys(v).sort().map(function (k) {
+        return JSON.stringify(k) + ':' + canon(v[k]);
+    }).join(',') + '}';
+}
+
+// Реестр катализаторов. С ТЗ-06 он живёт в catalysts.json, а не в литерале
+// index.html: журнал идёт за ДАННЫМИ, а не за файлом, в котором они когда-то
+// лежали. Сети здесь не появляется — файл лежит в том же чекауте.
+// Отсутствующий, нечитаемый или чужой версии файл роняет прогон ненулевым
+// кодом: записать день, чей набор катализаторов прочитать не удалось, значит
+// записать вердикт, который нечем объяснить (инв. 38(3)).
+function loadCatalysts(catPath) {
+    const file = catPath || path.join(REPO, 'catalysts.json');
+    let raw;
+    try { raw = fs.readFileSync(file, 'utf8'); }
+    catch (e) { throw new Error('catalysts.json не прочитан (' + file + '): ' + e.code); }
+    let data;
+    try { data = JSON.parse(raw); }
+    catch (e) { throw new Error('catalysts.json не разобран (' + file + '): ' + e.message); }
+    if (!data || data.v !== 1) {
+        throw new Error('catalysts.json: версия схемы не 1 (' + file + ')');
     }
-    throw new Error('index.html: незакрытый литерал ' + name);
+    if (!data.items || typeof data.items !== 'object' || Array.isArray(data.items)) {
+        throw new Error('catalysts.json: нет объекта items (' + file + ')');
+    }
+    return { items: data.items, updated: data.updated || null, hash: sha16(canon(data.items)) };
 }
 
 // Имена, которые журнал читает ИЗ КОНТЕКСТА и не перепечатывает (инв. 20).
 // Список проверяется на старте: переименование в index.html обязано ронять
 // журнал громко, а не тихо менять смысл записи.
+// `CATALYSTS` из списка убран сознательно (ТЗ-06): реестр больше не читается
+// из контекста — он читается с диска и ВСТАВЛЯЕТСЯ в контекст ровно так же,
+// как это делает загрузчик в браузере. Пока имя стояло здесь, список утверждал
+// зависимость, которой уже нет.
 const NEED = [
-    'GIST_URL', 'STALE_CRIT_MIN', 'CAT_WINDOW_D', 'TIER_MIN', 'CATALYSTS', 'tokens',
+    'GIST_URL', 'STALE_CRIT_MIN', 'CAT_WINDOW_D', 'TIER_MIN', 'tokens',
     'has', 'marketRegime', 'rangePos', 'sideRelevant', 'residual7',
     'leverageDecision', 'directionVerdict', 'tierOf', 'verdictNote'
 ];
 
-function loadEngine(htmlPath) {
+function loadEngine(htmlPath, catPath) {
     const file = htmlPath || path.join(REPO, 'index.html');
     const html = fs.readFileSync(file, 'utf8');
     const src  = extractScript(html);
@@ -156,11 +174,20 @@ function loadEngine(htmlPath) {
             throw new Error('index.html: `' + NEED[i] + '` отсутствует — журнал не имеет права угадывать');
         }
     }
+    // Роль загрузчика браузера играет здесь чтение файла: продакшн-функции
+    // видят реестр через тот же глобал `CATALYSTS`, и второй реализации
+    // catalystCheck не появляется (инв. 21).
+    const cat = loadCatalysts(catPath);
+    sandbox.CATALYSTS  = cat.items;
+    sandbox.CAT_LOADED = true;
+    sandbox.CAT_ERR    = null;
+
     return {
         P: sandbox,
         src: src,
         scriptHash: sha16(src),
-        catHash: sha16(literalOf(src, 'CATALYSTS'))
+        catHash: cat.hash,
+        catUpdated: cat.updated
     };
 }
 
@@ -317,7 +344,11 @@ function createJournal(opts) {
             if (!isFinite(t)) continue;
             const days = (t - tsMs) / 86400000;
             if (days < -1 || days > P.CAT_WINDOW_D) continue;
-            out.push({ d: c.d, dir: c.dir, t: c.t });
+            // Запись реестра кладётся ЦЕЛИКОМ. С ТЗ-06 у неё появилось поле
+            // `conf`, и именно оно решает, сработало вето или нет: без него
+            // запись до ТЗ-07 и запись после неё выглядят одинаково при разных
+            // вердиктах — ровно та ложь, от которой отпечаток и заведён.
+            out.push(c);
         }
         return out;
     }
@@ -633,7 +664,8 @@ function runLineOut(run) {
 async function probe(engine) {
     const P = engine.P;
     console.log('скрипт index.html  fp.script=' + engine.scriptHash);
-    console.log('реестр CATALYSTS   cat.hash =' + engine.catHash
+    console.log('реестр catalysts.json cat.hash=' + engine.catHash
+                + '  updated=' + (engine.catUpdated || '-')
                 + '  монет с событиями: ' + Object.keys(P.CATALYSTS).length);
     console.log('константы движка   CAT_WINDOW_D=' + P.CAT_WINDOW_D
                 + '  STALE_CRIT_MIN=' + P.STALE_CRIT_MIN + '  TIER_MIN=' + P.TIER_MIN);
@@ -711,11 +743,18 @@ async function main(argv) {
 }
 
 module.exports = {
-    loadEngine, createJournal, httpTransport, writeOnce, readLines, appendLine,
-    between, addDays, dayOf, dayMs, iso, isoHour, sha16, fin, main, MIRROR, HORIZONS, OUT_CAP
+    loadEngine, loadCatalysts, canon, createJournal, httpTransport, writeOnce,
+    readLines, appendLine, between, addDays, dayOf, dayMs, iso, isoHour, sha16,
+    fin, main, MIRROR, HORIZONS, OUT_CAP
 };
 
 if (require.main === module) {
     main(process.argv).then(function (code) { process.exit(code); },
-        function (e) { console.log('JOURNAL FAIL ' + (e && e.stack || e)); process.exit(1); });
+        function (e) {
+            // Первая строка — grep-пригодная и называет причину словами
+            // (инв. 37). Стек идёт следом и разбору строки не мешает.
+            console.log('JOURNAL FAIL ' + ((e && e.message) || e));
+            if (e && e.stack) console.log(e.stack);
+            process.exit(1);
+        });
 }

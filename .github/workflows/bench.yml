@@ -80,3 +80,10 @@ jobs:
       - name: Журнал вердиктов, офлайн (journal_bench.js)
         shell: bash -euo pipefail {0}
         run: node bench/journal_bench.js
+
+      # ТЗ-06 §2.6. Слой катализаторов — единственный, умеющий ЗАКРЫТЬ сторону,
+      # и правка кворума ломается молча: неподтверждённая запись, снова
+      # получившая право вето, ничем себя не выдаёт (инв. 39, 40).
+      - name: Слой катализаторов (catalyst_bench.js)
+        shell: bash -euo pipefail {0}
+        run: node bench/catalyst_bench.js
