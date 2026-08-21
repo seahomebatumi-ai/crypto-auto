@@ -1,8 +1,16 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 5.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 6.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated in
 TZ files and the Boss will not repeat it in chat.
+
+**What changed in Version 6** (all four came out of TZ-06, which was correct work that
+still reached `main` without a single control having executed): the pull-request rule
+now has a defined fallback instead of a dead end (§8) · CI execution is a reported fact
+with its own report heading, and a local run never substitutes for a runner (§9, §10) ·
+two new hard-floor items — venue flags are declarations, and a bench step is never
+removed from the gate to make it green (§7) · `catalysts.json` and `journal/**` are
+classified in the lifecycle table instead of reading as unowned files (§13).
 
 Canonical path: `EXECUTOR-INSTRUCTIONS.md` (repository root).
 Supersedes all earlier versions. **You read this file from the repository.** It is
@@ -117,7 +125,8 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
    whether the previous TZ's branch was merged, and whether the tree is clean.
 7. Execute the specification, and only the specification.
 8. Run the specified validation, in full.
-9. Commit the implementation, push the branch, open a pull request.
+9. Commit the implementation, push the branch, open a pull request — and if the
+   environment refuses to open one, follow the fallback in §8 rather than stopping.
 10. Write `CryptoReports/TZ-NN-<short-name>-report.md` in the §10 format and commit it
     **directly to `main`** (§8) — not to the branch.
 11. Post the closing message to the Boss in Russian (§11), and stop.
@@ -196,7 +205,23 @@ and quote the conflicting requirement.
 10. **`main` is production.** GitHub Pages deploys the calculator from `main`. Never
     force-push and never rewrite published history. The only path you may push directly
     to `main` is `CryptoReports/**` (§8); everything else goes through a branch and a
-    pull request the Boss merges.
+    pull request the Boss merges. `journal/data/**`, `journal/out/**` and
+    `journal/runs.jsonl` also arrive on `main` directly — written by `journal.yml`, not
+    by you. Never hand-edit them: they are evidence, and invariant 38 makes a written
+    record immutable.
+11. **Venue flags are declarations, not observations.** `fut:true` on XMR, LIT and HYPE
+    is fixed by the Boss in System Map §3.14: those three are Binance Futures only, the
+    other 25 are Binance Spot. A live host may still answer for a delisted spot pair
+    with a zero-volume row — that does not revoke the declaration and is never a reason
+    to change the flag, reclassify the asset, or "correct" the list. If host behaviour
+    and the declaration disagree, the declaration wins and the disagreement is reported.
+12. **Never remove, skip, comment out or `continue-on-error` a bench step to make CI
+    green.** This is the same prohibition as item 2 one level up: editing the assertion
+    and deleting the assertion are the same act. A step that cannot pass is a finding
+    for the report. Equally, never add a bench file without wiring it into
+    `.github/workflows/bench.yml` in the same change — a bench outside the gate never
+    executes and is not a control (invariant 37). `fresh_bench.js` sat in exactly that
+    state from TZ-04 to TZ-05, looking like coverage and providing none.
 
 ---
 
@@ -205,6 +230,19 @@ and quote the conflicting requirement.
 - Work on a branch. Push the branch. Open a pull request. **You never merge.**
   Merging is the Boss's decision because it deploys the live calculator, and it happens
   only after the Architect's audit returns ПРИНЯТО.
+
+**If you cannot open a pull request, the fallback is defined — never stop, never ask.**
+Some sessions run under a base configuration that forbids opening a pull request without
+an explicit instruction. That is not a blocker and not a question for the Boss. Push the
+branch, then put both of these in your report under `## Pull Request` **and** in your
+closing message: the exact branch name, and the compare URL
+`https://github.com/seahomebatumi-ai/crypto-auto/compare/main...<branch>`. The Boss opens
+and merges from that link in one action. State plainly that no pull request exists and
+why. On TZ-06 this was left implicit, and the consequence was not the missing PR — it
+was that `Bench gate` never ran, because its triggers are `push` to `main` and
+`pull_request`, so 1 199 724 checks passed only on your laptop and the branch reached
+`main` with zero runner executions behind it. **A branch with no pull request is a branch
+with no CI: say so in bold, both places.**
 
 **Reports are the one exception: commit them straight to `main`, never to the branch.**
 
@@ -253,6 +291,12 @@ reason this rule exists.
   proven to fail is not a gate.
 - Standing checks whenever a production file changes: `python3 -m py_compile main.py`
   and `node --check` on the `<script>` block extracted from `index.html`.
+- **A local run is not a runner run, and the difference is reported, not glossed.** Say
+  which workflows executed on GitHub, with their conclusion, and which did not, with the
+  reason. "All benches green" is an incomplete sentence unless it names where.
+- **If no workflow executed at all, the report's `## Status` is PARTIAL**, however
+  complete the implementation is. The work is finished; the proof is not. The Architect
+  decides what to do about it — your job is to make the gap impossible to miss.
 
 ---
 
@@ -276,7 +320,8 @@ reason this rule exists.
 ## Pre-existing Issues
 ## Remaining Risks
 ## Commit
-## Pull Request             ← URL, CI conclusion, merge state
+## Pull Request             ← URL, or branch + compare URL if none exists (§8)
+## CI Execution             ← which workflows ran on a runner, conclusion; or none, and why
 ## Final Repository State
 ## Fingerprints             ← see below
 ```
@@ -368,6 +413,9 @@ created without a TZ that names it.
 | Production logic | `index.html`, `main.py` | you | branch + PR | live |
 | Benches | `bench/**` | you | branch + PR | live |
 | Workflows | `.github/workflows/**` | you | branch + PR | live |
+| Catalyst registry | `catalysts.json` | Architect (content) / you (schema) | branch + PR | live, one copy |
+| Journal code | `journal/write.js`, `journal/README.md` | you | branch + PR | live |
+| Journal records | `journal/data/**`, `journal/out/**`, `journal/runs.jsonl` | `journal.yml` | machine, direct to `main` | **permanent, immutable** |
 | Assets | `image.PNG`, `README.md` | you | branch + PR | live |
 | Hygiene | `.gitignore` | you | branch + PR | live |
 | Generated artifacts | `bench/_*`, `bench/cache/`, `__pycache__/` | — | tooling | ignored, never committed |
@@ -379,6 +427,14 @@ created without a TZ that names it.
   number. Deleting either destroys evidence.
 - Everything else is replaced in place or deleted only when a TZ names it under
   `Files to Delete`.
+- **`catalysts.json` is data the Architect owns and you maintain the shape of.** You
+  change its schema only when a TZ says so, and you never add, remove, re-date or
+  promote an entry to `confirmed` on your own judgement — a catalyst changes the
+  board's verdict, and invariant 39 puts that authority behind a source quorum, not
+  behind an implementer's reading of the news.
+- **A journal file, once written, is never reopened** (invariant 38). Not to append an
+  outcome, not to fix a typo, not to re-run a day. A re-run that finds an existing file
+  writes `dup` and exits zero. If a record is wrong, that is a finding for the report.
 - Hygiene is continuous, not periodic: leave no scratch file, no duplicate, no
   superseded copy behind at the end of a task. There is no cleanup sweep later, because
   a sweep is where evidence gets deleted by accident.
