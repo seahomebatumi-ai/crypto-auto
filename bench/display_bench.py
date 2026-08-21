@@ -164,7 +164,7 @@ NUM_RE = re.compile(r'(\d+)(?:\s*<span|</span>)')
 # QUEUE, not a trade recommendation, and 'Наблюдать' read as an instruction.
 TIER_WORDS = {
     'Сильный': (70, 101), 'Средний': (50, 70),
-    'Кандидат': (35, 50), 'Наблюдать': (-1, 35),
+    'Кандидат': (35, 50), 'Фон': (-1, 35),
 }
 
 
