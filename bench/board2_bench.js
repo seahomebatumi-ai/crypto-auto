@@ -22,6 +22,28 @@ function load(file) {
         console, Math, Date, JSON, parseFloat, parseInt, isFinite, isNaN };
     sb.window = sb; vm.createContext(sb);
     vm.runInContext(src, sb, { filename: file });
+    // TZ-07 scope B. The board is executed against the REAL registry from the
+    // checkout. There is no XMLHttpRequest in this sandbox, so production's own
+    // loader cannot run and CATALYSTS would stay {} — this bench would then
+    // validate a configuration that is not production (inv. 22, 40). Today that
+    // is invisible because every live entry is `disputed` and therefore vetoes
+    // nothing; the first `confirmed` entry would silently split the bench from
+    // the live board it was built to reproduce.
+    // The registry is read and validated by the one mechanism already written
+    // for exactly this, journal/write.js:loadCatalysts, and injected the same
+    // way it injects it: no second loader, no XHR stub. A missing or invalid
+    // file exits non-zero — an empty registry is the defect, not the recovery.
+    let cat;
+    try {
+        cat = require('../journal/write.js').loadCatalysts();
+    } catch (e) {
+        console.log('FAIL catalyst registry: ' + ((e && e.message) || e));
+        process.exit(1);
+    }
+    sb.CATALYSTS  = cat.items;
+    sb.CAT_LOADED = true;
+    sb.CAT_ERR    = null;
+    sb.catUpdated = cat.updated;
     return sb;
 }
 const P = load('index.html');
@@ -57,7 +79,14 @@ const C = [
   liqL:null, liqS:null, sc:61, tier:'mid', rr:null, conf:33, r2:0.22, rho:0.60, mdl:'red'}
 ];
 
-console.log('\n=== 1. Ликвидация 3X от прогноза (production liqPrice) ===');
+console.log('\n=== 0. Реестр катализаторов: паритет с продакшном ===');
+// Починка паритета, тихо съезжающая в {}, воспроизводит исходный дефект слоем
+// ниже, поэтому загруженный реестр проверяется, а не предполагается.
+ok('реестр не пуст', Object.keys(P.CATALYSTS).length > 0);
+console.log('  реестр: монет ' + Object.keys(P.CATALYSTS).length
+          + ', updated ' + (P.catUpdated || '-'));
+
+console.log('=== 1. Ликвидация 3X от прогноза (production liqPrice) ===');
 C.filter(c => c.liqL !== null).forEach(c => {
     near(c.s + ' liq LONG',  P.liqPrice(c.fcPx, 3, true),  c.liqL, Math.max(1e-4, c.liqL * 5e-4));
     near(c.s + ' liq SHORT', P.liqPrice(c.fcPx, 3, false), c.liqS, Math.max(1e-4, c.liqS * 5e-4));

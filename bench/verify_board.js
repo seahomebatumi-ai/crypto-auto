@@ -35,6 +35,28 @@ vm.runInContext(src, sandbox, { filename: 'index.html:<script>' });
 
 const P = sandbox;   // production namespace
 
+// TZ-07 scope B. The board is executed against the REAL registry from the
+// checkout. There is no XMLHttpRequest in this sandbox, so production's own
+// loader cannot run and CATALYSTS would stay {} — this bench would then
+// validate a configuration that is not production (inv. 22, 40). Today that is
+// invisible because every live entry is `disputed` and therefore vetoes
+// nothing; the first `confirmed` entry would silently split the bench from the
+// live board it was built to reproduce.
+// The registry is read and validated by the one mechanism already written for
+// exactly this, journal/write.js:loadCatalysts, and injected the same way it
+// injects it: no second loader, no XHR stub. A missing or invalid file exits
+// non-zero — falling back to an empty registry is the defect, not the recovery.
+let CAT;
+try {
+    CAT = require('../journal/write.js').loadCatalysts();
+} catch (e) {
+    console.log('FAIL catalyst registry: ' + ((e && e.message) || e));
+    process.exit(1);
+}
+sandbox.CATALYSTS  = CAT.items;
+sandbox.CAT_LOADED = true;
+sandbox.CAT_ERR    = null;
+
 let checks = 0, fails = 0;
 function near(name, got, want, tol) {
     checks++;
@@ -77,7 +99,14 @@ const CARDS = [
     fcPct:-0.0003, fcPx:0.3335, liqL:0.2265,  liqS:0.4405,  score:57, tier:'mid', rr:null }
 ];
 
-console.log('\n=== 1. Liquidation price, 3X, from forecast (production liqPrice) ===');
+console.log('\n=== 0. Catalyst registry parity with production ===');
+// A parity fix that silently degrades to {} reproduces the original defect one
+// layer down, so the loaded registry is asserted, not assumed.
+eq('registry non-empty', Object.keys(P.CATALYSTS).length > 0, true);
+console.log('  registry: ' + Object.keys(P.CATALYSTS).length + ' coins, updated '
+          + (CAT.updated || '-'));
+
+console.log('=== 1. Liquidation price, 3X, from forecast (production liqPrice) ===');
 CARDS.forEach(c => {
     near(c.s + ' liq LONG 3X',  P.liqPrice(c.fcPx, 3, true),  c.liqL, Math.max(1e-4, c.liqL * 5e-4));
     near(c.s + ' liq SHORT 3X', P.liqPrice(c.fcPx, 3, false), c.liqS, Math.max(1e-4, c.liqS * 5e-4));

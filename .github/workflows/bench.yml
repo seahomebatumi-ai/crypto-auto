@@ -7,15 +7,17 @@
 #   backtest_bench.py  — нужен архив/кэш, обслуживается backtest_bench.yml
 #   badge_bench.js     — читает index.html.prev, которого в репозитории нет
 #   clean_bench.py     — требует два позиционных HTML (before/after), их нет
-#   display_bench.py   — красный на текущем index.html (устаревший формат бейджа)
-#   render_bench.py    — красный по той же причине
 #   direction_bench.py --identity  — читает orig.html, которого нет
-#   direction_bench.py --display   — красный по той же причине, что display_bench
 name: Bench gate
 
 on:
   push:
-    branches: [ main ]
+    # ТЗ-07 §6. Ветка без pull request исполняла ворота НИ РАЗУ: триггеры были
+    # `push` в main и `pull_request`, и 1 199 724 проверки ТЗ-06 не прошли ни
+    # на одном раннере до слияния. `claude/**` закрывает ровно эту дыру.
+    # Шире (`'**'`) не берём сознательно: суточные коммиты журнала уже
+    # отсечены paths-ignore, а лишние ветки — это минуты раннера без покрытия.
+    branches: [ main, 'claude/**' ]
     # Журнал коммитит СВОИ данные в main раз в сутки (journal.yml). Гонять по
     # ним весь набор стендов не за чем: ни одна строка кода при этом не
     # меняется. Стенд самого журнала при правке journal/write.js всё равно
@@ -65,7 +67,8 @@ jobs:
       - name: Офлайн-набор для --verify (verify_bench.py)
         run: python3 bench/verify_bench.py
 
-      # --identity и --display исключены намеренно, причины в шапке файла.
+      # --identity исключён намеренно, причина в шапке файла. --display с ТЗ-07
+      # стоит в воротах отдельным шагом ниже.
       - name: Движок направления (direction_bench.py)
         run: python3 bench/direction_bench.py --props --fixtures --control --sim
 
@@ -87,3 +90,21 @@ jobs:
       - name: Слой катализаторов (catalyst_bench.js)
         shell: bash -euo pipefail {0}
         run: node bench/catalyst_bench.js
+
+      # ТЗ-07 §5. Контракт отображения (инв. 33, 34) — самый видимый Боссу и
+      # переписанный дважды за два дня после двух живых ошибок чтения — не имел
+      # ни одного исполняющегося контроля: все три стенда стояли вне ворот как
+      # «красные на текущем index.html». Красными они были на УСТАРЕВШИХ
+      # ожиданиях редакции 19.08 (3), а не на дефекте продукта; ожидания
+      # приведены к действующему контракту, и стенды встают в ворота.
+      - name: Бейдж и нумерация карточек (display_bench.py)
+        shell: bash -euo pipefail {0}
+        run: python3 bench/display_bench.py
+
+      - name: Отрисовка списка целиком (render_bench.py)
+        shell: bash -euo pipefail {0}
+        run: python3 bench/render_bench.py
+
+      - name: Отображение и порядок (direction_bench.py --display)
+        shell: bash -euo pipefail {0}
+        run: python3 bench/direction_bench.py --display

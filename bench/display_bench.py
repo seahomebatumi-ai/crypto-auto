@@ -150,12 +150,21 @@ def make_cases(n_cases=400, seed=20260819):
     return cases
 
 
-RANK_RE = re.compile(r'>#(\d+) ')
+# Badge layout, invariants 33-34, edition 20.08.2026:
+#     <tier> [#<no>] \u2014 <round(score)><glyph>
+# The rank sits AFTER the tier word and before the em dash. The earlier
+# expectation r'>#(\d+) ' encoded the 19.08 (3) layout, in which the number came
+# first; invariant 34 reversed that on the same day and the expectation was
+# never updated. Anchoring on the em dash keeps the '#888' of the inline colour
+# out of the match: there a semicolon follows the digits, never ' \u2014 '.
+RANK_RE = re.compile(r'#(\d+) \u2014 ')
 NUM_RE = re.compile(r'(\d+)(?:\s*<span|</span>)')
 
+# Lowest tier is 'Фон', not 'Наблюдать': the tier word names the ATTENTION
+# QUEUE, not a trade recommendation, and 'Наблюдать' read as an instruction.
 TIER_WORDS = {
     'Сильный': (70, 101), 'Средний': (50, 70),
-    'Кандидат': (35, 50), 'Наблюдать': (-1, 35),
+    'Кандидат': (35, 50), 'Фон': (-1, 35),
 }
 
 
@@ -240,7 +249,7 @@ def check(res, cases, legacy=False):
                                  (ci, r['name']))
     # ---- E. tiers -------------------------------------------------------
     want = ['Сильный', 'Сильный', 'Средний', 'Средний', 'Кандидат',
-            'Кандидат', 'Наблюдать', 'Наблюдать']
+            'Кандидат', 'Фон', 'Фон']
     for got, w in zip(res['tiers'], want):
         checks += 1
         if got['n'] != w:
@@ -279,6 +288,16 @@ def main():
         print(legacy_note)
     for f in fails[:25]:
         print('  FAIL', f)
+    # Invariant 22: a validator that passes with no data is a failed validator.
+    # Required before this bench may stand in the gate (contract 7.12): a green
+    # that compared nothing is exactly the state this TZ exists to remove.
+    # The tier probes of block E are fixed in number and would keep `checks`
+    # positive on an empty case set, so the ROWS compared are counted too.
+    compared = sum(len(out) for out in res['rows'])
+    print('display_bench: %d card rows compared' % compared)
+    if checks == 0 or compared == 0:
+        print('  FAIL bench compared nothing')
+        return 1
     return 1 if fails else 0
 
 

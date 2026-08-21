@@ -38,6 +38,28 @@ function loadFront(file) {
     ctx.globalThis = ctx;
     vm.createContext(ctx);
     vm.runInContext(src, ctx, { filename: file });
+    // TZ-07 scope B. The board is executed against the REAL registry from the
+    // checkout. There is no XMLHttpRequest in this sandbox, so production's own
+    // loader cannot run and CATALYSTS would stay {} — this bench would then
+    // validate a configuration that is not production (inv. 22, 40). Today that
+    // is invisible because every live entry is `disputed` and therefore vetoes
+    // nothing; the first `confirmed` entry would silently split the bench from
+    // the live board it was built to reproduce.
+    // The registry is read and validated by the one mechanism already written
+    // for exactly this, journal/write.js:loadCatalysts, and injected the same
+    // way it injects it: no second loader, no XHR stub. A missing or invalid
+    // file exits non-zero — an empty registry is the defect, not the recovery.
+    var cat;
+    try {
+        cat = require('../journal/write.js').loadCatalysts();
+    } catch (e) {
+        console.log('FAIL catalyst registry: ' + ((e && e.message) || e));
+        process.exit(1);
+    }
+    ctx.CATALYSTS  = cat.items;
+    ctx.CAT_LOADED = true;
+    ctx.CAT_ERR    = null;
+    ctx.catUpdated = cat.updated;
     return ctx;
 }
 
@@ -413,6 +435,13 @@ var candidate = process.argv[2] || 'index.html';
 var baseline = process.argv[3] || null;
 var nu = loadFront(candidate);
 var old = baseline ? loadFront(baseline) : null;
+
+// A parity fix that silently degrades to {} reproduces the original defect one
+// layer down, so the loaded registry is asserted, not assumed.
+ok('catalyst registry non-empty', Object.keys(nu.CATALYSTS).length > 0,
+   Object.keys(nu.CATALYSTS).length + ' coins');
+notes.push('registry: ' + Object.keys(nu.CATALYSTS).length + ' coins, updated '
+         + (nu.catUpdated || '-'));
 
 suiteRender(nu, 'candidate');
 if (old) {
