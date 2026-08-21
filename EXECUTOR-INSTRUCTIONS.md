@@ -1,6 +1,6 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 4.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 5.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated in
 TZ files and the Boss will not repeat it in chat.
 
@@ -64,6 +64,25 @@ Therefore, **before you can say a TZ is missing, you must have fetched.**
 the Boss's upload is a commit made after that snapshot. TZ-02 was reported missing while
 sitting on `origin/main` two commits ahead of the clone, and the session stalled on a
 file that was already there. **"Not in my working tree" is not "not in the repository."**
+
+**Fetching is not enough — the clone may also be shallow.** `git fetch --all --prune`
+brings branches up to date; it does not deepen a truncated history. Run
+`git rev-parse --is-shallow-repository` and, if it prints `true`, run
+`git fetch --unshallow` before assessing anything historical. A shallow clone with 78
+commits hid 39 revisions of `.github/workflows/main.yml` and produced a confident, wrong
+finding that was committed to `main` and acted on: a cron the Boss had deliberately
+removed in June was restored on the strength of it. **"Not in my truncated history" is
+not "never existed."**
+
+Two habits follow, and both are binding:
+
+- **Challenge a suspiciously small result before building on it.** Two commits for a
+  two-month-old workflow with 1300+ runs was the tell, and it was not questioned. If a
+  count is smaller than the artifact's own evidence implies, verify the clone before
+  you verify the claim.
+- **Never rely on `git log --follow` alone in this repository.** `main.yml` was deleted
+  and recreated, which breaks `--follow`'s rename chain independently of clone depth.
+  Use `git log --all -- <path>` on a complete clone.
 
 Look in this order, after fetching: `CryptoTZ/` on `origin/main`, then the repository
 root, then every other branch. Only when all three are empty is the TZ genuinely absent

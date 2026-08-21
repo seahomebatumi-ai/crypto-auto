@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import sys
 import numpy as np
 import requests
 from datetime import datetime, timezone, timedelta
@@ -349,12 +350,26 @@ def get_token_betas(coin_id, btc_buckets, cutoff_14d):
 # ============================================================
 # Главный прогон
 # ============================================================
+def run_line(status, path, generated_at, results):
+    # One grep-able line per run, so a workflow log can be audited from the
+    # outside: '<status> <path> generated_at=<iso> coins=<n> errors=<n_err>'.
+    # generated_at is '-' when the run died before that timestamp was taken.
+    n_err = sum(1 for row in results if row.get("error"))
+    return (f"{status} {path} generated_at={generated_at or '-'} "
+            f"coins={len(results)} errors={n_err}")
+
+
 def main():
+    # Bound before the try so the failure paths can report whatever the run
+    # had reached; both are reassigned in place below, values unchanged.
+    generated_at = None
+    results = []
     try:
         b_data, err = fetch_with_retry('bitcoin')
         if b_data is None:
             print(f"Критическая ошибка BTC: {err}")
-            return
+            print(run_line("FAIL", "btc", generated_at, results))
+            return 2
 
         btc_buckets  = bucket_prices(b_data['prices'])
         cutoff_14d   = int((time.time() - 14 * 24 * 3600) * 1000 // (BUCKET_SECONDS * 1000))
@@ -476,10 +491,16 @@ def main():
         )
         if not r.ok:
             print(f"Ошибка Gist: {r.status_code} {r.text}")
+            print(run_line("FAIL", "gist", generated_at, results))
+            return 3
+
+        print(run_line("OK", "coeffs", generated_at, results))
 
     except Exception as e:
         print(f"Критическая ошибка: {e}")
+        print(run_line("FAIL", "exception", generated_at, results))
+        return 4
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

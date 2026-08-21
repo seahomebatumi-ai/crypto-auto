@@ -744,6 +744,13 @@ var sliderInitialized = false;
 var GIST_URL       = 'https://gist.githubusercontent.com/seahomebatumi-ai/3f50574a29bc37434c18cc8480779ccb/raw/coeffs.json';
 var STALE_WARN_MIN = 75;
 var STALE_CRIT_MIN = 130;
+// Темп обновления задаёт Shortcuts на iPhone, cron'а нет (§1 карты): плановые
+// прогоны идут раз в час с 09:00 до 01:50 локальных. С 02:00 до 09:00 плановых
+// прогонов НЕТ, возраст данных растёт штатно, и сравнивать его со STALE_* в это
+// окно бессмысленно — красный в 04:00 говорил о расписании, а не о сбое.
+var SCHED_FIRST_H = 9;    // первый плановый прогон Shortcuts, локальное время
+var SCHED_LAST_H  = 1;    // последний плановый прогон — 01:50
+var SCHED_LAST_M  = 50;
 
 var tokens = [
     {name:'SUI',    s:'SUIUSDT'},   {name:'ONDO',   s:'ONDOUSDT'},
@@ -876,6 +883,29 @@ function refreshFuturesTickers() {
     });
 }
 
+// Чистая функция: ни DOM, ни собственного чтения часов внутри — состояние
+// считается только из возраста данных и переданного момента. Вынесена тем же
+// приёмом, что tierBadge / stateMark / verdictNote, чтобы стенд исполнял именно
+// продакшн-правило, не подменяя глобальные часы (инв. 21, bench/fresh_bench.js).
+//
+// Внутри ночного окна возраст сверяется не со STALE_*, а с последним ПЛАНОВЫМ
+// прогоном 01:50: допуск прощает ровно один пропущенный час, два пропущенных
+// снова дают красный. Что именно пропало за одну ночную дырку, разбирается по
+// журналу прогона (строка OK/FAIL бота), а не по бейджу.
+function freshnessState(ageMin, now) {
+    var mins = Math.max(0, Math.round(ageMin));
+    var h    = now.getHours();
+    if (h >= 2 && h < SCHED_FIRST_H) {
+        var expectedMin = (h - SCHED_LAST_H) * 60 + (now.getMinutes() - SCHED_LAST_M);
+        if (ageMin <= expectedMin + STALE_WARN_MIN) {
+            return { kind: 'pause', mins: mins };
+        }
+    }
+    if (ageMin > STALE_CRIT_MIN) return { kind: 'crit', mins: mins };
+    if (ageMin > STALE_WARN_MIN) return { kind: 'warn', mins: mins };
+    return { kind: 'ok', mins: mins };
+}
+
 function updateFreshnessDisplay() {
     var el = document.getElementById('last-update');
     if (!el) return;
@@ -884,15 +914,21 @@ function updateFreshnessDisplay() {
         el.style.color = 'var(--red)';
         return;
     }
+    var nowDate = new Date();
     var genDate = new Date(botData.generated_at);
-    var ageMin  = (Date.now() - genDate.getTime()) / 60000;
-    var mins    = Math.max(0, Math.round(ageMin));
-    if (ageMin > STALE_CRIT_MIN) {
+    var ageMin  = (nowDate.getTime() - genDate.getTime()) / 60000;
+    var st      = freshnessState(ageMin, nowDate);
+    var mins    = st.mins;
+    if (st.kind === 'crit') {
         el.innerText   = '! Молчит ' + mins + ' мин';
         el.style.color = 'var(--red)';
-    } else if (ageMin > STALE_WARN_MIN) {
+    } else if (st.kind === 'warn') {
         el.innerText   = 'Обновлено ' + mins + ' мин';
         el.style.color = 'var(--accent)';
+    } else if (st.kind === 'pause') {
+        el.innerText   = '\u041F\u0430\u0443\u0437\u0430 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F \u00B7 '
+                       + mins + ' \u043C\u0438\u043D';
+        el.style.color = '#888';
     } else {
         el.innerText   = ageMin < 1 ? 'Обновлено сейчас' : 'Обновлено ' + mins + ' мин';
         el.style.color = '#888';
