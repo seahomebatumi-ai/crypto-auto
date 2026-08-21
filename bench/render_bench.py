@@ -271,9 +271,16 @@ def badges(html):
     return out
 
 
-NUM_RE = re.compile(r'^(?:#(\d+)\s+)?(\S+)\s+(\d+)')
+# Badge layout, invariants 33-34, edition 20.08.2026:
+#     <tier> [#<no>] \u2014 <round(score)><glyph>
+# The rank sits AFTER the tier word and before the em dash. The earlier
+# expectation put it first, which was the 19.08 (3) layout; invariant 34
+# reversed that on the same day and the expectation was never updated. The
+# lowest tier word is 'Фон', not 'Наблюдать': the word names the ATTENTION
+# QUEUE, not a trade recommendation.
+NUM_RE = re.compile(r'^(\S+)(?: #(\d+))? \u2014 (\d+)')
 TIER_WORDS = {'Сильный': (70, 1e9), 'Средний': (50, 70),
-              'Кандидат': (35, 50), 'Наблюдать': (-1, 35)}
+              'Кандидат': (35, 50), 'Фон': (-1, 35)}
 
 
 def js_round(x):
@@ -328,7 +335,7 @@ def audit(rec):
         if not m:
             fails.append('%s: unparsable badge %r' % (rec['name'], txt))
             continue
-        no, word, val = m.group(1), m.group(2), int(m.group(3))
+        word, no, val = m.group(1), m.group(2), int(m.group(3))
         if r['off']:
             if no is not None:
                 fails.append('%s: off row %s shows rank' % (rec['name'], r['name']))
@@ -424,6 +431,11 @@ def main():
           % (len(recs), total, len(fails)))
     for f in fails[:20]:
         print('  FAIL', f)
+    # Invariant 22: a validator that passes with no data is a failed validator.
+    # Required before this bench may stand in the gate (contract 7.12).
+    if total == 0:
+        print('  FAIL bench compared nothing')
+        return 1
     return 1 if fails else 0
 
 

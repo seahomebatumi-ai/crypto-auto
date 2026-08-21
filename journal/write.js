@@ -411,17 +411,48 @@ function createJournal(opts) {
 
         const lines = [];
         let cov = 0, skip = 0, hardSkip = 0;
+        // Активы fut:true, у которых спот-зеркало оказалось ЖИВЫМ.
+        const alive = [];
 
         P.tokens.forEach(function (t) {
             const coin = prices.px[t.s] || null;
+
+            // Объявленная площадка проверяется ПЕРВОЙ (карта §3.14).
+            // `fut:true` — это ОБЪЯВЛЕНИЕ Босса, а не наблюдение: XMR,
+            // LIT и HYPE торгуются только на фьючерсах, поэтому пропуск
+            // по ним — ОБЪЯВЛЕННОЕ покрытие, а не найденный сбой, в какой
+            // бы форме он ни пришёл. До этой правки делистнутая, но всё
+            // ещё отдаваемая зеркалом строка XMRUSDT/LITUSDT падала в
+            // ветку «dead market» и поднимала hardSkip — то есть status читался
+            // `partial` каждый день на ЗДОРОВОЙ системе, а поле, кричащее
+            // «деградация» безусловно, не несёт информации вовсе.
+            // Причина при этом ИЗМЕРЯЕТСЯ, а не предполагается (инв. 37):
+            // три разные строки различают «пары нет», «строка мертва» и
+            // «строка ЖИВА».
+            if (t.fut) {
+                let why;
+                if (!coin) {
+                    why = 'futures-only: no spot mirror pair';
+                } else if (coin.count === 0 || (coin.bidPrice === 0 && coin.askPrice === 0)) {
+                    why = 'futures-only: delisted spot mirror row';
+                } else {
+                    // Живая спот-пара у fut:true актива противоречит объявлению
+                    // §3.14 и обязана дойти до runs.jsonl. Тихим «нормально» она
+                    // пройти не имеет права; релистинг — решение по tokens[],
+                    // и его принимает Архитектор, а никак не журнал.
+                    why = 'futures-only: spot mirror row unexpectedly alive';
+                    alive.push(t.name);
+                }
+                lines.push(skipLine(d, t.name, why));
+                skip++; return;
+            }
 
             // Деградация — ровно как у доски (инв. 11–12, §5.5). Порядок
             // проверок тот же, что в update(): пара, мёртвый рынок, строка
             // бота, флаг ошибки.
             if (!coin) {
-                lines.push(skipLine(d, t.name,
-                    t.fut ? 'futures-only: no spot mirror pair' : 'no price data'));
-                skip++; if (!t.fut) hardSkip++; return;
+                lines.push(skipLine(d, t.name, 'no price data'));
+                skip++; hardSkip++; return;
             }
             if (coin.count === 0 || (coin.bidPrice === 0 && coin.askPrice === 0)) {
                 lines.push(skipLine(d, t.name, 'dead market')); skip++; hardSkip++; return;
@@ -459,7 +490,7 @@ function createJournal(opts) {
         });
 
         return { lines: lines, cov: cov, skip: skip, hardSkip: hardSkip,
-                 gen: gen, age: age, src: prices.src };
+                 alive: alive, gen: gen, age: age, src: prices.src };
     }
 
     // Пробелы §4.4: пропущенная дата — СТРОКА, а не отсутствие строки (инв. 37).
@@ -528,6 +559,11 @@ function createJournal(opts) {
         if (day.age !== null && day.age > P.STALE_CRIT_MIN) {
             notes.push('возраст coeffs ' + day.age + ' мин > STALE_CRIT_MIN ' + P.STALE_CRIT_MIN);
         }
+        // Строка ровно та, что задана ТЗ-07 §3.2, и по одной на символ:
+        // аномалия обязана быть читаемой в runs.jsonl без расшифровки.
+        day.alive.forEach(function (sym) {
+            notes.push('fut:true asset trading on spot: ' + sym);
+        });
         run.note = notes.length ? notes.join('; ') : null;
 
         const wrote = writeOnce(target, text);

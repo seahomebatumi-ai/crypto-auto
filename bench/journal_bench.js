@@ -575,6 +575,86 @@ async function section6() {
     eq('свечи: cnt = сумма сделок 24 свечей', l9.px.cnt, kw.reduce(function (a, c) { return a + Number(c[8]); }, 0));
 }
 
+// ── 6a. Объявленная площадка: три формы одного и того же пропуска ───────────
+// ТЗ-07 §3. `fut:true` — объявление Босса (карта §3.14), а не наблюдение,
+// поэтому пропуск по такому активу есть ОБЪЯВЛЕННОЕ покрытие и жёстким
+// пропуском не считается НИ В ОДНОЙ из трёх форм. Причина при этом
+// измеряется: три разные строки, а не одна общая (инв. 37).
+
+const FUT = P.tokens.filter(function (t) { return t.fut; });
+const NO_PAIR  = 'futures-only: no spot mirror pair';
+const DELISTED = 'futures-only: delisted spot mirror row';
+const ALIVE    = 'futures-only: spot mirror row unexpectedly alive';
+
+async function section6a() {
+    console.log('=== 6a. fut:true — объявленное покрытие, а не сбой ===');
+    const now = Date.parse('2026-07-02T13:00:07Z');
+    ok('fut:true активов ровно три', FUT.length === 3);
+
+    // 6a.1 Здоровый день: спот-зеркала у fut-пар нет вовсе.
+    let root = track(tmp('fut1'));
+    let r = await journal(root, makeDay(621, {}), now).snapshot({});
+    eq('нет пары: строка', whyCount(r, NO_PAIR), FUT.length);
+    eq('нет пары: делистнутых нет', whyCount(r, DELISTED), 0);
+    eq('нет пары: живых нет', whyCount(r, ALIVE), 0);
+    eq('нет пары: статус ok', r.run.status, 'ok');
+    eq('нет пары: cov', r.run.cov, P.tokens.length - FUT.length);
+    eq('нет пары: skip', r.run.skip, FUT.length);
+    eq('нет пары: note пуст', r.run.note, null);
+
+    // 6a.2 Зеркало отдаёт ДЕЛИСТНУТУЮ строку: count = 0.
+    // Ровно этот случай делал status `partial` каждый день: строка уходила
+    // в ветку «dead market», а та поднимает hardSkip.
+    root = track(tmp('fut2'));
+    r = await journal(root, makeDay(622, { futOk: true, dead: FUT[0].s }), now).snapshot({});
+    eq('делистнутая строка: строка', whyCount(r, DELISTED), 1);
+    eq('делистнутая строка: НЕ dead market', whyCount(r, 'dead market'), 0);
+    eq('делистнутая строка: статус ok', r.run.status, 'ok');
+    eq('делистнутая строка: cov', r.run.cov, P.tokens.length - FUT.length);
+
+    // 6a.3 Пустой стакан у fut-пары — та же ветка, что count = 0.
+    root = track(tmp('fut3'));
+    r = await journal(root, makeDay(623, { futOk: true, book: FUT[1].s }), now).snapshot({});
+    eq('пустой стакан у fut: делистнутая строка', whyCount(r, DELISTED), 1);
+    eq('пустой стакан у fut: НЕ dead market', whyCount(r, 'dead market'), 0);
+    eq('пустой стакан у fut: статус ok', r.run.status, 'ok');
+
+    // 6a.4 Спот-пара fut:true актива ЖИВА. Тихо «нормально» пройти не имеет
+    // права: пропуск записывается, hardSkip не растёт, аномалия уходит в
+    // runs.jsonl отдельной строкой на каждый символ.
+    root = track(tmp('fut4'));
+    r = await journal(root, makeDay(624, { futOk: true }), now).snapshot({});
+    eq('живая пара: строка', whyCount(r, ALIVE), FUT.length);
+    eq('живая пара: статус ok', r.run.status, 'ok');
+    eq('живая пара: cov', r.run.cov, P.tokens.length - FUT.length);
+    eq('живая пара: skip', r.run.skip, FUT.length);
+    FUT.forEach(function (t) {
+        ok('живая пара: note называет ' + t.name,
+           (r.run.note || '').indexOf('fut:true asset trading on spot: ' + t.name) >= 0);
+    });
+
+    // 6a.5 Все три формы в ОДНОМ прогоне: пары нет, строка мертва, строка жива.
+    root = track(tmp('fut5'));
+    r = await journal(root, makeDay(625, { futOk: true, dead: FUT[0].s, drop: FUT[1].s }), now).snapshot({});
+    eq('три формы: нет пары', whyCount(r, NO_PAIR), 1);
+    eq('три формы: делистнута', whyCount(r, DELISTED), 1);
+    eq('три формы: жива', whyCount(r, ALIVE), 1);
+    eq('три формы: статус ok', r.run.status, 'ok');
+    eq('три формы: skip', r.run.skip, FUT.length);
+    eq('три формы: note ровно про живую',
+       r.run.note, 'fut:true asset trading on spot: ' + FUT[2].name);
+
+    // 6a.6 Контроль §3.3: спотовый путь не тронут. Мёртвая СПОТОВАЯ пара
+    // по-прежнему жёсткий пропуск, и статус обязан упасть в partial —
+    // иначе правка съела бы ту самую деградацию, ради которой поле живёт.
+    const spot0 = P.tokens.filter(function (t) { return !t.fut; })[0];
+    root = track(tmp('fut6'));
+    r = await journal(root, makeDay(626, { futOk: true, dead: spot0.s }), now).snapshot({});
+    eq('спот мёртв: dead market', whyCount(r, 'dead market'), 1);
+    eq('спот мёртв: статус partial', r.run.status, 'partial');
+    eq('спот мёртв: живые fut на статус не влияют', whyCount(r, ALIVE), FUT.length);
+}
+
 // ── 7. Соответствие схеме ───────────────────────────────────────────────────
 
 const REQ = {
@@ -585,7 +665,10 @@ const REQ = {
     oh: ['k','d','h','asof','src','btc'],
     o: ['k','d','h','sym','p0','p1','hi','lo','long','short']
 };
-const WHYS = ['futures-only: no spot mirror pair', 'no price data', 'bot error flag',
+const WHYS = ['futures-only: no spot mirror pair',
+              'futures-only: delisted spot mirror row',
+              'futures-only: spot mirror row unexpectedly alive',
+              'no price data', 'bot error flag',
               'no bot row', 'dead market', 'no metrics'];
 const STATUSES = ['ok', 'partial', 'dup', 'fail'];
 const seenWhy = {}, seenK = {};
@@ -860,6 +943,7 @@ function section10() {
     await section4();
     await section5();
     await section6();
+    await section6a();
     await section8();
     await section9();
     section7();
