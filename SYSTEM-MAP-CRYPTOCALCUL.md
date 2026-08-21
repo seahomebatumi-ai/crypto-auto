@@ -1,7 +1,7 @@
 # SYSTEM_MAP — Pro Crypto Tool
 
 Единый источник правды. Сверяться ПЕРЕД любой правкой кода и при интерпретации метрик.
-Актуально на 19.08.2026 (движок направления §3.12 + третья редакция отображения: рейтинг на каждой карточке, глиф состояния, инв. 33–34); прежняя опора — 14.08.2026 (аналитический слой ЗАКРЫТ §10 + §3.10b «потолок разрешения» + §3.10c «следующие ворота»; `--verify` §3.10; чистка мёртвого CSS §9; блок «ЗАЩИТА ПОЗИЦИИ» §3.11); прежняя редакция — (жёсткий потолок риска маржи §3.4, доска CRYPTO FUTURE, движок плеча на трёх потолках, размер в монетах, якорь прокрутки, «ШОРТ СОЗРЕЕТ, КОГДА», остаток к BTC `res7`).
+Актуально на 22.08.2026 (ТЗ-05 и ТЗ-06 в проде: журнал вердиктов §3.13 пишется ежедневно, реестр катализаторов вынесен в `catalysts.json` §3.15, площадка активов зафиксирована §3.14, инв. 39–40; карта пересобрана — §3.10 встал в номерной порядок, инварианты 1–40 идут по возрастанию); прежняя опора — 19.08.2026 (движок направления §3.12 + третья редакция отображения: рейтинг на каждой карточке, глиф состояния, инв. 33–34); ранее — 14.08.2026 (аналитический слой ЗАКРЫТ §10 + §3.10b «потолок разрешения» + §3.10c «следующие ворота»; `--verify` §3.10; чистка мёртвого CSS §9; блок «ЗАЩИТА ПОЗИЦИИ» §3.11); прежняя редакция — (жёсткий потолок риска маржи §3.4, доска CRYPTO FUTURE, движок плеча на трёх потолках, размер в монетах, якорь прокрутки, «ШОРТ СОЗРЕЕТ, КОГДА», остаток к BTC `res7`).
 
 > **Language rule (project instructions V9, in force from 11.08.2026):** new
 > sections of this map and new code comments are written in ENGLISH. Sections
@@ -26,6 +26,19 @@ iPhone Shortcuts → `workflow_dispatch` → GitHub Actions → Python-бот �
 нет, `coeffs.json` штатно стареет до ~7 часов, и `STALE_CRIT` (130 мин) загорается
 КАЖДУЮ ночь при полностью исправной системе. Отсюда инв. 4: «расписание спит» и
 «обновление не пришло» — разные состояния, и путать их нельзя.
+
+**Второй регулярный прогон — журнал вердиктов** (`journal.yml`, 13:00 UTC, §3.13).
+Он не ходит в CoinGecko вовсе: читает готовый Gist и цены с зеркала
+`data-api.binance.vision`, исполняет продакшн-функции из `index.html` и дописывает
+суточную запись. На бюджет вызовов CoinGecko не влияет.
+
+**Третий файл на раздаче Pages — `catalysts.json`** (§3.15), лежит рядом с
+`index.html` и читается фронтом обычным XHR при загрузке. Ботом он не пишется и
+в Gist не попадает: это ручной реестр событий, единственный внешний ввод движка
+направления. Не загрузился — слой гаснет с баннером, доска живёт (инв. 40).
+
+**Площадка активов зафиксирована (§3.14):** 25 монет — Binance Spot, три —
+**XMR, LIT, HYPE** — Binance Futures только.
 
 Файлы Gist:
 - `coeffs.json` — generated_at + `btc` (min/max/price_pos/volatility + **r7/r14/r30**) + analysis_data[] (в т.ч. `rank`, `rank_prev`, `fdv_mc`)
@@ -249,6 +262,345 @@ R² клипуется в [0, RES_R2_CAP],  RES_R2_CAP = 0.90 — защита �
 `RES_Z` и `RES_R2_CAP` читаются РОВНО в одном месте — `residual7()`; карточка и доска берут готовый вердикт (инв. 20).
 
 *Историческая пометка:* в комментариях фронта функция помечена «§10 п.1» — номер пункта очереди, под которым она жила до 10.08. Пункт закрыт, **номер 1 в §10 перешёл к бэктесту** — ссылка в коде историческая и по ней теперь ведёт не туда. Чистить комментарии отдельным диффом смысла нет, но при чтении кода это надо помнить.
+
+### 3.10 Стенд бэктеста скоринга — `bench/backtest_bench.py`
+
+Отдельный файл, продакшн не трогает. Отвечает на один вопрос: сортирует ли
+`scoreCandidate` монеты лучше жребия.
+
+**Устройство.** Ноль копий продакшн-математики. При каждом запуске стенд
+вырезает `scoreCandidate` + `has/clamp01/sigmaDay/volRegime` + `EFF_TREND/
+PACE_Z/VOL_ABNORMAL` прямо из `index.html` и исполняет настоящим node; поля
+`cur/min/max/volatility/r7/r14/r30/vol7/eff14/vol_ratio` считает блоком,
+вырезанным через AST из `get_token_betas` в `main.py`, вместе с
+`window_stats/window_vol/volume_expansion`. Правка любого из двух файлов
+меняет стенд автоматически.
+
+**Данные.** Архив `data.binance.vision` (месячные ZIP, 3 года часовых свечей),
+хвост добирается зеркалом `data-api.binance.vision`. Список пар — из
+`tokens[]` фронта, разбирается через node.
+
+**Метрика.** Цель — избыточная доходность к среднему по списку: счёт решает
+«какую из 28 взять», а не «куда пойдёт рынок». IC = ранговая связь счёта с
+будущим по каждой дате, среднее по датам, ДИ блочным бутстрапом. Плюс ТОП-3
+против среднего, худшая просадка внутри окна по третям счёта и три контроля:
+перемешанный счёт, «только близость к мин90», «только r7».
+
+**Режимы запуска:** `--probe` (доступность источников, 20 с) · `--selftest`
+(офлайн, синтетика с известным ответом) · `--fetch` · `--verify` (сверка с
+живым `coeffs.json`) · `--run` · `--regimes`.
+
+**`--verify` — единственный режим, способный ошибиться в ОПАСНУЮ сторону**, то
+есть напечатать «совпадает» там, где не совпало или не сверялось. Правила
+режима, закрытые тестами (`bench/verify_bench.py`, 29 проверок, сеть не нужна):
+
+| Правило | Зачем |
+|---|---|
+| Мера выбирается по ТИПУ поля: уровни `rel` (%), доходности `pp` (проц. пункты), `eff14` `abs` | относительная ошибка на поле, пересекающем ноль, бессмысленна: `r14` = 0.001 против 0.0155 печаталось как 1449 % при реальном расхождении 1.4 пункта |
+| Код возврата ненулевой при любом провале | прежде был всегда 0: `verify_against_live` ничего не возвращала, и `sys.exit(main() or 0)` давал ноль даже под надписью «ВЫШЛИ ЗА ПОРОГ». В шаге workflow упавшая сверка выглядела зелёной — тот же класс, что инв. 25 |
+| Считаются сверки ПО КАЖДОМУ ПОЛЮ, не только монеты | поле, которого нет в живом `coeffs.json` ни у одной монеты, сравнивалось ноль раз, оставляло `worst = 0.0` и проходило порог. Инвариант 22 на уровень ниже: сначала посчитать сравнения, потом судить |
+| Поля, не сравнимые из-за разрыва во времени, названы в вердикте | «совпадает» без оговорки печаталось и тогда, когда четыре поля из одиннадцати не сверялись вовсе. Разрыв — штатное состояние архива (он отстаёт ~сутки), поэтому шаг не падает, но и полного согласия не заявляет |
+| Файлы кэша с `_` в начале пропускаются | `--run --quality-const` штатно хранит `_quality_today.json` в том же каталоге; чтение `["prices"]` из него роняло всю сверку с `KeyError` |
+
+**`--selftest` ниже десяти посевов даёт ЛОЖНУЮ тревогу** и это ожидаемо:
+нулевой мир признаётся чистым по условию `|IC| < SE` одного прогона, а на
+двух посевах среднее ещё не устоялось. Ошибка направлена в безопасную
+сторону (стенд объявляет себя неисправным, а не здоровым). Судить по
+десяти посевам, как и заложено по умолчанию.
+
+**Самопроверка обязательна перед доверием к цифрам.** Три мира: чистое
+блуждание (эталонный фактор обязан дать 0), возврат к среднему (+), импульс
+(−); по 10 посевов, потому что при SE(IC) ≈ 0.03 один посев уходит на 2 SE
+примерно в каждом двадцатом прогоне. Плюс проверка на отсутствие взгляда в
+будущее: запись на дату t из полного ряда обязана побайтово совпасть с
+записью из ряда, обрезанного по t.
+
+
+### 3.10a Experiment lab — three pre-registered measurements (12.08.2026)
+
+Additive modes of `bench/backtest_bench.py`; production untouched. Rules
+registered BEFORE any real data (inv. 23). One PRIMARY claim per experiment;
+every other cell is exploration at the doubled bar the regime study set
+(|IC| >= 0.10, CI99). Multiplicity is named: three primaries in one session,
+so any single positive at 0.05 carries a family-wise caveat in its verdict
+line. **A positive primary wires NOTHING into the product by itself: the
+standing gate is a fresh confirmation run after +26 weeks of new data.**
+
+**A. `--stops` — honesty of the invalidation layer.** Per (weekly date, coin,
+side): production `invalidationInfo` gives the stop; the next 7d of exchange
+high/low decide whether it was TOUCHED; production `touchProb` gives the model
+figure for the same barrier. PRIMARY: pooled per-side calibration ratio
+measured/model. CI95 contains 1.0 → normal model honest at 7d; lower bound
+> 1.0 → tails heavier, board probabilities understate — record the multiplier
+in §7; upper bound < 1.0 → model errs safe, no action. Hit and whipsaw rates
+(touched, then back at entry within 7d AFTER the touch) are DESCRIPTIVE — no
+auto-thresholds; acting on them is a separate, separately-argued change.
+Requires high/low in cache → cache format extended additively (`hl` key),
+workflow cache key v3 → v4. CoinGecko-sourced cache has no OHLC and is
+refused with an explicit message (inv. 22 direction).
+
+**B. `--res7` — residual-vs-BTC as a ranking factor.** Rolling 90d up/down
+betas+R² are built from the SAME bot functions (`bucket_prices`,
+`paired_hourly_returns`, `fit_stats`, `asymmetric_beta`, AST-cut; the ≥120
+matched-hours guard restated from §2 because it lives in request plumbing);
+`residual7()` itself is executed from `index.html` (inv. 21 both sides).
+PRIMARY: LONG · 7d · contrarian orientation (factor = −z: fell on its own →
+long candidate), bar identical to the scoring study — IC ≥ +0.05, CI95 clear
+of zero. Momentum orientation, short side, 3/14d and the r30 factor are
+exploration.
+
+**C. `--funding` — crowding as a directional factor.** Data: monthly
+`fundingRate` ZIPs from `data.binance.vision` (futures/um), ~36 files × pair,
+cached as `_fund_SYM.json` (the `_` prefix keeps them out of `load_cache`,
+same convention as `_quality_today.json`). Factor (registered): z of the
+3-day mean funding (9 prints) within its trailing 30-day distribution.
+PRIMARY: SHORT · 7d — crowded longs → future underperformance; IC ≥ +0.05,
+CI95 clear of zero. Raw-level variant, long mirror, 3/14d are exploration.
+Archive lags ~1 day and the current month has no monthly file; the trailing
+window at the newest dates is marginally short — measured, not modelled.
+
+**Lab selftest (`--lab-selftest`) — known-answer worlds, offline:**
+flat-vol GBM with substep-built high/low → stops ratio must read 1 (reads
+0.93–0.98, CI covers 1); wick world (one-sided intra-hour spikes invisible to
+close-based σ — the stop-hunt error class) → ratio must exceed 1 (reads
+1.45–1.63, lower CI > 1); resnull/resrev worlds → res7 must read 0 / strongly
+positive (−0.013 / +0.345), synthetic β = 0.7 recovered as 0.67; uncoupled /
+coupled funding worlds → 0 / +0.24…0.27. Two lessons recorded during control
+construction, before real data: (1) volatility clustering at the 2σ floor
+pushes the stops ratio BELOW 1 (touch prob is concave in σ near 40–55 %), so
+a real ratio < 1 is explainable by clustering and errs safe; (2) symmetric
+diffusive jumps land inside the estimated σ — the barrier scales with it and
+the ratio stays ≈ 1; only wick-like moves the close never sees can push it
+above 1, which is exactly what the primary exists to catch.
+
+**Results (12.08.2026, run №4 — first clean pass through all three).**
+Basis: 145 weekly dates (144 where the window shortens), ~24.4 coins/date,
+3y hourly candles with exchange high/low (cache v4); funding 27/28 (GRAM
+excluded, 178 payments); 12 setups excluded for dist ≥ 100 % (the 12d
+counter printing its real population). Selftest 10 seeds green, lab
+selftest green, verify green with the fut basis lane informative.
+
+- **A. `--stops` PRIMARY: normal model HONEST at 7d, both sides.**
+  LONG n=3492 (med dist 15.1 %): hit 17.7 % vs model 20.2 %, ratio
+  0.88 [0.68; 1.07]. SHORT n=3504 (med dist 19.3 %): hit 18.3 % vs
+  model 20.7 %, ratio 0.88 [0.74; 1.03]. Both CI95 contain 1.0 → no §7
+  multiplier. The sub-1 direction matches recorded lesson 1 (volatility
+  clustering; errs safe). Descriptive, no action per registration:
+  whipsaw 35 % / 42 % of stopped setups back at entry within 7d; the
+  only cell where measured exceeds model is the 6σ-capped LONG bucket
+  (3.5 % vs 0.9 %, n=681) — far tail, absolute gap 2.6 pp, consistent
+  with the fat-tail prior in §7; SHORT capped bucket aligned (4.6/4.8).
+- **B. `--res7` PRIMARY: NULL.** LONG·7d·contrarian IC −0.009
+  [−0.048; +0.030], shuffled control −0.002. Fails IC ≥ +0.05. All 11
+  exploration cells (3/14d, momentum, short, r30) fail the doubled bar;
+  largest |IC| = 0.032. Consequence: `residual7` stays display-only
+  (§3.9, inv. 27 class) — never enters `scoreCandidate`. Measured zero.
+- **C. `--funding` PRIMARY: NULL.** SHORT·7d crowding-z IC +0.003
+  [−0.030; +0.039], control −0.017. Fails the bar. All 8 exploration
+  cells fail; largest |IC| = 0.030. Consequence: no crowding factor in
+  the product; funding remains a cost (ЦЕНА ВРЕМЕНИ, безубыток) plus
+  the existing ×1.05 short-score touch — unchanged.
+
+Three primaries, all null → the registered family-wise caveat (for
+positives) is moot; the +26-week confirmation gate has nothing queued.
+
+**Rank-1 follow-up (13.08.2026, computed from `run_raw.json` of the same
+run — the Boss's candidate-selection question asked directly).** 14d
+horizon (the raw dump's horizon; IC verdicts at 3/7/14d are all null in
+the main report, so the conclusion is horizon-independent), 144 weekly
+dates. LONG: №1 excess over list mean +0.59 % [−1.83; +3.08], №2–3
++1.24 % [−1.31; +4.17]; №1 beats list median 50 % of dates; №1 lands in
+the top quartile of realized outcomes 20 % (base 25 %); the best
+realized mover sat in the BOTTOM half of the ranking 51 % of dates
+(base 50 %). SHORT: №1 excess +0.70 % [−2.46; +3.93], №2–3 −0.51 %;
+beats median 48 %; top quartile 33 %; best mover in bottom half 43 %.
+Every cell is a coin flip; №2–3 above №1 on the long side is noise
+demonstrating the same thing. **The ordering carries no information —
+the ranking is a geometry/risk shortlist, not an opportunity detector,
+and №1 does not deserve directional trust over №5.**
+
+**Capital-efficiency follow-up (14.08.2026, same `run_raw.json`).** The
+Boss's question — rank candidates by expected outcome for a $1–2k futures
+position — reduces exactly: P&L per dollar of margin = L · move, and the
+engine sets L ≈ risk_budget / dist, so P&L/margin ≈ risk_budget · move/dist
+= risk_budget · R-multiple. Ranking by capital EV is therefore ranking by
+expected R-multiple, nothing else. Measured (R = realized return ÷ realized
+MAE inside the window, floored at 2 % and capped at ±5 — hindsight risk in
+the denominator, i.e. the construction FAVOURS the hypothesis): LONG
+IC(score, R) = −0.027 [−0.069; +0.015], SHORT +0.014 [−0.027; +0.057];
+№1 above the list's median R on 47 % of dates on both sides; №1 R-excess
++0.08 / +0.24 with CI covering zero. Null with a handicap → null without.
+The cost side is deterministic and already priced on the board: at $1.5k
+margin × 4X = $6k notional, round-trip taker = $6, funding at 0.01 %/8h
+≈ $12.6/week (0.05 %/8h ≈ $63) against a typical 14d absolute move of
+9.5 % median / 13.9 % mean = $570–830. Cross-candidate cost SPREAD is
+~6 % of a typical move whose SIGN is unpredictable (IC ≈ 0) — sorting by
+it is sorting the second decimal of an unknown number. No EV ranking.
+
+**Regime follow-up (14.08.2026) — supersedes the degenerate 13/132 split.**
+The original split («trend = BTC 90d drift significant») left 13 trend
+dates and was unpowered. Rebuilt look-ahead-free: BTC 14d return is exact
+in the raw dump (`fwd − exc`, cross-coin sd = 0), so the TRAILING 14d BTC
+return at date t is the forward return of date t−2 (weekly grid). Buckets:
+trend-up > +5 % (51 dates) · range ±5 % (50) · trend-down < −5 % (41);
+plus an expansion split on trailing mean |14d move| across the list, high
+vs low half (70 / 72 dates). Score IC by bucket, both sides, doubled bar
+(|IC| ≥ 0.10, CI99 clear of zero): every one of the ten cells is null;
+the largest |IC| anywhere is 0.058 (SHORT · trend-down) with CI99 spanning
+zero, and no bucket even reaches the single bar of 0.05. Powered split,
+same answer → RANGE/TREND/EXPANSION conditioning is measured worthless as
+a directional switch. Expansion already lives where it is defensible — in
+risk, as the production caps `vol7/vol90 > 2 → 3X`, `Vol ≥ 2 %/h → 2X`,
+`Vol ≥ 3 %/h → no leverage` (§3.2).
+
+Both live directional hypotheses from §10 are now measured zeros: the
+directional layer remains human (catalysts + REVIEW) by design, and the
+tool's edge — risk, sizing, honesty — is confirmed as a result, not a
+fallback. Re-running a lab mode requires a new external argument, not a
+re-roll of the same data.
+
+### 3.10b Resolution ceiling — what this bench can and cannot see (14.08.2026)
+
+<!-- EDIT-MARKER 2026-08-14b-RESOLUTION-CEILING -->
+
+A permanent property of the SAMPLE, not of any one experiment. Fixed here so
+that no future proposal has to re-derive it, and so that no future null is
+misread as «данных мало».
+
+Sample: 145 weekly dates x ~24.4 coins/date. Measured block-bootstrap
+SE(IC) = 0.020-0.023 (0.0215 used below); the block SE runs ~1.35x the iid
+value, and that ratio is what rescales the figure to other universe widths.
+
+| Test family | z* (FWER 5%) | true \|IC\| needed for 80% power |
+|---|---|---|
+| one pre-registered primary | 1.96 | 0.060 |
+| ~15 cells (one experiment + its exploration) | 2.90 | 0.080 |
+| 45-66 pairwise interactions | 3.21-3.31 | 0.087-0.089 |
+| 66 pairs x 2 sides x 3 horizons | 3.68 | 0.097 |
+
+Two consequences, both load-bearing:
+
+1. **Everything measured so far sits inside the null.** ~40 cells have been
+   run (score 6, res7 12, funding 9, regime 10, R-multiple 2). In a world
+   with zero signal anywhere, the EXPECTED largest \|IC\| across 40
+   correlated cells is 0.049, 90th pct 0.063. Observed largest: 0.058
+   (SHORT · trend-down, CI99 through zero). The entire body of exploration
+   is statistically indistinguishable from pure noise — which is the
+   correct reading of it, and the reason nothing has ever been promoted.
+2. **Universe width is the binding constraint, and it cannot be bought.**
+   SE(IC) scales as 1/sqrt(n-3): at 24.4 coins/date the detectable \|IC\|
+   is 0.068; at 6 coins/date, 0.181; at 4, 0.314. Calendar time helps only
+   as 1/sqrt(D) — doubling to 290 weekly dates (another 2.75 years of
+   waiting) moves the single-test bar from 0.060 only to 0.043. The
+   standing decision «новые монеты не добавляем» (§10) therefore also
+   fixes this system's measurement resolution permanently. That is a
+   deliberate trade — a list the Boss can actually watch, against the
+   ability to validate weak factors — and it is settled in favour of the
+   watchable list.
+
+### 3.10c Next architectural gate — what would reopen advanced ranking (14.08.2026)
+
+<!-- EDIT-MARKER 2026-08-14c-NEXT-GATE -->
+
+§3.10b states the resolution ceiling. This section states what would MOVE it,
+what that costs, and the exact evidence that reopens the layer. Nothing here
+is built. It exists so the answer is decided BEFORE the next proposal
+arrives, not after.
+
+**The binding dimension is universe width, and only universe width.**
+SE(IC) = 1.198 / sqrt((n-3)*D), calibrated on the measured 0.0215 at
+n = 24.4, D = 145. Moving one dimension at a time:
+
+| Target \|IC\| | via coins alone | via history alone |
+|---|---|---|
+| 0.040 | n = 52 | D = 329 (6.3 years) |
+| 0.030 | n = 89 | D = 585 (11.2 years) |
+| 0.020 | n = 197 | D = 1315 (25.2 years) |
+
+**Sampling more often is worth exactly zero — measured, not assumed.**
+Sampling the same calendar span daily instead of weekly gives 7x the rows
+and a **1.00x** improvement in SE, because consecutive daily dates share 6/7
+of the same forward window (simulation, 4000 replications). Independent
+periods are calendar time divided by holding horizon; that identity cannot
+be worked around. Shortening the horizon to 1d would multiply periods by 7
+but would validate a factor we do not trade, in the most arbitraged part of
+the market. Rejected.
+
+**Detection is not the whole bar: fitting costs signal.** Out-of-sample IC
+actually delivered by a fitted cross-sectional ranker when the TRUE IC is
+0.030, k = fitted parameters, 12 replications per cell:
+
+| Configuration | detection bar | k=6 | k=15 | k=60 |
+|---|---|---|---|---|
+| today: 24 coins x 2.8y | 0.060 | 0.021 | 0.019 | 0.003 |
+| wide bench: 120 x 2.8y | 0.026 | 0.025 | 0.019 | 0.016 |
+| wide + 5.6y | 0.018 | 0.026 | 0.023 | 0.018 |
+| wide + 11.1y | 0.013 | 0.032 | 0.027 | 0.021 |
+
+A cell passes only where delivered exceeds the bar. Three tiers follow, with
+different fates:
+
+- **Tier 1 — a SINGLE pre-specified factor, nothing fitted.** Unlocked by
+  universe width alone: bar 0.060 -> 0.026 at n = 120. This is the class
+  every incoming proposal actually belongs to (basis, funding variants, a
+  named interaction term specified in advance). Reachable today.
+- **Tier 2 — a fitted multi-factor / interaction model (k >= 15).** Needs
+  the wide bench AND ~5.6 years — wide bench plus 2.8 more years of
+  accumulation. Reachable ~2029, not before.
+- **Tier 3 — ML ranking (k ~ 60 effective parameters).** Needs the wide
+  bench AND ~11 years. **ML ranking is therefore PERMANENTLY rejected for
+  this system, not conditionally** — this upgrades the §8/§10 line from a
+  judgement call to an arithmetic fact.
+
+**Research-universe specification, if and when tier 1 is triggered**
+`[решение принято мной]`: Binance USDS-M perpetuals, target **n = 120**
+(150 buys only 0.026 -> 0.023 for 25 % more fetch; below 100 the tier-1
+unlock is lost). Filters in order: (1) >= 3 years of continuous hourly
+candles in `data.binance.vision`, no listing gap > 48 h — the binding
+filter; (2) median 24h notional over the sample >= $30M; (3) exclude
+wrapped duplicates, pegged assets and 1000X-style pairs — they inflate n
+without adding independent cross-section; (4) **delisted perps MUST be
+included for the period they traded.** Point 4 is not optional: today's
+28-coin bench is survivorship-biased by construction (it is today's list).
+At n = 24 with everything null that bias is harmless; at n = 120 with a
+factor near threshold it could manufacture the result. Cost: ~120 pairs x
+36 monthly ZIPs, bench-only, production untouched, no new runtime
+dependency, no new failure point in the hourly bot.
+
+**Transfer gate — a VETO, never a confirmation.** Any factor passing on the
+wide universe is re-measured on the 28 traded coins; required: same sign,
+and the 28-coin point estimate inside the wide-universe CI95. That test
+resolves only \|IC\| >= 0.060, so it can KILL a factor (a small-cap /
+illiquid effect absent from our segment — exactly the failure mode the
+external literature predicts) but can never bless one. Blessing stays with
+the wide-universe primary plus the standing +26-week fresh-data confirmation
+run (§3.10a).
+
+**The prize, sized honestly.** A validated IC = 0.030 factor is worth
+0.57 % per selection to the top-1 pick over the list mean (cross-sectional
+sd of 14d excess return 9.8 %, E[best of 24] = 1.95 sigma) — about $34 per
+trade at $1.5k margin x 4X, ~$890/year at 26 selections. Real, but 17x
+smaller than a typical 14d move, and it would take ~2300 live trades to
+separate from luck. **Even a fully validated factor could therefore never be
+confirmed by the Boss's own trading experience — using it would be an act of
+trust in the bench.** That is the true size of the prize, and it is why the
+gate is deliberately expensive.
+
+**BUILD TRIGGER — the archive is not perishable.** The wide bench is NOT
+built now. Waiting costs nothing in data: `data.binance.vision` is
+historical, so building it in 2027 yields 2027's history including
+everything back to 2023. Building it now with no hypothesis queued costs a
+large fetch, CI time and a second universe to keep in sync, and buys a
+fishing expedition — precisely what pre-registration exists to prevent.
+Discarded alternative: build it now to «be ready»; rejected because
+readiness carries no expiry advantage here.
+
+**THE GATE, IN ONE LINE.** The wide bench is built the first time a named
+tier-1 hypothesis arrives carrying an external effect size **>= 0.030 IC,
+measured on a LIQUID cross-section (top-100 by volume or equivalent), at a
+7-14 day horizon.** An effect size from a small-cap universe, or a claim of
+predictiveness with no number attached, does not open the gate.
+
 
 ### 3.11 Position protection — «ЗАЩИТА ПОЗИЦИИ» (11.08.2026)
 
@@ -590,14 +942,26 @@ admissible ONLY on an external prior naming an effect size this sample could
 resolve» — is unaffected and still binding.
 
 
-### 3.13 Verdict journal — «вход → вердикт доски → факт» (specified 21.08.2026, TZ-05)
+### 3.13 Verdict journal — «вход → вердикт доски → факт» (built 21.08.2026, TZ-05)
 
 <!-- EDIT-MARKER 2026-08-21b-JOURNAL -->
 
-**Status: SPECIFIED, NOT BUILT.** TZ-05 written 21.08; nothing is merged, no
-file exists yet, and the calculator's behaviour is unchanged. This section is
-the permanent contract — the TZ is a work order and will be archived, the schema
-has to be answerable from the map in six months.
+**Status: BUILT AND RUNNING.** ~~SPECIFIED, NOT BUILT — TZ-05 written 21.08,
+nothing merged.~~ TZ-05 merged 21.08 (PR #5); `journal.yml` fired the same day
+and `journal/data/2026-08-21.jsonl` is the first record. §10 item (1) is closed.
+This section is the permanent contract — the TZ is a work order and will be
+archived, the schema has to be answerable from the map in six months.
+
+**First live run, measured 21.08:** `status:"partial"`, `cov:25`, `skip:3`,
+`px:"ticker"`, `age:60`. Two facts came out of it that no offline bench could
+produce. **(a)** The mirror price path is alive: `data-api.binance.vision`
+answers a GitHub Actions runner, so inv. 24's exception is confirmed in
+production and not merely documented. **(b)** The three skips are the three
+`fut:true` assets, but only HYPE reported as «no spot mirror pair» — XMR and LIT
+came back as `dead market`, because the mirror still serves a delisted,
+zero-volume row for them. The venue contract (§3.14) settles this: the skip is
+declared, not discovered, and the reason string keeps recording what was
+actually seen.
 
 **What it is.** A daily record of what the board said about every coin — inputs,
 verdict, the catalyst registry in force, the engine fingerprint — plus, 7 and 14
@@ -639,10 +1003,16 @@ the order is genuinely unresolvable — recorded, not guessed.
    the forward window; hourly buys 24× the storage and zero independent
    observations. `[решение принято мной]` Discarded: hourly. Reversed if the
    Boss starts trading intraday.
-2. **Coverage is 25 of 28 by construction.** `fut:true` pairs (HYPE, XMR, LIT)
-   have no spot mirror, and Binance production hosts answer HTTP 451 from
-   Actions (inv. 24). They are attempted on every run and recorded as explicit
-   skip lines, so the gap is measured rather than assumed.
+2. **Coverage is 25 of 28 by construction.** The three `fut:true` assets
+   (HYPE, XMR, LIT) have no spot leg in this system (§3.14), and Binance
+   production hosts answer HTTP 451 from Actions (inv. 24). They are attempted
+   on every run and recorded as explicit skip lines, so the gap is measured
+   rather than assumed. **Corrected 22.08:** the classifier must key on the
+   `fut:true` declaration, not on what the mirror answered — a ghost row for a
+   delisted pair made two of the three read as `dead market`, and `dead market`
+   counts as a hard skip, so `status` was `partial` on a fully healthy day. A
+   field that says «degraded» every single day says nothing at all; the fix is
+   in the queue below.
 3. **`#N` is NOT recorded.** The board's number is produced inside `update()` by
    `byScore` → strip filter → `assignRanks`, which is not callable in isolation;
    recording it would mean reimplementing it, and inv. 21 forbids that. It is
@@ -658,344 +1028,144 @@ carries no predictive claim: §3.10b's resolution ceiling applies to it
 unchanged, and one year of daily records is ~52 independent 7-day windows.
 
 
-## 3.10 Стенд бэктеста скоринга — `bench/backtest_bench.py`
+### 3.14 Asset venue contract — 25 spot, 3 futures-only (fixed 22.08.2026)
 
-Отдельный файл, продакшн не трогает. Отвечает на один вопрос: сортирует ли
-`scoreCandidate` монеты лучше жребия.
+<!-- EDIT-MARKER 2026-08-22-VENUE-CONTRACT -->
 
-**Устройство.** Ноль копий продакшн-математики. При каждом запуске стенд
-вырезает `scoreCandidate` + `has/clamp01/sigmaDay/volRegime` + `EFF_TREND/
-PACE_Z/VOL_ABNORMAL` прямо из `index.html` и исполняет настоящим node; поля
-`cur/min/max/volatility/r7/r14/r30/vol7/eff14/vol_ratio` считает блоком,
-вырезанным через AST из `get_token_betas` в `main.py`, вместе с
-`window_stats/window_vol/volume_expansion`. Правка любого из двух файлов
-меняет стенд автоматически.
+**Boss's architectural decision, permanent.** Three of the 28 assets — **XMR,
+LIT and HYPE** — exist for this system on **Binance Futures only**. The other
+**25 trade on Binance Spot**. This is a declared property of the asset inside
+this list, not an observation about what some host answered on a given morning.
 
-**Данные.** Архив `data.binance.vision` (месячные ZIP, 3 года часовых свечей),
-хвост добирается зеркалом `data-api.binance.vision`. Список пар — из
-`tokens[]` фронта, разбирается через node.
+```
+fut:true   XMR · LIT · HYPE        perpetual only, no spot leg in this system
+default    the remaining 25        spot ticker + perpetual funding as today
+```
 
-**Метрика.** Цель — избыточная доходность к среднему по списку: счёт решает
-«какую из 28 взять», а не «куда пойдёт рынок». IC = ранговая связь счёта с
-будущим по каждой дате, среднее по датам, ДИ блочным бутстрапом. Плюс ТОП-3
-против среднего, худшая просадка внутри окна по третям счёта и три контроля:
-перемешанный счёт, «только близость к мин90», «только r7».
+**Why it had to be written down.** Before 22.08 the three were `fut:true` in
+`tokens[]` for three different, individually weak reasons: HYPE never had a spot
+listing, XMR was delisted from Binance spot in 2024, and LIT carried the comment
+«статус спот-пары не подтверждён» — an unresolved question living in a code
+comment. Anything downstream that needed to know «is there a spot leg» had to
+re-derive the answer from whatever a host returned, and on 21.08 that produced a
+wrong answer (see below). One declaration replaces three derivations.
 
-**Режимы запуска:** `--probe` (доступность источников, 20 с) · `--selftest`
-(офлайн, синтетика с известным ответом) · `--fetch` · `--verify` (сверка с
-живым `coeffs.json`) · `--run` · `--regimes`.
+**Consequence 1 — price source (inv. 12, unchanged).** `fut:true` tokens are
+excluded from the spot `?symbols=` list and priced only from `cachedFutTickers`;
+the dead-market detector works on `count` alone. Nothing in this rule changed;
+it now has a stated reason instead of three.
 
-**`--verify` — единственный режим, способный ошибиться в ОПАСНУЮ сторону**, то
-есть напечатать «совпадает» там, где не совпало или не сверялось. Правила
-режима, закрытые тестами (`bench/verify_bench.py`, 29 проверок, сеть не нужна):
+**Consequence 2 — a ghost spot pair does not revoke the declaration.** The
+first live journal run (21.08) recorded `HYPE` as `futures-only: no spot mirror
+pair` but `XMR` and `LIT` as `dead market`: `data-api.binance.vision` still
+answers for `XMRUSDT` and `LITUSDT` with a delisted, zero-volume row. The row
+exists; the market does not. Classifying by what the host returned therefore
+disagreed with the declaration, and the disagreement was not visible as an
+error — it was visible as a permanently degraded `status` (§3.13). **A skip on a
+`fut:true` token is expected coverage, however it manifests.** The reason string
+still records exactly what was observed, because the point of the record is that
+the gap is *measured* rather than assumed (inv. 37).
 
-| Правило | Зачем |
-|---|---|
-| Мера выбирается по ТИПУ поля: уровни `rel` (%), доходности `pp` (проц. пункты), `eff14` `abs` | относительная ошибка на поле, пересекающем ноль, бессмысленна: `r14` = 0.001 против 0.0155 печаталось как 1449 % при реальном расхождении 1.4 пункта |
-| Код возврата ненулевой при любом провале | прежде был всегда 0: `verify_against_live` ничего не возвращала, и `sys.exit(main() or 0)` давал ноль даже под надписью «ВЫШЛИ ЗА ПОРОГ». В шаге workflow упавшая сверка выглядела зелёной — тот же класс, что инв. 25 |
-| Считаются сверки ПО КАЖДОМУ ПОЛЮ, не только монеты | поле, которого нет в живом `coeffs.json` ни у одной монеты, сравнивалось ноль раз, оставляло `worst = 0.0` и проходило порог. Инвариант 22 на уровень ниже: сначала посчитать сравнения, потом судить |
-| Поля, не сравнимые из-за разрыва во времени, названы в вердикте | «совпадает» без оговорки печаталось и тогда, когда четыре поля из одиннадцати не сверялись вовсе. Разрыв — штатное состояние архива (он отстаёт ~сутки), поэтому шаг не падает, но и полного согласия не заявляет |
-| Файлы кэша с `_` в начале пропускаются | `--run --quality-const` штатно хранит `_quality_today.json` в том же каталоге; чтение `["prices"]` из него роняло всю сверку с `KeyError` |
+**Consequence 3 — the bench divergence in §7 is a source property, not an
+error.** The backtest reconciles with production on 25 of 28 coins, and the three
+that diverge by 7–9 pp on returns are exactly these three: the bench reads the
+perpetual, CoinGecko reads a spot index, and the basis is the difference. With
+the venue contract stated, that line stops being a puzzle and becomes an
+arithmetic identity of the two sources.
 
-**`--selftest` ниже десяти посевов даёт ЛОЖНУЮ тревогу** и это ожидаемо:
-нулевой мир признаётся чистым по условию `|IC| < SE` одного прогона, а на
-двух посевах среднее ещё не устоялось. Ошибка направлена в безопасную
-сторону (стенд объявляет себя неисправным, а не здоровым). Судить по
-десяти посевам, как и заложено по умолчанию.
+**Consequence 4 — coverage is 25/28 by construction and permanently.** Every
+statistical statement built on the journal is a statement about 25 assets. Not a
+defect, not a target to close: closing it would require a second price source for
+three coins, which is a new dependency bought for three rows (§8, standing bar).
 
-**Самопроверка обязательна перед доверием к цифрам.** Три мира: чистое
-блуждание (эталонный фактор обязан дать 0), возврат к среднему (+), импульс
-(−); по 10 посевов, потому что при SE(IC) ≈ 0.03 один посев уходит на 2 SE
-примерно в каждом двадцатом прогоне. Плюс проверка на отсутствие взгляда в
-будущее: запись на дату t из полного ряда обязана побайтово совпасть с
-записью из ряда, обрезанного по t.
+`[решение принято мной]` Discarded alternative: keep deriving the venue from
+live host behaviour and treat 21.08 as a data anomaly. Rejected because the
+derivation had already been wrong once and the correct answer is not
+discoverable from the data — only the Boss knows which venue he actually trades.
+Reversed if Binance relists XMR or LIT on spot with real volume, which is a
+`tokens[]` edit plus this paragraph, not a code change anywhere else.
 
+### 3.15 Catalyst registry as data — `catalysts.json` (built 21.08.2026, TZ-06)
 
+<!-- EDIT-MARKER 2026-08-22-CATALYST-REGISTRY -->
 
-### 3.10a Experiment lab — three pre-registered measurements (12.08.2026)
+**Status: BUILT AND LIVE.** §10 item (2) is closed. The registry that Layer 3 of
+the direction engine reads (§3.12) no longer lives as a literal inside
+`index.html`; it is a file served next to it.
 
-Additive modes of `bench/backtest_bench.py`; production untouched. Rules
-registered BEFORE any real data (inv. 23). One PRIMARY claim per experiment;
-every other cell is exploration at the doubled bar the regime study set
-(|IC| >= 0.10, CI99). Multiplicity is named: three primaries in one session,
-so any single positive at 0.05 carries a family-wise caveat in its verdict
-line. **A positive primary wires NOTHING into the product by itself: the
-standing gate is a fresh confirmation run after +26 weeks of new data.**
+**What moved, and what deliberately did not.** The *data* moved out; the *rule*
+did not move at all. `catalystCheck` still applies the same window, the same
+`-1` back edge, the same first-note-wins order and the same early return
+(inv. 31: a catalyst may only veto). One guard was added and nothing else —
+described under «authority» below.
 
-**A. `--stops` — honesty of the invalidation layer.** Per (weekly date, coin,
-side): production `invalidationInfo` gives the stop; the next 7d of exchange
-high/low decide whether it was TOUCHED; production `touchProb` gives the model
-figure for the same barrier. PRIMARY: pooled per-side calibration ratio
-measured/model. CI95 contains 1.0 → normal model honest at 7d; lower bound
-> 1.0 → tails heavier, board probabilities understate — record the multiplier
-in §7; upper bound < 1.0 → model errs safe, no action. Hit and whipsaw rates
-(touched, then back at entry within 7d AFTER the touch) are DESCRIPTIVE — no
-auto-thresholds; acting on them is a separate, separately-argued change.
-Requires high/low in cache → cache format extended additively (`hl` key),
-workflow cache key v3 → v4. CoinGecko-sourced cache has no OHLC and is
-refused with an explicit message (inv. 22 direction).
+**Schema v1.**
 
-**B. `--res7` — residual-vs-BTC as a ranking factor.** Rolling 90d up/down
-betas+R² are built from the SAME bot functions (`bucket_prices`,
-`paired_hourly_returns`, `fit_stats`, `asymmetric_beta`, AST-cut; the ≥120
-matched-hours guard restated from §2 because it lives in request plumbing);
-`residual7()` itself is executed from `index.html` (inv. 21 both sides).
-PRIMARY: LONG · 7d · contrarian orientation (factor = −z: fell on its own →
-long candidate), bar identical to the scoring study — IC ≥ +0.05, CI95 clear
-of zero. Momentum orientation, short side, 3/14d and the r30 factor are
-exploration.
+```
+{ "v":1, "updated":"YYYY-MM-DD",
+  "items": { "SYM": [ { d, dir, kind, t, conf, src[], added } ] } }
 
-**C. `--funding` — crowding as a directional factor.** Data: monthly
-`fundingRate` ZIPs from `data.binance.vision` (futures/um), ~36 files × pair,
-cached as `_fund_SYM.json` (the `_` prefix keeps them out of `load_cache`,
-same convention as `_quality_today.json`). Factor (registered): z of the
-3-day mean funding (9 prints) within its trailing 30-day distribution.
-PRIMARY: SHORT · 7d — crowded longs → future underperformance; IC ≥ +0.05,
-CI95 clear of zero. Raw-level variant, long mirror, 3/14d are exploration.
-Archive lags ~1 day and the current month has no monthly file; the trailing
-window at the newest dates is marginally short — measured, not modelled.
+d      ISO date of the event            dir   long | short
+kind   unlock | protocol | listing | …  t     the string the card prints
+conf   confirmed | disputed             src   array of source URLs
+added  ISO date the entry was written
+```
 
-**Lab selftest (`--lab-selftest`) — known-answer worlds, offline:**
-flat-vol GBM with substep-built high/low → stops ratio must read 1 (reads
-0.93–0.98, CI covers 1); wick world (one-sided intra-hour spikes invisible to
-close-based σ — the stop-hunt error class) → ratio must exceed 1 (reads
-1.45–1.63, lower CI > 1); resnull/resrev worlds → res7 must read 0 / strongly
-positive (−0.013 / +0.345), synthetic β = 0.7 recovered as 0.67; uncoupled /
-coupled funding worlds → 0 / +0.24…0.27. Two lessons recorded during control
-construction, before real data: (1) volatility clustering at the 2σ floor
-pushes the stops ratio BELOW 1 (touch prob is concave in σ near 40–55 %), so
-a real ratio < 1 is explainable by clustering and errs safe; (2) symmetric
-diffusive jumps land inside the estimated σ — the barrier scales with it and
-the ratio stays ≈ 1; only wick-like moves the close never sees can push it
-above 1, which is exactly what the primary exists to catch.
+The file is ASCII-only and the printed string `t` is `\uXXXX`-escaped, exactly
+as the literal was. Identity of the on-screen text was proved before the move,
+not assumed: three entries × three fields = 9 comparisons against the live
+literal, 0 differences.
 
-**Results (12.08.2026, run №4 — first clean pass through all three).**
-Basis: 145 weekly dates (144 where the window shortens), ~24.4 coins/date,
-3y hourly candles with exchange high/low (cache v4); funding 27/28 (GRAM
-excluded, 178 payments); 12 setups excluded for dist ≥ 100 % (the 12d
-counter printing its real population). Selftest 10 seeds green, lab
-selftest green, verify green with the fut basis lane informative.
+**Authority — `conf`, and the quorum behind it (inv. 39).** Externalising the
+registry removes a control: before, a veto passed through a TZ, an Executor, a
+pull request and an audit; after, it passes through one file edit. The
+compensating control is two-part.
 
-- **A. `--stops` PRIMARY: normal model HONEST at 7d, both sides.**
-  LONG n=3492 (med dist 15.1 %): hit 17.7 % vs model 20.2 %, ratio
-  0.88 [0.68; 1.07]. SHORT n=3504 (med dist 19.3 %): hit 18.3 % vs
-  model 20.7 %, ratio 0.88 [0.74; 1.03]. Both CI95 contain 1.0 → no §7
-  multiplier. The sub-1 direction matches recorded lesson 1 (volatility
-  clustering; errs safe). Descriptive, no action per registration:
-  whipsaw 35 % / 42 % of stopped setups back at entry within 7d; the
-  only cell where measured exceeds model is the 6σ-capped LONG bucket
-  (3.5 % vs 0.9 %, n=681) — far tail, absolute gap 2.6 pp, consistent
-  with the fat-tail prior in §7; SHORT capped bucket aligned (4.6/4.8).
-- **B. `--res7` PRIMARY: NULL.** LONG·7d·contrarian IC −0.009
-  [−0.048; +0.030], shuffled control −0.002. Fails IC ≥ +0.05. All 11
-  exploration cells (3/14d, momentum, short, r30) fail the doubled bar;
-  largest |IC| = 0.032. Consequence: `residual7` stays display-only
-  (§3.9, inv. 27 class) — never enters `scoreCandidate`. Measured zero.
-- **C. `--funding` PRIMARY: NULL.** SHORT·7d crowding-z IC +0.003
-  [−0.030; +0.039], control −0.017. Fails the bar. All 8 exploration
-  cells fail; largest |IC| = 0.030. Consequence: no crowding factor in
-  the product; funding remains a cost (ЦЕНА ВРЕМЕНИ, безубыток) plus
-  the existing ×1.05 short-score touch — unchanged.
+```
+conf !== 'confirmed'   →  the entry may ANNOTATE its own side, and may never veto
+conf === 'confirmed'   →  the entry vetoes the opposite side, exactly as before
+```
 
-Three primaries, all null → the registered family-wise caveat (for
-positives) is moot; the +26-week confirmation gate has nothing queued.
+Comparison is exact and case-sensitive; a missing `conf` is not a confirmation.
+Every refusal points the same way — an entry no one has verified cannot close a
+side. `confirmed` requires a **quorum of two independent hosts**, or one primary
+source (the protocol, the exchange, the foundation); two aggregators repeating
+each other are two hosts, the same aggregator twice is one (`www.` stripped).
 
-**Rank-1 follow-up (13.08.2026, computed from `run_raw.json` of the same
-run — the Boss's candidate-selection question asked directly).** 14d
-horizon (the raw dump's horizon; IC verdicts at 3/7/14d are all null in
-the main report, so the conclusion is horizon-independent), 144 weekly
-dates. LONG: №1 excess over list mean +0.59 % [−1.83; +3.08], №2–3
-+1.24 % [−1.31; +4.17]; №1 beats list median 50 % of dates; №1 lands in
-the top quartile of realized outcomes 20 % (base 25 %); the best
-realized mover sat in the BOTTOM half of the ranking 51 % of dates
-(base 50 %). SHORT: №1 excess +0.70 % [−2.46; +3.93], №2–3 −0.51 %;
-beats median 48 %; top quartile 33 %; best mover in bottom half 43 %.
-Every cell is a coin flip; №2–3 above №1 on the long side is noise
-demonstrating the same thing. **The ordering carries no information —
-the ranking is a geometry/risk shortlist, not an opportunity detector,
-and №1 does not deserve directional trust over №5.**
+An unverified entry annotates **only its own side.** The note prints under an
+*allowed* trade and therefore reads as an argument *for* it; putting a
+contrary-direction event there would lie in the loudest place on the board.
 
-**Capital-efficiency follow-up (14.08.2026, same `run_raw.json`).** The
-Boss's question — rank candidates by expected outcome for a $1–2k futures
-position — reduces exactly: P&L per dollar of margin = L · move, and the
-engine sets L ≈ risk_budget / dist, so P&L/margin ≈ risk_budget · move/dist
-= risk_budget · R-multiple. Ranking by capital EV is therefore ranking by
-expected R-multiple, nothing else. Measured (R = realized return ÷ realized
-MAE inside the window, floored at 2 % and capped at ±5 — hindsight risk in
-the denominator, i.e. the construction FAVOURS the hypothesis): LONG
-IC(score, R) = −0.027 [−0.069; +0.015], SHORT +0.014 [−0.027; +0.057];
-№1 above the list's median R on 47 % of dates on both sides; №1 R-excess
-+0.08 / +0.24 with CI covering zero. Null with a handicap → null without.
-The cost side is deterministic and already priced on the board: at $1.5k
-margin × 4X = $6k notional, round-trip taker = $6, funding at 0.01 %/8h
-≈ $12.6/week (0.05 %/8h ≈ $63) against a typical 14d absolute move of
-9.5 % median / 13.9 % mean = $570–830. Cross-candidate cost SPREAD is
-~6 % of a typical move whose SIGN is unpredictable (IC ≈ 0) — sorting by
-it is sorting the second decimal of an unknown number. No EV ranking.
+**Unavailability is not emptiness (inv. 40).** The loader is ES5 XHR against a
+relative path, and every failure path — HTTP ≠ 200, unparseable JSON, `v ≠ 1`,
+missing `items`, network error, `status 0` — lands in the same state: registry
+`{}`, `CAT_LOADED = false`, `CAT_ERR` set, and a banner on screen carrying the
+reason. The board keeps working; it simply says it is running without the layer.
+A registry that is empty because there are no events and a registry that is empty
+because the file did not arrive are the same object and must never render the
+same way.
 
-**Regime follow-up (14.08.2026) — supersedes the degenerate 13/132 split.**
-The original split («trend = BTC 90d drift significant») left 13 trend
-dates and was unpowered. Rebuilt look-ahead-free: BTC 14d return is exact
-in the raw dump (`fwd − exc`, cross-coin sd = 0), so the TRAILING 14d BTC
-return at date t is the forward return of date t−2 (weekly grid). Buckets:
-trend-up > +5 % (51 dates) · range ±5 % (50) · trend-down < −5 % (41);
-plus an expansion split on trailing mean |14d move| across the list, high
-vs low half (70 / 72 dates). Score IC by bucket, both sides, doubled bar
-(|IC| ≥ 0.10, CI99 clear of zero): every one of the ten cells is null;
-the largest |IC| anywhere is 0.058 (SHORT · trend-down) with CI99 spanning
-zero, and no bucket even reaches the single bar of 0.05. Powered split,
-same answer → RANGE/TREND/EXPANSION conditioning is measured worthless as
-a directional switch. Expansion already lives where it is defensible — in
-risk, as the production caps `vol7/vol90 > 2 → 3X`, `Vol ≥ 2 %/h → 2X`,
-`Vol ≥ 3 %/h → no leverage` (§3.2).
+**Known edge, not fixed:** opening the board over `file://` gives `xhr.status
+0`, so the layer goes dark with `HTTP 0`. Production is GitHub Pages over https,
+so this is inert; it is recorded because the symptom looks like a bug report.
 
-Both live directional hypotheses from §10 are now measured zeros: the
-directional layer remains human (catalysts + REVIEW) by design, and the
-tool's edge — risk, sizing, honesty — is confirmed as a result, not a
-fallback. Re-running a lab mode requires a new external argument, not a
-re-roll of the same data.
+**The journal reads the same file** (§3.13) and refuses to record a day whose
+registry it could not read, in every mode, with a non-zero exit. `cat.hash` is
+sha256 over canonicalised `items` — object keys sorted, array order preserved,
+because within a coin the order decides which note wins. Reordering coins does
+not change the version; changing content does. The hash therefore moved once, by
+construction, from `39a261e86e9d0281` to `572de1cf22d6ff34`.
 
-### 3.10b Resolution ceiling — what this bench can and cannot see (14.08.2026)
+**Coverage today is zero vetoes on purpose.** All three live entries are
+`disputed` with empty `src`. Filling sources and promoting entries is analyst
+work with its own specification, not a side effect of the plumbing.
 
-<!-- EDIT-MARKER 2026-08-14b-RESOLUTION-CEILING -->
+**Validation:** `bench/catalyst_bench.js`, 23 007 checks, 0 failures — schema,
+quorum proved in both directions on eight synthetic cases (live `confirmed`
+entries being zero, a rule with no cases is not a control, inv. 22), veto
+containment over 400 days × 28 coins × 2 sides, window edges to the millisecond,
+and seven distinct load failures each asserted down to the banner text.
 
-A permanent property of the SAMPLE, not of any one experiment. Fixed here so
-that no future proposal has to re-derive it, and so that no future null is
-misread as «данных мало».
-
-Sample: 145 weekly dates x ~24.4 coins/date. Measured block-bootstrap
-SE(IC) = 0.020-0.023 (0.0215 used below); the block SE runs ~1.35x the iid
-value, and that ratio is what rescales the figure to other universe widths.
-
-| Test family | z* (FWER 5%) | true \|IC\| needed for 80% power |
-|---|---|---|
-| one pre-registered primary | 1.96 | 0.060 |
-| ~15 cells (one experiment + its exploration) | 2.90 | 0.080 |
-| 45-66 pairwise interactions | 3.21-3.31 | 0.087-0.089 |
-| 66 pairs x 2 sides x 3 horizons | 3.68 | 0.097 |
-
-Two consequences, both load-bearing:
-
-1. **Everything measured so far sits inside the null.** ~40 cells have been
-   run (score 6, res7 12, funding 9, regime 10, R-multiple 2). In a world
-   with zero signal anywhere, the EXPECTED largest \|IC\| across 40
-   correlated cells is 0.049, 90th pct 0.063. Observed largest: 0.058
-   (SHORT · trend-down, CI99 through zero). The entire body of exploration
-   is statistically indistinguishable from pure noise — which is the
-   correct reading of it, and the reason nothing has ever been promoted.
-2. **Universe width is the binding constraint, and it cannot be bought.**
-   SE(IC) scales as 1/sqrt(n-3): at 24.4 coins/date the detectable \|IC\|
-   is 0.068; at 6 coins/date, 0.181; at 4, 0.314. Calendar time helps only
-   as 1/sqrt(D) — doubling to 290 weekly dates (another 2.75 years of
-   waiting) moves the single-test bar from 0.060 only to 0.043. The
-   standing decision «новые монеты не добавляем» (§10) therefore also
-   fixes this system's measurement resolution permanently. That is a
-   deliberate trade — a list the Boss can actually watch, against the
-   ability to validate weak factors — and it is settled in favour of the
-   watchable list.
-
-### 3.10c Next architectural gate — what would reopen advanced ranking (14.08.2026)
-
-<!-- EDIT-MARKER 2026-08-14c-NEXT-GATE -->
-
-§3.10b states the resolution ceiling. This section states what would MOVE it,
-what that costs, and the exact evidence that reopens the layer. Nothing here
-is built. It exists so the answer is decided BEFORE the next proposal
-arrives, not after.
-
-**The binding dimension is universe width, and only universe width.**
-SE(IC) = 1.198 / sqrt((n-3)*D), calibrated on the measured 0.0215 at
-n = 24.4, D = 145. Moving one dimension at a time:
-
-| Target \|IC\| | via coins alone | via history alone |
-|---|---|---|
-| 0.040 | n = 52 | D = 329 (6.3 years) |
-| 0.030 | n = 89 | D = 585 (11.2 years) |
-| 0.020 | n = 197 | D = 1315 (25.2 years) |
-
-**Sampling more often is worth exactly zero — measured, not assumed.**
-Sampling the same calendar span daily instead of weekly gives 7x the rows
-and a **1.00x** improvement in SE, because consecutive daily dates share 6/7
-of the same forward window (simulation, 4000 replications). Independent
-periods are calendar time divided by holding horizon; that identity cannot
-be worked around. Shortening the horizon to 1d would multiply periods by 7
-but would validate a factor we do not trade, in the most arbitraged part of
-the market. Rejected.
-
-**Detection is not the whole bar: fitting costs signal.** Out-of-sample IC
-actually delivered by a fitted cross-sectional ranker when the TRUE IC is
-0.030, k = fitted parameters, 12 replications per cell:
-
-| Configuration | detection bar | k=6 | k=15 | k=60 |
-|---|---|---|---|---|
-| today: 24 coins x 2.8y | 0.060 | 0.021 | 0.019 | 0.003 |
-| wide bench: 120 x 2.8y | 0.026 | 0.025 | 0.019 | 0.016 |
-| wide + 5.6y | 0.018 | 0.026 | 0.023 | 0.018 |
-| wide + 11.1y | 0.013 | 0.032 | 0.027 | 0.021 |
-
-A cell passes only where delivered exceeds the bar. Three tiers follow, with
-different fates:
-
-- **Tier 1 — a SINGLE pre-specified factor, nothing fitted.** Unlocked by
-  universe width alone: bar 0.060 -> 0.026 at n = 120. This is the class
-  every incoming proposal actually belongs to (basis, funding variants, a
-  named interaction term specified in advance). Reachable today.
-- **Tier 2 — a fitted multi-factor / interaction model (k >= 15).** Needs
-  the wide bench AND ~5.6 years — wide bench plus 2.8 more years of
-  accumulation. Reachable ~2029, not before.
-- **Tier 3 — ML ranking (k ~ 60 effective parameters).** Needs the wide
-  bench AND ~11 years. **ML ranking is therefore PERMANENTLY rejected for
-  this system, not conditionally** — this upgrades the §8/§10 line from a
-  judgement call to an arithmetic fact.
-
-**Research-universe specification, if and when tier 1 is triggered**
-`[решение принято мной]`: Binance USDS-M perpetuals, target **n = 120**
-(150 buys only 0.026 -> 0.023 for 25 % more fetch; below 100 the tier-1
-unlock is lost). Filters in order: (1) >= 3 years of continuous hourly
-candles in `data.binance.vision`, no listing gap > 48 h — the binding
-filter; (2) median 24h notional over the sample >= $30M; (3) exclude
-wrapped duplicates, pegged assets and 1000X-style pairs — they inflate n
-without adding independent cross-section; (4) **delisted perps MUST be
-included for the period they traded.** Point 4 is not optional: today's
-28-coin bench is survivorship-biased by construction (it is today's list).
-At n = 24 with everything null that bias is harmless; at n = 120 with a
-factor near threshold it could manufacture the result. Cost: ~120 pairs x
-36 monthly ZIPs, bench-only, production untouched, no new runtime
-dependency, no new failure point in the hourly bot.
-
-**Transfer gate — a VETO, never a confirmation.** Any factor passing on the
-wide universe is re-measured on the 28 traded coins; required: same sign,
-and the 28-coin point estimate inside the wide-universe CI95. That test
-resolves only \|IC\| >= 0.060, so it can KILL a factor (a small-cap /
-illiquid effect absent from our segment — exactly the failure mode the
-external literature predicts) but can never bless one. Blessing stays with
-the wide-universe primary plus the standing +26-week fresh-data confirmation
-run (§3.10a).
-
-**The prize, sized honestly.** A validated IC = 0.030 factor is worth
-0.57 % per selection to the top-1 pick over the list mean (cross-sectional
-sd of 14d excess return 9.8 %, E[best of 24] = 1.95 sigma) — about $34 per
-trade at $1.5k margin x 4X, ~$890/year at 26 selections. Real, but 17x
-smaller than a typical 14d move, and it would take ~2300 live trades to
-separate from luck. **Even a fully validated factor could therefore never be
-confirmed by the Boss's own trading experience — using it would be an act of
-trust in the bench.** That is the true size of the prize, and it is why the
-gate is deliberately expensive.
-
-**BUILD TRIGGER — the archive is not perishable.** The wide bench is NOT
-built now. Waiting costs nothing in data: `data.binance.vision` is
-historical, so building it in 2027 yields 2027's history including
-everything back to 2023. Building it now with no hypothesis queued costs a
-large fetch, CI time and a second universe to keep in sync, and buys a
-fishing expedition — precisely what pre-registration exists to prevent.
-Discarded alternative: build it now to «be ready»; rejected because
-readiness carries no expiry advantage here.
-
-**THE GATE, IN ONE LINE.** The wide bench is built the first time a named
-tier-1 hypothesis arrives carrying an external effect size **>= 0.030 IC,
-measured on a LIQUID cross-section (top-100 by volume or equivalent), at a
-7-14 day horizon.** An effect size from a small-cap universe, or a claim of
-predictiveness with no number attached, does not open the gate.
 
 ## 4. Инварианты — НЕ ЛОМАТЬ
 1. Схема `coeffs.json` — только аддитивные изменения; `err_result` в боте синхронен по ключам с успешным результатом.
@@ -1019,7 +1189,6 @@ predictiveness with no number attached, does not open the gate.
 19. Мигание Min/Max и бегущие рамки краёв — Боссом одобрены, не удалять; логику можно только предлагать улучшить.
 20. **Пороги — по одному числу на систему.** `EFF_TREND` и `PACE_Z` читают и `scoreCandidate`, и блок «ШОРТ СОЗРЕЕТ, КОГДА» (§3.8); `RES_Z` и `RES_R2_CAP` читаются ровно в одном месте — `residual7()` (§3.9), а карточка и доска берут готовый вердикт. Порог, захардкоженный во втором месте, рано или поздно разойдётся с первым, и экран начнёт объяснять счёт неверным числом.
     С 11.08 сюда же: `FUND_PAY_7D` (21 выплата за 7 дней — читают «ЦЕНА ВРЕМЕНИ» и безубыток §3.11; до правки литерал `21` стоял в двух строках подряд), `FEE_TAKER`, `ARM_R`, а также функции `touchProb()` (одна формула касания на систему) и `probTxt()` (одно округление вероятности в текст).
-
 21. **Стенд не содержит копий продакшн-математики.** Формулы вырезаются из
     `index.html` и `main.py` при каждом запуске. Копия, вставленная в стенд
     руками, разойдётся с продакшном молча, и бэктест начнёт проверять код,
@@ -1040,9 +1209,13 @@ predictiveness with no number attached, does not open the gate.
 25. **`| tee` в шаге workflow возвращает код `tee`, а не Python.** Без
     `set -o pipefail` упавший шаг выглядит зелёным, а отчёт уезжает пустым.
     Во всех шагах стенда стоит `shell: bash -euo pipefail`.
-29. **Проверяющий режим обязан возвращать код выхода.** Функция без `return` даёт `None`, `sys.exit(main() or 0)` превращает его в ноль, и провалившаяся сверка выглядит успешной — при этом на экране честно напечатано «ВЫШЛИ ЗА ПОРОГ». Печать не является кодом возврата. Родственник инв. 25 (`| tee` съедал код Python) и инв. 22 (проверка без данных): все три — один и тот же способ соврать зелёным.
-28. **Класс, собираемый конкатенацией, невидим для текстового поиска.** В `renderButtons` живут ровно два таких места: `'side-btn' + ' a-' + mode` (mode = long/none/short) и `'stress-btn' + ' s-' + mode` (mode = normal/panic/crash). Поиск по файлу строк `a-long` или `s-panic` не находит НИЧЕГО — при чистке 11.08 они попали в список «мёртвых» и были бы удалены вместе с подсветкой нажатой стороны и режима стресса. Любая будущая чистка CSS обязана разрешать такие сайты по перечислению ИХ СОБСТВЕННОГО цикла: объединение двух перечислений в одно даёт обратную ошибку — выдумывает `s-long`/`s-short` и прячет настоящих сирот. Проверка автоматизирована в `bench/clean_bench.py`.
+26. **Денежный потолок не убивает сделку.** `риск маржи` участвует в `min`, но с полом `L_MIN`: `убыток/маржа = dist·L` не зависит от размера позиции, то есть это правило про ДОЛЮ СЧЁТА, а не про выживание. «БЕЗ БЕЗОПАСНОГО ПЛЕЧА» имеют право выдавать только три первых потолка.
 27. **«ЗАЩИТА ПОЗИЦИИ» — чистое отображение.** Ни один её выход не входит в плечо, счёт, ранжирование и уровень инвалидации: она только читает уже посчитанное. Тот же класс, что `res7` (§3.9). Если когда-нибудь понадобится, чтобы защёлка влияла на решение — это отдельная правка с отдельным обоснованием, а не расширение блока.
+28. **Класс, собираемый конкатенацией, невидим для текстового поиска.** В `renderButtons` живут ровно два таких места: `'side-btn' + ' a-' + mode` (mode = long/none/short) и `'stress-btn' + ' s-' + mode` (mode = normal/panic/crash). Поиск по файлу строк `a-long` или `s-panic` не находит НИЧЕГО — при чистке 11.08 они попали в список «мёртвых» и были бы удалены вместе с подсветкой нажатой стороны и режима стресса. Любая будущая чистка CSS обязана разрешать такие сайты по перечислению ИХ СОБСТВЕННОГО цикла: объединение двух перечислений в одно даёт обратную ошибку — выдумывает `s-long`/`s-short` и прячет настоящих сирот. Проверка автоматизирована в `bench/clean_bench.py`.
+29. **Проверяющий режим обязан возвращать код выхода.** Функция без `return` даёт `None`, `sys.exit(main() or 0)` превращает его в ноль, и провалившаяся сверка выглядит успешной — при этом на экране честно напечатано «ВЫШЛИ ЗА ПОРОГ». Печать не является кодом возврата. Родственник инв. 25 (`| tee` съедал код Python) и инв. 22 (проверка без данных): все три — один и тот же способ соврать зелёным.
+30. **Одна монета — ОДНА сторона.** Гарантия даётся НЕ геометрией, а слоем режима (§3.12, слой 4): стресс — ни одной, тренд — только по направлению рынка, диапазон — только сторона с большим счётом возврата. Стенд показал, что одной геометрии НЕ хватает: монета в середине широкого диапазона проходит R:R ≥ 2 С ОБЕИХ сторон (ZEC 19.08: 1:1.6 и 1:2.9). Убрать правило режима = вернуть противоречие 18.08.
+31. **Катализатор умеет ТОЛЬКО ветировать.** Ни поднять счёт, ни отменить вето геометрии он не может. Именно катализатор, поставленный выше геометрии, произвёл шорт GRAM на дне диапазона 18.08. Запрет держит внешний ввод вне ранжирования — то, что требует §3.10b.
+32. **Геометрия не предсказывает и не обязана.** На блуждании `E[R] = 0` при ЛЮБОМ отборе — это теорема, подтверждённая контролем `--control` (−0.001 при 2SE 0.080). Любое будущее утверждение вида «вето подняло точность» обязано сначала объяснить, откуда взялся снос или издержки.
 33. **Один канал — один смысл, и ни один канал не спорит с глифом (ред. 19.08 (4)).** На карточке и на доске: ЧИСЛО + СЛОВО говорят о МЕСТЕ в рейтинге и СИЛЕ ВНИМАНИЯ, ГЛИФ (`stateMark`) — о СОСТОЯНИИ входа: пусто = сделка, `~` = ждать откат, `✕` = сделки нет. Одно слово в двух ролях уже заставило Босса прочитать две живые шорт-сделки как пустую сторону (19.08); попытка развести их одним цветом продержалась один день и произвела обратную ошибку — рейтинг без номеров (19.08 (3)). Различие не имеет права нестись только цветом И не имеет права стирать число. Обе поверхности обязаны брать глиф и текст вердикта из ОДНИХ функций (`stateMark`, `verdictNote`): доска, молчащая о запрете карточки, — тот же дефект.
     **Поправка 19.08 (4).** ЦВЕТ выведен из роли «качество счёта» в роль «состояние»: при `action === 'none'` бейдж гаснет до `#888`, цвет тира остаётся только на `trade` и `wait`. Причина — живая доска 19.08: на 10 из 10 карточек зелёный «#1 Сильный 90» стоял над красным `✕`, и Босс прочитал бейдж как рекомендацию. Цвет — самый громкий канал на телефоне, и он утверждал ровно обратное глифу. Это НЕ возврат к «различию одним цветом» (запрещено выше): глиф и число на месте, цвет лишь перестал их опровергать.
     **Ред. 20.08 — Босс вернул словарь сделки.** «ВНИМАНИЕ / СРЕДНЕЕ / СЛАБОЕ / ФОН» → «Сильный / Средний / Кандидат / Фон», формат бейджа «Сильный #1 — 91», цвета: зелёный / бирюза (`--cyan`) / жёлтый (`--accent`) / серый. Решение Product Owner'а, оно перекрывает правку 19.08 (4). Риск («Сильный» звучит как разрешение войти) снят ДРУГИМИ средствами того же релиза: строка плана печатает вход/цель/стоп только там, где движок сделку разрешил, счёт ниже 35 вообще не выходит на доску, а запрещённая карточка по-прежнему гаснет до `#888`. Гашение сохранено вопреки букве спецификации `[решение принято мной]` — альтернатива (красить запрещённые карточки в цвет тира) возвращает ровно тот дефект, о котором Босс написал 19.08. Отменяется, если Босс сообщит, что теряет полосу тира на отклонённых карточках.
@@ -1050,16 +1223,12 @@ predictiveness with no number attached, does not open the gate.
     **Прежняя формулировка 19.08 (4):** «Сильный / Средний / Кандидат / Наблюдать» → «ВНИМАНИЕ / СРЕДНЕЕ / СЛАБОЕ / ФОН». Счёт — приор сортировки с измеренной нулевой предсказательной силой (§10, IC ≈ 0.058) и МДЛ `✕` на всех карточках; слово «Сильный» присваивало ему качество, которого у него нет. Пороги 70/50/35 и `TIER_STRONG/TIER_MID/TIER_MIN` не сдвинуты.
     **Цена отката вернулась в глиф:** `~ $1.0089` вместо голого `~` плюс «ждать $1.0089 — …» в строке причин. Это осознанная отмена части правки 19.08 (3), а не рецидив: цена по-прежнему печатается РОВНО ОДИН раз, слово «ждать» удалено как избыточное (сама цена рядом с `~` и есть рекомендация), а строка причин сохранила причину. Требование Босса от 19.08.
 34. **Номер = МЕСТО В РЕЙТИНГЕ, и он есть у каждой карточки со счётом.** Порядок — строго по счёту (`byScore`, окно ничьей 0.05 разрешается рангом капитализации), нумерация сплошная 1..N по показанному списку. Состояние входа не имеет права ни переставлять список (сортировка «сначала торгуемые» уронила лучшего шорт-кандидата LIT под две слабые карточки), ни отнимать номер (нумерация «только торгуемых» стёрла номер у 74 % карточек и превратила верный порядок в видимую случайность). Номера не получают только строки без счёта и свёрнутые как нерелевантные стороне (`row.off`). `byScore`, `assignRanks`, `tierBadge`, `stateMark`, `verdictNote` — отдельные функции именно затем, чтобы стенд мог их проверять.
-30. **Одна монета — ОДНА сторона.** Гарантия даётся НЕ геометрией, а слоем режима (§3.12, слой 4): стресс — ни одной, тренд — только по направлению рынка, диапазон — только сторона с большим счётом возврата. Стенд показал, что одной геометрии НЕ хватает: монета в середине широкого диапазона проходит R:R ≥ 2 С ОБЕИХ сторон (ZEC 19.08: 1:1.6 и 1:2.9). Убрать правило режима = вернуть противоречие 18.08.
-31. **Катализатор умеет ТОЛЬКО ветировать.** Ни поднять счёт, ни отменить вето геометрии он не может. Именно катализатор, поставленный выше геометрии, произвёл шорт GRAM на дне диапазона 18.08. Запрет держит внешний ввод вне ранжирования — то, что требует §3.10b.
-32. **Геометрия не предсказывает и не обязана.** На блуждании `E[R] = 0` при ЛЮБОМ отборе — это теорема, подтверждённая контролем `--control` (−0.001 при 2SE 0.080). Любое будущее утверждение вида «вето подняло точность» обязано сначала объяснить, откуда взялся снос или издержки.
-26. **Денежный потолок не убивает сделку.** `риск маржи` участвует в `min`, но с полом `L_MIN`: `убыток/маржа = dist·L` не зависит от размера позиции, то есть это правило про ДОЛЮ СЧЁТА, а не про выживание. «БЕЗ БЕЗОПАСНОГО ПЛЕЧА» имеют право выдавать только три первых потолка.
-
 35. **Цену входа и цель печатает только разрешённая сделка.** `planLine` выходит пустой при `action === 'none'`: напечатать «вход/цель» там, где геометрия или режим отказали, значит выдумать рекомендацию, которой у модели нет — это ровно тот запрет, который Босс сформулировал 20.08 («Do not invent or display a price if the calculation is not sufficiently reliable»). Ни одно число строки не считается заново: цель — тот же экстремум 90д, что берёт `tradeGeometry`, стоп — тот же `dec.inv.price`, R:R — тот же `geo.rr` (инв. 20). Строка живёт только у тиров Сильный и Средний.
 36. **Счёт ниже `TIER_MIN` не выходит на основную доску, но и не исчезает молча.** Такие монеты уходят в ту же раскрываемую полосу, что и монеты у нерелевантного края диапазона, с раздельными счётчиками причин. Порядок проверок фиксирован: сначала слабый счёт, потом положение — иначе одна монета попадала бы в обе группы и счётчики не сходились бы с длиной полосы. Деградированные строки (нет пары / мёртвый рынок / нет метрик) НЕ прячутся никогда: это операционные предупреждения, а не кандидаты. Если кандидатов 35+ нет вовсе, доска печатает одну нейтральную строку и остаётся пустой намеренно.
-
 37. **Молчание обязано быть объяснено — и объяснение обязано быть машинным.** Прогон, который не записал данные, обязан вернуть НЕНУЛЕВОЙ код; каждый прогон обязан оставить одну grep-пригодную строку с `generated_at`; ночная пауза обязана отличаться от сбоя не глазом, а правилом (`freshnessState`, инв. 4). Причина не в аккуратности логов: дыра в выборке, у которой нет причины, неотличима от «событий не было», и выборка с необъяснимыми дырами не выдерживает ни одного статистического утверждения. Отсюда же правило учёта в журнале: пропущенная дата пишется строкой-пробелом, а не отсутствием строки (§3.13). **Стенд, не подключённый к `bench.yml`, не исполняется ни разу и контролем не является** — `fresh_bench.js` простоял в этом состоянии с ТЗ-04 до ТЗ-05. Родня инв. 22, 25, 29: все четыре — способы выглядеть зелёным, ничего не проверив.
 38. **Журнал — прибор, и запись в нём неизменяема.** Три правила, каждое ломается молча и потому вынесено в инвариант. **(1) Вердикт производится ИСПОЛНЕНИЕМ продакшн-скрипта** — функции вырезаются из `index.html` и вызываются по имени (инв. 21). Вторая реализация любого правила, порога или формулы запрещена в любом языке и любом файле: журнал, считающий вердикт сам, документирует не систему, а свою копию системы. **(2) Файл, однажды записанный, не открывается на изменение никогда** — ни для дозаписи исхода, ни для правки. Исход живёт в отдельном файле и присоединяется ключом; повторный прогон, увидев существующий файл, пишет `dup` и выходит нулём. Неизменяемость сделана физической, а не обещанной, потому что запись, которую можно переписать, перестаёт быть свидетельством ровно в тот момент, когда результат не понравился. **(3) Рядом с вердиктом лежит то, чем его можно объяснить:** действовавший набор катализаторов и его хеш, отпечаток скрипта и коммита. Без отпечатка записи разных версий движка сливаются в одну выборку — и это ошибка, которую нельзя обнаружить постфактум.
+39. **Ветировать имеет право только ПОДТВЕРЖДЁННЫЙ катализатор.** Реестр стал свободно правимым файлом (§3.15), а вето закрывает сторону — то есть меняет вердикт. Поэтому право закрыть сторону даёт ровно `conf === 'confirmed'`, сравнение точное и регистрозависимое; отсутствующее поле, `'CONFIRMED'` и любая опечатка — НЕ подтверждение, и отказ всегда идёт в безопасную сторону. Подтверждение требует кворума: два НЕЗАВИСИМЫХ хоста либо один первичный источник (протокол, биржа, фонд); один агрегатор кворумом не является, тот же хост дважды — один хост (`www.` снимается). Неподтверждённая запись умеет только подписать, и только СВОЮ сторону: заметка печатается под РАЗРЕШЁННОЙ сделкой и читается как довод ЗА неё, поэтому текст события, смотрящего в другую сторону, соврал бы в самом громком месте доски. Инв. 31 при этом не ослаблен и не усилен — катализатор по-прежнему не умеет ни поднять счёт, ни отменить вето геометрии.
+40. **Пустой реестр и НЕДОСТУПНЫЙ реестр — разные состояния, и рисуются по-разному.** Загрузчик, не получивший файл по любой причине — HTTP не 200, неразобранный JSON, `v ≠ 1`, нет `items`, ошибка сети, `status 0` при открытии файлом, — обязан оставить реестр `{}`, поднять `CAT_ERR` и выдать на экран баннер с причиной; доска при этом продолжает работать (инв. 9). Молчащий слой, неотличимый от слоя «событий нет», — это ровно тот способ выглядеть зелёным, от которого написаны инв. 22, 25, 29 и 37, только на стороне отображения. То же правило действует у журнала строже: день, чей реестр не прочитан, не записывается ВОВСЕ, ненулевым кодом, в любом режиме — потому что вердикт без известного набора катализаторов задним числом не объясним (инв. 38(3)).
 
 ## 5. Лимиты
 - **CoinGecko: бот ходит БЕЗ КЛЮЧА.** В `main.yml` в env передаётся только
@@ -1127,7 +1296,8 @@ predictiveness with no number attached, does not open the gate.
   **Расходятся ровно три монеты — HYPE, XMR, LIT, то есть все `fut:true`:**
   стенд берёт цену перпетуала Binance, CoinGecko — спотовый индекс, и базис
   даёт до 7–9 пп на доходностях. Это ожидаемое свойство источника, не ошибка
-  расчёта. Отдельный выброс — `volatility` XLM 12.4 % при медиане 0.97 %.
+  расчёта — и с 22.08 оно тождество, а не совпадение: у этих трёх спотовой ноги
+  в системе нет вовсе (§3.14). Отдельный выброс — `volatility` XLM 12.4 % при медиане 0.97 %.
   На вывод бэктеста не влияет: внутри прогона вход, выход и метрики берутся
   из одного ряда, а доминирующая компонента счёта `pPos` (вес 0.50) стоит на
   уровнях и волатильности, которые сошлись.
@@ -1157,6 +1327,45 @@ predictiveness with no number attached, does not open the gate.
 | **Кросс-секционный базис срочных фьючерсов — ОТКЛОНЁН 14.08.2026** | Развилка из двух ветвей, обе закрыты. (а) Базис ПЕРПЕТУАЛА = премиум-индекс, из которого Binance и считает funding — та же величина в другом виде (строка «Спот/перп базис» выше), а funding измерен нулём: IC +0.003, ДИ95 [−0.030; +0.039]. (б) Базис СРОЧНОГО контракта — величина действительно независимая, но её нет на нашем списке: квартальные поставочные Binance это USDⓈ-M только BTC/ETH и COIN-M BTC/ETH/BNB/ADA/LINK/BCH/XRP/DOT/LTC; пересечение с нашими 28 — **шесть монет** (ETH, BNB, ADA, LINK, BCH, XRP), все COIN-M. Кросс-секция из шести различает только \|IC\| ≳ 0.18 (§3.10b) — теста с таким разрешением не проводят. Третий довод из самого источника: доходность базисного фактора сильна на ДНЕВНОМ шаге, СЛАБЕЕ на недельном, незначима на месячном — эффект затухает ровно на нашем горизонте 7–14д |
 
 ## 9. Журнал миграций
+- 2026-08-22: **ТЗ-05 и ТЗ-06 в проде; карта пересобрана; контракт исполнителя v6.**
+  **ТЗ-05 (журнал вердиктов) — слито PR #5, прогон 21.08 состоялся.** §3.13 переведён
+  из «SPECIFIED, NOT BUILT» в «BUILT AND RUNNING» и дополнен измеренным: путь цен
+  через `data-api.binance.vision` из Actions ЖИВ (подтверждение исключения инв. 24
+  в бою, офлайн-стенд этого дать не мог), первая запись `cov:25 skip:3 age:60`.
+  **ТЗ-06 (слой катализаторов) — слито PR #6.** Реестр вынесен из литерала
+  `index.html` в `catalysts.json`; новый §3.15 фиксирует схему v1, кворум источников,
+  разграничение «пусто» и «недоступно», а также то, что правило `catalystCheck` не
+  сдвинулось ни на число — вынесены только данные. Новые **инварианты 39** (право
+  вето только у `confirmed`, кворум двух независимых хостов либо один первичный
+  источник; неподтверждённая запись подписывает только свою сторону) и **40**
+  (пустой реестр и недоступный реестр рисуются по-разному, баннер обязателен).
+  **Новый §3.14 — контракт площадки, решение Босса.** XMR, LIT и HYPE закреплены как
+  Binance Futures only, остальные 25 — Binance Spot. Раньше `fut:true` у этих трёх
+  стоял по трём разным слабым причинам, включая комментарий «статус спот-пары не
+  подтверждён»; теперь это объявленное свойство актива. Прямое следствие: покрытие
+  журнала 25/28 — по построению и навсегда, а расхождение стенда с продакшном по этим
+  же трём монетам (§7) становится тождеством базиса, а не загадкой.
+  **Найдено ТЗ-06 и НЕ исправлено — три дефекта контроля, все в ТЗ-07.** (1) `status`
+  журнала будет `partial` каждый день: зеркало отдаёт делистнутую строку по XMRUSDT и
+  LITUSDT, классификатор читает её как `dead market`, а `dead market` считается
+  жёстким пропуском. Поле, кричащее «деградация» ежедневно, не несёт информации.
+  (2) `verify_board.js`, `board2_bench.js` и `prot_bench.js` исполняют доску с ПУСТЫМ
+  реестром — в их песочницах нет `XMLHttpRequest`. Сегодня безвредно (живых
+  `confirmed` записей ноль), после первой подтверждённой записи они разойдутся с
+  живой доской. (3) `bench.yml` запускается по `push` в `main` и по `pull_request`;
+  на ветке без PR ворота не исполняются вовсе — 1 199 724 проверки ТЗ-06 не проходили
+  ни на одном раннере до слияния. Плюс давняя дыра: `display_bench.py`,
+  `render_bench.py` и `direction_bench.py --display` красные на устаревших ожиданиях
+  бейджа и потому исключены из ворот — то есть контракт отображения (инв. 33–34),
+  переписанный дважды за два дня после двух живых ошибок чтения, сейчас НЕ имеет ни
+  одного исполняющегося контроля (инв. 37).
+  **Пересборка карты.** §3.10 стоял между §3.13 и §3.10a заголовком уровня `##` —
+  переведён в `###` и поставлен в номерной порядок между §3.9 и §3.11. Инварианты
+  шли 1–25, 29, 28, 27, 33, 34, 30, 31, 32, 26, 35–38 — переставлены по возрастанию,
+  БЕЗ единой правки текста и без перенумерации: номер остаётся при своём тексте,
+  поэтому все ссылки из кода, стендов и отчётов остаются верными.
+  **Ни одна формула, константа, схема и ни один файл кода этой правкой карты не
+  тронуты.** Инварианты 39 и 40 описывают поведение, которое ТЗ-06 уже реализовало.
 - 2026-08-21 (2): **ТЗ-04 в коде, ТЗ-05 написано, карта закрывает пункт 0 очереди.**
   **ТЗ-04 (достоверность свежести) — в зеркалах Проекта, слито Боссом.** Бот: `run_line()` печатает одну grep-пригодную строку на прогон (`<статус> <этап> generated_at=<iso> coins=<n> errors=<n>`) и возвращает ненулевой код на каждом пути отказа — BTC `2`, Gist `3`, исключение `4`; прежде провалившийся прогон выглядел зелёным. Фронт: `freshnessState(ageMin, now)` вынесена чистой функцией (ни DOM, ни собственных часов внутри) и внутри окна 02:00–09:00 сверяет возраст не со `STALE_*`, а с последним ПЛАНОВЫМ прогоном 01:50 — новое состояние `pause` серым вместо красного `! Молчит`; допуск прощает ровно один пропущенный час. Константы расписания `SCHED_FIRST_H/SCHED_LAST_H/SCHED_LAST_M` — по одному числу на систему (инв. 20). Математика, счёт, движок плеча, схема `coeffs.json` и CSS не тронуты.
   **Найдено при подготовке ТЗ-05 и не исправлено ТЗ-04:** `bench/fresh_bench.js` существует, но НЕ подключён к `bench.yml` — то есть не исполнялся ни разу и контролем не является. Правка входит в ТЗ-05.
@@ -1373,11 +1582,13 @@ predictiveness with no number attached, does not open the gate.
   1. **Датированные проверяемые события** (голосование, разлок, заседание, слушание). Машинно представимы: `{sym, date, dir, kind, text, src}`. Потребитель уже есть — `catalystCheck`, и он по инв. 31 умеет ТОЛЬКО ветировать и подписывать, никогда не двигать счёт. Первый шаг: перенести `CATALYSTS` из литерала в `catalysts.json`, который кладёт рядом с `coeffs.json` тот же workflow, что гоняет бота. Схема аддитивная: отсутствие файла не меняет ни одного числа (инв. 1, 9).
   2. **Непрерывные измеримые величины, которых бот не тянет** (нетто-приток в спот-ETF, комиссионная выручка протокола, открытый интерес, TVL, календарь разлоков как темп роста предложения). Объективны и воспроизводимы, но каждая — новый фактор, а значит §3.10 и инв. 32: сначала архивный бэктест на `data.binance.vision`, потом вход в счёт. Без бэктеста — только отображением.
   3. **Суждение аналитика** (чтение режима, тезис, «это сквиз, а не тренд»). НЕ представимо машинно и НЕ должно попадать в модель: закодированное мнение — это переобучение на одного аналитика, а не сигнал. Место суждения — чат, а не веса.
-  **Порядок работ — ПЕРЕСМОТРЕН 21.08.** Было: (1) `catalysts.json` → (2) журнал → (3) бэктест. Стало:
-  **(0) Достоверность свежести.** Бот обязан возвращать ненулевой код, когда запись не состоялась; `generated_at` обязан быть виден в логе прогона; ночная пауза обязана отличаться от сбоя. Без этого дыра в выборке неотличима от «событий не было», а выборка с необъяснимыми дырами не выдерживает ни одного статистического утверждения. ТЗ-04.
-  **(1) Журнал** «вход → вердикт доски → факт» — **ТЗ-05 написано 21.08, §3.13; не исполнено и не слито**. Ставится ПЕРВЫМ, потому что это единственный артефакт, ценность которого строго падает со временем: каждый неотжурналированный час теряется навсегда. **Ретроспективно вердикт НЕ восстанавливается:** `history.json` хранит только беты, R² и ранг — без цены, `min/max`, `volatility` и объёма, а `scoreCandidate`, `tradeGeometry` и `leverageDecision` требуют именно их. Журнал обязан писаться ИСПОЛНЕНИЕМ продакшн-скрипта (инв. 21), а не второй реализацией вердикта, и обязан класть рядом действовавший набор катализаторов.
-  **(2) `catalysts.json`** — вынос `CATALYSTS` из литерала в данные. Даёт правку катализатора без деплоя, но ОСЛАБЛЯЕТ контроль: сегодня вето проходит через ТЗ, исполнителя, PR и аудит, после — через одну правку файла. Компенсация — журнал из пункта (1), уже пишущий действовавший набор рядом с вердиктом. Поэтому (2) ПОСЛЕ (1), а не до.
-  **(3)** Только когда выборка есть — бэктест одного фактора из класса 2. Пункт (3) не открывать, пока не закрыт (1).
+  **Порядок работ — ПЕРЕСМОТРЕН 21.08, состояние на 22.08.** Было: (1) `catalysts.json` → (2) журнал → (3) бэктест. Стало (и исполнено в этом порядке):
+  **(0) Достоверность свежести.** Бот обязан возвращать ненулевой код, когда запись не состоялась; `generated_at` обязан быть виден в логе прогона; ночная пауза обязана отличаться от сбоя. Без этого дыра в выборке неотличима от «событий не было», а выборка с необъяснимыми дырами не выдерживает ни одного статистического утверждения. ТЗ-04. — **ЗАКРЫТ 21.08, PR #4.**
+  ~~**(1) Журнал** «вход → вердикт доски → факт».~~ — **ЗАКРЫТ 21.08, ТЗ-05, PR #5.** Пишется ежедневно, §3.13. Обоснование сохраняется: ретроспективно вердикт НЕ восстанавливается — `history.json` хранит только беты, R² и ранг, без цены, `min/max`, `volatility` и объёма, а `scoreCandidate`, `tradeGeometry` и `leverageDecision` требуют именно их.
+  ~~**(2) `catalysts.json`** — вынос `CATALYSTS` из литерала в данные.~~ — **ЗАКРЫТ 21.08, ТЗ-06, PR #6.** §3.15. Ослабление контроля, которого опасалась запись 21.08, компенсировано ТРЕМЯ способами, а не одним: журнал кладёт действовавший набор и его хеш рядом с вердиктом; право вето отдано только `conf === 'confirmed'` с кворумом источников (инв. 39); недоступность реестра видна на экране (инв. 40).
+  **(2a) Восстановить контроли — ТЗ-07, следующее.** Вынос реестра в файл и первый живой прогон журнала обнажили четыре места, где проверка выглядит зелёной, ничего не проверив (инв. 22/25/29/37): `status` журнала деградирован каждый день по классификатору пропусков; три доских стенда исполняют доску с пустым реестром; ворота `bench.yml` не запускаются на ветке без PR; контракт отображения (инв. 33–34) вообще не имеет исполняющегося стенда. Это ставится ПЕРЕД наполнением реестра источниками: первая же `confirmed`-запись меняет вердикт, и менять вердикт при неработающих контролях — ровно та последовательность, которую §10 запретил себе в пункте (2).
+  **(2b) Источники и `confirmed`** — проверить три существующие записи, заполнить `src`, перевести прошедшие кворум в `confirmed`, устранить известные расхождения данных (дата голосования ZEC; отсутствующий разлок ENA). Это аналитическая работа с веб-проверкой, отдельным нарядом, ПОСЛЕ (2a).
+  **(3)** Только когда выборка есть — бэктест одного фактора из класса 2. Пункт (3) не открывать, пока не закрыт (2a).
   `[решение принято мной]` Отброшена альтернатива «сохранить прежний порядок». Причина: она производит период, в котором вердикты уже зависят от свободно правимого файла, а измерить этот эффект нечем. Разворот — если журнал окажется дороже двух ТЗ: тогда сначала дешёвый `catalysts.json`, но с обязательной фиксацией версии файла в каждом будущем журнальном рекорде.
 - **Цель геометрии не зависит от канала — структурное натяжение, СОЗНАТЕЛЬНО не исправлено 19.08 (4).**
   `tradeGeometry` не принимает режим: цель всегда `cd.max_price` для лонга и `cd.min_price` для шорта, то есть экстремум 90д — цель ВОЗВРАТА. В режиме `trend` ранжирует `momentumScore` — канал ПРОДОЛЖЕНИЯ. Монета с сильным импульсом стоит близко к своему экстремуму 90д, оставшаяся до цели награда мала, и R:R разбивается о `RR_MIN = 2.0`. Живой замер 19.08: SKY счёт 90 → 1:0.9, ZEC 78 → 1:0.7, BNB 67 → 1:1.4 — ни одна карточка канала импульса не прошла ворота.
