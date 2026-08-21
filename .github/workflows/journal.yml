@@ -1,0 +1,74 @@
+# .github/workflows/journal.yml
+# Суточная запись прибора §3.13. Ни одной новой строки продакшна не исполняет:
+# журнал вырезает <script> из index.html и вызывает продакшн-функции (инв. 21).
+#
+# Триггера push здесь НЕТ и быть не может ни при каких условиях: задача
+# коммитит в ту же ветку, на которой идёт, и push-триггер замкнул бы петлю.
+# Новых обращений к CoinGecko не добавляет, триггер бота (main.yml) не трогает.
+name: Verdict journal
+
+on:
+  # 13:00 UTC. Час выбран так, чтобы снимок попадал внутрь активного
+  # расписания Босса (Shortcuts, 09:00–01:50 локальных, §1 карты) при любом
+  # смещении от UTC+0 до UTC+4 — при самом раннем смещении это ~4 ч после
+  # первого прогона бота за день.
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Два прогона журнала одновременно писали бы одну дату. Отменять текущий
+# нельзя: прерванный прогон оставил бы дату без записи и без подписи пробела.
+concurrency:
+  group: journal
+  cancel-in-progress: false
+
+jobs:
+  journal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        # Инв. 25: без pipefail шаг с конвейером возвращает код последней
+        # команды, и упавшая запись выглядит зелёной.
+        shell: bash -euo pipefail {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Прогон, не записавший данные, возвращает ненулевой код (инв. 37) и
+      # роняет задачу: молчание обязано быть видимым.
+      - name: Снимок дня и созревшие исходы
+        run: node journal/write.js
+
+      - name: Коммит записи
+        run: |
+          if [ -z "$(git status --porcelain journal)" ]; then
+            echo "журнал не изменился — коммитить нечего"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Только journal/. `git add -A` утащил бы в коммит журнала всё,
+          # что окажется в рабочем дереве.
+          git add journal
+          git commit -m "journal: $(date -u +%F) [skip ci]"
+          for attempt in 1 2; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              echo "запись отправлена с попытки $attempt"
+              exit 0
+            fi
+            echo "push не прошёл (попытка $attempt), повтор после rebase"
+            sleep 5
+          done
+          echo "push не прошёл дважды"
+          exit 1

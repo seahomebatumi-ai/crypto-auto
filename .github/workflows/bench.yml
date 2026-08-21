@@ -16,6 +16,14 @@ name: Bench gate
 on:
   push:
     branches: [ main ]
+    # Журнал коммитит СВОИ данные в main раз в сутки (journal.yml). Гонять по
+    # ним весь набор стендов не за чем: ни одна строка кода при этом не
+    # меняется. Стенд самого журнала при правке journal/write.js всё равно
+    # запустится — путь bench/journal_bench.js под этот игнор не попадает.
+    paths-ignore:
+      - 'journal/data/**'
+      - 'journal/out/**'
+      - 'journal/runs.jsonl'
   pull_request:
 
 jobs:
@@ -60,3 +68,15 @@ jobs:
       # --identity и --display исключены намеренно, причины в шапке файла.
       - name: Движок направления (direction_bench.py)
         run: python3 bench/direction_bench.py --props --fixtures --control --sim
+
+      # ТЗ-05 §7. Оба стенда были вне ворот и потому контролем не являлись:
+      # fresh_bench.js простоял неподключённым с ТЗ-04 (инв. 37). Строка
+      # shell здесь дублирует defaults.run.shell выше СОЗНАТЕЛЬНО — ТЗ-05
+      # требует pipefail на каждом из этих двух шагов поимённо (инв. 25).
+      - name: Свежесть данных — пауза расписания против сбоя (fresh_bench.js)
+        shell: bash -euo pipefail {0}
+        run: node bench/fresh_bench.js
+
+      - name: Журнал вердиктов, офлайн (journal_bench.js)
+        shell: bash -euo pipefail {0}
+        run: node bench/journal_bench.js
