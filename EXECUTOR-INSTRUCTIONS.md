@@ -1,16 +1,16 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 6.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 7.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated in
 TZ files and the Boss will not repeat it in chat.
 
-**What changed in Version 6** (all four came out of TZ-06, which was correct work that
-still reached `main` without a single control having executed): the pull-request rule
-now has a defined fallback instead of a dead end (§8) · CI execution is a reported fact
-with its own report heading, and a local run never substitutes for a runner (§9, §10) ·
-two new hard-floor items — venue flags are declarations, and a bench step is never
-removed from the gate to make it green (§7) · `catalysts.json` and `journal/**` are
-classified in the lifecycle table instead of reading as unowned files (§13).
+**What changed in Version 7** (the System Map was refactored into a compact technical
+document on 2026-08-22 and its migration log was removed): the fingerprint gate now
+reads the map's `## 0. Fingerprint` block and its revision string instead of the date
+of the newest migration entry (§5, §10) · the lifecycle table states the monthly
+architectural audit, what it may and may not remove, and how the execution state of a
+TZ is determined (§13) · one hard-floor item added — the catalyst registry's PRIMARY
+source list is a trust root and changes only through a TZ (§7).
 
 Canonical path: `EXECUTOR-INSTRUCTIONS.md` (repository root).
 Supersedes all earlier versions. **You read this file from the repository.** It is
@@ -143,17 +143,24 @@ referenced a section (`§3.12`) the repository copy did not contain.
 
 Every TZ header states the required fingerprint. Before any work:
 
-1. Confirm every **content anchor** listed in the TZ header is present in
-   `SYSTEM-MAP-CRYPTOCALCUL.md`.
-2. Record the line count and the date of the newest entry under
-   `## 9. Журнал миграций`.
+1. Read `## 0. Fingerprint` at the top of `SYSTEM-MAP-CRYPTOCALCUL.md` and record
+   the **revision string** it carries (format `Revision YYYY-MM-DD[-x]`).
+2. Confirm every **content anchor** listed in the TZ header is present in the map,
+   matched as an exact substring.
+3. Record the map's line count and MD5.
 
-If an anchor is missing, or the newest migration entry predates the date in the TZ
-header: **STOP. Do no work. Report BLOCKED**, stating fingerprint found versus
-fingerprint required. The Boss uploads the current map and re-triggers.
+If an anchor is missing, or the map's revision string is older than the revision the
+TZ header requires: **STOP. Do no work. Report BLOCKED**, stating fingerprint found
+versus fingerprint required. The Boss uploads the current map and re-triggers.
 
-The line count is reported, not enforced — upload can alter trailing whitespace. The
-anchors and the migration date are enforced.
+The line count and MD5 are reported, not enforced — upload can alter trailing
+whitespace. The anchors and the revision string are enforced.
+
+The map's `## 0. Fingerprint` block also states the expected line count and MD5 of
+`index.html`, `main.py` and `catalysts.json` at that revision. Report any file whose
+measured fingerprint differs from the map's under `## Pre-existing Issues`; do not
+act on the difference — it means the map or the file is ahead, and which one is the
+Architect's call.
 
 ---
 
@@ -222,6 +229,11 @@ and quote the conflicting requirement.
     `.github/workflows/bench.yml` in the same change — a bench outside the gate never
     executes and is not a control (invariant 37). `fresh_bench.js` sat in exactly that
     state from TZ-04 to TZ-05, looking like coverage and providing none.
+13. **The catalyst registry's `PRIMARY` list is a trust root.** The host allow-list in
+    `bench/catalyst_bench.js` is what grants an entry the right to veto a trade
+    (invariant 39). Never add, remove or loosen a host on it, and never relax the
+    dot-boundary match, unless the TZ names the change explicitly. Adding one host
+    silently converts an aggregator into an authority.
 
 ---
 
@@ -329,10 +341,11 @@ reason this rule exists.
 **`## Fingerprints` is mandatory in every report** and contains, for each file: line
 count and MD5.
 
-- `SYSTEM-MAP-CRYPTOCALCUL.md` — plus the date of its newest `## 9. Журнал миграций`
-  entry
+- `SYSTEM-MAP-CRYPTOCALCUL.md` — plus the revision string from its `## 0. Fingerprint`
+  block
 - `index.html`
 - `main.py`
+- `catalysts.json`
 
 The Architect compares these against the Claude Project copies during the audit. This
 is how a stale copy is caught in either direction.
@@ -436,8 +449,20 @@ created without a TZ that names it.
   outcome, not to fix a typo, not to re-run a day. A re-run that finds an existing file
   writes `dup` and exits zero. If a record is wrong, that is a finding for the report.
 - Hygiene is continuous, not periodic: leave no scratch file, no duplicate, no
-  superseded copy behind at the end of a task. There is no cleanup sweep later, because
-  a sweep is where evidence gets deleted by accident.
+  superseded copy behind at the end of a task. **You never sweep the repository on your
+  own initiative**, because a sweep is where evidence gets deleted by accident.
+- **The monthly architectural audit belongs to the Architect, not to you.** Once a
+  month the Architect audits the repository for obsolete files, duplicated documents,
+  unused folders, orphan benches and legacy artifacts. Its output is findings. Anything
+  it decides to remove reaches you as an ordinary TZ naming the files under
+  `Files to Delete`. Three classes are **never** on that list and a TZ proposing them is
+  defective: `CryptoTZ/**`, `CryptoReports/**` and `journal/**`. They are the audit
+  trail and the instrument record, immutable by invariant 38.
+- **A TZ has executed if and only if `CryptoReports/` holds a report with its number.**
+  That set difference is the audit's mechanical check, which is why a report is never
+  renamed, moved or written anywhere but `CryptoReports/` on `main`. A specification
+  that never ran stays in `CryptoTZ/` as evidence — it is not a pending task and you
+  never execute one on your own reading.
 - If you find a file that fits no class in this table, **report it, do not remove it.**
   `image.PNG` reads as debris and is the PWA icon.
 
