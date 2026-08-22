@@ -192,4 +192,8 @@ const cd = {volatility: 0.009, min_price: 1, max_price: 3, r7: 0.11, r30: 0.2, r
 });
 
 console.log('\n--- checks: ' + checks + '  fails: ' + fails + ' ---');
+// Invariant 22: a bench that compared nothing is a FAILED bench, never a green
+// one. The guard sits after the summary so a red run still prints its numbers,
+// and it may only ever make this bench redder.
+if (checks === 0) { console.log('FAIL bench verified nothing'); process.exit(1); }
 process.exit(fails === 0 ? 0 : 1);

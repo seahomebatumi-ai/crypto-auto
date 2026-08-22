@@ -187,4 +187,8 @@ console.log('=== 9. Structural connectivity: no coin can be LONG and SHORT ===')
 eq('short side closed in up-trend', regUp.dir !== -1, true);
 
 console.log('\n--- checks: ' + checks + '  fails: ' + fails + ' ---');
+// Invariant 22: a bench that compared nothing is a FAILED bench, never a green
+// one. The guard sits after the summary so a red run still prints its numbers,
+// and it may only ever make this bench redder.
+if (checks === 0) { console.log('FAIL bench verified nothing'); process.exit(1); }
 process.exit(fails === 0 ? 0 : 1);

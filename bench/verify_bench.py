@@ -245,4 +245,10 @@ shutil.rmtree(tmp, ignore_errors=True)
 print('checks run: %d   FAIL %d' % (checks[0], len(fails)))
 for f in fails:
     print('  FAIL: ' + f)
+# Invariant 22: a validator that passes with no data is a failed validator. The
+# guard sits after the summary so a red run still prints its own numbers, and it
+# may only ever make this bench redder.
+if checks[0] == 0:
+    print('  FAIL bench compared nothing')
+    sys.exit(1)
 sys.exit(1 if fails else 0)

@@ -219,6 +219,9 @@ function rnd(s){ s.x = (s.x * 1103515245 + 12345) & 0x7fffffff; return s.x / 0x7
 var st = { x: 987654321 };
 var both = 0, tradeNoGeo = 0, waitBadGeo = 0, stressTrade = 0, trendBoth = 0;
 var checks = 0, trades = 0, waits = 0, nones = 0, rrFail = 0;
+// Инв. 43: `cmp` растёт В ТОЧКЕ СРАВНЕНИЯ и НИГДЕ больше. `checks` остаётся
+// числом СЦЕНАРИЕВ и живёт только в сообщении: сценарий — не сверка.
+var cmp = 0;
 for (var i = 0; i < %d; i++) {
   var vol = 0.002 + rnd(st) * 0.02;
   var mn  = 1 + rnd(st) * 100;
@@ -252,23 +255,25 @@ for (var i = 0; i < %d; i++) {
                               reg, dec, hi, lo, rc7, Date.UTC(2026, 7, 19));
   }
   checks++;
-  if (out[0].action === 'trade' && out[1].action === 'trade') both++;
-  if (reg.mode === 'stress' &&
+  cmp++; if (out[0].action === 'trade' && out[1].action === 'trade') both++;
+  cmp++; if (reg.mode === 'stress' &&
       (out[0].action !== 'none' || out[1].action !== 'none')) stressTrade++;
-  if (reg.mode === 'trend' && out[0].action !== 'none'
+  cmp++; if (reg.mode === 'trend' && out[0].action !== 'none'
       && out[1].action !== 'none') trendBoth++;
   for (var k2 = 0; k2 < 2; k2++) {
     var v = out[k2];
     if (v.action === 'trade') {
       trades++;
-      if (!v.geo || v.geo.veto.length) tradeNoGeo++;
-      if (v.geo && v.geo.rr !== null && v.geo.rr < RR_MIN) rrFail++;
-      if (v.geo && v.geo.wait !== null) waitBadGeo++;
+      // Три сверки стоят ПОД условием сознательно: у неторгуемой стороны
+      // геометрии нет, и сверять там нечего. Считается то, что исполнилось.
+      cmp++; if (!v.geo || v.geo.veto.length) tradeNoGeo++;
+      cmp++; if (v.geo && v.geo.rr !== null && v.geo.rr < RR_MIN) rrFail++;
+      cmp++; if (v.geo && v.geo.wait !== null) waitBadGeo++;
     } else if (v.action === 'wait') { waits++; }
     else { nones++; }
   }
 }
-console.log(JSON.stringify({ checks: checks, both: both,
+console.log(JSON.stringify({ checks: checks, cmp: cmp, both: both,
   stressTrade: stressTrade, trendBoth: trendBoth, tradeNoGeo: tradeNoGeo,
   rrFail: rrFail, waitBadGeo: waitBadGeo,
   trades: trades, waits: waits, nones: nones }));
@@ -285,7 +290,11 @@ console.log(JSON.stringify({ checks: checks, both: both,
            % (r["checks"], r["trades"], r["waits"], r["nones"]))
     if fails:
         msg += " | ПРОВАЛ: " + "; ".join(fails)
-    return not fails, msg, r["checks"] * 8
+    # Инв. 43: возвращается СЧЁТЧИК из точки сравнения, а не `сценарии * 8`.
+    # Множитель 8 был допущением о числе утверждений на сценарий, и ничто его
+    # не удерживало: сверок на сценарий три плюс три на КАЖДУЮ торгуемую
+    # сторону, а торгуемых сторон на сценарии от нуля до двух.
+    return not fails, msg, r["cmp"]
 
 
 def check_fixtures():
@@ -342,17 +351,25 @@ console.log(JSON.stringify({ regime: reg.mode, rows: out }));
     r = run_node(code)
     rows = {(x["coin"], x["side"]): x for x in r["rows"]}
     fails, lines = [], []
-    # Пре-регистрация: что стенд ОБЯЗАН показать (§3.12, инв. 23).
+    # Пре-регистрация: что стенд ОБЯЗАН показать (§3.12, инв. 23). Инв. 43:
+    # `cmp` растёт перед КАЖДЫМ утверждением. Строк четыре, но утверждений
+    # тоже четыре, а не четыре на строку: ZEC min30 помечен допущением и в
+    # сверках не участвует, у GRAM лонга сверяется только R:R.
+    cmp = 0
     gs = rows[("GRAM", "short")]
+    cmp += 1
     if gs["action"] != "none" or not gs["veto"]:
         fails.append("GRAM шорт не отклонён")
     gl = rows[("GRAM", "long")]
+    cmp += 1
     if gl["rr"] is None or abs(gl["rr"] - 7.7) > 0.25:
         fails.append("GRAM лонг R:R %.2f != 7.7 доски" % (gl["rr"] or -1))
     zs = rows[("ZEC", "short")]
+    cmp += 1
     if zs["rr"] is None or abs(zs["rr"] - 2.9) > 0.15:
         fails.append("ZEC шорт R:R %.2f != 2.9 доски" % (zs["rr"] or -1))
     zl = rows[("ZEC", "long")]
+    cmp += 1
     if zl["action"] == "trade":
         fails.append("ZEC лонг выдан сделкой без отката")
     for k, x in sorted(rows.items()):
@@ -364,7 +381,7 @@ console.log(JSON.stringify({ regime: reg.mode, rows: out }));
     msg = "фикстуры (режим %s):\n%s" % (r["regime"], "\n".join(lines))
     if fails:
         msg += "\n  ПРОВАЛ: " + "; ".join(fails)
-    return not fails, msg, len(rows) * 4
+    return not fails, msg, cmp
 
 
 def _path(rnd, n, vol, world, start=100.0, mu=0.0):
@@ -506,12 +523,20 @@ console.log(JSON.stringify(out));
         if not new:
             a["skip"] += 1
     fails, lines = [], []
+    # Инв. 43, §4.2 ТЗ-08: блок статистический, поэтому чисел два и они разные.
+    # СВЕРКИ — два пре-зарегистрированных утверждения на каждый из трёх миров;
+    # правило 3 («число сделок падает») названо вслух и утверждением не
+    # является. ОБЪЁМ ВЫБОРКИ — len(res) траекторий — печатается в сообщении.
+    # Прежний `len(res)` возвращал выборку вместо сверок.
+    cmp = 0
     for w in ("mean", "trend", "walk"):
         a = agg[w]
         rb = sum(a["rb"]) / len(a["rb"]) if a["rb"] else 0.0
         rn = sum(a["rn"]) / len(a["rn"]) if a["rn"] else 0.0
+        cmp += 1
         if a["rn"] and rn < rb - 1e-9:
             fails.append("%s: средняя R упала %+.3f -> %+.3f" % (w, rb, rn))
+        cmp += 1
         if a["sn"]:
             fails.append("%s: остались цели внутри шума (%d)" % (w, a["sn"]))
         lines.append(
@@ -519,11 +544,11 @@ console.log(JSON.stringify(out));
             " | цель в шуме %d -> %d | пустых дат %d"
             % (w, str(regs[w]), a["nb"], a["nn"], rb, rn, a["sb"], a["sn"],
                a["skip"]))
-    msg = "синтетика (%d дат x %d монет):\n%s" % (len(per), coins,
-                                                  "\n".join(lines))
+    msg = ("синтетика (%d дат x %d монет, наблюдений: %d):\n%s"
+           % (len(per), coins, len(res), "\n".join(lines)))
     if fails:
         msg += "\n  ПРОВАЛ: " + "; ".join(fails)
-    return not fails, msg, len(res)
+    return not fails, msg, cmp
 
 
 def check_display(n=4000, coins=28):
@@ -545,7 +570,10 @@ def check_display(n=4000, coins=28):
          несёт action, и её проверяет --props (счётчик `both`), а не номер.
     """
     code = harness(FUNCS, r"""
-var out = { tier: [], ordFail: 0, gapFail: 0, badNo: 0, bothNo: 0,
+// Инв. 43: `cmp` растёт В ТОЧКЕ СРАВНЕНИЯ и возвращается в JSON — ровно
+// так же, как ordFail и badNo. `lists`, `trades`, `waits`, `greys`, `bothNo`
+// остаются ИЗМЕРЕНИЯМИ: они печатаются, но ничего не утверждают.
+var out = { tier: [], cmp: 0, ordFail: 0, gapFail: 0, badNo: 0, bothNo: 0,
             lists: 0, trades: 0, waits: 0, greys: 0 };
 // 1. Границы тиров
 var probe = [100, 70.0, 69.99, 50.0, 49.99, 35.0, 34.99, 0, -5];
@@ -602,6 +630,7 @@ for (var L = 0; L < %d; L++) {
     for (var i2 = 1; i2 < rows.length; i2++) {
       var a = rows[i2 - 1].sc ? rows[i2 - 1].sc.score : -1;
       var b = rows[i2].sc ? rows[i2].sc.score : -1;
+      out.cmp++;
       if (b - a > 0.05) out.ordFail++;
     }
     var seen = 0;
@@ -611,6 +640,9 @@ for (var L = 0; L < %d; L++) {
       // Инв. 34: номер есть у КАЖДОЙ показанной строки со счётом; отнимают
       // его только отсутствие счёта и свёртка стороны (row.off).
       var wants = sc !== null && !r.off;
+      // Одна сверка номера на строку: либо номер обязан быть следующим по
+      // порядку, либо его обязано не быть вовсе. Ветки взаимоисключающие.
+      out.cmp++;
       if (wants) { seen++; if (r.no !== seen) out.gapFail++; }
       else if (r.no !== 0) out.badNo++;
       if (act === 'trade') out.trades++;
@@ -623,6 +655,8 @@ for (var L = 0; L < %d; L++) {
   // являются: нумерация ведётся ПО СТОРОНЕ независимо, и номер вернулся к
   // смыслу «место в рейтинге этой стороны». Число печатается, чтобы разворот
   // ожидания был ИЗМЕРЕН, а не подразумевался (инв. 37).
+  // bothNo НЕ инкрементирует cmp: число печатается, но провалом не является
+  // (инв. 34), а счёт проверок считает СВЕРКИ, а не измерения.
   for (var c2 = 0; c2 < %d; c2++) {
     var nA = 0, nB = 0;
     for (var q = 0; q < sides[0].length; q++)
@@ -641,7 +675,10 @@ console.log(JSON.stringify(out));
             49.99: "Кандидат", 35.0: "Кандидат", 34.99: "Фон",
             0: "Фон", -5: "Фон"}
     fails = []
+    # Сверки границ тиров идут здесь, поэтому и счётчик здесь. Инв. 43.
+    cmp = r["cmp"]
     for score, name, col in r["tier"]:
+        cmp += 1
         if want[score] != name:
             fails.append("tierOf(%s) = %s, ждали %s" % (score, name, want[score]))
     if r["ordFail"]: fails.append("порядок не по счёту: %d" % r["ordFail"])
@@ -653,7 +690,12 @@ console.log(JSON.stringify(out));
            % (r["lists"], r["trades"], r["waits"], r["greys"], r["bothNo"]))
     if fails:
         msg += "\n  ПРОВАЛ: " + "; ".join(fails)
-    return not fails, msg, r["lists"] * r["trades"] + len(r["tier"])
+    # Инв. 43: прежнее выражение `списков * торгуемых + len(tier)` было
+    # ПРОИЗВЕДЕНИЕМ двух не связанных величин — числа списков и числа
+    # торгуемых карточек во всех списках сразу. Оно не раскладывалось ни на
+    # одну сверку. Теперь это сумма счётчиков: порядок (пара соседей),
+    # нумерация (строка) и границы тиров (проба).
+    return not fails, msg, cmp
 
 
 def check_control(seeds=16, coins=70, days=360):
@@ -737,15 +779,22 @@ console.log(JSON.stringify(out));
     # Допуск ВЫВОДИТСЯ из выборки, а не назначается: R-кратные тяжелохвостые
     # (-1 против +rr), и фиксированный порог здесь был бы произволом.
     fails = []
+    # Инв. 43, §4.2 ТЗ-08: блок статистический, чисел два. СВЕРКИ — два
+    # утверждения о том, что обе руки лежат на нуле в пределах 2SE. ОБЪЁМ
+    # ВЫБОРКИ — len(res) исходов гонки барьеров — печатается в сообщении.
+    # Сотни тысяч траекторий, сведённые в две статистики, дают две сверки.
+    cmp = 0
+    cmp += 1
     if abs(rb) > 2 * sb + 1e-9: fails.append("прежняя %+.3f вне 2SE" % rb)
+    cmp += 1
     if new and abs(rn) > 2 * sn + 1e-9: fails.append("движок %+.3f вне 2SE" % rn)
-    msg = ("контроль блуждания без обрезания (%d исходов): прежняя %+.3f "
+    msg = ("контроль блуждания без обрезания (наблюдений: %d): прежняя %+.3f "
            "(2SE %.3f), движок %+.3f (2SE %.3f, n=%d) — обе обязаны лежать "
            "на нуле, и это ГРАНИЦА полезности геометрии"
            % (len(res), rb, 2 * sb, rn, 2 * sn, len(new)))
     if fails:
         msg += " | ПРОВАЛ: " + "; ".join(fails)
-    return not fails, msg, len(res)
+    return not fails, msg, cmp
 
 
 def main():
