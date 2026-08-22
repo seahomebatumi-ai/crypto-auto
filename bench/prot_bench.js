@@ -455,4 +455,9 @@ if (old) suiteNoRegression(nu, old);
 
 console.log(notes.join('\n'));
 console.log('PASS ' + pass + '   FAIL ' + fail);
+// Invariant 22: a bench that compared nothing is a FAILED bench, never a green
+// one. The guard is on the TOTAL of both counters, so an absent
+// index.html.prev — which legitimately skips the baseline suites — stays legal:
+// it is zero COMPARISONS that is illegal, not a skipped optional suite.
+if (pass + fail === 0) { console.log('FAIL bench verified nothing'); process.exit(1); }
 process.exit(fail ? 1 : 0);

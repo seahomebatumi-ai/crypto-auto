@@ -766,8 +766,8 @@ var tokens = [
     {name:'HBAR',   s:'HBARUSDT'},  {name:'XLM',    s:'XLMUSDT'},
     {name:'ALGO',   s:'ALGOUSDT'},  {name:'BNB',    s:'BNBUSDT'},
     // ZEC / UNI — спот-пары Binance есть, идут в ?symbols= штатно.
-    // XMR — спот делистнут Binance (2024) => fut:true.
-    // LIT — статус спот-пары не подтверждён => fut:true.
+    // XMR / LIT / HYPE — площадка ОБЪЯВЛЕНА: только фьючерсы (карта §3.14,
+    // инв. 41). Живая строка зеркала объявление не отменяет.
     // Правило: неподтверждённый символ НИКОГДА не кладём в спот-?symbols=
     // (HTTP 400 роняет ВЕСЬ спот-тикер на 1.2 МБ — инвариант 5).
     {name:'ZEC',    s:'ZECUSDT'},   {name:'UNI',    s:'UNIUSDT'},
