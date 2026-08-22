@@ -9,9 +9,24 @@
 // be exercised without a server.
 //
 // A bench that verified nothing must fail (inv. 22, 29): the check count is
-// printed and zero is a failure. The quorum rule currently has ZERO live cases —
-// nothing in catalysts.json is `confirmed` — so it is exercised against
-// synthetic entries with known answers, in both directions.
+// printed and zero is a failure. The quorum rule is exercised against synthetic
+// entries with known answers in both directions, and — since TZ-09 — against a
+// live `confirmed` entry as well.
+//
+// ── Rules the next registry edit follows (TZ-09 §3.4) ───────────────────────
+// JSON carries no comments, so the rules for editing catalysts.json live here,
+// next to the quorum rule that enforces them, where the next editor meets them:
+//
+//   * `d` is the date the event RESOLVES, announced by a primary source. A
+//     month, a quarter, a "target" or a window is not a date and does not
+//     become an entry. SOL's "Alpenglow in October" was invented precision and
+//     was deleted rather than re-dated.
+//   * `dir` is mechanical, never a forecast. Supply that certainly reaches the
+//     market -> `short`. Determinate one-way mechanics -> that side. A
+//     scheduled resolution with an unknowable outcome -> `both`. Anything
+//     requiring an opinion about the OUTCOME does not belong in the registry at
+//     all: that is how the ZEC entry acquired a direction it could not support.
+//   * `src` must support the date in `d`, not merely the existence of the event.
 'use strict';
 const fs   = require('fs');
 const path = require('path');
@@ -24,11 +39,21 @@ const RAW  = fs.readFileSync(path.join(ROOT, 'catalysts.json'), 'utf8');
 
 // Primary sources: the project's own domains and the specification repositories
 // where an upgrade or an unlock is actually decided. Aggregators are absent on
-// purpose — the ENA check that motivated this TZ returned six mutually
+// purpose — the ENA check that motivated TZ-06 returned six mutually
 // inconsistent answers from six trackers, so "many aggregators agree" is not
 // evidence and two of them are not a quorum.
+//
+// This list is the registry's TRUST ROOT: an entry is `confirmed` if and only if
+// one of these hosts (or a subdomain of one — see isPrimary) stands behind its
+// date. **It changes only through a TZ**, never as a side effect of wanting a
+// particular entry to pass. Adding a host here promotes every future entry that
+// cites it, which is exactly the decision an implementer may not take alone.
+// Suffix matching means subdomains need not be listed one by one:
+// `docs.ethena.fi` and `support.binance.com` already resolve through `ethena.fi`
+// and `binance.com`.
 const PRIMARY = [
     'z.cash', 'zips.z.cash', 'electriccoin.co', 'forum.zcashcommunity.com',
+    'zfnd.org',
     'github.com', 'raw.githubusercontent.com',
     'solana.com', 'solana.org', 'avax.network', 'avalabs.org',
     'ethereum.org', 'eips.ethereum.org', 'xrpl.org', 'ripple.com',
@@ -131,8 +156,13 @@ const SYMS = P.tokens.map(function (t) { return t.name; });
 // seven (d · dir · kind · t · conf · src · added) and its field-rule paragraph
 // names the same seven. The exact key set is asserted, and the symbol key is
 // asserted separately — that is the eighth identifying element of an entry.
+// TZ-09 §4.4. `both` is an ADDITIVE enum value and the schema version stays 1:
+// production's loader and catalystCheck already handle it (`c.dir !== mine` is
+// true on both sides, `c.dir === mine` false on both), so an older build fed the
+// same file behaves identically (inv. 1, 9). It is the only honest `dir` for a
+// scheduled event whose date is known and whose outcome is not.
 const KEYS = ['d', 'dir', 'kind', 't', 'conf', 'src', 'added'];
-const DIRS = ['long', 'short'];
+const DIRS = ['long', 'short', 'both'];
 const KINDS = ['unlock', 'protocol', 'listing', 'macro'];
 const CONFS = ['confirmed', 'disputed'];
 
@@ -163,35 +193,73 @@ Object.keys(CAT.items).forEach(function (sym) {
 console.log('  symbols: ' + Object.keys(CAT.items).length + ', entries: ' + entries);
 ok('the registry is not empty', entries > 0);
 
-// ── 2. Quorum (inv. 39) ─────────────────────────────────────────────────────
-// `confirmed` costs either two independent sources or one primary one. Nothing
-// in the file is confirmed today, so the rule is proved on synthetic entries
-// with known answers — a rule with zero cases is not a control (inv. 22).
+// TZ-09 §4.7. `updated` is what the board and the journal print as the age of
+// the registry, and nothing forced it to move: an edit that adds an entry and
+// forgets the field currently passes every other check while advertising a
+// staleness that is a lie. No wall clock is involved — the file is compared
+// against itself, so this assertion cannot expire (§4.8).
+let newestAdded = '';
+Object.keys(CAT.items).forEach(function (sym) {
+    CAT.items[sym].forEach(function (e) { if (e.added > newestAdded) newestAdded = e.added; });
+});
+ok('updated (' + CAT.updated + ') is not older than the newest added (' + newestAdded + ')',
+   typeof CAT.updated === 'string' && CAT.updated >= newestAdded);
+
+// ── 2. Quorum (§3.15 / инв. 39, изменён ТЗ-09) ──────────────────────────────
+// `confirmed` costs ONE PRIMARY SOURCE. The two-host branch is gone.
+//
+// The old rule accepted "two distinct hosts of any kind", which contradicted the
+// paragraph above PRIMARY that motivated it: the ENA probe returned six mutually
+// inconsistent answers from six trackers, and a rule that lets any two of those
+// six confer authority buys precisely what TZ-09 found. The same probe on AVAX
+// returned three different next-unlock dates in one week (10 August; 21 August
+// with 3 584 842 tokens; 12 May), none of them the 18 September the registry
+// claimed, with no Avalanche primary publishing an unlock calendar at all; on
+// HYPE it returned four different dates across four trackers plus a ~30x gap
+// between the projected unlock and the amount the team itself claims. Two of
+// them agreeing is not corroboration, it is the same guess copied twice.
+//
+// Since `confirmed` CLOSES a trading side, the bar is the source's AUTHORITY,
+// not the number of sites repeating it. Aggregators may still appear in `src` as
+// corroboration; they can no longer confer authority, however many of them agree.
 function hostOf(u) {
     const m = /^https?:\/\/([^/?#]+)/i.exec(String(u));
     if (!m) return null;
     return m[1].toLowerCase().replace(/:\d+$/, '').replace(/^www\./, '');
 }
-function quorumOk(e) {
-    if (e.conf !== 'confirmed') return true;          // disputed carries no burden
-    const hosts = (e.src || []).map(hostOf).filter(function (h) { return h !== null; });
-    if (hosts.length >= 2) {
-        const uniq = {}; hosts.forEach(function (h) { uniq[h] = true; });
-        return Object.keys(uniq).length >= 2;         // two SOURCES, not one twice
+// Suffix match on a DOT boundary, so `docs.ethena.fi` resolves through
+// `ethena.fi` while `notethena.fi` does not, and `ethena.fi.attacker.com` — where
+// the primary is a left label of somebody else's domain — does not either.
+function isPrimary(h) {
+    for (let i = 0; i < PRIMARY.length; i++) {
+        const p = PRIMARY[i];
+        if (h === p || h.slice(-(p.length + 1)) === '.' + p) return true;
     }
-    return hosts.length === 1 && PRIMARY.indexOf(hosts[0]) >= 0;
+    return false;
+}
+function quorumOk(e) {
+    if (e.conf !== 'confirmed') return true;      // disputed carries no burden
+    const hosts = (e.src || []).map(hostOf).filter(function (h) { return h !== null; });
+    for (let i = 0; i < hosts.length; i++) if (isPrimary(hosts[i])) return true;
+    return false;
 }
 
 console.log('=== 2. Quorum rule ===');
 const QCASES = [
     { want: true,  why: 'one primary source',        e: { conf: 'confirmed', src: ['https://zips.z.cash/zip-0253'] } },
-    { want: true,  why: 'two independent aggregators', e: { conf: 'confirmed', src: ['https://tokenomist.ai/x', 'https://cryptorank.io/y'] } },
+    { want: false, why: 'two independent aggregators — was `pass` before TZ-09',
+                                                     e: { conf: 'confirmed', src: ['https://tokenomist.ai/x', 'https://cryptorank.io/y'] } },
     { want: false, why: 'one aggregator alone',      e: { conf: 'confirmed', src: ['https://tokenomist.ai/x'] } },
     { want: false, why: 'no source at all',          e: { conf: 'confirmed', src: [] } },
-    { want: false, why: 'same host twice',           e: { conf: 'confirmed', src: ['https://tokenomist.ai/x', 'https://www.tokenomist.ai/y'] } },
+    { want: false, why: 'same aggregator twice',     e: { conf: 'confirmed', src: ['https://tokenomist.ai/x', 'https://www.tokenomist.ai/y'] } },
     { want: false, why: 'not a URL',                 e: { conf: 'confirmed', src: ['со слов'] } },
     { want: true,  why: 'disputed needs nothing',    e: { conf: 'disputed',  src: [] } },
-    { want: true,  why: 'primary plus aggregator',   e: { conf: 'confirmed', src: ['https://github.com/zcash/zips/pull/1', 'https://cryptorank.io/y'] } }
+    { want: true,  why: 'primary plus aggregator',   e: { conf: 'confirmed', src: ['https://github.com/zcash/zips/pull/1', 'https://cryptorank.io/y'] } },
+    { want: true,  why: 'subdomain of a primary',    e: { conf: 'confirmed', src: ['https://docs.ethena.fi/ena/tokenomics'] } },
+    { want: true,  why: '`www.` and port stripped',  e: { conf: 'confirmed', src: ['https://WWW.Binance.com:443/en/support/announcement/detail/x'] } },
+    { want: false, why: 'suffix lookalike',          e: { conf: 'confirmed', src: ['https://notethena.fi/x'] } },
+    { want: false, why: 'primary as a left label',   e: { conf: 'confirmed', src: ['https://ethena.fi.attacker.com/x'] } },
+    { want: true,  why: 'the live ZEC entry',        e: { conf: 'confirmed', src: ['https://forum.zcashcommunity.com/t/nu7-coinholder-vote/56912'] } }
 ];
 QCASES.forEach(function (c) { eq('quorum, ' + c.why, quorumOk(c.e), c.want); });
 let confirmedLive = 0;
@@ -203,56 +271,124 @@ Object.keys(CAT.items).forEach(function (sym) {
 });
 console.log('  synthetic cases: ' + QCASES.length + ', live confirmed entries: ' + confirmedLive);
 
-// ── 3. Veto containment ─────────────────────────────────────────────────────
-// 400 consecutive days x every symbol x both sides. Not one `disputed` entry may
-// close a side at any offset. The notes have to keep appearing on exactly the
-// days the old literal produced them: the supporting side sees the note over the
-// 15 calendar days ending on the event date — the -1 back edge keeps the event
-// day itself, CAT_WINDOW_D keeps the fourteen before it.
-console.log('=== 3. Veto containment across 400 days x ' + SYMS.length + ' symbols x 2 sides ===');
+// ── 3. Authority table across the sweep (TZ-09 §4.5) ────────────────────────
+// 400 consecutive days x every symbol in tokens[] x both sides, from the same
+// fixed START as before TZ-09.
+//
+// What this section asserted until TZ-09 was "no live entry may veto" and "the
+// supporting side sees notes on 15 dates" — statements about the CONTENTS of one
+// edition of catalysts.json, true only while every entry was `disputed`. That
+// expectation goes red the moment the registry does its job, and it did: the
+// first `confirmed` entry turned a passing bench red without a single defect in
+// the product. A control whose expectation is a snapshot of the data it controls
+// is not a control (inv. 22).
+//
+// So the expectation is DERIVED from each entry instead, by its own authority:
+//
+//   conf          dir     veto LONG  veto SHORT  note LONG  note SHORT
+//   not confirmed  long       no         no         yes        no
+//   not confirmed  short      no         no         no         yes
+//   not confirmed  both       no         no         no         no
+//   confirmed      long       no         YES        yes        no
+//   confirmed      short     YES         no         no         yes
+//   confirmed      both      YES        YES         no         no
+//
+// Read as two independent questions. `conf` decides whether the entry may CLOSE
+// a side at all; `dir` decides which side it SUPPORTS. An entry annotates the
+// side it supports, and a `confirmed` entry closes every side it does not — so
+// `both`, which supports neither, closes both and annotates nothing.
+//
+// Every veto and every note carries the entry's own `t`; a wrong entry's text on
+// the right day is a failure, because the board prints that string as the reason
+// it refused the trade.
+function iso(ms) { return new Date(ms).toISOString().slice(0, 10); }
+// The 15 calendar dates on which an entry acts: the event date and the
+// CAT_WINDOW_D before it. CAT_WINDOW_D is read from production (inv. 20, 21) —
+// this is the calendar-date form of the assertion, deliberately NOT a second
+// copy of the millisecond arithmetic in catalystCheck. The millisecond edges are
+// pinned separately in section 4.
+function windowDates(d) {
+    const ms = Date.parse(d + 'T00:00:00Z');
+    const out = [];
+    for (let k = P.CAT_WINDOW_D; k >= 0; k--) out.push(iso(ms - k * DAY));
+    return out;
+}
+
+console.log('=== 3. Authority table across 400 days x ' + SYMS.length + ' symbols x 2 sides ===');
+
+// ── 3a. Overlap guard (TZ-09 §4.6) ──────────────────────────────────────────
+// The table above is stated PER ENTRY, and it is only the right expectation
+// while at most one entry owns any given swept date. If a coin ever has two
+// entries whose windows overlap, the answer on the overlapping days is decided
+// by the precedence rule inside catalystCheck — first veto returns, first note
+// wins — and NOT by this table. Comparing against the table anyway would test
+// the wrong thing quietly, which is the failure mode this whole file exists to
+// prevent. Detect it, print it, fail. Today: zero overlaps.
+const overlaps = [];
+Object.keys(CAT.items).forEach(function (sym) {
+    const list = CAT.items[sym];
+    for (let i = 0; i < list.length; i++) {
+        for (let j = i + 1; j < list.length; j++) {
+            const a = windowDates(list[i].d), b = windowDates(list[j].d);
+            const shared = a.filter(function (x) { return b.indexOf(x) >= 0; });
+            if (shared.length) {
+                overlaps.push(sym + '[' + i + '] ' + list[i].d + ' and ' + sym + '[' + j + '] ' +
+                              list[j].d + ' share ' + shared.length + ' day(s): ' + shared.join(', '));
+            }
+        }
+    }
+});
+overlaps.forEach(function (o) { console.log('  OVERLAP ' + o); });
+eq('no coin has two entries whose windows overlap', overlaps.length, 0);
+
+// The entry acting on one symbol/date, or null. At most one, guaranteed above.
+function actingOn(sym, dayISO) {
+    const list = CAT.items[sym] || [];
+    for (let i = 0; i < list.length; i++) {
+        if (windowDates(list[i].d).indexOf(dayISO) >= 0) return list[i];
+    }
+    return null;
+}
+function expected(sym, isLong, dayISO) {
+    const e = actingOn(sym, dayISO);
+    if (!e) return { veto: null, note: null };
+    const supports = e.dir === (isLong ? 'long' : 'short');
+    return {
+        veto: (e.conf === 'confirmed' && !supports) ? e.t : null,
+        note: supports ? e.t : null
+    };
+}
+
 const START = Date.parse('2026-06-01T11:00:00Z');
-const noteDays = {};
-let sweep = 0, vetoes = 0;
+let sweep = 0, vetoed = 0, noted = 0;
 for (let d = 0; d < 400; d++) {
     const t0 = START + d * DAY;
+    const dayISO = iso(t0);
     SYMS.forEach(function (sym) {
         [true, false].forEach(function (isLong) {
-            const out = P.catalystCheck(sym, isLong, t0);
+            const want = expected(sym, isLong, dayISO);
+            const got = P.catalystCheck(sym, isLong, t0);
             sweep++;
-            checks++;
-            if (out.veto !== null) {
-                fails++; vetoes++;
-                if (!quiet) console.log('  FAIL disputed entry vetoed: ' + sym + ' day ' + d + ' long=' + isLong);
-            }
-            if (out.note !== null) {
-                const k = sym + '|' + (isLong ? 'long' : 'short');
-                (noteDays[k] = noteDays[k] || []).push(t0);
-            }
+            if (want.veto !== null) vetoed++;
+            if (want.note !== null) noted++;
+            deq(dayISO + ' ' + sym + (isLong ? ' LONG' : ' SHORT'), got, want);
         });
     });
 }
-console.log('  calls: ' + sweep + ', vetoes seen: ' + vetoes + ' (must be 0)');
+console.log('  calls: ' + sweep + ', days a side was closed: ' + vetoed + ', days a side was annotated: ' + noted);
+// §4.5 requires the table to hold "on all fifteen calendar dates ending on `d`",
+// which the sweep above proves only for dates the sweep actually reaches. An
+// entry whose window fell outside START..START+399 would satisfy every deq above
+// by comparing null against null — passing while verifying nothing (inv. 22).
+// This asserts the premise instead of assuming it.
+const firstDay = iso(START), lastDay = iso(START + 399 * DAY);
+ok('every entry window falls inside the swept range ' + firstDay + '..' + lastDay,
+   Object.keys(CAT.items).every(function (sym) {
+       return CAT.items[sym].every(function (e) {
+           return windowDates(e.d).every(function (x) { return x >= firstDay && x <= lastDay; });
+       });
+   }));
 
-Object.keys(CAT.items).forEach(function (sym) {
-    CAT.items[sym].forEach(function (e) {
-        const supporting = e.dir === 'long' ? 'long' : 'short';
-        const opposing   = e.dir === 'long' ? 'short' : 'long';
-        const got = noteDays[sym + '|' + supporting] || [];
-        const eventMs = Date.parse(e.d + 'T00:00:00Z');
-        // Stated as calendar days, not as a second copy of the window
-        // arithmetic: the note stands on the 15 dates ending ON the event date
-        // — the -1 back edge keeps the event day itself, CAT_WINDOW_D keeps the
-        // fourteen before it. The millisecond edges are pinned in section 4.
-        const gotDates = got.map(function (t) { return new Date(t).toISOString().slice(0, 10); });
-        const wantDates = [];
-        for (let k = 14; k >= 0; k--) wantDates.push(new Date(eventMs - k * DAY).toISOString().slice(0, 10));
-        deq(sym + ': note dates on the supporting side', gotDates, wantDates);
-        eq(sym + ': note span is 15 calendar days', gotDates.length, 15);
-        eq(sym + ': the run ends on the event date', gotDates[gotDates.length - 1], e.d);
-        deq(sym + ': no note on the opposing side', noteDays[sym + '|' + opposing] || [], []);
-        ok(sym + ': the run is contiguous', got.every(function (t, i) { return i === 0 || t - got[i - 1] === DAY; }));
-    });
-});
 const noSuch = SYMS.filter(function (s) { return !CAT.items[s]; });
 noSuch.forEach(function (s) {
     deq(s + ': silent, no entry in the registry', P.catalystCheck(s, true, START), { veto: null, note: null });
@@ -300,6 +436,32 @@ withReg({ ZEC: [mkEntry('disputed', 'long')] }, function (S) {
         eq('disputed, SHORT never vetoed — ' + c.why, S.catalystCheck('ZEC', false, t0).veto, null);
         eq('disputed, SHORT gets no note — ' + c.why, S.catalystCheck('ZEC', false, t0).note, null);
         eq('disputed, LONG still noted — ' + c.why, S.catalystCheck('ZEC', true, t0).note, c.inside ? 'X' : null);
+    });
+});
+// TZ-09 §4.4. `dir: 'both'` is the claim that a scheduled binary event —
+// a governance vote, a court date, an exchange decision — supports NEITHER side,
+// and the claim this TZ makes is that expressing it costs ZERO production
+// changes. That claim is proved here, by running the same production
+// catalystCheck: `c.dir !== mine` holds on both sides, so a confirmed `both`
+// closes both and reaches its early return before any note is set; `c.dir ===
+// mine` is false on both sides, so a disputed `both` is completely silent. The
+// window edges are the same eight — a new enum value must not move them.
+withReg({ ZEC: [mkEntry('confirmed', 'both')] }, function (S) {
+    EDGES.forEach(function (c) {
+        const t0 = evMs + c.off;
+        eq('confirmed both, LONG vetoed — ' + c.why,  S.catalystCheck('ZEC', true,  t0).veto, c.inside ? 'X' : null);
+        eq('confirmed both, SHORT vetoed — ' + c.why, S.catalystCheck('ZEC', false, t0).veto, c.inside ? 'X' : null);
+        eq('confirmed both, LONG never noted — ' + c.why,  S.catalystCheck('ZEC', true,  t0).note, null);
+        eq('confirmed both, SHORT never noted — ' + c.why, S.catalystCheck('ZEC', false, t0).note, null);
+    });
+});
+withReg({ ZEC: [mkEntry('disputed', 'both')] }, function (S) {
+    EDGES.forEach(function (c) {
+        const t0 = evMs + c.off;
+        eq('disputed both, LONG never vetoed — ' + c.why,  S.catalystCheck('ZEC', true,  t0).veto, null);
+        eq('disputed both, SHORT never vetoed — ' + c.why, S.catalystCheck('ZEC', false, t0).veto, null);
+        eq('disputed both, LONG never noted — ' + c.why,   S.catalystCheck('ZEC', true,  t0).note, null);
+        eq('disputed both, SHORT never noted — ' + c.why,  S.catalystCheck('ZEC', false, t0).note, null);
     });
 });
 // A missing or unknown `conf` is treated as unverified, not as confirmed: the
