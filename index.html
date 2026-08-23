@@ -1271,12 +1271,21 @@ function dayRangeRatio(hi, lo, cur, vol) {
 // nothing: they are not counted, and a missing ratio never becomes a zero.
 // Below eight contributing rows there is no verdict at all — a statement about
 // the list computed from three coins is not a statement about the list.
+// The DECLARED venue is read first, ahead of anything a host returned
+// (§3.14, inv. 41): the three fut:true assets take their range from the
+// perpetual and their volatility from a spot index, so pooling them would
+// make the live estimator a different estimator from the one every
+// calibration and every journal replay measured on the 25 spot assets
+// (§3.16, inv. 47). The test short-circuits BEFORE the cd test, so such a row
+// can never reach dayRangeRatio whatever fields it happens to carry, and the
+// quorum below counts contributing SPOT rows only.
 function listExhaustion(rows) {
     var vals = [], i, row, r;
     if (rows) {
         for (i = 0; i < rows.length; i++) {
             row = rows[i];
-            if (!row || !row.cd) continue;
+            if (!row || (row.t && row.t.fut)) continue;
+            if (!row.cd) continue;
             r = dayRangeRatio(row.hi24, row.lo24, row.cur, row.cd.volatility);
             if (r !== null) vals.push(r);
         }
@@ -1850,7 +1859,12 @@ function marketRegime(btcStats) {
         var e = btcStats.r14 / (v * Math.sqrt(2 * H_NOISE));
         if (isFinite(e)) out.eff = Math.max(-3, Math.min(3, e));
     }
-    if (v >= VOL_HARD || (out.z !== null && out.z <= -REG_STRESS_Z)) {
+    // Стресс СИММЕТРИЧЕН по знаку z: четырёхсигмовая неделя вверх делает
+    // опасными ОБЕ стороны ровно так же, как четырёхсигмовая вниз. Нового
+    // числа нет: тот же REG_STRESS_Z в единственном месте (инв. 20).
+    // out.dir НЕ трогается и остаётся нулём: §3.12 читает dir только
+    // на trend, а направление у состояния, где закрыты обе стороны, смысла не имеет.
+    if (v >= VOL_HARD || (out.z !== null && Math.abs(out.z) >= REG_STRESS_Z)) {
         out.mode = 'stress';
         return out;
     }
@@ -2093,7 +2107,16 @@ function regimeBanner(reg, isLong) {
         txt = '\u0420\u0415\u0416\u0418\u041c \u041d\u0415\u0418\u0417\u0412\u0415\u0421\u0422\u0415\u041d \u2014 \u043d\u0435\u0442 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0438 BTC';
         col = '#888';
     } else if (reg.mode === 'stress') {
-        txt = '\u0421\u0422\u0420\u0415\u0421\u0421 \u0420\u042b\u041d\u041a\u0410 \u2014 \u0441\u0434\u0435\u043b\u043e\u043a \u043d\u0435\u0442 \u043d\u0438 \u043d\u0430 \u043e\u0434\u043d\u043e\u0439 \u0441\u0442\u043e\u0440\u043e\u043d\u0435';
+        // Стресс двусторонний, и его ПРИЧИНУ надо назвать: перегретая неделя
+        // вверх и обвал вниз запрещают одно и то же, но выглядят на экране
+        // противоположно. Цвет в обеих ветках прежний — красный: закрыты
+        // обе стороны, а не одна. Нижняя ветка — строка байт в байт прежняя,
+        // поэтому всякий стресс, приходивший сюда старым путём, печатается как раньше.
+        if (reg.z !== null && reg.z >= REG_STRESS_Z) {
+            txt = '\u0420\u042b\u041d\u041e\u041a \u041f\u0415\u0420\u0415\u0413\u0420\u0415\u0422 \u2014 \u0441\u0434\u0435\u043b\u043e\u043a \u043d\u0435\u0442 \u043d\u0438 \u043d\u0430 \u043e\u0434\u043d\u043e\u0439 \u0441\u0442\u043e\u0440\u043e\u043d\u0435';
+        } else {
+            txt = '\u0421\u0422\u0420\u0415\u0421\u0421 \u0420\u042b\u041d\u041a\u0410 \u2014 \u0441\u0434\u0435\u043b\u043e\u043a \u043d\u0435\u0442 \u043d\u0438 \u043d\u0430 \u043e\u0434\u043d\u043e\u0439 \u0441\u0442\u043e\u0440\u043e\u043d\u0435';
+        }
         col = 'var(--red)';
     } else if (reg.mode === 'trend') {
         var up = reg.dir > 0;
@@ -2730,6 +2753,69 @@ function boardHtml(row, pos) {
        + '\u0417\u0435\u043B\u0451\u043D\u044B\u0435 \u2014 \u0432 \u043F\u0440\u0435\u0434\u0435\u043B\u0430\u0445 \u0418\u0422\u041E\u0413\u0410, \u043A\u0440\u0430\u0441\u043D\u044B\u0435 \u2014 \u0437\u0430 \u043D\u0438\u043C.</div>'
        + '</div>';
 
+    // ── 6. Риск выноса ──
+    // Прямое следствие НАЖАТОЙ кнопки плеча (инв. 14), поэтому в склейке стоит
+    // сразу за «ВЫБОРОМ ПЛЕЧА» и до размера: сначала видно, что делает с
+    // позицией сегодняшний день, потом выбирается объём. Ни одной переменной
+    // из блока размера здесь нет.
+    // Чистое отображение в стандарте инв. 27: ни одно число отсюда не попадает
+    // в scoreCandidate, tradeGeometry, leverageDecision, directionVerdict и
+    // журнал. Формулы не переписаны — вызываются продакшн-функции liqPrice,
+    // sigmaDay, touchProb, probTxt, dayRangeRatio, listExhaustion (инв. 20, 21).
+    var sSqz = '';
+    // Запятая как десятичный разделитель — так эти строки заданы в ТЗ; ниже
+    // это единственная форматная вольность блока.
+    function sqzNum(x) { return x.toFixed(1).replace('.', ','); }
+    sSqz += '<div class="bd-sec"><div class="bd-h">\u0420\u0418\u0421\u041a \u0412\u042b\u041d\u041e\u0421\u0410</div>';
+
+    // Строка 1. Запас до ликвидации от НАЖАТОГО плеча, не от ИТОГА (инв. 14).
+    var sqzLiq = liqPrice(E, currentLev, isLong);
+    if (E > 0 && isFinite(sqzLiq) && sqzLiq > 0) {
+        var sqzB   = Math.abs(Math.log(sqzLiq / E));
+        var sqzVol = has(cd.volatility) && cd.volatility > 0 ? cd.volatility : null;
+        var sqzSd  = sqzVol !== null ? sqzB / sigmaDay(sqzVol) : null;
+        var sqzP   = sqzVol !== null ? touchProb(sqzVol, sqzB, 24) : null;
+        sSqz += '<div class="bd-kv" style="margin-top:0;"><span class="bd-k">\u0417\u0430\u043f\u0430\u0441 \u0434\u043e \u043b\u0438\u043a\u0432\u0438\u0434\u0430\u0446\u0438\u0438 \u043f\u0440\u0438 ' + currentLev + 'X</span>'
+           + '<span class="bd-v">'
+           + (sqzSd !== null ? sqzNum(sqzSd) + '\u03c3 \u0434\u043d\u044f' : '\u2014') + '</span></div>'
+           + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k"></span>'
+           + '<span class="bd-v" style="font-size:0.9em;color:#8f8fa0;">'
+           + (sqzP !== null ? '\u0448\u0430\u043d\u0441 \u0437\u0430\u0434\u0435\u0442\u044c \u0437\u0430 \u0441\u0443\u0442\u043a\u0438 ' + probTxt(sqzP) : '\u0431\u043e\u0442 \u043d\u0435 \u0434\u0430\u043b \u0432\u043e\u043b\u0430\u0442\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u044c \u2014 \u0432 \u0441\u0438\u0433\u043c\u0430\u0445 \u043d\u0435 \u0438\u0437\u043c\u0435\u0440\u0438\u0442\u044c')
+           + '</span></div>'
+           + '<div class="bd-note">\u0413\u043e\u0440\u0438\u0437\u043e\u043d\u0442 \u2014 \u0441\u0443\u0442\u043a\u0438. \u042d\u0442\u043e \u043d\u0435 \u043b\u0435\u0441\u0442\u043d\u0438\u0446\u0430 7/14/30\u0434 \u0438\u0437 \u00ab\u0426\u0415\u041d\u042b \u0412\u0420\u0415\u041c\u0415\u041d\u0418\u00bb, \u0430 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u044b\u0439 \u0432\u043e\u043f\u0440\u043e\u0441: \u043f\u0435\u0440\u0435\u0436\u0438\u0432\u0451\u0442 \u043b\u0438 \u043f\u043e\u0437\u0438\u0446\u0438\u044f \u0441\u0435\u0433\u043e\u0434\u043d\u044f\u0448\u043d\u0438\u0439 \u0434\u0435\u043d\u044c. \u0421\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u041a\u0410\u0421\u0410\u041d\u0418\u0415 \u0446\u0435\u043d\u044b \u0445\u043e\u0442\u044f \u0431\u044b \u0440\u0430\u0437, \u0431\u0435\u0437 \u0441\u0442\u043e\u043f\u0430 \u0438 \u0431\u0435\u0437 \u0434\u043e\u043b\u0438\u0432\u0430. \u041c\u043e\u0434\u0435\u043b\u044c \u043d\u043e\u0440\u043c\u0430\u043b\u044c\u043d\u0430\u044f \u0438 \u0441 \u043f\u043e\u0441\u0442\u043e\u044f\u043d\u043d\u043e\u0439 \u0432\u043e\u043b\u0430\u0442\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u044c\u044e, \u0445\u0432\u043e\u0441\u0442\u044b \u0443 \u043a\u0440\u0438\u043f\u0442\u044b \u0442\u043e\u043b\u0449\u0435: \u0438\u0441\u0442\u0438\u043d\u043d\u0430\u044f \u0432\u0435\u0440\u043e\u044f\u0442\u043d\u043e\u0441\u0442\u044c \u0412\u042b\u0428\u0415 \u043f\u0435\u0447\u0430\u0442\u0430\u0435\u043c\u043e\u0439, \u044d\u0442\u043e \u043d\u0438\u0436\u043d\u044f\u044f \u0433\u0440\u0430\u043d\u0438\u0446\u0430.</div>';
+    }
+
+    // Строка 2. Насколько день уже вынесен — монета и список, оба сырыми.
+    // Порога нет и abnormal не читается: измерение печатается, вывод не
+    // делается (§3.16, инв. 23, 47).
+    var sqzOwn  = dayRangeRatio(parseFloat(coin.highPrice), parseFloat(coin.lowPrice),
+                                cur, cd.volatility);
+    var sqzList = listExhaustion(lastRows);
+    if (sqzOwn !== null) {
+        sSqz += '<div class="bd-kv" style="margin-top:11px;"><span class="bd-k">\u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0443\u0436\u0435 \u0432\u044b\u043d\u0435\u0441\u0435\u043d\u043e</span>'
+           + '<span class="bd-v">' + sqzNum(sqzOwn) + ' \u043e\u0431\u044b\u0447\u043d\u043e\u0433\u043e \u0434\u043d\u044f</span></div>';
+    }
+    sSqz += '<div class="bd-kv" style="margin-top:' + (sqzOwn !== null ? '0' : '11px') + ';"><span class="bd-k"></span>'
+       + '<span class="bd-v" style="font-size:0.9em;color:#8f8fa0;">'
+       + (sqzList.median !== null
+           ? '\u043c\u0435\u0434\u0438\u0430\u043d\u0430 \u0441\u043f\u0438\u0441\u043a\u0430 ' + sqzNum(sqzList.median) + ' \u043f\u043e ' + sqzList.n + ' \u043c\u043e\u043d\u0435\u0442\u0430\u043c'
+           : '\u0441\u043f\u0438\u0441\u043e\u043a \u043d\u0435 \u0438\u0437\u043c\u0435\u0440\u0435\u043d: \u0441\u0432\u043e\u044f \u043c\u0435\u0440\u0430 \u0435\u0441\u0442\u044c \u0443 ' + sqzList.n + ' \u043c\u043e\u043d\u0435\u0442, \u043d\u0443\u0436\u043d\u043e 8')
+       + '</span></div>'
+       + '<div class="bd-note">1,0 \u2014 \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c: \u0443 \u0431\u0440\u043e\u0443\u043d\u043e\u0432\u0441\u043a\u043e\u0433\u043e \u0431\u043b\u0443\u0436\u0434\u0430\u043d\u0438\u044f E[\u0445\u043e\u0434\u0430] = \u03c3\u00b7\u221a(8/\u03c0), \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0435\u0434\u0438\u043d\u0438\u0446\u0430 \u0437\u0434\u0435\u0441\u044c \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d\u0430, \u0430 \u0432\u044b\u0432\u0435\u0434\u0435\u043d\u0430. \u0427\u0438\u0441\u043b\u043e \u043f\u0435\u0447\u0430\u0442\u0430\u0435\u0442\u0441\u044f \u043a\u0430\u043a \u0435\u0441\u0442\u044c \u2014 \u043f\u043e\u0440\u043e\u0433\u0430 \u043d\u0435\u0442, \u0441\u0440\u0430\u0432\u043d\u0435\u043d\u0438\u044f \u043d\u0435\u0442, \u043d\u0430 \u0441\u0447\u0451\u0442, \u043f\u043b\u0435\u0447\u043e \u0438 \u0432\u0435\u0440\u0434\u0438\u043a\u0442 \u043e\u043d\u043e \u043d\u0435 \u0432\u043b\u0438\u044f\u0435\u0442. \u0421\u043f\u0438\u0441\u043e\u043a \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u043f\u043e 25 \u0441\u043f\u043e\u0442\u043e\u0432\u044b\u043c \u043c\u043e\u043d\u0435\u0442\u0430\u043c: \u0442\u0440\u0438 \u0444\u044c\u044e\u0447\u0435\u0440\u0441\u043d\u044b\u0435 \u0432 \u043c\u0435\u0440\u0443 \u043d\u0435 \u0432\u0445\u043e\u0434\u044f\u0442.</div>';
+
+    // Строка 3. Стоп относительно шума — читается из dec.inv, ничего не
+    // пересчитывается (инв. 20). Без inv читать нечего, и строки нет.
+    if (dec.inv) {
+        sSqz += '<div class="bd-kv" style="margin-top:11px;"><span class="bd-k">\u0421\u0442\u043e\u043f \u043e\u0442\u043e\u0434\u0432\u0438\u043d\u0443\u0442 \u043e\u0442 \u0448\u0443\u043c\u0430</span>'
+           + '<span class="bd-v" style="font-size:0.9em;">'
+           + (dec.inv.capped ? '\u043e\u043f\u043e\u0440\u044b \u0440\u044f\u0434\u043e\u043c \u043d\u0435\u0442, \u0443\u0440\u043e\u0432\u0435\u043d\u044c \u043d\u0430\u0440\u0438\u0441\u043e\u0432\u0430\u043d \u2014 \u0441\u0442\u043e\u043f \u0434\u0435\u0440\u0436\u0438\u0442\u0441\u044f \u0432\u0440\u0443\u0447\u043d\u0443\u044e'
+              : (dec.inv.floored ? '\u0441\u0442\u043e\u043f \u043f\u0440\u0438\u0436\u0430\u0442 \u043a \u043f\u043e\u043b\u0443 2\u03c3: \u0431\u043b\u0438\u0436\u0435 \u0448\u0443\u043c\u0430 \u0441\u0442\u0430\u0432\u0438\u0442\u044c \u043d\u0435\u043b\u044c\u0437\u044f'
+                 : (has(dec.inv.sd) && dec.inv.sd > 0
+                     ? sqzNum(dec.inv.dist / dec.inv.sd) + '\u03c3 \u0434\u043d\u044f' : '\u2014')))
+           + '</span></div>';
+    }
+    sSqz += '</div>';
+
     var sTime = '';
     // ── 7. Цена времени ──
     // БАГ 09.08 (найден Боссом): здесь стояло dec.ok ? dec.L : currentLev.
@@ -2901,14 +2987,15 @@ function boardHtml(row, pos) {
        + sRange                    //  3. ДИАПАЗОН 90 ДНЕЙ
        + sEntry                    //  4. ТОЧКА ВХОДА
        + sLev                      //  5. ВЫБОР ПЛЕЧА
-       + sSize                     //  6. РАЗМЕР ПОЗИЦИИ
-       + sBounds                   //  7. ГРАНИЦЫ СДЕЛКИ
-       + sTime                     //  8. ЦЕНА ВРЕМЕНИ
-       + sLoss                     //  9. ЕСЛИ ИДЕЯ НЕ СРАБОТАЕТ
-       + sWin                      // 10. ЕСЛИ СРАБОТАЕТ
-       + sProt                     // 11. ЗАЩИТА ПОЗИЦИИ
-       + sSrc                      // 12. ОТКУДА ПЛЕЧО
-       + sTrust;                   // 13. ДОВЕРИЕ К МОДЕЛИ
+       + sSqz                      //  6. РИСК ВЫНОСА
+       + sSize                     //  7. РАЗМЕР ПОЗИЦИИ
+       + sBounds                   //  8. ГРАНИЦЫ СДЕЛКИ
+       + sTime                     //  9. ЦЕНА ВРЕМЕНИ
+       + sLoss                     // 10. ЕСЛИ ИДЕЯ НЕ СРАБОТАЕТ
+       + sWin                      // 11. ЕСЛИ СРАБОТАЕТ
+       + sProt                     // 12. ЗАЩИТА ПОЗИЦИИ
+       + sSrc                      // 13. ОТКУДА ПЛЕЧО
+       + sTrust;                   // 14. ДОВЕРИЕ К МОДЕЛИ
 
     h += '<button class="qbtn wide" style="margin-top:14px;" onclick="closeEntry(\'' + sym + '\')">\u0417\u0410\u041A\u0420\u042B\u0422\u042C</button>';
     h += '</div>';
