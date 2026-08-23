@@ -47,7 +47,7 @@ vm.runInContext(src, sandbox, { filename: 'index.html:<script>' });
 
 const P = sandbox;   // production namespace
 
-['dayRangeRatio', 'sigmaDay', 'listExhaustion', 'regimeBanner'].forEach(function (f) {
+['dayRangeRatio', 'sigmaDay', 'listExhaustion', 'regimeBanner', 'marketRegime'].forEach(function (f) {
     if (typeof P[f] !== 'function') {
         console.log('FAIL ' + f + ' is not defined in index.html');
         process.exit(1);
@@ -56,7 +56,7 @@ const P = sandbox;   // production namespace
 
 // Per-section counters. The gate total is a SUM of these, never an estimate
 // (inv. 43), and each one counts comparisons actually made at its own site.
-const N = { identity: 0, nulls: 0, quorum: 0, banner: 0, inert: 0, purity: 0, control: 0 };
+const N = { identity: 0, nulls: 0, quorum: 0, venue: 0, banner: 0, stress: 0, inert: 0, purity: 0, control: 0 };
 let section = 'identity';
 let checks = 0, fails = 0;
 
@@ -277,6 +277,114 @@ for (let k = 0; k <= 12; k++) {
 console.log('  compared: ' + N.quorum);
 
 // ───────────────────────────────────────────────────────────────────────────
+section = 'venue';
+console.log('=== C1. Venue: the declaration is read, the host is not (TZ-12 B) ===');
+// §3.14 / inv. 41. The three fut:true assets take their range from the
+// perpetual and their volatility from a spot index, so pooling them makes the
+// live estimator a different estimator from the one every calibration and every
+// journal replay measured on the 25 spot assets (§3.16, inv. 47).
+// A row exactly as production builds it: t is the entry from tokens[].
+function vrow(r, fut, name) {
+    const x = rowFor(r);
+    x.t = { name: name || 'SPOT', s: (name || 'SPOT') + 'USDT' };
+    if (fut) x.t.fut = true;
+    return x;
+}
+// C1.1 — a mixed list must equal the same list with the fut rows physically
+// removed, in BOTH median and n. The fut values are chosen far outside the
+// spot ones so their presence would move both if they were counted.
+{
+    const spot = [0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4].map(function (r, i) {
+        return vrow(r, false, 'S' + i);
+    });
+    const fut = [9.0, 9.5, 12.0].map(function (r, i) { return vrow(r, true, 'F' + i); });
+    // Interleaved, so the exclusion cannot be an artefact of position.
+    const mixed = [fut[0]].concat(spot.slice(0, 4), [fut[1]], spot.slice(4), [fut[2]]);
+    const a = P.listExhaustion(mixed);
+    const b = P.listExhaustion(spot);
+    eq('mixed n equals the spot count', a.n, 9);
+    eq('spot-only n equals the spot count', b.n, 9);
+    near('mixed median equals spot-only median', a.median, b.median, 1e-12);
+    near('median is the middle spot value', a.median, 1.0, 1e-12);
+    eq('abnormal untouched by the exclusion', a.abnormal, false);
+    // The control on the control: counting them WOULD have moved both.
+    const naive = mixed.map(function (x) { const y = {}; for (const k in x) y[k] = x[k]; delete y.t; return y; });
+    const c = P.listExhaustion(naive);
+    eq('without the declaration the same list counts 12', c.n, 12);
+    ok('without the declaration the median moves', Math.abs(c.median - b.median) > 1e-9,
+       c.median + ' vs ' + b.median);
+}
+// C1.2 — the quorum is applied AFTER the exclusion: a list that reaches eight
+// only by counting fut rows has no verdict at all.
+{
+    const spot = [1, 2, 3, 4, 5].map(function (r, i) { return vrow(r, false, 'S' + i); });
+    const fut  = [1, 2, 3, 4, 5].map(function (r, i) { return vrow(r, true, 'F' + i); });
+    const r = P.listExhaustion(spot.concat(fut));
+    eq('below-quorum after exclusion -> n is the spot count', r.n, 5);
+    eq('below-quorum after exclusion -> median null', r.median, null);
+    eq('below-quorum after exclusion -> abnormal false', r.abnormal, false);
+    // Same rows, declaration dropped: quorum would have been met. That is the
+    // defect this stage closes, stated as an assertion rather than a comment.
+    const naive = spot.concat(fut).map(function (x) { const y = {}; for (const k in x) y[k] = x[k]; delete y.t; return y; });
+    eq('the same list reaches quorum without the declaration', P.listExhaustion(naive).n, 10);
+    ok('and would have produced a median', typeof P.listExhaustion(naive).median === 'number');
+}
+// C1.3 — the venue test short-circuits BEFORE the cd test: a fut row may not be
+// read at all, whatever fields it carries. Proven by a throwing accessor, which
+// is the only way to observe "was not read" rather than "was read and ignored".
+{
+    let touched = 0;
+    const trap = { t: { name: 'XMR', s: 'XMRUSDT', fut: true }, hi24: 200, lo24: 100, cur: 150 };
+    Object.defineProperty(trap, 'cd', {
+        enumerable: true,
+        get: function () { touched++; throw new Error('cd read on a fut:true row'); }
+    });
+    const spot = [1, 2, 3, 4, 5, 6, 7, 8].map(function (r, i) { return vrow(r, false, 'S' + i); });
+    let threw = null;
+    let out = null;
+    try { out = P.listExhaustion([trap].concat(spot)); } catch (e) { threw = e.message; }
+    eq('no exception: the fut row was skipped before cd', threw, null);
+    eq('the cd of a fut row was never read', touched, 0);
+    eq('n counts spot rows only', out ? out.n : -1, 8);
+    // And the trap really does fire when the declaration is absent — the probe
+    // must be able to detect a read, or it proves nothing (inv. 23).
+    const bare = { hi24: 200, lo24: 100, cur: 150 };
+    Object.defineProperty(bare, 'cd', {
+        enumerable: true,
+        get: function () { touched++; throw new Error('read'); }
+    });
+    let threw2 = null;
+    try { P.listExhaustion([bare].concat(spot)); } catch (e) { threw2 = e.message; }
+    eq('the probe can detect a cd read', threw2, 'read');
+    eq('and it fired exactly once', touched, 1);
+}
+// C1.4 — fut:false and a missing fut field are both spot; only fut === true
+// (and any other truthy value production could carry) excludes.
+{
+    const base = [1, 2, 3, 4, 5, 6, 7, 8].map(function (r, i) { return vrow(r, false, 'S' + i); });
+    const want = P.listExhaustion(base);
+    [[undefined, 9], [false, 9], [0, 9], [null, 9], [true, 8]].forEach(function (c) {
+        const extra = rowFor(3.5);
+        extra.t = { name: 'X', s: 'XUSDT' };
+        if (c[0] !== undefined) extra.t.fut = c[0];
+        eq('fut=' + JSON.stringify(c[0]) + ' -> n', P.listExhaustion(base.concat([extra])).n, c[1]);
+    });
+    // A row with no t at all is still counted: the declaration is absent, not
+    // negative, and the bench fixtures of TZ-10 have exactly that shape.
+    eq('a row with no t is still counted', want.n, 8);
+}
+// C1.5 — the exclusion is not a length trick: 25 spot + 3 fut, the live shape.
+{
+    const rows = [];
+    for (let i = 0; i < 25; i++) rows.push(vrow(0.5 + i * 0.1, false, 'S' + i));
+    ['XMR', 'LIT', 'HYPE'].forEach(function (nm) { rows.push(vrow(20, true, nm)); });
+    const r = P.listExhaustion(rows);
+    eq('live shape: 28 rows, 25 counted', r.n, 25);
+    near('live shape: median is the 13th spot value', r.median, 0.5 + 12 * 0.1, 1e-12);
+}
+console.log('  compared: ' + N.venue);
+
+// ───────────────────────────────────────────────────────────────────────────
 section = 'banner';
 console.log('=== D. regimeBanner: every abnormal === false case ===');
 // The four banner branches, with trend split by direction because the branch
@@ -320,6 +428,95 @@ Object.keys(seen).forEach(function (k) {
 ok('stress/long is red', seen['stress/long'].indexOf('var(--red)') !== -1);
 ok('stress/short is red', seen['stress/short'].indexOf('var(--red)') !== -1);
 console.log('  compared: ' + N.banner);
+
+// ───────────────────────────────────────────────────────────────────────────
+section = 'stress';
+console.log('=== D2. Symmetric stress: five banner states, byte-identical (TZ-12 A) ===');
+// The whole banner surface, written out. Not a substring match and not a
+// property: the exact bytes production must emit, so a re-worded string is a
+// failure and not a silent pass. The four texts that predate TZ-12 are copied
+// from the released board; OVERHEAT is the one string this stage adds.
+const UNKNOWN  = '\u0420\u0415\u0416\u0418\u041c \u041d\u0415\u0418\u0417\u0412\u0415\u0421\u0422\u0415\u041d \u2014 \u043d\u0435\u0442 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0438 BTC';   // РЕЖИМ НЕИЗВЕСТЕН — нет статистики BTC
+const STRESS   = '\u0421\u0422\u0420\u0415\u0421\u0421 \u0420\u042b\u041d\u041a\u0410 \u2014 \u0441\u0434\u0435\u043b\u043e\u043a \u043d\u0435\u0442 \u043d\u0438 \u043d\u0430 \u043e\u0434\u043d\u043e\u0439 \u0441\u0442\u043e\u0440\u043e\u043d\u0435';   // СТРЕСС РЫНКА — сделок нет ни на одной стороне
+const OVERHEAT = '\u0420\u042b\u041d\u041e\u041a \u041f\u0415\u0420\u0415\u0413\u0420\u0415\u0422 \u2014 \u0441\u0434\u0435\u043b\u043e\u043a \u043d\u0435\u0442 \u043d\u0438 \u043d\u0430 \u043e\u0434\u043d\u043e\u0439 \u0441\u0442\u043e\u0440\u043e\u043d\u0435';   // РЫНОК ПЕРЕГРЕТ — сделок нет ни на одной стороне
+const TRUP     = '\u0422\u0420\u0415\u041d\u0414 \u0412\u0412\u0415\u0420\u0425';   // ТРЕНД ВВЕРХ
+const TRDN     = '\u0422\u0420\u0415\u041d\u0414 \u0412\u041d\u0418\u0417';   // ТРЕНД ВНИЗ
+const WITH     = ' \u2014 \u0441\u0447\u0451\u0442 \u043f\u043e \u043a\u0430\u043d\u0430\u043b\u0443 \u0438\u043c\u043f\u0443\u043b\u044c\u0441\u0430';   //  — счёт по каналу импульса
+const AGAINST  = ' \u2014 \u0432\u0441\u044f \u044d\u0442\u0430 \u0441\u0442\u043e\u0440\u043e\u043d\u0430 \u0437\u0430\u043a\u0440\u044b\u0442\u0430, \u0441\u0447\u0451\u0442 \u2014 \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u044f';   //  — вся эта сторона закрыта, счёт — только очередь внимания
+const RANGE    = '\u0414\u0418\u0410\u041f\u0410\u0417\u041e\u041d \u2014 \u0441\u0447\u0451\u0442 \u043f\u043e \u043a\u0430\u043d\u0430\u043b\u0443 \u0432\u043e\u0437\u0432\u0440\u0430\u0442\u0430';   // ДИАПАЗОН — счёт по каналу возврата
+
+// The wrapper is production's, so a change to it is caught here too.
+function bannerHtml(txt, col) {
+    return '<div style="margin:2px 0 8px;padding:6px 10px;border-left:3px solid ' + col
+         + ';font-size:0.82em;letter-spacing:0.04em;color:' + col + ';">' + txt + '</div>';
+}
+const RED = 'var(--red)', GREEN = 'var(--green)', GREY = '#888', ACC = 'var(--accent)';
+const Z = P.REG_STRESS_Z;
+ok('REG_STRESS_Z is a positive number in production', typeof Z === 'number' && Z > 0);
+
+// state, reg, expected [long, short] as full bytes.
+const TABLE = [
+    ['unknown',          { known: false, mode: 'range',  dir: 0, z: null },
+        bannerHtml(UNKNOWN, GREY),            bannerHtml(UNKNOWN, GREY)],
+    ['stress z null',    { known: true,  mode: 'stress', dir: 0, z: null },
+        bannerHtml(STRESS, RED),              bannerHtml(STRESS, RED)],
+    ['stress z -4.06',   { known: true,  mode: 'stress', dir: 0, z: -4.06 },
+        bannerHtml(STRESS, RED),              bannerHtml(STRESS, RED)],
+    ['stress z -Z',      { known: true,  mode: 'stress', dir: 0, z: -Z },
+        bannerHtml(STRESS, RED),              bannerHtml(STRESS, RED)],
+    ['stress z 0',       { known: true,  mode: 'stress', dir: 0, z: 0 },
+        bannerHtml(STRESS, RED),              bannerHtml(STRESS, RED)],
+    ['stress z +Z-eps',  { known: true,  mode: 'stress', dir: 0, z: Z - 1e-9 },
+        bannerHtml(STRESS, RED),              bannerHtml(STRESS, RED)],
+    ['overheat z +Z',    { known: true,  mode: 'stress', dir: 0, z: Z },
+        bannerHtml(OVERHEAT, RED),            bannerHtml(OVERHEAT, RED)],
+    ['overheat z +4.06', { known: true,  mode: 'stress', dir: 0, z: 4.06 },
+        bannerHtml(OVERHEAT, RED),            bannerHtml(OVERHEAT, RED)],
+    ['trend up',         { known: true,  mode: 'trend',  dir: 1, z: 0.4 },
+        bannerHtml(TRUP + WITH, GREEN),       bannerHtml(TRUP + AGAINST, RED)],
+    ['trend down',       { known: true,  mode: 'trend',  dir: -1, z: -0.4 },
+        bannerHtml(TRDN + AGAINST, RED),      bannerHtml(TRDN + WITH, GREEN)],
+    ['range',            { known: true,  mode: 'range',  dir: 0, z: 0.1 },
+        bannerHtml(RANGE, ACC),               bannerHtml(RANGE, ACC)]
+];
+TABLE.forEach(function (t) {
+    eq(t[0] + '/long  byte-identical',  P.regimeBanner(JSON.parse(JSON.stringify(t[1])), true),  t[2]);
+    eq(t[0] + '/short byte-identical',  P.regimeBanner(JSON.parse(JSON.stringify(t[1])), false), t[3]);
+});
+// Both stress texts are red: the state closes BOTH sides, and a colour that
+// distinguished them would say otherwise.
+eq('overheat is red, not green', TABLE[6][2].indexOf(GREEN), -1);
+eq('overheat carries no amber', TABLE[6][2].indexOf('#e0a02a'), -1);
+ok('the two stress texts differ', STRESS !== OVERHEAT);
+eq('the pre-TZ-12 stress string is unchanged', TABLE[1][2], bannerHtml(STRESS, RED));
+
+// D2b — the real route: btcStats -> marketRegime -> regimeBanner. The banner is
+// driven by what production actually computes, not by a hand-built reg.
+{
+    const VH = P.VOL_HARD, H = P.H_NOISE;
+    ok('VOL_HARD and H_NOISE are present', typeof VH === 'number' && typeof H === 'number');
+    // r7 chosen so z lands exactly where the case needs it: z = r7/(v*sqrt(H)).
+    function btcFor(v, z) { return { volatility: v, r7: z * v * Math.sqrt(H), r14: 0 }; }
+    const CASES = [
+        ['end-to-end +4 sigma',  btcFor(VH / 2, 4),      'stress', OVERHEAT],
+        ['end-to-end -4 sigma',  btcFor(VH / 2, -4),     'stress', STRESS],
+        ['end-to-end +Z exact',  btcFor(VH / 2, Z),      'stress', OVERHEAT],
+        ['end-to-end -Z exact',  btcFor(VH / 2, -Z),     'stress', STRESS],
+        ['end-to-end quiet',     btcFor(VH / 2, 0.2),    'range',  RANGE],
+        ['end-to-end vol hard',  btcFor(VH, 0.2),        'stress', STRESS]
+    ];
+    CASES.forEach(function (c) {
+        const reg = P.marketRegime(c[1]);
+        eq(c[0] + ' mode', reg.mode, c[2]);
+        if (c[2] === 'stress') eq(c[0] + ' dir stays 0', reg.dir, 0);
+        [true, false].forEach(function (isLong) {
+            const out = P.regimeBanner(reg, isLong);
+            ok(c[0] + (isLong ? '/long' : '/short') + ' prints its text',
+               out.indexOf(c[3]) !== -1, out);
+        });
+    });
+}
+console.log('  compared: ' + N.stress);
 
 // ───────────────────────────────────────────────────────────────────────────
 section = 'inert';

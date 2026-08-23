@@ -297,6 +297,131 @@ console.log(JSON.stringify({ checks: checks, cmp: cmp, both: both,
     return not fails, msg, r["cmp"]
 
 
+def check_regime():
+    """Слой 0: стресс СИММЕТРИЧЕН по знаку z (ТЗ-12, стадия A).
+
+    Решётка по z на [-4, +4] и по volatility поперёк границы VOL_HARD.
+    Утверждается ровно то, что задано спецификацией:
+      mode === 'stress'  тогда и только тогда, когда  v >= VOL_HARD или |z| >= REG_STRESS_Z
+      dir  === 0         в КАЖДОЙ стрессовой ячейке
+    Плюс зеркальное свойство, которое НЕ ссылается ни на один порог: при том же
+    v и том же eff режим у +z и у -z обязан совпадать. Односторонняя редакция
+    сравнения проваливает его без единого упоминания REG_STRESS_Z.
+    """
+    code = harness(FUNCS, r"""
+var Z = REG_STRESS_Z, VH = VOL_HARD, RH = Math.sqrt(H_NOISE), RE = Math.sqrt(2 * H_NOISE);
+// Сетка волатильности ПОПЕРЁК границы: под ней, ровно на ней, над ней.
+var VS = [0.0005, 0.002, 0.005, 0.01, 0.015, VH - 1e-9, VH - 1e-12, VH,
+          VH + 1e-12, VH + 1e-9, 0.025, 0.03, 0.05];
+// Сетка z на [-4, +4] шагом 0.1 плюс точные границы и их окрестности плюс
+// два журнальных дня 21.08 (+4.06) и 22.08 (+4.01).
+var ZS = [];
+for (var q = -40; q <= 40; q++) ZS.push(q / 10);
+[Z, Z - 1e-9, Z - 1e-12, Z + 1e-12, Z + 1e-9, 4.06, 4.01, 0].forEach(function (t) {
+  ZS.push(t); if (t !== 0) ZS.push(-t);
+});
+// eff подобран так, чтобы задеть обе стороны порога EFF_TREND и клип +-3.
+var ES = [0, 0.3, -0.3, EFF_TREND, -EFF_TREND, 0.9, -0.9, 3.5, -3.5];
+
+var cmp = 0, cells = 0, badMode = 0, badDir = 0, badMirror = 0, badZ = 0,
+    badKnown = 0, badEff = 0, exact = 0, stressCells = 0, trendCells = 0, rangeCells = 0;
+var firstBad = '';
+
+function want(v, z) { return (v >= VH || (z !== null && Math.abs(z) >= Z)) ? 'stress' : null; }
+
+for (var i = 0; i < VS.length; i++) {
+  var v = VS[i];
+  for (var j = 0; j < ZS.length; j++) {
+    for (var k = 0; k < ES.length; k++) {
+      var z = ZS[j], e = ES[k];
+      var btc = { volatility: v, r7: z * v * RH, r14: e * v * RE };
+      var out = marketRegime(btc);
+      cells++;
+      // Целостность фикстуры: продакшн обязан сообщить ровно тот z, который
+      // ему задан, иначе решётка проверяет не то, что думает.
+      cmp++; if (out.z === null || Math.abs(out.z - z) > 1e-9 * (Math.abs(z) + 1)) {
+        badZ++; if (!firstBad) firstBad = 'z ' + z + ' -> ' + out.z;
+      }
+      cmp++; if (out.known !== true) badKnown++;
+      if (out.z !== null && Math.abs(out.z) === Z) exact++;
+
+      // Спецификация, дословно.
+      var expected = want(v, out.z);
+      if (expected === null) {
+        var effClipped = Math.max(-3, Math.min(3, e));
+        expected = Math.abs(effClipped) >= EFF_TREND ? 'trend' : 'range';
+      }
+      cmp++; if (out.mode !== expected) {
+        badMode++;
+        if (!firstBad) firstBad = 'v=' + v + ' z=' + z + ' eff=' + e
+                                + ' -> ' + out.mode + ', ждали ' + expected;
+      }
+      if (out.mode === 'stress') {
+        stressCells++;
+        cmp++; if (out.dir !== 0) {
+          badDir++;
+          if (!firstBad) firstBad = 'dir=' + out.dir + ' в стрессе v=' + v + ' z=' + z;
+        }
+      } else if (out.mode === 'trend') {
+        trendCells++;
+        cmp++; if (out.dir !== (out.eff > 0 ? 1 : -1)) badEff++;
+      } else {
+        rangeCells++;
+        cmp++; if (out.dir !== 0) badEff++;
+      }
+
+      // Зеркало: тот же v, тот же eff, противоположный знак z. Ни одного
+      // порога в утверждении нет — только симметрия.
+      var mirror = marketRegime({ volatility: v, r7: -z * v * RH, r14: e * v * RE });
+      cmp++; if (mirror.mode !== out.mode) {
+        badMirror++;
+        if (!firstBad) firstBad = 'зеркало v=' + v + ' z=' + z + ': '
+                                + out.mode + ' vs ' + mirror.mode;
+      }
+      cmp++; if (mirror.dir !== out.dir) badMirror++;
+    }
+  }
+}
+// z отсутствует: стресс обязан остаться доступным по одной волатильности.
+[0.0005, VH - 1e-9, VH, 0.05].forEach(function (v) {
+  var out = marketRegime({ volatility: v, r14: 0 });
+  cells++;
+  cmp++; if (out.z !== null) badZ++;
+  var expected = v >= VH ? 'stress' : 'range';
+  cmp++; if (out.mode !== expected) { badMode++; if (!firstBad) firstBad = 'z=null v=' + v; }
+  cmp++; if (out.mode === 'stress' && out.dir !== 0) badDir++;
+});
+console.log(JSON.stringify({ cmp: cmp, cells: cells, badMode: badMode, badDir: badDir,
+  badMirror: badMirror, badZ: badZ, badKnown: badKnown, badEff: badEff, exact: exact,
+  stressCells: stressCells, trendCells: trendCells, rangeCells: rangeCells,
+  firstBad: firstBad }));
+""")
+    r = run_node(code)
+    fails = []
+    if r["badMode"]:   fails.append("режим не по спецификации: %d" % r["badMode"])
+    if r["badDir"]:    fails.append("dir != 0 в стрессе: %d" % r["badDir"])
+    if r["badMirror"]: fails.append("асимметрия по знаку z: %d" % r["badMirror"])
+    if r["badZ"]:      fails.append("фикстура не воспроизводит z: %d" % r["badZ"])
+    if r["badKnown"]:  fails.append("known != true: %d" % r["badKnown"])
+    if r["badEff"]:    fails.append("dir не по знаку eff: %d" % r["badEff"])
+    # Инв. 23: точная граница z = +-REG_STRESS_Z обязана БЫТЬ в прогоне, а не
+    # предполагаться. Ноль таких ячеек — провал решётки, а не успех.
+    if not r["exact"]:
+        fails.append("ни одна ячейка не встала ровно на |z| = REG_STRESS_Z")
+    if not r["stressCells"] or not r["trendCells"] or not r["rangeCells"]:
+        fails.append("решётка не покрыла все три режима: stress %d / trend %d / range %d"
+                     % (r["stressCells"], r["trendCells"], r["rangeCells"]))
+    msg = ("режим: %d ячеек -> стресс %d, тренд %d, диапазон %d; "
+           "точных границ |z| = %.1f: %d"
+           % (r["cells"], r["stressCells"], r["trendCells"], r["rangeCells"],
+              2.0, r["exact"]))
+    if fails:
+        msg += " | ПРОВАЛ: " + "; ".join(fails)
+        if r["firstBad"]:
+            msg += "\n  первая ячейка: " + r["firstBad"]
+    return not fails, msg, r["cmp"]
+
+
 def check_fixtures():
     """Данные ранга 1 с доски Босса 18-19.08.2026."""
     code = harness(FUNCS, r"""
@@ -805,6 +930,9 @@ def main():
     todo = []
     if a.all or a.identity:  todo.append(("ТОЖДЕСТВО", check_identity))
     if a.all or a.props:     todo.append(("СВОЙСТВА", check_props))
+    # ТЗ-12 §2 D. Симметрия режима идёт под тем же флагом сознательно:
+    # отдельный флаг потребовал бы 13-го шага в bench.yml, а ТЗ держит 12.
+    if a.all or a.props:     todo.append(("РЕЖИМ", check_regime))
     if a.all or a.fixtures:  todo.append(("ФИКСТУРЫ", check_fixtures))
     if a.all or a.display:   todo.append(("ОТОБРАЖЕНИЕ", check_display))
     if a.all or a.control:   todo.append(("КОНТРОЛЬ", check_control))

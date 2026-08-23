@@ -334,6 +334,306 @@ function suiteBoard(ctx) {
     }
 }
 
+// ── 4b. «РИСК ВЫНОСА» — the squeeze block (TZ-12 stage C) ───────────────────
+// Display order of every header the board can print, so «out of order» is a
+// failure and not something a reader has to notice. Position SIXTH is NOT
+// asserted from this list — «СТОРОНА ПРОТИВ СТРУКТУРЫ» and «ВНИМАНИЕ» are
+// alarms rather than numbered blocks (§3.7) and come and go with the fixture.
+// Sixth is asserted where the block order actually lives: the concatenation at
+// the end of boardHtml (inv. 15), read out of index.html in 4b.0.
+var ORDER = [
+    '\u0421\u0422\u041e\u0420\u041e\u041d\u0410 \u041f\u0420\u041e\u0422\u0418\u0412 \u0421\u0422\u0420\u0423\u041a\u0422\u0423\u0420\u042b',    // СТОРОНА ПРОТИВ СТРУКТУРЫ
+    '\u0412\u041d\u0418\u041c\u0410\u041d\u0418\u0415',    // ВНИМАНИЕ
+    '\u041f\u041e\u0427\u0415\u041c\u0423 \u042d\u0422\u0410 \u041c\u041e\u041d\u0415\u0422\u0410',    // ПОЧЕМУ ЭТА МОНЕТА
+    '\u0414\u0418\u0410\u041f\u0410\u0417\u041e\u041d 90 \u0414\u041d\u0415\u0419',    // ДИАПАЗОН 90 ДНЕЙ
+    '\u0422\u041e\u0427\u041a\u0410 \u0412\u0425\u041e\u0414\u0410',    // ТОЧКА ВХОДА
+    '\u0412\u042b\u0411\u041e\u0420 \u041f\u041b\u0415\u0427\u0410',    // ВЫБОР ПЛЕЧА
+    '\u0420\u0418\u0421\u041a \u0412\u042b\u041d\u041e\u0421\u0410',    // РИСК ВЫНОСА
+    '\u0420\u0410\u0417\u041c\u0415\u0420 \u041f\u041e\u0417\u0418\u0426\u0418\u0418',    // РАЗМЕР ПОЗИЦИИ
+    '\u0413\u0420\u0410\u041d\u0418\u0426\u042b \u0421\u0414\u0415\u041b\u041a\u0418',    // ГРАНИЦЫ СДЕЛКИ
+    '\u0426\u0415\u041d\u0410 \u0412\u0420\u0415\u041c\u0415\u041d\u0418',    // ЦЕНА ВРЕМЕНИ
+    '\u0415\u0421\u041b\u0418 \u0418\u0414\u0415\u042f \u041d\u0415 \u0421\u0420\u0410\u0411\u041e\u0422\u0410\u0415\u0422',    // ЕСЛИ ИДЕЯ НЕ СРАБОТАЕТ
+    '\u0415\u0421\u041b\u0418 \u0421\u0420\u0410\u0411\u041e\u0422\u0410\u0415\u0422',    // ЕСЛИ СРАБОТАЕТ
+    '\u0417\u0410\u0429\u0418\u0422\u0410 \u041f\u041e\u0417\u0418\u0426\u0418\u0418',    // ЗАЩИТА ПОЗИЦИИ
+    '\u041e\u0422\u041a\u0423\u0414\u0410 \u041f\u041b\u0415\u0427\u041e',    // ОТКУДА ПЛЕЧО
+    '\u0414\u041e\u0412\u0415\u0420\u0418\u0415 \u041a \u041c\u041e\u0414\u0415\u041b\u0418'    // ДОВЕРИЕ К МОДЕЛИ
+];
+var SQZ      = '\u0420\u0418\u0421\u041a \u0412\u042b\u041d\u041e\u0421\u0410';   // РИСК ВЫНОСА
+var LEVH     = '\u0412\u042b\u0411\u041e\u0420 \u041f\u041b\u0415\u0427\u0410';   // ВЫБОР ПЛЕЧА
+var SIZEH    = '\u0420\u0410\u0417\u041c\u0415\u0420 \u041f\u041e\u0417\u0418\u0426\u0418\u0418';   // РАЗМЕР ПОЗИЦИИ
+var OWNLAB   = '\u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0443\u0436\u0435 \u0432\u044b\u043d\u0435\u0441\u0435\u043d\u043e';   // Сегодня уже вынесено
+var MEDPRE   = '\u043c\u0435\u0434\u0438\u0430\u043d\u0430 \u0441\u043f\u0438\u0441\u043a\u0430 ';   // медиана списка 
+var MEDMID   = ' \u043f\u043e ';   //  по 
+var MEDNONE  = '\u0441\u043f\u0438\u0441\u043e\u043a \u043d\u0435 \u0438\u0437\u043c\u0435\u0440\u0435\u043d';   // список не измерен
+var STOPLAB  = '\u0421\u0442\u043e\u043f \u043e\u0442\u043e\u0434\u0432\u0438\u043d\u0443\u0442 \u043e\u0442 \u0448\u0443\u043c\u0430';   // Стоп отодвинут от шума
+var CAPTXT   = '\u043e\u043f\u043e\u0440\u044b \u0440\u044f\u0434\u043e\u043c \u043d\u0435\u0442, \u0443\u0440\u043e\u0432\u0435\u043d\u044c \u043d\u0430\u0440\u0438\u0441\u043e\u0432\u0430\u043d';   // опоры рядом нет, уровень нарисован
+var FLRTXT   = '\u0441\u0442\u043e\u043f \u043f\u0440\u0438\u0436\u0430\u0442 \u043a \u043f\u043e\u043b\u0443 2';   // стоп прижат к полу 2
+var NOVOL    = '\u0431\u043e\u0442 \u043d\u0435 \u0434\u0430\u043b \u0432\u043e\u043b\u0430\u0442\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u044c';   // бот не дал волатильность
+var LIQLAB   = '\u0417\u0430\u043f\u0430\u0441 \u0434\u043e \u043b\u0438\u043a\u0432\u0438\u0434\u0430\u0446\u0438\u0438 \u043f\u0440\u0438 ';   // Запас до ликвидации при 
+var TOUCH    = '\u0448\u0430\u043d\u0441 \u0437\u0430\u0434\u0435\u0442\u044c \u0437\u0430 \u0441\u0443\u0442\u043a\u0438 ';   // шанс задеть за сутки 
+var ABNORM   = '\u0430\u043d\u043e\u043c\u0430\u043b\u044c\u043d';   // аномальн
+var SIGMA    = '\u03c3';   // σ
+
+function headersOf(h) {
+    var out = [], re = /<div class="bd-h[^"]*">([^<]*)<\/div>/g, m;
+    while ((m = re.exec(h)) !== null) out.push(m[1]);
+    return out;
+}
+// A spot row exactly as the render loop builds one, plus the three range fields
+// listExhaustion reads. `fut` is the DECLARED venue (§3.14, inv. 41).
+function exRow(name, fut, hi, lo, cur, vol) {
+    var t = { name: name, s: name + 'USDT' };
+    if (fut) t.fut = true;
+    return { t: t, hi24: hi, lo24: lo, cur: cur, cd: { volatility: vol }, state: 'ok' };
+}
+function spotList(n) {
+    var out = [];
+    for (var i = 0; i < n; i++) out.push(exRow('S' + i, false, 104 + i, 100, 102, 0.01));
+    return out;
+}
+// The rendered «РИСК ВЫНОСА» section alone, so cleanliness can be asserted on
+// THIS block without being masked or faked by the rest of the board.
+function sqzSection(h) {
+    var i = h.indexOf(SQZ);
+    if (i < 0) return '';
+    var a = h.lastIndexOf('<div class="bd-sec', i);
+    var b = h.indexOf('<div class="bd-sec', i);
+    return h.slice(a, b < 0 ? h.length : b);
+}
+function sqzBoard(ctx, o, rows) {
+    var row = armCtx(ctx, o);
+    row.coin.highPrice = o.hi === undefined ? '10.9' : o.hi;
+    row.coin.lowPrice  = o.lo === undefined ? '9.95' : o.lo;
+    ctx.lastRows = [row].concat(rows === undefined ? spotList(25) : rows);
+    return { row: row, h: ctx.boardHtml(row, 0) };
+}
+
+// 4b.0 — sixth in the concatenation, read from the source. inv. 15 puts the
+// block order in exactly one place, so that is the place the position is
+// asserted; the rendered checks below then prove the source order reaches the
+// screen. Reading index.html here is not a second implementation of anything:
+// it is the ONE list the invariant names.
+function suiteSqueezeOrder(file) {
+    var src = fs.readFileSync(file, 'utf8');
+    var at = src.indexOf('h += sHero + sRel + sWarn');
+    ok('concatenation found in ' + file, at > 0);
+    if (at < 0) return;
+    var tail = src.slice(at, src.indexOf(';', at));
+    // Drop «h +=» before splitting: the compound operator carries a '+' of its own.
+    tail = tail.replace(/\/\/[^\n]*/g, '').replace(/^\s*h\s*\+=/, '');
+    var ops = tail.split('+').map(function (x) { return x.trim(); })
+                  .filter(function (x) { return x.length > 0; });
+    var want = ['sHero', 'sRel', 'sWarn', 'sWhy', 'sRange', 'sEntry', 'sLev',
+                'sSqz', 'sSize', 'sBounds', 'sTime', 'sLoss', 'sWin', 'sProt',
+                'sSrc', 'sTrust'];
+    ok('concatenation operands unchanged apart from the insertion',
+       ops.join(',') === want.join(','), ops.join(','));
+    // Block 1 is sHero + sRel + sWarn — one numbered block, three strings.
+    var numbered = ops.slice(2);   // drop sRel, sWarn: they fold into block 1
+    ok('sSqz is the SIXTH numbered block', numbered.indexOf('sSqz') === 5,
+       numbered.join(','));
+    ok('sSqz sits between sLev and sSize',
+       numbered[4] === 'sLev' && numbered[6] === 'sSize', numbered.join(','));
+}
+
+function suiteSqueeze(ctx) {
+    // 4b.1 — present, correctly placed, no inline style, on every side x every
+    // leverage button the board draws. The TZ says «the four leverage buttons»;
+    // the board draws six (2..7), so all six are covered — a superset.
+    var sides = ['long', 'short'], levs = [2, 3, 4, 5, 6, 7], si, li;
+    for (si = 0; si < sides.length; si++) {
+        for (li = 0; li < levs.length; li++) {
+            var b = sqzBoard(ctx, { entry: 10, price: 10.4, fr: 0.0001,
+                                    side: sides[si], lev: levs[li] });
+            var h = b.h, tag = sides[si] + '/' + levs[li] + 'X';
+            var i = h.indexOf(SQZ);
+            ok('sqz present ' + tag, i > 0);
+            ok('sqz header unique (inv. 18) ' + tag, i === h.lastIndexOf(SQZ));
+            var hs = headersOf(h);
+            var pos = hs.indexOf(SQZ);
+            ok('sqz between lev and size ' + tag,
+               pos > 0 && hs[pos - 1] === LEVH && hs[pos + 1] === SIZEH,
+               hs.slice(Math.max(0, pos - 1), pos + 2).join(' | '));
+            var last = -1, ordered = true;
+            for (var q = 0; q < hs.length; q++) {
+                var at = ORDER.indexOf(hs[q]);
+                if (at < 0 || at <= last) { ordered = false; break; }
+                last = at;
+            }
+            ok('header order is canonical ' + tag, ordered, hs.join(' | '));
+            // §3.7: an inline style on the .bd-sec kills the metal ring.
+            var secStart = h.lastIndexOf('<div class="bd-sec', i);
+            ok('no inline style on the sqz section ' + tag,
+               h.substring(secStart, i).indexOf('style=') < 0,
+               h.substring(secStart, secStart + 90));
+            // The PRESSED button, never the RESULT (inv. 14).
+            ok('sqz reads the pressed leverage ' + tag,
+               h.indexOf(LIQLAB + levs[li] + 'X') > 0);
+            // The sigma distance must actually move with the pressed button.
+            var expB = Math.abs(Math.log(ctx.liqPrice(10, levs[li], sides[si] === 'long') / 10));
+            var expSd = (expB / ctx.sigmaDay(0.01)).toFixed(1).replace('.', ',');
+            ok('sqz sigma distance matches liqPrice at the pressed lev ' + tag,
+               h.indexOf('>' + expSd + SIGMA) > 0, 'want ' + expSd);
+            // §3 non-goal: measurement only, no threshold and no verdict word.
+            ok('sqz says nothing about an abnormal day ' + tag,
+               h.toLowerCase().indexOf(ABNORM) < 0);
+            ok('no undefined in sqz board ' + tag, h.indexOf('undefined') < 0);
+            ok('no NaN in sqz board ' + tag, h.indexOf('NaN') < 0);
+            var sc = sqzSection(h);
+            ok('sqz section is non-empty ' + tag, sc.length > 200, 'len=' + sc.length);
+            ok('sqz section carries no Infinity ' + tag, sc.indexOf('Infinity') < 0);
+        }
+    }
+
+    // 4b.2 — row 3 reads dec.inv: capped, floored, neither. Each fixture is
+    // asserted to BE the state it claims before its text is checked (inv. 23).
+    var invCases = [
+        ['capped',  { min30: 2.0, min_price: 1.8 },   CAPTXT],
+        ['floored', { min30: 10.0, min_price: 9.99 }, FLRTXT],
+        ['neither', { min30: 9.0, min_price: 8.0 },   null]
+    ];
+    for (var c = 0; c < invCases.length; c++) {
+        var b2 = sqzBoard(ctx, { entry: 10, price: 10.4, fr: 0.0001, side: 'long',
+                                 lev: 4, cd: invCases[c][1] });
+        var h2 = b2.h;
+        var dec2 = ctx.leverageDecision(b2.row.cd, 10, true, ctx.botData.btc);
+        var want = invCases[c][0];
+        var got = dec2.inv && dec2.inv.capped ? 'capped'
+                : (dec2.inv && dec2.inv.floored ? 'floored' : 'neither');
+        ok('fixture really is ' + want, got === want, 'got ' + got);
+        ok('sqz block present under ' + want, h2.indexOf(SQZ) > 0);
+        ok('stop row present under ' + want, h2.indexOf(STOPLAB) > 0);
+        if (invCases[c][2]) {
+            ok('stop row text under ' + want, h2.indexOf(invCases[c][2]) > 0);
+        } else {
+            ok('stop row prints sigmas under ' + want,
+               h2.indexOf(CAPTXT) < 0 && h2.indexOf(FLRTXT) < 0);
+            var wantSig = (dec2.inv.dist / dec2.inv.sd).toFixed(1).replace('.', ',');
+            ok('stop sigmas equal dec.inv.dist / dec.inv.sd (inv. 20)',
+               h2.indexOf('>' + wantSig + SIGMA) > 0, 'want ' + wantSig);
+        }
+        ok('no undefined under ' + want, h2.indexOf('undefined') < 0);
+        ok('no NaN under ' + want, h2.indexOf('NaN') < 0);
+    }
+
+    // 4b.3 — missing volatility: the block survives and says what is missing.
+    {
+        var h3 = sqzBoard(ctx, { entry: 10, price: 10.4, fr: 0.0001, side: 'long',
+                                 lev: 4, cd: { volatility: null } }).h;
+        ok('block survives without volatility', h3.indexOf(SQZ) > 0);
+        ok('sigma distance is reported unavailable', h3.indexOf(NOVOL) > 0);
+        ok('no touch probability without volatility', h3.indexOf(TOUCH) < 0);
+        ok('own ratio omitted without volatility', h3.indexOf(OWNLAB) < 0);
+        ok('the list line still prints without volatility', h3.indexOf(MEDPRE) > 0);
+        ok('the rest of the board lives (inv. 9)', h3.indexOf(SIZEH) > 0);
+        ok('no undefined without volatility', h3.indexOf('undefined') < 0);
+        ok('no NaN without volatility', h3.indexOf('NaN') < 0);
+    }
+
+    // 4b.4 — the list line: quorum met, quorum not met, and the venue exclusion
+    // reaching the board rather than only the function.
+    {
+        var base = { entry: 10, price: 10.4, fr: 0.0001, side: 'long', lev: 4 };
+        var bq = sqzBoard(ctx, base, spotList(25));
+        var lq = ctx.listExhaustion(ctx.lastRows);
+        ok('quorum met -> a median is printed', bq.h.indexOf(MEDPRE) > 0);
+        ok('quorum met -> no not-measured line', bq.h.indexOf(MEDNONE) < 0);
+        ok('printed median and n equal listExhaustion',
+           bq.h.indexOf(MEDPRE + lq.median.toFixed(1).replace('.', ',') + MEDMID + lq.n) > 0,
+           'n=' + lq.n + ' med=' + lq.median);
+
+        var bn = sqzBoard(ctx, base, spotList(3));
+        ok('below quorum -> the list says it could not be measured', bn.h.indexOf(MEDNONE) > 0);
+        ok('below quorum -> no median printed', bn.h.indexOf(MEDPRE) < 0);
+        ok('below quorum -> the coin line still prints', bn.h.indexOf(OWNLAB) > 0);
+        ok('below quorum -> block still present', bn.h.indexOf(SQZ) > 0);
+
+        // 25 spot + 3 fut must render byte-identically to 25 spot alone.
+        var spot25 = spotList(25);
+        var hSpot = sqzBoard(ctx, base, spot25).h;
+        var hFut = sqzBoard(ctx, base, spot25.concat([
+            exRow('XMR', true, 900, 100, 500, 0.01),
+            exRow('LIT', true, 900, 100, 500, 0.01),
+            exRow('HYPE', true, 900, 100, 500, 0.01)
+        ])).h;
+        ok('three fut:true rows change nothing on the board', hSpot === hFut,
+           'len ' + hSpot.length + ' vs ' + hFut.length);
+        // …and the same three rows counted as spot WOULD have changed it, or the
+        // check above proves nothing (inv. 22, 23).
+        var hNaive = sqzBoard(ctx, base, spot25.concat([
+            exRow('XMR', false, 900, 100, 500, 0.01),
+            exRow('LIT', false, 900, 100, 500, 0.01),
+            exRow('HYPE', false, 900, 100, 500, 0.01)
+        ])).h;
+        ok('the same rows without the declaration DO change the board', hSpot !== hNaive);
+    }
+
+    // 4b.5 — E <= 0 and a non-finite liquidation: row 1 goes, the block stays.
+    {
+        var bz = sqzBoard(ctx, { entry: 10, price: 10.4, fr: 0.0001, side: 'long', lev: 4 });
+        var realLiq = ctx.liqPrice;
+        ctx.liqPrice = function () { return Infinity; };
+        var hz = ctx.boardHtml(bz.row, 0);
+        ctx.liqPrice = realLiq;
+        ok('liqPrice restored', ctx.liqPrice === realLiq);
+        ok('non-finite liq -> block survives', hz.indexOf(SQZ) > 0);
+        ok('non-finite liq -> row 1 omitted', hz.indexOf(LIQLAB) < 0);
+        ok('non-finite liq -> row 2 still prints', hz.indexOf(OWNLAB) > 0);
+        ok('non-finite liq -> nothing leaked',
+           hz.indexOf('undefined') < 0 && hz.indexOf('NaN') < 0);
+
+        // E <= 0 comes from entryState, which is where the board reads it.
+        var be = sqzBoard(ctx, { entry: 10, price: 10.4, fr: 0.0001, side: 'long', lev: 4 });
+        ctx.entryState.UNI = { price: 0 };
+        var he = ctx.boardHtml(be.row, 0);
+        ok('fixture really has E <= 0', ctx.entryState.UNI.price <= 0);
+        ok('E <= 0 -> block survives', he.indexOf(SQZ) > 0);
+        ok('E <= 0 -> row 1 omitted', he.indexOf(LIQLAB) < 0);
+        ok('E <= 0 -> the rest of the board lives (inv. 9)', he.indexOf(SIZEH) > 0);
+        // Cleanliness is asserted on THIS block. The whole board is not clean at
+        // E = 0 and was not before TZ-12: «ГРАНИЦЫ СДЕЛКИ» prints «NaN% от входа»
+        // from Math.abs(liq / E - 1) with E = 0, on origin/main as well. That is a
+        // pre-existing defect, reported and NOT fixed here (contract §12).
+        var sec = sqzSection(he);
+        ok('E <= 0 -> the sqz block itself is clean',
+           sec.indexOf('undefined') < 0 && sec.indexOf('NaN') < 0
+           && sec.indexOf('Infinity') < 0, sec.slice(0, 200));
+        if (he.indexOf('NaN') >= 0) {
+            notes.push('PRE-EXISTING (not TZ-12, present on origin/main): at E = 0 the board '
+                     + 'prints NaN in «\u0413\u0420\u0410\u041d\u0418\u0426\u042b '
+                     + '\u0421\u0414\u0415\u041b\u041a\u0418» — Math.abs(liq / E - 1).');
+        }
+    }
+
+    // 4b.6 — purity (inv. 27). Perturbing ONLY what the block reads must leave
+    // the verdict, the score and the leverage decision byte-identical.
+    {
+        var opts = { entry: 10, price: 10.4, fr: 0.0001, side: 'long', lev: 4 };
+        function decisionOf(rows) {
+            var bb = sqzBoard(ctx, opts, rows);
+            var r = bb.row, Ez = 10, isLong = true;
+            var dec = ctx.leverageDecision(r.cd, Ez, isLong, ctx.botData.btc);
+            var reg = ctx.marketRegime(ctx.botData.btc);
+            var vd = ctx.directionVerdict(r.cd, r.t.s, r.t.name, 10.4, 1.5, 90000000,
+                                          isLong, reg, dec, 10.9, 9.95,
+                                          ctx.residual7(r.cd, ctx.botData.btc),
+                                          Date.UTC(2026, 7, 23));
+            return JSON.stringify({ vd: vd, dec: dec,
+                sc: ctx.scoreCandidate(r.cd, r.t.s, 10.4, 1.5, 90000000, isLong) });
+        }
+        var a = decisionOf(spotList(25));
+        var b = decisionOf(spotList(3));
+        var c2 = decisionOf([]);
+        ok('verdict unchanged by the list the block reads (below quorum)', a === b);
+        ok('verdict unchanged by the list the block reads (empty)', a === c2);
+        // …and the board itself DOES move with the list, or the two checks
+        // above are vacuous (inv. 22).
+        var withList = sqzBoard(ctx, opts, spotList(25)).h;
+        var withoutList = sqzBoard(ctx, opts, spotList(3)).h;
+        ok('the block itself does move with the list', withList !== withoutList);
+    }
+}
+
 // ── 5. Nothing else moved: the whole board is byte-identical ─────────────
 // TZ-11 Stage A. This suite used to strip the «POSITION PROTECTION» section
 // from the CANDIDATE only and compare the remainder. That was correct exactly
@@ -461,6 +761,8 @@ if (old) {
 }
 suitePlan(nu);
 suiteBoard(nu);
+suiteSqueezeOrder(candidate);
+suiteSqueeze(nu);
 suiteFuzz(nu, 4000);
 // The identity run is unconditional: it is what makes every OTHER comparison in
 // this file admissible as evidence, so it may not depend on an optional argument.
