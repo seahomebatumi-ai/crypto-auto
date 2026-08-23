@@ -342,7 +342,7 @@ def mean_pairwise_rho(M, rows, c_lo, c_hi):
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. The null
 # ─────────────────────────────────────────────────────────────────────────────
-def simulate_day(rng, n_paths, n_coins, rho, sigma_day, steps=STEPS_PER_DAY):
+def simulate_day(rng, n_paths, n_coins, rho, sigma_day, steps=None):
     """One simulated trading day per path per coin, as a CONTINUOUS-time range.
 
     The archive's hourly candles carry true intra-hour extremes. A null built
@@ -370,6 +370,11 @@ def simulate_day(rng, n_paths, n_coins, rho, sigma_day, steps=STEPS_PER_DAY):
 
     Returns (hi, lo, last) in LOG space, each shaped (n_paths, n_coins).
     """
+    # Read at CALL time, not bound as a default at definition time: a default
+    # argument freezes the module constant when the file is imported, which
+    # makes the step count look tunable while silently ignoring any change.
+    if steps is None:
+        steps = STEPS_PER_DAY
     dt = 1.0 / steps
     r = min(max(rho, 0.0), 0.999)        # a common factor cannot carry rho < 0
     sig = np.asarray(sigma_day, dtype=float).reshape(1, -1)   # (1, n_coins)
@@ -389,7 +394,7 @@ def simulate_day(rng, n_paths, n_coins, rho, sigma_day, steps=STEPS_PER_DAY):
     return mx.max(axis=2), mn.min(axis=2), x[:, :, -1]
 
 
-def null_sets(rng, n_paths, cur, sigma_hour, nobs, rho):
+def null_sets(rng, n_paths, cur, sigma_hour, nobs, rho, steps=None):
     """Null replicas of ONE date, as (hi, lo, cur, vol) rows ready for node.
 
     sigma_hour is HOURLY, because that is what `volatility` is in coeffs.json
@@ -412,7 +417,7 @@ def null_sets(rng, n_paths, cur, sigma_hour, nobs, rho):
     nobs = np.asarray(nobs, float)
     n_coins = cur.size
     hi_l, lo_l, last_l = simulate_day(rng, n_paths, n_coins, rho,
-                                      sig * np.sqrt(24.0))
+                                      sig * np.sqrt(24.0), steps)
     S = cur.reshape(1, -1)
     hi = S * np.exp(hi_l)
     lo = S * np.exp(lo_l)
