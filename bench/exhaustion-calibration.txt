@@ -1,0 +1,175 @@
+Universe: 25 spot of 28 declared tokens (fut:true excluded by declaration, inv. 41): HYPE, XMR, LIT
+Cut out of index.html: has, sigmaDay, dayRangeRatio, listExhaustion
+Seed: 20260823   skeleton steps/day: 24
+
+Cache incomplete (24 of 25) — the archive is needed.
+Source availability:
+  архив data.binance.vision        200
+  зеркало data-api.binance.vision  200
+  боевой api.binance.com           451 — доступ закрыт по географии (раннер в США)
+  боевой fapi.binance.com          451 — доступ закрыт по географии (раннер в США)
+  api.coingecko.com                200
+Проверка доступности источников:
+  архив data.binance.vision        200
+  зеркало data-api.binance.vision  200
+  боевой api.binance.com           451 — доступ закрыт по географии (раннер в США)
+  боевой fapi.binance.com          451 — доступ закрыт по географии (раннер в США)
+  api.coingecko.com                200
+Источник: vision
+
+  SUI     уже в кэше
+  ONDO    уже в кэше
+  LINK    уже в кэше
+  RENDER  уже в кэше
+  NEAR    уже в кэше
+  YFI     уже в кэше
+  AAVE    уже в кэше
+  AVAX    уже в кэше
+  FET     уже в кэше
+  ENA     уже в кэше
+  TAO     уже в кэше
+  GRAM    НЕТ ДАННЫХ (нет 36 месячных файлов, строк 1262)
+  XRP     уже в кэше
+  ADA     уже в кэше
+  TRX     уже в кэше
+  SOL     уже в кэше
+  BCH     уже в кэше
+  HYPE    уже в кэше
+  SKY     уже в кэше
+  ETH     уже в кэше
+  HBAR    уже в кэше
+  XLM     уже в кэше
+  ALGO    уже в кэше
+  BNB     уже в кэше
+  ZEC     уже в кэше
+  UNI     уже в кэше
+  XMR     уже в кэше
+  LIT     уже в кэше
+  BTC     уже в кэше
+монет в кэше: 28 из 29
+
+=== Coverage ===
+  SUI      coin-days  1110  2023-08-09 .. 2026-08-22
+  ONDO     coin-days   491  2025-04-19 .. 2026-08-22
+  LINK     coin-days  1110  2023-08-09 .. 2026-08-22
+  RENDER   coin-days   750  2024-08-03 .. 2026-08-22
+  NEAR     coin-days  1110  2023-08-09 .. 2026-08-22
+  YFI      coin-days  1110  2023-08-09 .. 2026-08-22
+  AAVE     coin-days  1110  2023-08-09 .. 2026-08-22
+  AVAX     coin-days  1110  2023-08-09 .. 2026-08-22
+  FET      coin-days  1110  2023-08-09 .. 2026-08-22
+  ENA      coin-days   865  2024-04-10 .. 2026-08-22
+  TAO      coin-days   856  2024-04-19 .. 2026-08-22
+  XRP      coin-days  1110  2023-08-09 .. 2026-08-22
+  ADA      coin-days  1110  2023-08-09 .. 2026-08-22
+  TRX      coin-days  1110  2023-08-09 .. 2026-08-22
+  SOL      coin-days  1110  2023-08-09 .. 2026-08-22
+  BCH      coin-days  1110  2023-08-09 .. 2026-08-22
+  SKY      coin-days   332  2025-09-25 .. 2026-08-22
+  ETH      coin-days  1110  2023-08-09 .. 2026-08-22
+  HBAR     coin-days  1110  2023-08-09 .. 2026-08-22
+  XLM      coin-days  1110  2023-08-09 .. 2026-08-22
+  ALGO     coin-days  1110  2023-08-09 .. 2026-08-22
+  BNB      coin-days  1110  2023-08-09 .. 2026-08-22
+  ZEC      coin-days  1110  2023-08-09 .. 2026-08-22
+  UNI      coin-days  1110  2023-08-09 .. 2026-08-22
+  skipped: GRAM (not in cache)
+
+=== Dates ===
+  dates seen                       : 1110
+  dates with a median              : 1110
+  dates dropped below quorum       : 0
+  span                             : 2023-08-09 .. 2026-08-22
+  per-date contributing count (n -> dates): {"19": 245, "20": 9, "21": 106, "22": 259, "23": 159, "24": 332}
+  median per-date contributing count: 22.0
+
+  empirical pooled coin-day ratios : n=24384 (null-valued 0), mean 0.9509
+
+=== Correlation (measured, not assumed) ===
+  dates with a measured rho        : 1110 of 1110
+  hourly observations per window   : median 2161
+  rho  pct       value
+       p0       0.4557
+       p10      0.5341
+       p20      0.5482
+       p30      0.5632
+       p40      0.6114
+       p50      0.6370
+       p60      0.6500
+       p70      0.6593
+       p80      0.6662
+       p90      0.6916
+       p100     0.8265
+  rho mean 0.6196   min 0.4557   max 0.8265   negative on 0 dates
+
+=== Null (simulated in this run) ===
+  replicas/date    32  null medians    35520  p90 1.2361  MC se 0.00271  [54s]
+  replicas/date    96  null medians   106560  p90 1.2358  MC se 0.00158  [57s]
+  replicas/date   224  null medians   248640  p90 1.2393  MC se 0.00117  [63s]
+
+  seed                             : 20260823
+  replicas per date                : 224
+  null date-medians                : 248640
+  null p90 Monte-Carlo std. error  : 0.00117 (must be < 0.01)
+  null pooled coin-day ratios      : n=5462016 (null-valued 0), mean 1.0012
+
+  null date-median distribution
+  pct         value
+  p0         0.5850
+  p10        0.7789
+  p20        0.8223
+  p30        0.8589
+  p40        0.8945
+  p50        0.9325
+  p60        0.9769
+  p70        1.0323
+  p80        1.1093
+  p90        1.2393
+  p100       2.6604
+  p95        1.3626
+  p99        1.6271
+  p99.9      1.9914
+
+=== Empirical date medians ===
+  pct         value
+  p0         0.2407
+  p10        0.4880
+  p20        0.5687
+  p30        0.6367
+  p40        0.7022
+  p50        0.7769
+  p60        0.8725
+  p70        0.9769
+  p80        1.1065
+  p90        1.3911
+  p100      10.6653
+
+  p90 raw                          : 1.391063
+  p90 rounded to 2 dp              : 1.39
+
+  ten highest dates by list median
+    2025-10-10  median 10.6653  over 24 coins
+    2023-08-17  median 3.6428  over 19 coins
+    2024-03-05  median 3.3370  over 19 coins
+    2026-02-06  median 3.2160  over 24 coins
+    2024-08-05  median 3.1683  over 22 coins
+    2024-04-13  median 3.1553  over 20 coins
+    2024-01-03  median 3.1525  over 19 coins
+    2024-12-09  median 3.0507  over 22 coins
+    2024-04-12  median 2.9482  over 20 coins
+    2026-02-05  median 2.8248  over 24 coins
+
+=== Admissibility (registered by TZ-13 §2 C5, before the number) ===
+  1  PASS coin-day mean: empirical 0.9509 vs null 1.0012 -> 5.03% (allowed 15%)
+  2  PASS empirical p90 1.3911 strictly above null p90 1.2393
+  3  PASS empirical p90 1.3911 strictly below null p99.9 1.9914
+  4  PASS 1110 dates (need 300) and median contributing count 22.0 (need 15)
+  se  PASS null p90 Monte-Carlo std. error 0.00117 (need < 0.01)
+
+  wall clock: 63s   node hops: 14   node: v22.23.2
+
+Adopted by the rule registered above, taken as-is:
+DAY_RANGE_ABNORMAL = 1.39
+
+Not entered into index.html by this TZ: TZ-13 §3 forbids a consumer, and the
+constant reaches production only through the TZ that follows.

@@ -93,6 +93,17 @@ function coinOf(price, o) {
     for (var k in (o || {})) base[k] = o[k];
     return base;
 }
+// TZ-13 §2 Stage A. update() now parses lastPrice / highPrice / lowPrice ONCE,
+// onto the row, and every consumer — boardHtml included — reads them from
+// there. A fixture that builds a row must build the NEW row: the three values
+// are taken from the SAME ticker object the fixture already carries, never
+// from a new number, so no board here moves because of the contract change.
+function rowRange(row) {
+    row.cur  = parseFloat(row.coin.lastPrice);
+    row.hi24 = parseFloat(row.coin.highPrice);
+    row.lo24 = parseFloat(row.coin.lowPrice);
+    return row;
+}
 function armCtx(ctx, opts) {
     opts = opts || {};
     ctx.boardSide = opts.side || 'long';
@@ -114,11 +125,11 @@ function armCtx(ctx, opts) {
         target: 102000, btc: 100000
     };
     ctx.lastShownSyms = ['UNI'];
-    var row = {
+    var row = rowRange({
         t: { name: 'UNI', s: 'UNIUSDT' }, idx: 0,
         coin: coinOf(opts.price === undefined ? 10 : opts.price),
         cd: cdOf(opts.cd || {}), state: 'ok', sc: null
-    };
+    });
     ctx.lastRows = [row];
     return row;
 }
@@ -404,6 +415,7 @@ function sqzBoard(ctx, o, rows) {
     var row = armCtx(ctx, o);
     row.coin.highPrice = o.hi === undefined ? '10.9' : o.hi;
     row.coin.lowPrice  = o.lo === undefined ? '9.95' : o.lo;
+    rowRange(row);   // the ticker object changed, so the row re-reads it
     ctx.lastRows = [row].concat(rows === undefined ? spotList(25) : rows);
     return { row: row, h: ctx.boardHtml(row, 0) };
 }
