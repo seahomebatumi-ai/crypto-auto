@@ -2,7 +2,7 @@ Universe: 25 spot of 28 declared tokens (fut:true excluded by declaration, inv. 
 Cut out of index.html: has, sigmaDay, dayRangeRatio, listExhaustion
 Seed: 20260823   skeleton steps/day: 24
 
-Cache incomplete (0 of 25) — the archive is needed.
+Cache incomplete (24 of 25) — the archive is needed.
 Source availability:
   архив data.binance.vision        200
   зеркало data-api.binance.vision  200
@@ -17,35 +17,35 @@ Source availability:
   api.coingecko.com                200
 Источник: vision
 
-  SUI     ok  26854 ч  дыр 0.0%  (vision)
-  ONDO    ok  11984 ч  дыр 0.0%  (vision)
-  LINK    ok  26854 ч  дыр 0.0%  (vision)
-  RENDER  ok  18206 ч  дыр 0.0%  (vision)
-  NEAR    ok  26854 ч  дыр 0.0%  (vision)
-  YFI     ok  26854 ч  дыр 0.0%  (vision)
-  AAVE    ok  26854 ч  дыр 0.0%  (vision)
-  AVAX    ok  26854 ч  дыр 0.0%  (vision)
-  FET     ok  26854 ч  дыр 0.0%  (vision)
-  ENA     ok  20966 ч  дыр 0.0%  (vision)
-  TAO     ok  20746 ч  дыр 0.0%  (vision)
+  SUI     уже в кэше
+  ONDO    уже в кэше
+  LINK    уже в кэше
+  RENDER  уже в кэше
+  NEAR    уже в кэше
+  YFI     уже в кэше
+  AAVE    уже в кэше
+  AVAX    уже в кэше
+  FET     уже в кэше
+  ENA     уже в кэше
+  TAO     уже в кэше
   GRAM    НЕТ ДАННЫХ (нет 36 месячных файлов, строк 1262)
-  XRP     ok  26854 ч  дыр 0.0%  (vision)
-  ADA     ok  26854 ч  дыр 0.0%  (vision)
-  TRX     ok  26854 ч  дыр 0.0%  (vision)
-  SOL     ok  26854 ч  дыр 0.0%  (vision)
-  BCH     ok  26854 ч  дыр 0.0%  (vision)
-  HYPE    ok  10790 ч  дыр 0.0%  (vision-perp)
-  SKY     ok   8174 ч  дыр 0.0%  (vision)
-  ETH     ok  26854 ч  дыр 0.0%  (vision)
-  HBAR    ok  26854 ч  дыр 0.0%  (vision)
-  XLM     ok  26854 ч  дыр 0.0%  (vision)
-  ALGO    ok  26854 ч  дыр 0.0%  (vision)
-  BNB     ok  26854 ч  дыр 0.0%  (vision)
-  ZEC     ok  26854 ч  дыр 0.0%  (vision)
-  UNI     ok  26854 ч  дыр 0.0%  (vision)
-  XMR     ok  26832 ч  дыр 0.0%  (vision-perp)
-  LIT     ok  26815 ч  дыр 0.1%  (vision-perp)
-  BTC     ok  26854 ч  дыр 0.0%  (vision)
+  XRP     уже в кэше
+  ADA     уже в кэше
+  TRX     уже в кэше
+  SOL     уже в кэше
+  BCH     уже в кэше
+  HYPE    уже в кэше
+  SKY     уже в кэше
+  ETH     уже в кэше
+  HBAR    уже в кэше
+  XLM     уже в кэше
+  ALGO    уже в кэше
+  BNB     уже в кэше
+  ZEC     уже в кэше
+  UNI     уже в кэше
+  XMR     уже в кэше
+  LIT     уже в кэше
+  BTC     уже в кэше
 монет в кэше: 28 из 29
 
 === Coverage ===
@@ -103,9 +103,9 @@ Source availability:
   rho mean 0.6196   min 0.4557   max 0.8265   negative on 0 dates
 
 === Null (simulated in this run) ===
-  replicas/date    32  null medians    35520  p90 1.2361  MC se 0.00271  [652s]
-  replicas/date    96  null medians   106560  p90 1.2358  MC se 0.00158  [654s]
-  replicas/date   224  null medians   248640  p90 1.2393  MC se 0.00117  [660s]
+  replicas/date    32  null medians    35520  p90 1.2361  MC se 0.00271  [54s]
+  replicas/date    96  null medians   106560  p90 1.2358  MC se 0.00158  [57s]
+  replicas/date   224  null medians   248640  p90 1.2393  MC se 0.00117  [63s]
 
   seed                             : 20260823
   replicas per date                : 224
@@ -166,7 +166,7 @@ Source availability:
   4  PASS 1110 dates (need 300) and median contributing count 22.0 (need 15)
   se  PASS null p90 Monte-Carlo std. error 0.00117 (need < 0.01)
 
-  wall clock: 660s   node hops: 14   node: v22.23.2
+  wall clock: 63s   node hops: 14   node: v22.23.2
 
 Adopted by the rule registered above, taken as-is:
 DAY_RANGE_ABNORMAL = 1.39
