@@ -12,27 +12,28 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-22-b.** Baseline: TZ-09 merged (PR #9, `ae47103`).
+**Revision 2026-08-23-a.** Baseline: TZ-10 merged (PR #10, `baa9d9b`).
 
 Every TZ header quotes this block. The Executor compares it against the
 repository copy before doing any work (contract §5); a mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-22-b.**` |
+| revision | `**Revision 2026-08-23-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
-| newest invariant | `43. **A check count must be a count.**` |
+| exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
+| newest invariant | `46. **A calibrated constant is checked against its calibration record.**` |
 
 Live files at this revision:
 
 | File | Lines | MD5 |
 |---|---:|---|
-| `index.html` | 3522 | `68eebc9b5e40c7afd09a7d00d3fd1d21` |
+| `index.html` | 3569 | `56af2e274e5568527a6bb0e5cb4e3456` |
 | `main.py` | 506 | `1a5a5d98b2fd76010f202ee3eebaa717` |
 | `catalysts.json` | 11 | `021dd2c90dc395240c0b0c3dbae40426` |
 
-Gate at this revision: `bench.yml`, **11 steps, 965 665 checks**, all green on a
+Gate at this revision: `bench.yml`, **12 steps, 1 185 864 checks**, all green on a
 runner. The number is a sum of per-comparison counters (inv. 43), not an
 estimate.
 
@@ -59,6 +60,7 @@ iPhone Shortcut → workflow_dispatch → GitHub Actions → main.py
 | Verdict journal | `journal/write.js` | `journal.yml`, 13:00 UTC | Gist, `data-api.binance.vision`, `catalysts.json`, `index.html` | `journal/data/**`, `journal/out/**`, `journal/runs.jsonl` |
 | Benches | `bench/**` | `bench.yml` on push/PR | production files at runtime | nothing tracked |
 | Backtest | `bench/backtest_bench.py` | `backtest_bench.yml`, manual | `data.binance.vision` archive | artifacts only |
+| Calibration | `bench/exhaustion_calib.py` | no workflow yet — archive-dependent, so a runner only (inv. 44) | `data.binance.vision` archive | nothing tracked |
 
 **Schedule is not cron.** The only regular trigger is the Boss's iPhone
 Shortcut: hourly from 09:00 to 01:50 local = **17 runs/day ≈ 15.3k CoinGecko
@@ -624,7 +626,9 @@ property, measured:** under a driftless random walk `eff ~ N(0,1)`, so
 false trend label cannot produce a wrong direction — it narrows the admissible
 side to one, and on a driftless market both channels are worth exactly zero.
 No `btcStats` or no `volatility` → `mode = 'range'`, `known = false`, which is
-exactly the pre-engine production behaviour (inv. 9).
+exactly the pre-engine production behaviour (inv. 9). The regime label says WHICH
+state the market is in and never HOW FAR into it the session sits; that second
+quantity is measured in §3.16 and is not yet wired to any consumer.
 
 **Layer 1 — `tradeGeometry(cd, E, isLong, dec, hi24, lo24)`**
 
@@ -859,6 +863,64 @@ Entries that no host confirms are deleted rather than demoted — a `disputed` e
 still annotates its own side, so keeping one keeps printing an argument built on a
 date nobody confirms.
 
+### 3.16 List exhaustion — the day-range measure
+
+**Built to the measure only; nothing on screen reads it yet.** The gap it exists
+to close: `regimeBanner` names the regime and says nothing about how far into it
+the session already sits. On 2026-08-22 the geometry layer refused 24 of 25
+covered coins while the banner printed «ТРЕНД ВВЕРХ — счёт по каналу импульса» in
+green, on a day whose list median day-range was 2.43 times a diffusive day.
+
+```
+dayRangeRatio(hi, lo, cur, vol) = (hi − lo) / ( cur · sigmaDay(vol) · √(8/π) )
+
+E[range] = σ·√(8/π) for Brownian motion — the denominator is DERIVED, not chosen
+sigmaDay is the single site of the daily-σ conversion (inv. 20); this function
+never recomputes vol·√24 of its own
+null on any missing or non-finite input, on cur ≤ 0, vol ≤ 0, hi ≤ lo, on an
+underflowed denominator and on an overflowed ratio — a missing measurement never
+arrives downstream as a zero
+
+listExhaustion(rows) -> { median, n, abnormal }
+n counts only rows that produced a ratio; n < 8 → median null, abnormal false
+```
+
+**σ is close-based and therefore understates true range, so the reading is above
+1 by construction.** That is why the acting threshold is a percentile of the
+measured distribution and can never be a round number picked by eye.
+
+**Nothing predictive is added.** This measures what the session already did, in
+the same standing as §3.12 Layer 1: it asserts «the geometry of entering right
+now is bad», which is measurable without a forecast. No ranking factor, no weight,
+and §3.10b's resolution ceiling is untouched.
+
+**Quorum `n ≥ 8` is load-bearing.** A statement about the list computed from three
+coins is not a statement about the list, and the banner is the one list-wide
+element on screen.
+
+**The estimator and its calibration must share a universe.** The reference figures
+and the journal replay are both 25 spot assets; the three `fut:true` assets read
+their range off the perpetual while `volatility` comes from a spot index (§3.14
+Consequence 3), so a live estimator that included them would not be the estimator
+the threshold was measured on. Coverage is 25 of 28 by declaration (inv. 41).
+
+**Registered adoption rule, fixed before the number exists (inv. 23).**
+`DAY_RANGE_ABNORMAL` = the pooled 90th percentile of the coin-day distribution
+over the archive, rounded to two decimals, taken as-is; adopted only inside
+`1.60 … 4.00`, and outside that window the consumer is not built and the answer is
+a new TZ, never a nudged number. Once adopted the constant is pinned to the run
+that produced it (inv. 46).
+
+**State at this revision.** `dayRangeRatio` and `listExhaustion` exist in
+`index.html` and are reachable from nothing: `abnormal` is hardcoded `false`,
+`reg.day` is referenced nowhere, and no output enters `scoreCandidate`,
+`tradeGeometry`, `leverageDecision`, `directionVerdict` or the journal writer.
+The constant does not exist, because the archive is unreachable from an
+implementation session (inv. 44) and the calibration has never run. Measured on
+the two journaled days by replaying the production functions: **1.69** on
+2026-08-21 (6 of 25 coins above 2.0) and **2.43** on 2026-08-22 (20 of 25). Two
+days are not a distribution and do not bound the percentile.
+
 ---
 
 ## 4. Invariants — DO NOT BREAK
@@ -906,6 +968,9 @@ date nobody confirms.
 41. **The declared venue is read BEFORE the degradation ladder.** `fut:true` is a DECLARATION (§3.14), not an observation, so a skip on such an asset is DECLARED coverage in any form it takes and never raises `hardSkip`. The reverse order already cost the `status` field: a mirror served a delisted row and a healthy system reported `partial` every day. The reason is still MEASURED in three distinct strings, and a live spot pair on a `fut:true` asset must reach `run.note` — a contradiction of the declaration may not pass quietly. The rule is wider than the journal: any future consumer of `tokens[]` asks the declaration, not the host.
 42. **A bench must execute production with the SAME external input as production.** Three board benches ran the board with an empty `CATALYSTS` for eight days because the sandbox has no `XMLHttpRequest`: the loader failed silently and the benches reproduced a configuration that exists neither for the Boss nor on Pages. Therefore: the registry is read from the checkout by the SAME loader as production (inv. 21), injection happens AFTER `vm.runInContext` (otherwise the production line `var CATALYSTS = {}` overwrites it), and a missing or corrupt file fails the bench NON-ZERO — there is no fallback to an empty registry.
 43. **A check count must be a count.** The number a bench prints as «checks» is used as proof of control volume and as the input to inv. 22, so it must count comparisons, not be estimated as a product of unrelated quantities. The counter is incremented at the comparison site, the gate total is the sum of those counters, and any discrepancy is explained term by term. A quantity that is merely measured and printed — scenarios, rows, lists — is not a check.
+44. **External data is fetched on a runner, never in an implementation session.** Inv. 24 names what a runner can reach; this names where a fetch may happen at all. An Executor session's egress refuses every market host at CONNECT — archive, mirror, both production hosts, CoinGecko — so a stage needing external data cannot execute there however well it is written. Any TZ stage requiring external data is therefore specified as a workflow step and nothing else, and a TZ that asks for an in-session fetch is blocked before it starts. TZ-10 Stage B was specified as a session run: the instrument was correct, complete, self-tested — and returned no number.
+45. **A differ returns zero on identical input.** Any comparison offered as no-regression evidence is first run with the SAME revision on both sides and must report zero differences, and a transformation applied to one side is applied to the other. `prot_bench.js`'s optional baseline suite strips one section from the candidate only, so it reports six failures against a byte-identical baseline — a stale expectation a self-comparison would have caught the day it was written. Identity is the known-answer control of a comparator (inv. 23); a comparator never proven on identity supports no claim about a real diff.
+46. **A calibrated constant is checked against its calibration record.** A production number derived from a measurement lives in two places — the constant in the source and the committed output of the run that produced it — and a bench inside the gate compares them on every push. Inv. 23 fixes the rule before the data; this fixes the number to its run afterwards. A constant that agrees with nothing can be moved silently in either direction, and the move is invisible precisely because the number looks measured.
 
 ---
 
@@ -917,6 +982,7 @@ date nobody confirms.
 - Binance `fapi/ticker/24hr?symbol=`: weight 1 × number of `fut:true` tokens, every 30 s.
 - Gist API: files > 1 MB are truncated (handled through `raw_url`).
 - Detection ceiling of the bench: |IC| ≈ 0.06–0.07 single test, ≈ 0.09 for a search (§3.10b).
+- **An implementation session reaches no market host at all** — archive, mirror, production and CoinGecko are all refused at CONNECT. Every fetch happens on a runner (inv. 44).
 
 ---
 
@@ -1010,6 +1076,9 @@ only when its trigger fires.
 | Journal outcome layer at scale | running | nothing — h7/h14 files appear automatically 7 and 14 days after each snapshot |
 | Journal storage growth | watched | ~73 KB/day. Act if the repository becomes unwieldy; records are immutable (inv. 38), so the answer is archival, never deletion |
 | Catalyst registry content | live, one confirmed entry | analyst work, delivered as a TZ; entries never promoted to `confirmed` without a primary source (inv. 39) |
+| `DAY_RANGE_ABNORMAL` and the banner consumer (§3.16) | measure built, consumer not built | an archive run of `bench/exhaustion_calib.py` on a runner (inv. 44). Adopted as-is inside 1.60…4.00; outside it the consumer is not built and the answer is a new TZ |
+| `prot_bench.js` optional baseline suite | broken — six failures against a byte-identical baseline | it is a prerequisite of any no-regression claim (inv. 45), so the first change needing one |
+| `bench.yml` Node 20 pin | watched | GitHub already forces the actions onto Node 24 with a warning. Act when a step fails or the whole gate can be re-run as the validation |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
 
 **Standing decisions.** No new coins beyond 28 · weights are never tuned · the
