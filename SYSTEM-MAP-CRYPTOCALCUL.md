@@ -12,30 +12,41 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-23-b.** Baseline: TZ-11 merged (PR #11, `3fcdddc`).
+**Revision 2026-08-23-c.** Baseline: TZ-12 merged (PR #12, `cd77541`).
 
 Every TZ header quotes this block. The Executor compares it against the
 repository copy before doing any work (contract §5); a mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-23-b.**` |
+| revision | `**Revision 2026-08-23-c.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
-| newest invariant | `47. **A threshold is calibrated on the distribution of the quantity its consumer compares.**` |
+| squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
+| newest invariant | `48. **A bench that builds its own input proves the function, not the wiring.**` |
 
 Live files at this revision:
 
 | File | Lines | MD5 |
 |---|---:|---|
-| `index.html` | 3569 | `56af2e274e5568527a6bb0e5cb4e3456` |
+| `index.html` | 3656 | `64acaaa59f2ed96d568714d2813d20f9` |
 | `main.py` | 506 | `1a5a5d98b2fd76010f202ee3eebaa717` |
 | `catalysts.json` | 11 | `021dd2c90dc395240c0b0c3dbae40426` |
 
-Gate at this revision: `bench.yml`, **12 steps, 1 185 871 checks**, all green on a
+Gate at this revision: `bench.yml`, **12 steps, 1 250 354 checks**, all green on a
 runner. The number is a sum of per-comparison counters (inv. 43), not an
-estimate. TZ-11 moved step 3 (`prot_bench.js`) from 168 to 175 and no other step.
+estimate. TZ-12 moved four steps: 3 (`prot_bench.js`) 175 → 372, 5
+(`direction_bench.py`) 188 577 → 255 708, 12 (`exhaustion_bench.js`) 220 199 →
+220 275, and 7 (`journal_bench.js`) 694 030 → 691 109.
+
+**Step 7's count moves with verdict CONTENT, not only with control volume.**
+`journal_bench.js` counts numeric leaves of the records it writes, and a verdict
+that returns before geometry writes no `geo` object; symmetric stress (§3.12
+Layer 0) therefore removed 2 921 leaves without removing a single control. The
+total stays one sum — inv. 43 already requires any delta to be explained term by
+term — but a fall in step 7 is attributed, never assumed benign, because a defect
+that nulls a field lowers it identically.
 
 **A TZ has executed if and only if `CryptoReports/` holds a report with its
 number.** `CryptoTZ/TZ-03-report-delivery.md` has no report and never ran: it was
@@ -296,17 +307,21 @@ coin at a time, session state only.
 
 **Block order lives ONLY in the concatenation at the end of `boardHtml`** — the
 blocks are computed above in their original order because of variable
-dependencies. Reordering means moving 13 strings, never the code.
+dependencies. Reordering means moving 14 strings, never the code.
 
 ```
 1 ИТОГ·СТОРОНА·ПОТОЛОК   2 ПОЧЕМУ ЭТА МОНЕТА   3 ДИАПАЗОН 90 ДНЕЙ   4 ТОЧКА ВХОДА
-5 ВЫБОР ПЛЕЧА   6 РАЗМЕР ПОЗИЦИИ   7 ГРАНИЦЫ СДЕЛКИ   8 ЦЕНА ВРЕМЕНИ
-9 ЕСЛИ ИДЕЯ НЕ СРАБОТАЕТ   10 ЕСЛИ СРАБОТАЕТ   11 ЗАЩИТА ПОЗИЦИИ
-12 ОТКУДА ПЛЕЧО   13 ДОВЕРИЕ К МОДЕЛИ
+5 ВЫБОР ПЛЕЧА   6 РИСК ВЫНОСА   7 РАЗМЕР ПОЗИЦИИ   8 ГРАНИЦЫ СДЕЛКИ
+9 ЦЕНА ВРЕМЕНИ   10 ЕСЛИ ИДЕЯ НЕ СРАБОТАЕТ   11 ЕСЛИ СРАБОТАЕТ   12 ЗАЩИТА ПОЗИЦИИ
+13 ОТКУДА ПЛЕЧО   14 ДОВЕРИЕ К МОДЕЛИ
 ```
 
-«ЗАЩИТА ПОЗИЦИИ» sits eleventh deliberately: 9 and 10 are outcomes, 11 is the only
-action that converts unrealised profit into inability to lose, and 12–13 are
+«РИСК ВЫНОСА» sits sixth deliberately (§3.17): it is the direct consequence of the
+pressed leverage button (inv. 14) and must be read BEFORE size is chosen. It
+declares no variable of the size block, so inv. 15 is not strained by it.
+
+«ЗАЩИТА ПОЗИЦИИ» sits twelfth deliberately: 10 and 11 are outcomes, 12 is the only
+action that converts unrealised profit into inability to lose, and 13–14 are
 methodology and diagnostics. «СТОРОНА ПРОТИВ СТРУКТУРЫ» and «ВНИМАНИЕ» come
 straight after the verdict: they are alarms, not sections.
 
@@ -549,7 +564,7 @@ building the wide bench in 2027 yields 2027's history including everything back 
 
 ### 3.11 Position protection — «ЗАЩИТА ПОЗИЦИИ»
 
-The other twelve blocks answer *«may I open this, and how big»*. This one answers
+The other thirteen blocks answer *«may I open this, and how big»*. This one answers
 the question that exists only once the position does: **when can the trade stop
 being able to lose money, and what does that cost.**
 
@@ -614,7 +629,7 @@ Layer 4  VERDICT    default = NO      trade | wait | watch
 ```
 z   = btc.r7  / (btc.volatility·√H_NOISE)          BTC's weekly move in its own σ
 eff = btc.r14 / (btc.volatility·√(2·H_NOISE))      clipped to ±3
-stress  if  btc.volatility ≥ VOL_HARD  or  z ≤ −REG_STRESS_Z
+stress  if  btc.volatility ≥ VOL_HARD  or  |z| ≥ REG_STRESS_Z
 trend   if  |eff| ≥ EFF_TREND,  dir = sign(eff)
 range   otherwise
 ```
@@ -625,10 +640,22 @@ property, measured:** under a driftless random walk `eff ~ N(0,1)`, so
 `|eff| ≥ 0.6` labels ~55 % of pure-noise windows «trend». Accepted, because a
 false trend label cannot produce a wrong direction — it narrows the admissible
 side to one, and on a driftless market both channels are worth exactly zero.
+**Stress is symmetric, and that is the whole point of the layer (TZ-12).** The
+comparison is on `|z|`: a four-sigma week UP admits no side either. Before TZ-12
+only `z ≤ −REG_STRESS_Z` fired, and on three consecutive journaled dates —
+2026-08-21/22/23 at `z` = +4.06 / +4.01 / +3.98 — the banner printed «ТРЕНД
+ВВЕРХ» in green while geometry refused 24 of 25 covered coins. `out.dir` stays 0
+under stress: §3.12 reads `dir` only on `trend`, and handing a direction to a
+state that admits neither side would be a contradiction in one object. The banner
+picks its wording by the SIGN of `reg.z` — «РЫНОК ПЕРЕГРЕТ» above, «СТРЕСС РЫНКА»
+below, red in both. Measured cost, stated so it is never mistaken for a
+regression: on the three journaled dates every `action` becomes `none`, and the
+one `trade` and two `wait` verdicts across them disappear.
+
 No `btcStats` or no `volatility` → `mode = 'range'`, `known = false`, which is
 exactly the pre-engine production behaviour (inv. 9). The regime label says WHICH
 state the market is in and never HOW FAR into it the session sits; that second
-quantity is measured in §3.16 and is not yet wired to any consumer.
+quantity is measured in §3.16 and printed in §3.17, and no threshold reads it.
 
 **Layer 1 — `tradeGeometry(cd, E, isLong, dec, hi24, lo24)`**
 
@@ -937,29 +964,88 @@ existed, resting on the premise withdrawn above. **`1.59` against `1.60` is a
 coincidence of magnitude, not a near miss, and the window is never widened to
 admit it** — moving a band to pass an observed number is fitting. The replacement
 rule is derived from the null distribution of the list median and registered
-before the re-run. Once adopted the constant is pinned to the run that produced it
-(inv. 46).
+before the re-run, in TZ-13: the object is the per-date LIST MEDIAN produced by
+production's own `listExhaustion`, the statistic stays the 90th percentile — the
+object was wrong, not the statistic, and changing both after a failure would be
+fitting — and the admissibility window is no longer written down at all. It is
+derived inside the same run from a simulated driftless null of the same statistic,
+so no band can be too high or too low before the data exists. Once adopted the
+constant is pinned to the run that produced it (inv. 46).
 
-**A second coverage defect, live only.** `listExhaustion` iterates every row with a
-`cd` and does not read the venue declaration, so on the live board it would pool
-all 28 rows while the calibration covers 25 spot (§3.14, inv. 41). The three
-`fut:true` assets read their range off the perpetual against a spot-index
-`volatility`; including them is exactly the mismatch §3.16 forbids.
+**Venue is read from the declaration, not from the row (TZ-12).**
+`listExhaustion` skips rows whose `tokens[]` entry carries `fut:true`, and the
+venue test short-circuits AHEAD of the `cd` test, so such a row can never reach
+`dayRangeRatio` whatever fields it carries (inv. 41). The quorum is applied AFTER
+the exclusion: a list reaching eight only by counting `fut:true` rows has no
+median. Without this the live estimator would pool 28 rows while every
+calibration covers 25 spot — the three perpetual-only assets read their range off
+the perpetual against a spot-index `volatility` (§3.14 Consequence 3), which is
+exactly the mismatch this section forbids.
 
-**State at this revision.** `dayRangeRatio` and `listExhaustion` exist in
-`index.html` and are reachable from nothing: `abnormal` is hardcoded `false`,
-`reg.day` is referenced nowhere, and no output enters `scoreCandidate`,
-`tradeGeometry`, `leverageDecision`, `directionVerdict` or the journal writer.
-**The constant does not exist and is not scheduled to exist until the rule is
-re-registered on the list-median distribution.** The calibration has now run once,
-on a runner, and its full decile table lives in
-`CryptoReports/TZ-11-exhaustion-threshold-report.md`; the run's own record file was
-not committed, because a record that pins no constant would look authoritative and
-pin nothing. Measured on the two journaled days by replaying the production
-functions: **1.69** on 2026-08-21 (6 of 25 coins above 2.0) and **2.43** on
-2026-08-22 (20 of 25). Both sit near the coin-day p90–p95, which is what two of the
-most violent sessions of the quarter should read; two days are not a distribution
+**The estimator is nevertheless dead on the live board, and the gate stayed
+green.** `listExhaustion` reads `row.hi24`, `row.lo24` and `row.cur`; the row
+object built in `update()` carries none of them — the render loop parses those
+three ticker fields into LOCALS inside its `sideOn` branch and passes them
+positionally to `directionVerdict`. Live, the function therefore returns
+`{median: null, n: 0}` on every render, and §3.17's list line prints «список не
+измерен» under a caption asserting a 25-coin coverage that never happened. Two
+gate steps proved the arithmetic on fixtures shaped the way the contract says,
+and no check ever asked whether production supplies that shape — the defect that
+inv. 48 now names. Closed by TZ-13.
+
+**State at this revision.** The measure has exactly one reader, §3.17, and it is a
+PRINTER: `abnormal` is hardcoded `false`, `reg.day` is referenced nowhere, no
+threshold is compared, and no output enters `scoreCandidate`, `tradeGeometry`,
+`leverageDecision`, `directionVerdict` or the journal writer (inv. 27, proven at
+runtime by perturbing the list and re-rendering). **The constant does not exist
+and is not scheduled to exist until the rule is re-registered on the list-median
+distribution.** The first calibration ran once on a runner and its full decile
+table lives in `CryptoReports/TZ-11-exhaustion-threshold-report.md`; the run's own
+record file was not committed, because a record that pins no constant would look
+authoritative and pin nothing. Measured on the journaled days by replaying the
+production functions: **1.69** on 2026-08-21 (6 of 25 coins above 2.0) and **2.43**
+on 2026-08-22 (20 of 25). Both sit near the coin-day p90–p95, which is what two of
+the most violent sessions of the quarter should read; days are not a distribution
 and bound nothing.
+
+### 3.17 «РИСК ВЫНОСА» — the day's own risk
+
+Sixth board block (§3.7). It answers a question none of the other thirteen asks:
+**not «is this trade sound» but «does the position survive TODAY»** — the horizon
+is 24 hours, everywhere else it is seven days. Three rows, all read from existing
+production functions; nothing is recomputed and no formula is duplicated
+(inv. 20, 21).
+
+```
+1  запас до ликвидации   liq = liqPrice(E, currentLev, isLong)   PRESSED lever, inv. 14
+                         b   = |ln(liq/E)|
+                         dist = b / sigmaDay(vol)      touch = touchProb(vol, b, 24)
+2  день уже вынесен      own  = dayRangeRatio(hi24, lo24, cur, vol)      §3.16
+                         list = listExhaustion(rows) -> median, n
+3  стоп против шума      read from dec.inv: capped | floored | dist/sd
+```
+
+**The 24-hour horizon is the block's reason to exist and is not a duplicate of the
+7/14/30d ladder in «ЦЕНА ВРЕМЕНИ».** The ladder answers «will this position live
+out the week»; a four-sigma session asks whether it lives out the afternoon. Both
+come from the single `touchProb` (inv. 20), so the two horizons can never
+disagree, and the ladder is not repeated here.
+
+**Row 2 prints and compares nothing.** No threshold, no colour, no word like
+«аномально», and `abnormal` is not read — the constant does not exist (§3.16). The
+number is interpretable without one because the unit is derived, not chosen:
+`E[range] = σ·√(8/π)`, so 1,0 is an ordinary day. This is the standing of §3.12
+Layer 1 — an assertion about geometry that needs no forecast — and it adds no
+ranking factor, so §3.10b's resolution ceiling is untouched.
+
+**Degradation is stated, never hidden** (inv. 9): no `volatility` → the sigma
+distance and the 24h probability go, the block lives; `E ≤ 0` or non-finite `liq`
+→ row 1 is dropped; `median === null` → the list line says how many coins had a
+measure and that eight are needed; no `dec.inv` → row 3 is dropped.
+
+Pure display in the standing of inv. 27, and the probability is a LOWER bound
+(§7) — the caption says so, because a 24-hour number is the one most likely to be
+read as a promise.
 
 ---
 
@@ -1012,6 +1098,17 @@ and bound nothing.
 45. **A differ returns zero on identical input.** Any comparison offered as no-regression evidence is first run with the SAME revision on both sides and must report zero differences, and a transformation applied to one side is applied to the other. `prot_bench.js`'s optional baseline suite strips one section from the candidate only, so it reports six failures against a byte-identical baseline — a stale expectation a self-comparison would have caught the day it was written. Identity is the known-answer control of a comparator (inv. 23); a comparator never proven on identity supports no claim about a real diff.
 46. **A calibrated constant is checked against its calibration record.** A production number derived from a measurement lives in two places — the constant in the source and the committed output of the run that produced it — and a bench inside the gate compares them on every push. Inv. 23 fixes the rule before the data; this fixes the number to its run afterwards. A constant that agrees with nothing can be moved silently in either direction, and the move is invisible precisely because the number looks measured.
 47. **A threshold is calibrated on the distribution of the quantity its consumer compares.** A constant thresholding a LIST MEDIAN is measured on the distribution of list medians, never on the distribution of the individual readings the median is taken over: averaging across correlated members strips idiosyncratic dispersion and moves the upper tail (driftless null at ρ = 0.75: coin-day p90 1.38, list-median p90 1.27). Inv. 46 pins a constant to its run; this pins it to the right random variable. A percentile measured on the wrong object looks fully calibrated and is wrong by exactly the amount nobody can see, and an admissibility window drawn around that object inherits the error.
+48. **A bench that builds its own input proves the function, not the wiring.**
+    Where a production function reads an object assembled somewhere else in
+    production, at least one check must prove the assembling site supplies every
+    field the reader takes: the fields read off the object are derived FROM THE
+    SOURCE and compared against the fields the producer writes. `listExhaustion`
+    was green in two gate steps on fixtures carrying `hi24`, `lo24` and `cur`
+    while the live row object carried none of them, so the measure returned
+    `n = 0` on every render and the board printed a caption claiming a coverage it
+    never had. Inv. 42 makes a bench take production's EXTERNAL input; this makes
+    it take production's INTERNAL shape. A green bench on invented input is
+    evidence about arithmetic and never about reach.
 
 ---
 
@@ -1023,6 +1120,8 @@ and bound nothing.
 - Binance `fapi/ticker/24hr?symbol=`: weight 1 × number of `fut:true` tokens, every 30 s.
 - Gist API: files > 1 MB are truncated (handled through `raw_url`).
 - Detection ceiling of the bench: |IC| ≈ 0.06–0.07 single test, ≈ 0.09 for a search (§3.10b).
+- The day-range measure sees one day at a time and has no memory: it says how far
+  the session has already gone, never where it goes next (§3.16, §3.17).
 - **An implementation session reaches no market host at all** — archive, mirror, production and CoinGecko are all refused at CONNECT. Every fetch happens on a runner (inv. 44).
 
 ---
@@ -1042,12 +1141,20 @@ and bound nothing.
 11. Direction engine: no coin carries both ЛОНГ and ШОРТ; a card with `action = 'none'` prints no entry or target; the glyph and the tier badge agree (inv. 33–35).
 12. Catalyst layer: with the file served, the banner is absent and a `confirmed` entry vetoes the opposite side; with the file removed, the banner appears with a reason and the board keeps working (inv. 40).
 13. Hard margin ceiling (§3.4): at `capped = true` the fourth row stays informational without the «← ограничитель» marker and the caption reads «Три независимых потолка…»; at `capped = false` it joins the list, can bind the RESULT, and the caption reads «Четыре…». Under no data does it produce «БЕЗ БЕЗОПАСНОГО ПЛЕЧА» (inv. 26).
-14. Position protection (§3.11): the block is eleventh; break-even is further from entry when funding is «я плачу» and nearer when «мне платят»; with price at entry the status line says so; on a coin without `volatility` only the probabilities disappear.
+14. Position protection (§3.11): the block is twelfth; break-even is further from entry when funding is «я плачу» and nearer when «мне платят»; with price at entry the status line says so; on a coin without `volatility` only the probabilities disappear.
+15. «РИСК ВЫНОСА» (§3.17): the block is sixth, between «ВЫБОР ПЛЕЧА» and «РАЗМЕР
+    ПОЗИЦИИ»; row 1 moves when the leverage BUTTON moves and not when the RESULT
+    does (inv. 14); the list line names a coin count that matches the spot rows on
+    screen, never zero; no threshold word appears anywhere in the block; the
+    `.bd-sec` carries no inline `style`, so the metal ring survives (§3.7).
+16. Regime symmetry (§3.12): a BTC week at `z ≥ +REG_STRESS_Z` prints «РЫНОК
+    ПЕРЕГРЕТ» in red and no card is tradable on either side; at `z ≤ −REG_STRESS_Z`
+    the wording is «СТРЕСС РЫНКА», also red; `dir` is 0 in both.
 
 **Bench triggers.** Editing `verify_against_live` → run `bench/verify_bench.py`
 (offline, ~20 s, must give 0 failures). Editing `scoreCandidate`, `window_stats`,
 `window_vol` or `volume_expansion` → run `bench/backtest_bench.py --selftest`.
-Any production edit → the full `bench.yml` gate, 11 steps.
+Any production edit → the full `bench.yml` gate, 12 steps.
 
 ---
 
@@ -1117,9 +1224,11 @@ only when its trigger fires.
 | Journal outcome layer at scale | running | nothing — h7/h14 files appear automatically 7 and 14 days after each snapshot |
 | Journal storage growth | watched | ~73 KB/day. Act if the repository becomes unwieldy; records are immutable (inv. 38), so the answer is archival, never deletion |
 | Catalyst registry content | live, one confirmed entry | analyst work, delivered as a TZ; entries never promoted to `confirmed` without a primary source (inv. 39) |
-| `DAY_RANGE_ABNORMAL` and the banner consumer (§3.16) | measure built; calibration ran and returned 1.59, outside the registered window; consumer not built | a TZ that re-registers the rule on the LIST-MEDIAN distribution (inv. 47) BEFORE re-running `calib.yml`. The window is never widened to admit 1.59 |
-| `fut:true` exclusion in `listExhaustion` | not built | any TZ that puts the list median on screen — live it pools 28 rows, the calibration covers 25 (§3.14, inv. 41) |
-| Upper stress branch in `marketRegime` | not built | specification defect, not a queue item: `z ≤ −REG_STRESS_Z` has no upper mirror, so a +4σ week labels `trend` in green. Fixed by the first TZ that touches the regime layer |
+| `DAY_RANGE_ABNORMAL` and the banner consumer (§3.16) | rule re-registered on the list median in TZ-13; number does not exist; consumer not built | the TZ-13 calibration run returning a number by its own rule. Adoption and the screen consumer are the TZ after it, and are mechanical — the rule decides, not a reading of the number |
+| Live wiring of `listExhaustion` (§3.16) | dead: the row object carries no `hi24` / `lo24` / `cur`, so the live median is `n = 0` | TZ-13 stage A. Until it merges, §3.17's list line is honest but empty and its caption overstates coverage |
+| `journal_bench.js` count is content-sensitive | watched | step 7 falls when a verdict writes fewer fields, exactly as it would if a defect nulled one. Act on the first step-7 delta that cannot be attributed field by field, or on any TZ touching `journal/write.js` |
+| `NaN% от входа` at `E ≤ 0` in «ГРАНИЦЫ СДЕЛКИ» | pre-existing, unreachable live | any TZ touching that block. `Math.abs(liqSel / E - 1)` at `E = 0` is `0/0`; entry price is never zero on a live board, so it buys a diff and no safety |
+| Raw Cyrillic literal at `bench/prot_bench.js:166` | pre-existing, bench-only | any TZ editing that bench. It violates the ES5/escape rule the frontend keeps, in a file no browser loads |
 | `prot_bench.js` optional baseline suite | repaired in TZ-11 — neither side stripped, unconditional identity run inside the default suite, comparison counter with a zero-comparison guard | nothing; inv. 45 is now satisfied by the gate itself |
 | `bench.yml` Node 20 pin | watched | GitHub already forces the actions onto Node 24 with a warning. Act when a step fails or the whole gate can be re-run as the validation |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
