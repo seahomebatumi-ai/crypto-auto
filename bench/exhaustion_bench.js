@@ -56,7 +56,8 @@ const P = sandbox;   // production namespace
 
 // Per-section counters. The gate total is a SUM of these, never an estimate
 // (inv. 43), and each one counts comparisons actually made at its own site.
-const N = { identity: 0, nulls: 0, quorum: 0, venue: 0, banner: 0, stress: 0, inert: 0, purity: 0, control: 0 };
+const N = { identity: 0, nulls: 0, quorum: 0, venue: 0, banner: 0, stress: 0, inert: 0,
+            purity: 0, control: 0, wiring: 0 };
 let section = 'identity';
 let checks = 0, fails = 0;
 
@@ -583,6 +584,181 @@ console.log('=== G. Negative control: this bench can actually fail ===');
     console.log('  comparator reported the planted mismatch: ' + detected);
 }
 console.log('  compared: ' + N.control);
+
+// ───────────────────────────────────────────────────────────────────────────
+section = 'wiring';
+console.log('=== H. Wiring: every field the measure READS is a field update() WRITES ===');
+// Invariant 48 — a bench that builds its own input proves the FUNCTION, not
+// the WIRING. Sections B, C and D above all hand listExhaustion rows shaped by
+// this file, so they stayed green through a revision in which the live row
+// object carried none of hi24 / lo24 / cur and the measure returned
+// {median: null, n: 0} on every render. This section reads the two sides of
+// the contract out of the SOURCE and compares them, so the same divergence
+// cannot pass again.
+//
+// The mechanism takes a list of readers; a second one is added by naming it
+// here. Only listExhaustion is wired at this revision.
+const READERS = ['listExhaustion'];
+const PRODUCER = 'update';
+
+// Cut a top-level function out of the script by brace matching. Not a regex
+// over the whole file: a regex cannot tell a closing brace of the function
+// from a closing brace of a string or a nested block, and the answer this
+// section gives is only as good as its slice.
+function cutFunction(source, name) {
+    const sig = 'function ' + name + '(';
+    const at = source.indexOf(sig);
+    if (at < 0) return null;
+    const open = source.indexOf('{', at);
+    if (open < 0) return null;
+    let depth = 0, i = open;
+    let inS = null, inLine = false, inBlock = false, inRe = false, esc = false;
+    // The last SIGNIFICANT character — whitespace and comments skipped. It is
+    // the only thing that separates a regex literal from a division: after an
+    // identifier, a number, ')' or ']' a slash divides; after an operator or an
+    // opening bracket it opens a pattern. Guessing wrong swallows the rest of
+    // the function and this section would then report a producer that has no
+    // fields at all, which inv. 22 turns into a failure rather than a pass.
+    let prev = '';
+    for (; i < source.length; i++) {
+        const c = source[i];
+        if (inLine) { if (c === '\n') inLine = false; continue; }
+        if (inBlock) { if (c === '*' && source[i + 1] === '/') { inBlock = false; i++; } continue; }
+        if (inS) { if (esc) { esc = false; } else if (c === '\\') { esc = true; }
+                   else if (c === inS) { inS = null; prev = c; } continue; }
+        if (inRe) { if (esc) { esc = false; } else if (c === '\\') { esc = true; }
+                    else if (c === '/') { inRe = false; prev = c; } continue; }
+        if (c === '/' && source[i + 1] === '/') { inLine = true; i++; continue; }
+        if (c === '/' && source[i + 1] === '*') { inBlock = true; i++; continue; }
+        if (/\s/.test(c)) continue;
+        if (c === '"' || c === "'" || c === '`') { inS = c; prev = c; continue; }
+        if (c === '/') {
+            if (/[\w$)\]'"`]/.test(prev)) { prev = c; continue; }   // division
+            inRe = true; continue;
+        }
+        if (c === '{') depth++;
+        else if (c === '}') { depth--; if (depth === 0) return source.slice(at, i + 1); }
+        prev = c;
+    }
+    return null;
+}
+
+// Every field the reader takes off the row it was handed, one level deep plus
+// the second level wherever the source reads one (row.t.fut). The reader binds
+// its row argument to the local `row`, which is what makes this readable off
+// the text: a rename there is a change to this contract and must be made here
+// too, deliberately.
+function fieldsRead(body) {
+    const out = {};
+    const re = /\brow\.([A-Za-z_$][\w$]*)(?:\.([A-Za-z_$][\w$]*))?/g;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+        out[m[1]] = true;
+        if (m[2]) out[m[1] + '.' + m[2]] = true;
+    }
+    return Object.keys(out).sort();
+}
+
+// Every field the row object receives in the producer: the keys of the
+// `var row = { … }` literal, plus every `row.<ident> =` assignment in the
+// body. `orow.<ident> =` is deliberately NOT counted — that is the off-list
+// filter writing to rows it took out of the array, downstream of the contract.
+function fieldsWritten(body) {
+    const out = {};
+    const lit = /var\s+row\s*=\s*(?:rowRange\()?\{([\s\S]*?)\}/.exec(body);
+    if (lit) {
+        const re = /([A-Za-z_$][\w$]*)\s*:/g;
+        let m;
+        while ((m = re.exec(lit[1])) !== null) out[m[1]] = true;
+    }
+    const re2 = /\brow\.([A-Za-z_$][\w$]*)\s*=(?!=)/g;
+    let m2;
+    while ((m2 = re2.exec(body)) !== null) out[m2[1]] = true;
+    return Object.keys(out).sort();
+}
+
+// The comparison itself, factored so the positive control below can run it
+// over a MUTATED copy of the source and be told what that copy is missing.
+function wiringGaps(source) {
+    const prod = cutFunction(source, PRODUCER);
+    if (prod === null) return { error: 'producer ' + PRODUCER + ' not found' };
+    const writes = fieldsWritten(prod);
+    const per = [];
+    for (let r = 0; r < READERS.length; r++) {
+        const body = cutFunction(source, READERS[r]);
+        if (body === null) return { error: 'reader ' + READERS[r] + ' not found' };
+        const reads = fieldsRead(body);
+        const missing = reads.filter(function (f) {
+            // A nested read is satisfied by its ROOT being written: update()
+            // writes row.t and row.cd whole, and `fut` / `volatility` are
+            // fields of the objects it assigns, not of the row.
+            return writes.indexOf(f.split('.')[0]) < 0;
+        });
+        per.push({ reader: READERS[r], reads: reads, missing: missing });
+    }
+    return { writes: writes, per: per };
+}
+
+const W = wiringGaps(src);
+ok('wiring extractor found both sides', !W.error);
+if (W.error) {
+    console.log('  FAIL ' + W.error);
+} else {
+    // Inv. 22: zero reads or zero writes is a FAILURE, not a pass. An
+    // extractor that silently matched nothing would make this whole section
+    // green by finding no gap in an empty set.
+    ok('producer writes at least one row field', W.writes.length > 0);
+    console.log('  ' + PRODUCER + '() writes: ' + W.writes.join(', '));
+    for (let r = 0; r < W.per.length; r++) {
+        const p = W.per[r];
+        ok(p.reader + ' reads at least one row field', p.reads.length > 0);
+        console.log('  ' + p.reader + ' reads: ' + p.reads.join(', '));
+        // One check per field read, named, so a failure says WHICH field the
+        // live row never carries.
+        for (let f = 0; f < p.reads.length; f++) {
+            const fld = p.reads[f];
+            const root = fld.split('.')[0];
+            ok(p.reader + ' reads row.' + fld + ' -> ' + PRODUCER + '() writes row.' + root,
+               W.writes.indexOf(root) >= 0);
+        }
+        if (p.missing.length) {
+            console.log('  FAIL ' + p.reader + ' reads fields the live row never carries: '
+                      + p.missing.join(', '));
+        }
+    }
+}
+
+// Positive control (inv. 23). A checker that cannot fail is not a check: run
+// the same extractor over a copy of the source with one producing assignment
+// deleted, and over a copy with one extra read added, and require it to name
+// exactly that field and nothing else.
+{
+    const realLog = console.log;
+
+    const cutWrite = src.replace('row.cur  = parseFloat(coin.lastPrice);', '');
+    ok('control copy differs from the source', cutWrite !== src);
+    console.log = function () {};
+    const A = wiringGaps(cutWrite);
+    console.log = realLog;
+    eq('deleting row.cur reports exactly [cur]',
+       A.error ? 'ERR:' + A.error : A.per[0].missing.join(','), 'cur');
+
+    const addRead = src.replace('            if (!row.cd) continue;',
+                                '            if (!row.cd) continue;\n            if (row.zzzNotWritten) continue;');
+    ok('control copy differs from the source', addRead !== src);
+    console.log = function () {};
+    const B = wiringGaps(addRead);
+    console.log = realLog;
+    eq('adding a read of row.zzzNotWritten reports exactly [zzzNotWritten]',
+       B.error ? 'ERR:' + B.error : B.per[0].missing.join(','), 'zzzNotWritten');
+
+    // And the unmutated source must report nothing at all, or the two controls
+    // above would be indistinguishable from a checker that always fires.
+    eq('the real source reports no missing field',
+       W.error ? 'ERR:' + W.error : W.per[0].missing.join(','), '');
+    console.log('  controls: deleted write named, added read named, clean source silent');
+}
+console.log('  compared: ' + N.wiring);
 
 // ───────────────────────────────────────────────────────────────────────────
 const sum = Object.keys(N).reduce(function (a, k) { return a + N[k]; }, 0);

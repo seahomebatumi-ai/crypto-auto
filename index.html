@@ -2247,7 +2247,7 @@ function sideAligned(row) {
 function boardHtml(row, pos) {
     var cd   = row.cd, t = row.t, coin = row.coin;
     var sym  = t.name, pair = t.s;
-    var cur  = parseFloat(coin.lastPrice);
+    var cur  = row.cur;
     var p24  = parseFloat(coin.priceChangePercent);
     var isLong    = (boardSide === 'long');
     var btcStats  = lastCtx.btcStats;
@@ -2788,8 +2788,7 @@ function boardHtml(row, pos) {
     // Строка 2. Насколько день уже вынесен — монета и список, оба сырыми.
     // Порога нет и abnormal не читается: измерение печатается, вывод не
     // делается (§3.16, инв. 23, 47).
-    var sqzOwn  = dayRangeRatio(parseFloat(coin.highPrice), parseFloat(coin.lowPrice),
-                                cur, cd.volatility);
+    var sqzOwn  = dayRangeRatio(row.hi24, row.lo24, cur, cd.volatility);
     var sqzList = listExhaustion(lastRows);
     if (sqzOwn !== null) {
         sSqz += '<div class="bd-kv" style="margin-top:11px;"><span class="bd-k">\u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0443\u0436\u0435 \u0432\u044b\u043d\u0435\u0441\u0435\u043d\u043e</span>'
@@ -3192,6 +3191,17 @@ function update() {
         var row = { t: t, idx: idx, coin: coin, cd: null, state: 'ok', sc: null };
         if (!coin) { row.state = 'nopair'; rows.push(row); return; }
 
+        // The ONE site that parses each of the three range fields (inv. 20).
+        // The row is the contract listExhaustion reads; parsing these into
+        // locals inside the sideOn branch left the measure with nothing to
+        // read and every bench that builds its own rows still green (inv. 48).
+        // Assigned for EVERY row that has a ticker, fut:true included: the
+        // venue rule lives in listExhaustion and nowhere else (inv. 41), and a
+        // row filtered here would put that declaration in two places.
+        row.cur  = parseFloat(coin.lastPrice);
+        row.hi24 = parseFloat(coin.highPrice);
+        row.lo24 = parseFloat(coin.lowPrice);
+
         var trades24 = parseFloat(coin.count);
         var bidP     = parseFloat(coin.bidPrice);
         var askP     = parseFloat(coin.askPrice);
@@ -3207,11 +3217,11 @@ function update() {
         if (sideOn) {
             // Слой 4 движка (§3.12). Счёт больше не единственный выход строки:
             // вердикт решает, торгуема ли сторона вообще.
-            var curP = parseFloat(coin.lastPrice);
+            var curP = row.cur;
             var p24v = parseFloat(coin.priceChangePercent);
             var qvv  = parseFloat(coin.quoteVolume);
-            var hi24 = parseFloat(coin.highPrice);
-            var lo24 = parseFloat(coin.lowPrice);
+            var hi24 = row.hi24;
+            var lo24 = row.lo24;
             row.dec = leverageDecision(row.cd, curP, isLong, btcStats);
             row.vd  = directionVerdict(row.cd, t.s, t.name, curP, p24v, qvv, isLong,
                                        reg, row.dec, hi24, lo24,
@@ -3244,7 +3254,7 @@ function update() {
                 if (!orow.sc || !has(orow.sc.score) || orow.sc.score < TIER_MIN) {
                     orow.off = true; orow.offWhy = 'low'; offRows.push(orow); continue;
                 }
-                var orp = rangePos(orow.cd, parseFloat(orow.coin.lastPrice));
+                var orp = rangePos(orow.cd, orow.cur);
                 if (!sideRelevant(orp, isLong)) {
                     orow.offPos = orp; orow.off = true; orow.offWhy = 'pos'; offRows.push(orow); continue;
                 }
@@ -3282,7 +3292,7 @@ function update() {
             return;
         }
         if (row.state === 'dead') {
-            var frozenP = parseFloat(row.coin.lastPrice);
+            var frozenP = row.cur;
             html += '<div class="no-data-card">'
                 + '<div class="token-name">' + t.name + ' <span class="light-blink" style="color:var(--red);font-size:0.7em;">ТОРГИ ОСТАНОВЛЕНЫ</span></div>'
                 + '<div style="font-size:0.85em;color:#888;margin-top:4px;">Цена заморожена: $' + (isFinite(frozenP) ? frozenP.toFixed(4) : '?')
@@ -3300,7 +3310,7 @@ function update() {
 
         var cd   = row.cd;
         var coin = row.coin;
-        var cur  = parseFloat(coin.lastPrice);
+        var cur  = row.cur;
         var p24  = parseFloat(coin.priceChangePercent);
         var minP = cd.min_price, maxP = cd.max_price;
 
