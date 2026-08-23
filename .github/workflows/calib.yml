@@ -1,0 +1,91 @@
+# .github/workflows/calib.yml
+# ТЗ-11 §2, стадия B. РАЗОВЫЙ инструмент калибровки, а не контроль.
+#
+# Зачем отдельный файл, а не шаг в bench.yml: bench.yml — это ворота, они
+# гоняются на каждый push и намеренно не ходят во внешний архив
+# data.binance.vision и не греют кэш (см. шапку bench.yml). Калибровке нужно
+# ровно то, чего ворота избегают. Поэтому она живёт отдельно и в ворота НЕ
+# ставится (ТЗ-10 §4, ТЗ-11 §2).
+#
+# Почему `push`, а не только `workflow_dispatch`: workflow_dispatch недоступен,
+# пока файл не лежит в ветке по умолчанию. Файл, у которого есть только
+# dispatch, можно было бы запустить лишь ПОСЛЕ слияния, которое он обязан
+# предварять. Фильтр путей делает триггер одноразовым по смыслу: он срабатывает
+# на том push, который этот файл добавляет, и не срабатывает на последующих
+# push в ту же ветку.
+#
+# В `main` не запускается НИКОГДА — веток main в списке нет сознательно.
+name: Calibration (archive)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'claude/**' ]
+    paths:
+      - 'bench/exhaustion_calib.py'
+      - '.github/workflows/calib.yml'
+
+jobs:
+  calib:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # Шаг 3 коммитит запись калибровки обратно в ту же ветку.
+    permissions:
+      contents: write
+    defaults:
+      run:
+        # Инв. 25. Без pipefail связка `python ... | tee` возвращает код tee,
+        # то есть ноль, и упавший прогон выглядит успешным. Шаг 2 — ровно
+        # такой конвейер, и его код обязан доходить до раннера.
+        shell: bash -euo pipefail {0}
+    steps:
+      # ref нужен явно: на событии push checkout встаёт на detached HEAD по
+      # SHA, а шагу 3 надо push-нуть в саму ветку.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install numpy requests
+
+      # Та же форма ключа, что backtest_bench.yml даёт для vision на 3 годах
+      # (`bench-${{ inputs.source }}-${{ inputs.years }}y-v4`), чтобы прогретый
+      # кэш бэктеста переиспользовался, а не выкачивался заново.
+      - uses: actions/cache@v4
+        with:
+          path: bench/cache
+          key: bench-vision-3y-v4
+
+      # Инв. 23: число, полученное после красной самопроверки, доказательством
+      # не является. Офлайн-проверка обвязки идёт ПЕРВОЙ и валит job целиком.
+      - name: Самопроверка калибровки (офлайн, без сети)
+        run: python bench/exhaustion_calib.py --selftest
+
+      - name: Прогон калибровки (архив data.binance.vision)
+        run: |
+          python3 bench/exhaustion_calib.py --years 3 --source vision 2>&1 \
+            | tee bench/exhaustion-calibration.txt
+
+      # Запись калибровки, которой требует инв. 46. Пишется один раз и больше
+      # не открывается. [skip ci] — чтобы коммит записи не поднимал ворота.
+      - name: Коммит записи калибровки
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bench/exhaustion-calibration.txt
+          if git diff --cached --quiet; then
+            echo "Запись не изменилась — коммитить нечего."
+          else
+            git commit -m "chore(calib): exhaustion calibration record (TZ-11 stage B) [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exhaustion-calibration
+          path: bench/exhaustion-calibration.txt
+          if-no-files-found: warn

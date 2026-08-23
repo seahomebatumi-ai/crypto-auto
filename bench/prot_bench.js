@@ -334,8 +334,21 @@ function suiteBoard(ctx) {
     }
 }
 
-// ── 5. Nothing else moved: the rest of the board is byte-identical ──────────
-function suiteNoRegression(nu, old) {
+// ── 5. Nothing else moved: the whole board is byte-identical ─────────────
+// TZ-11 Stage A. This suite used to strip the «POSITION PROTECTION» section
+// from the CANDIDATE only and compare the remainder. That was correct exactly
+// once — while the baseline predated the section and the candidate carried it.
+// Both revisions have carried it since TZ-07, so the asymmetry no longer
+// compensated for anything: it DELETED a section from one side of an otherwise
+// byte-identical pair and reported six differences of its own making. The
+// transformation is now symmetric in the only form worth having — neither side
+// is touched — and the assertion itself is unchanged and stricter: the WHOLE
+// board must match, section included. A differ that cannot pass on identity is
+// not evidence of anything (inv. 45), which is why cmpIdentity below runs it
+// against the candidate's own source inside the default suite.
+var boardCmp = 0;   // comparisons actually performed (inv. 22, inv. 43)
+function suiteNoRegression(nu, old, label) {
+    var tag = label ? ' [' + label + ']' : '';
     var scenarios = [
         { entry: 10, price: 10.4, fr: 0.0001, side: 'long', lev: 4 },
         { entry: 10, price: 9.1, fr: -0.0003, side: 'short', lev: 3 },
@@ -344,42 +357,40 @@ function suiteNoRegression(nu, old) {
         { entry: 10, price: 10, fr: 0.0001, side: 'long', lev: 5, cd: { volatility: 0.025 } },
         { entry: 10, price: 10, fr: 0.0001, side: 'long', lev: 5, cd: { volatility: null } }
     ];
-    var HDR = '\u0417\u0410\u0429\u0418\u0422\u0410 \u041F\u041E\u0417\u0418\u0426\u0418\u0418';
     for (var i = 0; i < scenarios.length; i++) {
         var rn = armCtx(nu, scenarios[i]);
         var ro = armCtx(old, scenarios[i]);
         var hn = nu.boardHtml(rn, 0);
         var ho = old.boardHtml(ro, 0);
-        // strip the new section from the new output, then compare byte for byte
-        var idx = hn.indexOf(HDR);
-        var stripped = hn;
-        if (idx > 0) {
-            var s0 = hn.lastIndexOf('<div class="bd-sec', idx);
-            var s1 = hn.indexOf('<div class="bd-sec', idx);
-            // find the end of the protection section by matching its own div depth
-            var depth = 0, p = s0, end = -1;
-            while (p < hn.length) {
-                var openTag = hn.indexOf('<div', p);
-                var closeTag = hn.indexOf('</div>', p);
-                if (closeTag < 0) break;
-                if (openTag >= 0 && openTag < closeTag) { depth++; p = openTag + 4; }
-                else { depth--; p = closeTag + 6; if (depth === 0) { end = p; break; } }
-            }
-            if (end > 0) stripped = hn.substring(0, s0) + hn.substring(end);
-            void s1;
-        }
-        ok('rest of board unchanged #' + i, stripped === ho,
-           'len ' + stripped.length + ' vs ' + ho.length);
-        if (stripped !== ho) {
-            for (var c = 0; c < Math.min(stripped.length, ho.length); c++) {
-                if (stripped[c] !== ho[c]) {
-                    notes.push('  first diff at ' + c + ': ...' + stripped.substr(Math.max(0, c - 60), 120)
+        boardCmp++;                                   // counted at the comparison site
+        ok('rest of board unchanged' + tag + ' #' + i, hn === ho,
+           'len ' + hn.length + ' vs ' + ho.length);
+        if (hn !== ho) {
+            for (var c = 0; c < Math.min(hn.length, ho.length); c++) {
+                if (hn[c] !== ho[c]) {
+                    notes.push('  first diff at ' + c + ': ...' + hn.substr(Math.max(0, c - 60), 120)
                              + ' ||| ' + ho.substr(Math.max(0, c - 60), 120));
                     break;
                 }
             }
         }
     }
+}
+
+// ── 5b. Identity: the differ compared with ITSELF must find nothing ──────
+// Runs in the DEFAULT suite, with or without a baseline argument. index.html is
+// loaded a SECOND time into its own context, so the two sides are independent
+// evaluations of the same bytes and the comparison exercises the real differ
+// rather than an object identity. Zero differences is the pass condition; zero
+// comparisons is a failure, not a pass (inv. 22).
+function suiteIdentity(candidate) {
+    var self = loadFront(candidate);
+    var before = boardCmp;
+    suiteNoRegression(self, loadFront(candidate), 'identity');
+    ok('identity run compared boards', boardCmp > before,
+       (boardCmp - before) + ' comparisons');
+    notes.push('identity: ' + (boardCmp - before) + ' boards compared against '
+             + candidate + ' itself');
 }
 
 // ── 6. Fuzz: no exception, no NaN, no undefined on any board ────────────────
@@ -451,7 +462,10 @@ if (old) {
 suitePlan(nu);
 suiteBoard(nu);
 suiteFuzz(nu, 4000);
-if (old) suiteNoRegression(nu, old);
+// The identity run is unconditional: it is what makes every OTHER comparison in
+// this file admissible as evidence, so it may not depend on an optional argument.
+suiteIdentity(candidate);
+if (old) suiteNoRegression(nu, old, 'baseline');
 
 console.log(notes.join('\n'));
 console.log('PASS ' + pass + '   FAIL ' + fail);
@@ -460,4 +474,8 @@ console.log('PASS ' + pass + '   FAIL ' + fail);
 // index.html.prev — which legitimately skips the baseline suites — stays legal:
 // it is zero COMPARISONS that is illegal, not a skipped optional suite.
 if (pass + fail === 0) { console.log('FAIL bench verified nothing'); process.exit(1); }
+// The board differ is the instrument Stage C's no-regression proof rests on. A
+// run in which it compared zero boards is a run that proved nothing about it,
+// however many other checks passed (inv. 22).
+if (boardCmp === 0) { console.log('FAIL board differ compared nothing'); process.exit(1); }
 process.exit(fail ? 1 : 0);
