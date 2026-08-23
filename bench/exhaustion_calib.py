@@ -788,14 +788,29 @@ def selftest():
     for f in JS_CUT:
         ok("index.html defines " + f, ("function " + f) in
            open(HTML, encoding="utf-8").read())
-    # The run path only: this function names the banned calls in order to
-    # look for them, so scanning itself would always find them.
+    # The run path only: this function names the banned calls in order to look
+    # for them, so scanning itself would always find them.
+    #
+    # The claim being checked is precise, and narrower than "Python never takes
+    # a median". Python DOES take three medians in the run path and none of
+    # them is a median of RATIOS: the median per-date contributing COUNT, on
+    # which condition 4 is defined by the TZ; the median measured rho, used as
+    # the fallback for a date whose rho could not be measured; and the p50 cell
+    # of the decile tables C6 asks to print, which reaches no decision. The
+    # LIST MEDIAN — the object being calibrated — is production's alone, and
+    # section 2 below is the empirical proof of that, not this scan.
     me = open(os.path.abspath(__file__), encoding="utf-8").read()
     body = me[me.index("import numpy as np"):me.index("def selftest(")]
-    for banned in ("np.median", "statistics.median", "sort()", "percentile(a, 50)"):
-        ok("the run path never computes a median itself (%s)" % banned,
+    for banned in ("np.median", "statistics.median", ".sort()", "sorted(vals"):
+        ok("the run path never medians a ratio distribution itself (%s)" % banned,
            banned not in body)
     ok("the run path was actually scanned", len(body) > 4000, "%d chars" % len(body))
+    # Structural: the constant is a p90 OF THE DATE MEDIANS, and the date
+    # medians are what the node hop handed back.
+    ok("the constant is p90 of emp_med", "np.percentile(emp_med, 90)" in body)
+    ok("emp_med is built from the node hop's medians", 'emp["median"]' in body)
+    ok("the node hop is the only median producer",
+       "lists_via_node" in body and "def listExhaustion" not in body)
     hops0 = HOPS["n"]
 
     # ── 2. production's listExhaustion owns the median AND the quorum ──────
