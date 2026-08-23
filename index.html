@@ -1245,6 +1245,53 @@ function normCdf(x) {
 
 function sigmaDay(vol) { return vol * Math.sqrt(24); }
 
+// Day range against the range a driftless walk would produce over the same
+// day. E[range] = sigma * sqrt(8/pi) for Brownian motion, so the denominator
+// is derived, not chosen. sigma is close-based and therefore understates true
+// range: the typical reading is ABOVE 1 by construction and the acting
+// threshold is calibrated in Stage B, never guessed.
+// sigmaDay is the single site of the daily-sigma conversion (inv. 20): this
+// function never recomputes vol * sqrt(24) of its own.
+function dayRangeRatio(hi, lo, cur, vol) {
+    if (!has(hi) || !has(lo) || !has(cur) || !has(vol)) return null;
+    if (!(cur > 0) || !(vol > 0) || !(hi > lo)) return null;
+    // Underflow of the product would turn a finite range into Infinity, and a
+    // missing measurement must never arrive downstream as a number.
+    var denom = cur * sigmaDay(vol) * Math.sqrt(8 / Math.PI);
+    if (!(denom > 0)) return null;
+    var r = (hi - lo) / denom;
+    return isFinite(r) ? r : null;
+}
+
+// The same measure taken over the whole covered list, so the board can state
+// how far into the regime the session sits rather than only naming the regime.
+// A separate named function because a bench has to be able to call it, the
+// same reason byScore, assignRanks and stateMark are separate (inv. 34).
+// Rows with no metrics, no pair or a dead market carry no cd and contribute
+// nothing: they are not counted, and a missing ratio never becomes a zero.
+// Below eight contributing rows there is no verdict at all — a statement about
+// the list computed from three coins is not a statement about the list.
+function listExhaustion(rows) {
+    var vals = [], i, row, r;
+    if (rows) {
+        for (i = 0; i < rows.length; i++) {
+            row = rows[i];
+            if (!row || !row.cd) continue;
+            r = dayRangeRatio(row.hi24, row.lo24, row.cur, row.cd.volatility);
+            if (r !== null) vals.push(r);
+        }
+    }
+    var n = vals.length;
+    // abnormal stays false at this revision: the measure has no consumer and
+    // no calibrated threshold yet. The comparison against DAY_RANGE_ABNORMAL
+    // is wired in Stage C, once the archive run has produced the constant.
+    if (n < 8) return { median: null, n: n, abnormal: false };
+    vals.sort(function (a, b) { return a - b; });
+    var mid = n >> 1;
+    var med = (n % 2) ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
+    return { median: med, n: n, abnormal: false };
+}
+
 // Композитная оценка доверия к МОДЕЛИ карточки (0-100): 45% R2 текущего
 // направления (14d), 25% R2 (90d), 20% согласованность бет, 10% штраф за
 // волатильность. Отсутствующие компоненты выпадают с перенормировкой.

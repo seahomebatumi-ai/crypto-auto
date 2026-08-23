@@ -108,3 +108,13 @@ jobs:
       - name: Отображение и порядок (direction_bench.py --display)
         shell: bash -euo pipefail {0}
         run: python3 bench/direction_bench.py --display
+
+      # ТЗ-10 §5. Новый измеритель списка и баннер режима. Стенд держит
+      # три вещи: тождество dayRangeRatio замкнутой форме, кворум
+      # listExhaustion и то, что измеритель НИКУДА не доходит: доска
+      # при abnormal === false байт в байт та же. exhaustion_calib.py в ворота
+      # НЕ ставится сознательно (ТЗ-10 §4): это разовая калибровка,
+      # ей нужен внешний архив и прогретый кэш, а не контроль.
+      - name: Истощение списка и баннер режима (exhaustion_bench.js)
+        shell: bash -euo pipefail {0}
+        run: node bench/exhaustion_bench.js
