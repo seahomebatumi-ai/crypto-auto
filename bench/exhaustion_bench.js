@@ -24,6 +24,10 @@
 //   K  live       the real update() over two lists straddling 1.39, rendered
 //                 through the real DOM path (inv. 48)
 //   L  surfaces   the same sentence on the card list and on the board (inv. 33)
+//
+// Section added by TZ-15:
+//   M  caption    the block's caption denies no mechanism the block has, with
+//                 the reverted-caption control that proves the scan can fire
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -73,7 +77,7 @@ const P = loadProduction(src);   // production namespace
 // (inv. 43), and each one counts comparisons actually made at its own site.
 const N = { identity: 0, nulls: 0, quorum: 0, venue: 0, banner: 0, stress: 0, inert: 0,
             purity: 0, control: 0, wiring: 0,
-            record: 0, threshold: 0, live: 0, surfaces: 0 };
+            record: 0, threshold: 0, live: 0, surfaces: 0, caption: 0 };
 let section = 'identity';
 let checks = 0, fails = 0;
 
@@ -1539,6 +1543,246 @@ function stripComments(source) {
               + ((src.match(/\bDAY_RANGE_ABNORMAL\b/g) || []).length) + ')');
 }
 console.log('  compared: ' + N.surfaces);
+
+// ───────────────────────────────────────────────────────────────────────────
+section = 'caption';
+console.log('=== M. The caption denies nothing the block does (TZ-15, inv. 50) ===');
+// Invariant 50 — a stated absence is a dependency of the thing it denies.
+// TZ-14 gave the squeeze-risk block a threshold and an amber day line, and the
+// block's own caption went on saying «poroga net, sravneniya net» two lines
+// under it. Nothing in the gate could see the contradiction: a bench compares
+// BEHAVIOUR against a specification, and that was a claim ABOUT one.
+//
+// This section is the missing instrument, and it is deliberately narrow
+// (TZ-15 §3, non-goal 9). It reads ONE block, located exactly as section L
+// locates it, and scans only for denials of a mechanism THIS block has. A
+// phrase blacklist over the whole file is a different and much worse
+// instrument: it fires on the many absences that are still true — §3.11's
+// scratch probability legitimately has no threshold — and a control that
+// cries wolf is removed within two TZs.
+//
+// No second render path is written: loadLive / liveBook / liveRender /
+// renderBoard are section L's, reused by name (inv. 48).
+
+const SQZ_HEAD  = '\u0420\u0418\u0421\u041a \u0412\u042b\u041d\u041e\u0421\u0410';   // RISK VYNOSA
+const NOTE_OPEN = '<div class="bd-note">';
+const CAPT_HEAD = '1,0 \u2014 \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c';   // 1,0 - obychnyy den
+
+// The three clauses M2 requires the caption to keep: the derived unit, the
+// words that place the measure under inv. 27, and the coverage of the list.
+const UNIT  = '\u221a(8/\u03c0)';   // sqrt(8/pi)
+const INV27 = '\u043d\u0430 \u0441\u0447\u0451\u0442, \u043f\u043b\u0435\u0447\u043e \u0438 \u0432\u0435\u0440\u0434\u0438\u043a\u0442';   // na schyot, plecho i verdikt
+const COVER = '25 \u0441\u043f\u043e\u0442\u043e\u0432\u044b\u043c \u043c\u043e\u043d\u0435\u0442\u0430\u043c';   // 25 spotovym monetam
+
+// The sentence TZ-15 §2 A1 specifies, character for character. This is the
+// EXPECTATION, written here from the TZ — never lifted out of index.html, or
+// the comparison would be the production string against itself.
+const CAPTION =
+      '1,0 \u2014 \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c: \u0443 \u0431\u0440\u043e\u0443\u043d\u043e\u0432\u0441\u043a\u043e\u0433\u043e \u0431\u043b\u0443\u0436\u0434\u0430\u043d\u0438\u044f E[\u0445\u043e\u0434\u0430] = \u03c3\u00b7\u221a(8/\u03c0), \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0435\u0434\u0438\u043d\u0438\u0446\u0430 \u0437\u0434\u0435\u0441\u044c \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d\u0430, \u0430 \u0432\u044b\u0432\u0435\u0434\u0435\u043d\u0430. '
+    + '\u041f\u043e\u0440\u043e\u0433, \u0432\u044b\u0448\u0435 \u043a\u043e\u0442\u043e\u0440\u043e\u0433\u043e \u0434\u0435\u043d\u044c \u043d\u0430\u0437\u0432\u0430\u043d \u0432\u044b\u043d\u0435\u0441\u0435\u043d\u043d\u044b\u043c, \u2014 90-\u0439 \u043f\u0440\u043e\u0446\u0435\u043d\u0442\u0438\u043b\u044c \u043c\u0435\u0434\u0438\u0430\u043d\u044b \u0441\u043f\u0438\u0441\u043a\u0430 \u043f\u043e \u0442\u0440\u0451\u0445\u043b\u0435\u0442\u043d\u0435\u043c\u0443 \u0430\u0440\u0445\u0438\u0432\u0443; \u044d\u0442\u043e \u043c\u0435\u0440\u0430 \u0434\u043d\u044f, \u0430 \u043d\u0435 \u0437\u0430\u043f\u0440\u0435\u0442: \u043d\u0430 \u0441\u0447\u0451\u0442, \u043f\u043b\u0435\u0447\u043e \u0438 \u0432\u0435\u0440\u0434\u0438\u043a\u0442 \u043e\u043d\u0430 \u043d\u0435 \u0432\u043b\u0438\u044f\u0435\u0442. '
+    + '\u0421\u043f\u0438\u0441\u043e\u043a \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u043f\u043e 25 \u0441\u043f\u043e\u0442\u043e\u0432\u044b\u043c \u043c\u043e\u043d\u0435\u0442\u0430\u043c: \u0442\u0440\u0438 \u0444\u044c\u044e\u0447\u0435\u0440\u0441\u043d\u044b\u0435 \u0432 \u043c\u0435\u0440\u0443 \u043d\u0435 \u0432\u0445\u043e\u0434\u044f\u0442.';
+
+// origin/main's caption, carried so M4 can put it back. It is the defect this
+// section exists to catch: two denials of a threshold the block now has.
+const CAPTION_MAIN =
+      '1,0 \u2014 \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c: \u0443 \u0431\u0440\u043e\u0443\u043d\u043e\u0432\u0441\u043a\u043e\u0433\u043e \u0431\u043b\u0443\u0436\u0434\u0430\u043d\u0438\u044f E[\u0445\u043e\u0434\u0430] = \u03c3\u00b7\u221a(8/\u03c0), \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0435\u0434\u0438\u043d\u0438\u0446\u0430 \u0437\u0434\u0435\u0441\u044c \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d\u0430, \u0430 \u0432\u044b\u0432\u0435\u0434\u0435\u043d\u0430. '
+    + '\u0427\u0438\u0441\u043b\u043e \u043f\u0435\u0447\u0430\u0442\u0430\u0435\u0442\u0441\u044f \u043a\u0430\u043a \u0435\u0441\u0442\u044c \u2014 \u043f\u043e\u0440\u043e\u0433\u0430 \u043d\u0435\u0442, \u0441\u0440\u0430\u0432\u043d\u0435\u043d\u0438\u044f \u043d\u0435\u0442, \u043d\u0430 \u0441\u0447\u0451\u0442, \u043f\u043b\u0435\u0447\u043e \u0438 \u0432\u0435\u0440\u0434\u0438\u043a\u0442 \u043e\u043d\u043e \u043d\u0435 \u0432\u043b\u0438\u044f\u0435\u0442. '
+    + '\u0421\u043f\u0438\u0441\u043e\u043a \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u043f\u043e 25 \u0441\u043f\u043e\u0442\u043e\u0432\u044b\u043c \u043c\u043e\u043d\u0435\u0442\u0430\u043c: \u0442\u0440\u0438 \u0444\u044c\u044e\u0447\u0435\u0440\u0441\u043d\u044b\u0435 \u0432 \u043c\u0435\u0440\u0443 \u043d\u0435 \u0432\u0445\u043e\u0434\u044f\u0442.';
+
+// The six ways this block could deny its own threshold. Compared lower-cased,
+// each one separately, so a failure names WHICH denial came back.
+const DENIALS = [
+    '\u043f\u043e\u0440\u043e\u0433\u0430 \u043d\u0435\u0442',   // poroga net
+    '\u0441\u0440\u0430\u0432\u043d\u0435\u043d\u0438\u044f \u043d\u0435\u0442',   // sravneniya net
+    '\u043d\u0435\u0442 \u043f\u043e\u0440\u043e\u0433\u0430',   // net poroga
+    '\u043d\u0435\u0442 \u0441\u0440\u0430\u0432\u043d\u0435\u043d\u0438\u044f',   // net sravneniya
+    '\u0431\u0435\u0437 \u043f\u043e\u0440\u043e\u0433\u0430',   // bez poroga
+    '\u043d\u0435 \u0441\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u0435\u0442',   // ne sravnivaet
+];
+const GLOSS = ['poroga net', 'sravneniya net', 'net poroga',
+               'net sravneniya', 'bez poroga', 'ne sravnivaet'];
+
+// index.html escapes every character above U+007F, so a runtime string must be
+// re-encoded before it can be found in — or substituted into — the SOURCE.
+// The round-trip is asserted in M4 rather than assumed: if this encoder and the
+// file's convention ever disagreed, the control would substitute nothing, the
+// scan would stay silent, and a broken control would report success.
+function toSourceEscapes(s) {
+    let out = '';
+    for (let i = 0; i < s.length; i++) {
+        const c = s.charCodeAt(i);
+        out += c > 0x7f ? '\\u' + ('0000' + c.toString(16)).slice(-4) : s.charAt(i);
+    }
+    return out;
+}
+
+// The block, located exactly as section L locates it: forward to the header,
+// back to the .bd-sec that opens it, then forward to the NEXT .bd-sec — the
+// sections are flat siblings — or to the end of the board.
+function sqzBlock(board) {
+    const at = board.indexOf(SQZ_HEAD);
+    if (at < 0) return null;
+    const start = board.lastIndexOf('<div class="bd-sec', at);
+    if (start < 0) return null;
+    let end = board.indexOf('<div class="bd-sec', at);
+    if (end < 0) end = board.length;
+    return board.slice(start, end);
+}
+
+// The caption is the bd-note that opens with the unit line. The block carries a
+// second bd-note above it (the liquidation-touch note), so «the last note» and
+// «the first note» are both wrong answers.
+function captionOf(block) {
+    const a = block.indexOf(NOTE_OPEN + CAPT_HEAD);
+    if (a < 0) return null;
+    const b = block.indexOf('</div>', a);
+    if (b < 0) return null;
+    return block.slice(a + NOTE_OPEN.length, b);
+}
+
+// PURE — no counter is touched here. M1 and M4 point this same instrument at
+// two different sources and assert OPPOSITE outcomes; a scan that counted its
+// own hits would turn the control's success into a recorded failure. The
+// counting happens at the assertion sites below, where the comparison is
+// (inv. 43).
+function scanDenials(block) {
+    const low = String(block).toLowerCase();
+    const hit = [];
+    for (let i = 0; i < DENIALS.length; i++) {
+        if (low.indexOf(DENIALS[i]) >= 0) hit.push(GLOSS[i]);
+    }
+    return hit;
+}
+
+// One render, one board, one block, through production's own update() and
+// renderBoard() — the same sequence section L performs.
+function boardBlock(L, ratio) {
+    const res = liveRender(L, liveBook(L, ratio), 'long');
+    L.boardSide = 'long';
+    L.boardSym = L.lastShownSyms[0];
+    L.__captured['board'] = '';
+    L.renderBoard();
+    const board = L.__captured['board'] || '';
+    return { board: board, block: sqzBlock(board), day: res.day };
+}
+
+{
+    const L = loadLive(src);
+    const QUIET_R = TH * (1 - 1e-9), LOUD_R = TH * (1 + 1e-9);
+    const quiet = boardBlock(L, QUIET_R);
+    const loud  = boardBlock(L, LOUD_R);
+    const RENDERS = [['quiet', quiet], ['loud', loud]];
+    eq('the quiet render is NOT abnormal', quiet.day && quiet.day.abnormal, false);
+    eq('the loud render IS abnormal', loud.day && loud.day.abnormal, true);
+
+    // ── M5 first. Everything below is a statement ABOUT a block, so the block
+    // is established before it is scanned (inv. 22). A scan that had silently
+    // widened to the whole board would fire on absences that are still true,
+    // and would look exactly like a pass until it did.
+    RENDERS.forEach(function (r) {
+        const tag = r[0], b = r[1], blk = b.block;
+        ok('M5 ' + tag + ': the board rendered', b.board.length > 500);
+        ok('M5 ' + tag + ': the block was located', blk !== null);
+        ok('M5 ' + tag + ': the block is non-empty', blk !== null && blk.length > 0);
+        ok('M5 ' + tag + ': the block is PART of the board, not the board',
+           blk !== null && blk.length < b.board.length);
+        eq('M5 ' + tag + ': the block opens exactly one .bd-sec',
+           blk === null ? -1 : blk.split('<div class="bd-sec').length - 1, 1);
+        eq('M5 ' + tag + ': the block carries exactly one header',
+           blk === null ? -1 : blk.split('<div class="bd-h').length - 1, 1);
+        eq('M5 ' + tag + ': and that one header is the squeeze-risk header',
+           blk === null ? -1 : blk.indexOf('<div class="bd-h">' + SQZ_HEAD),
+           blk === null ? -2 : blk.indexOf('<div class="bd-h'));
+        ok('M5 ' + tag + ': the board carries sections this scan did NOT read',
+           b.board.split('<div class="bd-sec').length - 1 > 1);
+    });
+
+    // ── M1. The block carries no denial. Six phrases, each compared and counted
+    // separately, on each of the two renders. The number of comparisons is
+    // itself asserted, so an emptied list cannot pass as a clean scan.
+    let compared = 0;
+    RENDERS.forEach(function (r) {
+        const tag = r[0], low = String(r[1].block).toLowerCase();
+        DENIALS.forEach(function (p, i) {
+            eq('M1 ' + tag + ': the block does not say "' + GLOSS[i] + '"',
+               low.indexOf(p) >= 0, false);
+            compared++;
+        });
+    });
+    eq('M1 compared all six phrases on both renders', compared, DENIALS.length * 2);
+    eq('M1 the denial set is the six the TZ names', DENIALS.length, 6);
+
+    // ── M2. What the caption DOES say. The three clauses first, then the whole
+    // sentence as ONE string comparison against the §2 A1 expectation.
+    RENDERS.forEach(function (r) {
+        const tag = r[0], cap = captionOf(String(r[1].block));
+        ok('M2 ' + tag + ': the caption was located', cap !== null);
+        ok('M2 ' + tag + ': it carries the derived unit',
+           cap !== null && cap.indexOf(UNIT) > 0);
+        ok('M2 ' + tag + ': it carries the inv. 27 words',
+           cap !== null && cap.indexOf(INV27) > 0);
+        ok('M2 ' + tag + ': it carries the coverage clause',
+           cap !== null && cap.indexOf(COVER) > 0);
+        eq('M2 ' + tag + ': the caption IS the sentence TZ-15 s2 A1 specifies',
+           cap, CAPTION);
+        eq('M2 ' + tag + ': the board prints the caption exactly once',
+           r[1].board.split(NOTE_OPEN + CAPT_HEAD).length - 1, 1);
+        eq('M2 ' + tag + ': and the block prints it exactly once',
+           String(r[1].block).split(NOTE_OPEN + CAPT_HEAD).length - 1, 1);
+    });
+    console.log('  caption: ' + captionOf(String(loud.block)));
+
+    // ── M3. Inv. 20: the constant keeps three code sites, and a literal in a
+    // static caption would be a fourth in a form no re-calibration could reach.
+    // The value is read THROUGH the live context; nothing here is a literal.
+    const NUM = L.numRu(L.DAY_RANGE_ABNORMAL, 2);
+    ok('M3 the threshold string came from the live context',
+       typeof L.DAY_RANGE_ABNORMAL === 'number' && NUM.length > 0);
+    const loudSentence = L.dayStateNote(loud.day);
+    ok('M3 the loud day has a day line at all', loudSentence.length > 0);
+    ok('M3 the day line prints the threshold', loudSentence.indexOf(NUM) > 0);
+    ok('M3 the loud block carries that day line', String(loud.block).indexOf(loudSentence) > 0);
+    eq('M3 the loud caption does NOT repeat the number',
+       captionOf(String(loud.block)).indexOf(NUM), -1);
+    eq('M3 the quiet block does not carry the number at all',
+       String(quiet.block).indexOf(NUM), -1);
+    eq('M3 the quiet caption does not carry it either',
+       captionOf(String(quiet.block)).indexOf(NUM), -1);
+
+    // ── M4. The control, and the point of the section: a section that has
+    // never failed on purpose is not yet a control. Same shape as G's planted
+    // mismatch and J's 9.99 constant — the caption is rewritten back to its
+    // origin/main text in a COPY of the source, the copy is evaluated in its
+    // own context, and the SAME scan is required to fire and to name what it
+    // found while the clean source stays silent.
+    const capSrc  = toSourceEscapes(CAPTION);
+    const mainSrc = toSourceEscapes(CAPTION_MAIN);
+    ok('M4 the encoder round-trips against the file convention',
+       src.indexOf(capSrc) > 0);
+    eq('M4 the specified caption occurs once in the source',
+       src.split(capSrc).length - 1, 1);
+    eq('M4 origin/main\'s caption is gone from the source',
+       src.indexOf(mainSrc), -1);
+    const reverted = src.split(capSrc).join(mainSrc);
+    ok('M4 the control copy differs from the source', reverted !== src);
+    const Q = loadLive(reverted);
+    const ctl = boardBlock(Q, LOUD_R);
+    ok('M4 the control copy rendered the block',
+       ctl.block !== null && ctl.block.length > 0);
+    eq('M4 the control copy really carries the reverted caption',
+       captionOf(String(ctl.block)), CAPTION_MAIN);
+    const fired = scanDenials(ctl.block);
+    ok('M4 the scan FIRES on the reverted caption', fired.length > 0);
+    eq('M4 and it names both denials origin/main carried', fired.length, 2);
+    eq('M4 the first is the threshold denial', fired[0], GLOSS[0]);
+    eq('M4 the second is the comparison denial', fired[1], GLOSS[1]);
+    const silent = scanDenials(loud.block).concat(scanDenials(quiet.block));
+    eq('M4 and the clean source is silent on both renders', silent.length, 0);
+    console.log('  negative control: reverted caption -> scan fired, naming '
+              + fired.length + ': ' + fired.join(' + ')
+              + '   |   clean source -> ' + silent.length + ' phrases found');
+}
+console.log('  compared: ' + N.caption);
 
 // ───────────────────────────────────────────────────────────────────────────
 const sum = Object.keys(N).reduce(function (a, k) { return a + N[k]; }, 0);
