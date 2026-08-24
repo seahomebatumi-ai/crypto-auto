@@ -12,42 +12,47 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-24-a.** Baseline: TZ-13 merged (PR #13, `47526db`).
+**Revision 2026-08-25-a.** Baseline: TZ-14 merged (PR #14, `44e100b`).
 
 Every TZ header quotes this block. The Executor compares it against the
 repository copy before doing any work (contract §5); a mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-24-a.**` |
+| revision | `**Revision 2026-08-25-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `49. **An admissibility band is derived from a null computed in the same run.**` |
+| newest invariant | `50. **A stated absence is a dependency of the thing it denies.**` |
 
 Live files at this revision:
 
 | File | Lines | MD5 |
 |---|---:|---|
-| `index.html` | 3666 | `cef52cf6eb00ff063e66510a5bd0f828` |
+| `index.html` | 3727 | `38d862bf3990b88dc8fcf5bc76d35015` |
 | `main.py` | 506 | `1a5a5d98b2fd76010f202ee3eebaa717` |
 | `catalysts.json` | 11 | `021dd2c90dc395240c0b0c3dbae40426` |
 | `bench/exhaustion-calibration.txt` | 175 | `3b8730b254467c9df4c0a845a0f3cfb3` |
 
 **The calibration record is a fingerprinted file, unlike every other bench
-artifact.** It is the only place `DAY_RANGE_ABNORMAL = 1.39` exists, and inv. 46
-will compare production against it on every push once the constant is adopted; a
-number whose provenance file can drift unnoticed is pinned to nothing.
+artifact.** Since TZ-14 it is one of exactly two places `DAY_RANGE_ABNORMAL = 1.39`
+exists, and gate step 12 compares the two on every push (inv. 46); a number whose
+provenance file can drift unnoticed is pinned to nothing. Both directions were
+proven red before the gate was trusted: a deleted record and a source constant
+moved to `1.40` each exit non-zero naming exactly what disagreed.
 
-Gate at this revision: `bench.yml`, **12 steps, 1 250 369 checks**, all green on a
-runner. The number is a sum of per-comparison counters (inv. 43), not an
-estimate. TZ-13 moved exactly one step: 12 (`exhaustion_bench.js`) 220 275 →
-220 290, **+15**, every unit of it the new wiring section (inv. 48) — one check
-that the extractor found both sides, two inv. 22 non-emptiness checks, one per
-field read (`cd`, `cd.volatility`, `cur`, `hi24`, `lo24`, `t`, `t.fut`), two that
-the mutation controls differ from the source, and three that the controls name
-exactly the mutated field.
+Gate at this revision: `bench.yml`, **12 steps, 1 250 613 checks**, green on the
+hosted runner for `main` at this commit. The number is a sum of per-comparison
+counters (inv. 43), not an estimate. TZ-14 moved exactly one step: 12
+(`exhaustion_bench.js`) 220 290 → 220 534, **+244**, term by term — four sections
+that did not exist (`record` 8, `threshold` 24, `live` 38, `surfaces` 54) and
+three that its own comments predicted would grow: `inert` 30 → 120 (each of the
+ten banner keys gained the loud half), `purity` 22 → 36 (`dayStateNote` and
+`numRu`), `wiring` 15 → 31 (the `reg.day` reader/producer contract). `identity`
+200 002, `nulls` 20 027, `quorum` 65, `venue` 25, `banner` 52, `stress` 51 and
+`control` 1 are unmoved; two of them rewrote a vacuous check into a real one at
+the same count, which is a gain the total cannot show.
 
 **Step 7's count moves with verdict CONTENT, not only with control volume.**
 `journal_bench.js` counts numeric leaves of the records it writes, and a verdict
@@ -55,9 +60,10 @@ that returns before geometry writes no `geo` object; symmetric stress (§3.12
 Layer 0) therefore removed 2 921 leaves without removing a single control. The
 total stays one sum — inv. 43 already requires any delta to be explained term by
 term — but a fall in step 7 is attributed, never assumed benign, because a defect
-that nulls a field lowers it identically. **TZ-13 held it at 691 109**, and that is
-a statement rather than an absence: a change that repaired a list-wide measure
-moved no verdict, which is the 308-board differ's finding read from the other side.
+that nulls a field lowers it identically. **TZ-13 and TZ-14 both held it at
+691 109**, and that is a statement rather than an absence: two changes that put a
+list-wide measure on the screen moved no verdict, which is the whole-board
+differ's finding read from the other side.
 
 **A TZ has executed if and only if `CryptoReports/` holds a report with its
 number.** `CryptoTZ/TZ-03-report-delivery.md` has no report and never ran: it was
@@ -163,8 +169,8 @@ L_CAP 7 · L_MIN 2 · INV_FLOOR_SD 2.0 · INV_CAP_SD 6.0 · MAX_MARGIN_LOSS 0.35
 EFF_TREND 0.6 · PACE_Z 0.25 · VOL_ABNORMAL 2.0 · VOL_HARD 0.02 · VOL_STOP 0.03
 RES_Z 1.0 · RES_R2_CAP 0.90 · FEE_TAKER 0.0005 · FUND_PAY_7D 21 · ARM_R 1.0
 RR_MIN 2.0 · TGT_SIGMA_MIN 1.0 · ENTRY_CHASE_SD 0.5 · REG_STRESS_Z 2.0
-CAT_WINDOW_D 14 · TIER_STRONG 70 · TIER_MID 50 · TIER_MIN 35
-STALE_WARN_MIN 75 · STALE_CRIT_MIN 130
+DAY_RANGE_ABNORMAL 1.39 · CAT_WINDOW_D 14 · TIER_STRONG 70 · TIER_MID 50
+TIER_MIN 35 · STALE_WARN_MIN 75 · STALE_CRIT_MIN 130
 ```
 
 ### 3.1 Trade side — explicit input
@@ -1050,15 +1056,39 @@ hi24, idx, lo24, sc, state, t, vd` and `listExhaustion` reads `cd, cd.volatility
 cur, hi24, lo24, t, t.fut`. Run against the pre-TZ-13 file the same section names
 `cur, hi24, lo24` as missing and exits non-zero.
 
-**State at this revision.** The measure runs live and reads 25 on a full board. It
-has exactly one reader, §3.17, and that reader is a PRINTER: `abnormal` is still
-hardcoded `false`, `reg.day` is referenced nowhere, no threshold is compared, and no
-output enters `scoreCandidate`, `tradeGeometry`, `leverageDecision`,
-`directionVerdict` or the journal writer (inv. 27, proven at runtime by perturbing
-the list and re-rendering). **The constant exists in exactly one place — the
-calibration record — and in no line of `index.html`.** Adopting it and building the
-consumer is TZ-14, and the split is deliberate: a TZ that both produces a number and
-spends it can always rescue the number by adjusting what it is spent on.
+**State at this revision.** The measure runs live, reads 25 on a full board, and
+since TZ-14 it has a threshold and two readers. `DAY_RANGE_ABNORMAL = 1.39` is
+declared once in `index.html`, compared once — inside `listExhaustion`, with `>=`
+— and worded once, by `dayStateNote`; those three are the identifier's only code
+sites and the gate enumerates them. `reg.day = listExhaustion(rows)` is written in
+`update()` unconditionally and above the `sideOn` branch, because whether the day
+is abnormal is a fact about the session and not about the pressed side. The board
+keeps its own `listExhaustion(lastRows)` call: one pure function over one array
+cannot disagree with itself, while routing the board through `lastCtx` would force
+every board fixture to invent the field — the shape inv. 48 exists to catch.
+
+**`abnormal` is a printed word and nothing else.** No output enters
+`scoreCandidate`, `tradeGeometry`, `leverageDecision`, `directionVerdict`,
+`liqPrice`, the tier badge, `byScore`, `assignRanks`, `planLine` or the journal
+writer (inv. 27) — proven by perturbation rather than inspection: scaling
+`hi24`/`lo24` until `abnormal` flips moves 0 of 1 658 compared fields on either
+side, and the record `journal/write.js` would write stays byte-identical at
+14 512 B on LONG and 18 362 B on SHORT. The single field that does move under that
+perturbation, `geo.wait` on SHORT, moves identically on the pre-TZ-14 revision: it
+is the entry-chase anchor's long-standing dependency on the 24-hour range, not a
+new coupling. That two-sided form of the test is the general one — a perturbation
+that moves a field on both revisions has proven nothing about the change.
+
+`[решение принято мной]` Discarded: making exhaustion a Layer 1 veto. At the
+adopted line it would close roughly a tenth of all sessions on both sides on the
+strength of zero measured evidence that entering on such a day ends worse, and
+inv. 32 forbids acting on that. It is reopened only by a journal-based measurement
+of outcomes conditioned on the day state — which needs no new recorded field,
+because `px.hi`, `px.lo`, `px.cur` and `cd.volatility` are already in every
+snapshot and a whole date sits in one file, so both the coin-day ratio and the
+list median are reconstructible by replaying production's own functions
+(inv. 21, 38). Recording `reg.day` in the journal is therefore rejected as
+duplication, and it would move step 7's content-sensitive count for nothing.
 
 Two decile tables are on file: the coin-day one in
 `CryptoReports/TZ-11-exhaustion-threshold-report.md`, the list-median one in the
@@ -1090,13 +1120,28 @@ out the week»; a four-sigma session asks whether it lives out the afternoon. Bo
 come from the single `touchProb` (inv. 20), so the two horizons can never
 disagree, and the ladder is not repeated here.
 
-**Row 2 prints and compares nothing.** No threshold, no colour, no word like
-«аномально», and `abnormal` is not read — the constant is measured but not adopted,
-and `index.html` contains no line that knows it (§3.16). The
-number is interpretable without one because the unit is derived, not chosen:
+**Row 2 compares, and forbids nothing.** Since TZ-14 the row gains a third line
+whenever the list median reaches `DAY_RANGE_ABNORMAL`: the one sentence
+`dayStateNote` builds, in amber, byte-identical to the sentence the regime banner
+prints above the card list (inv. 33). Amber is the «ВНИМАНИЕ» alarm's standing —
+attention without prohibition — and it is deliberately not applied to the regime
+line itself, which would make one line carry two independent facts and would
+overwrite the stress red exactly when it matters most. On a quiet day and on a
+below-quorum list both surfaces are silent, so the sentence's presence is itself
+the measurement, and its absence is not an omission.
+
+The two raw numbers above it are printed exactly as before, and they stay
+interpretable without a threshold because the unit is derived, not chosen:
 `E[range] = σ·√(8/π)`, so 1,0 is an ordinary day. This is the standing of §3.12
 Layer 1 — an assertion about geometry that needs no forecast — and it adds no
 ranking factor, so §3.10b's resolution ceiling is untouched.
+
+**The block's caption still denies the threshold printed above it, and that is a
+live defect (inv. 50).** It reads «Число печатается как есть — порога нет,
+сравнения нет…» one line below a line reading «порог 1,39». TZ-14's file list did
+not include the caption and the Executor was right to leave it; the sentence is
+repaired by TZ-15. The caption's second half — that the number reaches no score,
+no leverage and no verdict — is true and proven (§3.16).
 
 **Degradation is stated, never hidden** (inv. 9): no `volatility` → the sigma
 distance and the 24h probability go, the block lives; `E ≤ 0` or non-finite `liq`
@@ -1181,6 +1226,20 @@ read as a promise.
     stating what is WORTH acting on is a different object and may be written down
     (§3.10c's `IC ≥ 0.030` is one): the first is a fact about the measurement, the
     second is a decision about its value.
+50. **A stated absence is a dependency of the thing it denies.** A caption, an
+    on-screen sentence or a checklist clause asserting that some mechanism does
+    NOT exist — «порога нет, сравнения нет», «no threshold word appears anywhere
+    in the block» — is load-bearing text that turns false the moment the mechanism
+    is built, and no bench catches it: a bench compares behaviour against a
+    specification, while this is a claim ABOUT the specification. Therefore a TZ
+    that builds a mechanism enumerates every place that currently denies it and
+    either repairs them in the same TZ or records the contradiction together with
+    the TZ that closes it. A denial that outlives its subject is the board
+    contradicting itself in the reader's own language, two lines apart, and the
+    reader has no way to tell which half is stale. TZ-14 adopted
+    `DAY_RANGE_ABNORMAL`, printed «порог 1,39» in §3.17 and left the caption
+    beneath it saying there is no threshold — the Executor was right to obey its
+    file list and the specification was wrong to omit the sentence.
 
 ---
 
@@ -1217,8 +1276,11 @@ read as a promise.
 15. «РИСК ВЫНОСА» (§3.17): the block is sixth, between «ВЫБОР ПЛЕЧА» and «РАЗМЕР
     ПОЗИЦИИ»; row 1 moves when the leverage BUTTON moves and not when the RESULT
     does (inv. 14); the list line names a coin count that matches the spot rows on
-    screen, never zero; no threshold word appears anywhere in the block; the
-    `.bd-sec` carries no inline `style`, so the metal ring survives (§3.7).
+    screen, never zero; the threshold is named inside this block and nowhere else
+    on the board or the card, and inside it only through the `dayStateNote`
+    sentence and only when the day is abnormal; the caption denies no mechanism
+    the block has (inv. 50); the `.bd-sec` carries no inline `style`, so the metal
+    ring survives (§3.7).
 16. Regime symmetry (§3.12): a BTC week at `z ≥ +REG_STRESS_Z` prints «РЫНОК
     ПЕРЕГРЕТ» in red and no card is tradable on either side; at `z ≤ −REG_STRESS_Z`
     the wording is «СТРЕСС РЫНКА», also red; `dir` is 0 in both.
@@ -1226,6 +1288,13 @@ read as a promise.
     zero; removing `highPrice` from one ticker drops it to 24 and changes nothing
     else; `lastPrice` / `highPrice` / `lowPrice` are parsed at exactly one site per
     field per row, and the only survivors elsewhere read `btcObj`.
+18. Day state (§3.16, §3.17): on a list whose median reaches `DAY_RANGE_ABNORMAL`
+    the amber sentence appears BOTH under the regime banner and inside «РИСК
+    ВЫНОСА» and is byte-identical in the two places; on a quiet day and on a
+    below-quorum list it appears in neither; the regime line's own bytes and colour
+    are unchanged in every regime × side combination, so the `abnormal === false`
+    banner is a strict prefix of the `abnormal === true` one; and the source
+    literal equals `bench/exhaustion-calibration.txt` (inv. 46).
 
 **Bench triggers.** Editing `verify_against_live` → run `bench/verify_bench.py`
 (offline, ~20 s, must give 0 failures). Editing `scoreCandidate`, `window_stats`,
@@ -1301,14 +1370,16 @@ only when its trigger fires.
 | Journal outcome layer at scale | running | nothing — h7/h14 files appear automatically 7 and 14 days after each snapshot |
 | Journal storage growth | watched | ~73 KB/day. Act if the repository becomes unwieldy; records are immutable (inv. 38), so the answer is archival, never deletion |
 | Catalyst registry content | live, one confirmed entry | analyst work, delivered as a TZ; entries never promoted to `confirmed` without a primary source (inv. 39) |
-| `DAY_RANGE_ABNORMAL` and its consumer (§3.16) | measured: **1.39**, pinned to `bench/exhaustion-calibration.txt`; absent from `index.html`; consumer not built | TZ-14. Mechanical by construction — the rule already decided, and no reading of the number may revise it |
+| `DAY_RANGE_ABNORMAL` and its consumer (§3.16) | **closed by TZ-14**: 1.39 declared once, compared once with `>=`, worded once; both surfaces print the same sentence; pinned to the record by gate step 12 | nothing. Re-opened only by a re-calibration, which is the row below |
+| §3.17 caption denies the threshold it prints (inv. 50) | live defect: «порога нет, сравнения нет» sits one line under «порог 1,39» | TZ-15, which also installs the gate control that makes a stated absence checkable |
 | Re-running the calibration | frozen, deliberately | nothing at present. `calib.yml`'s paths filter names `calib.yml` itself, so ANY edit to that workflow re-fires the whole 3-year run on the branch and commits a fresh record — on a longer archive, which can move the p90 away from the adopted constant and turn the inv. 46 bench red. Editing it is therefore a re-calibration, never a touch-up, and the stale `(TZ-11 stage B)` in its hardcoded commit message stays until a TZ genuinely needs a new run |
 | `calib.yml` commits the record only on a PASS | correct, recorded so it stops being re-reported | nothing. The commit step has no `if: always()`, so a refused run leaves no repository record and only an artifact — which is the intent: a record pinning no constant would look authoritative and pin nothing |
 | `badge_bench.js`, `clean_bench.py` unwired | deliberate, documented in `bench.yml`'s own header | nothing. Both are two-input differs needing a `before` file the repository does not carry, so they are manual tools, not controls (inv. 37). Named here so the monthly audit stops rediscovering them |
-| `journal_bench.js` count is content-sensitive | watched; held at 691 109 through TZ-13 | step 7 falls when a verdict writes fewer fields, exactly as it would if a defect nulled one. Act on the first step-7 delta that cannot be attributed field by field, or on any TZ touching `journal/write.js` |
+| `journal_bench.js` count is content-sensitive | watched; held at 691 109 through TZ-13 and TZ-14 | step 7 falls when a verdict writes fewer fields, exactly as it would if a defect nulled one. Act on the first step-7 delta that cannot be attributed field by field, or on any TZ touching `journal/write.js` |
 | `NaN% от входа` at `E ≤ 0` in «ГРАНИЦЫ СДЕЛКИ» | pre-existing, unreachable live | any TZ touching that block. `Math.abs(liqSel / E - 1)` at `E = 0` is `0/0`; entry price is never zero on a live board, so it buys a diff and no safety |
 | Raw Cyrillic literal at `bench/prot_bench.js:177` | pre-existing, bench-only | any TZ editing that bench. It violates the ES5/escape rule the frontend keeps, in a file no browser loads |
 | `prot_bench.js` optional baseline suite | repaired in TZ-11 — neither side stripped, unconditional identity run inside the default suite, comparison counter with a zero-comparison guard | nothing; inv. 45 is now satisfied by the gate itself |
+| Hosted gate evidence per TZ | watched | an Executor session cannot start GitHub Actions, so its 12-step table is a LOCAL measurement with the workflow's own step list. The hosted `Bench gate` fires on `pull_request` and on push to `claude/**` and `main` regardless, so the evidence exists; the audit reads it rather than taking the report's word |
 | `bench.yml` Node 20 pin | watched | GitHub already forces the actions onto Node 24 with a warning. Act when a step fails or the whole gate can be re-run as the validation |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
 
