@@ -12,33 +12,42 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-23-c.** Baseline: TZ-12 merged (PR #12, `cd77541`).
+**Revision 2026-08-24-a.** Baseline: TZ-13 merged (PR #13, `47526db`).
 
 Every TZ header quotes this block. The Executor compares it against the
 repository copy before doing any work (contract §5); a mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-23-c.**` |
+| revision | `**Revision 2026-08-24-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `48. **A bench that builds its own input proves the function, not the wiring.**` |
+| newest invariant | `49. **An admissibility band is derived from a null computed in the same run.**` |
 
 Live files at this revision:
 
 | File | Lines | MD5 |
 |---|---:|---|
-| `index.html` | 3656 | `64acaaa59f2ed96d568714d2813d20f9` |
+| `index.html` | 3666 | `cef52cf6eb00ff063e66510a5bd0f828` |
 | `main.py` | 506 | `1a5a5d98b2fd76010f202ee3eebaa717` |
 | `catalysts.json` | 11 | `021dd2c90dc395240c0b0c3dbae40426` |
+| `bench/exhaustion-calibration.txt` | 175 | `3b8730b254467c9df4c0a845a0f3cfb3` |
 
-Gate at this revision: `bench.yml`, **12 steps, 1 250 354 checks**, all green on a
+**The calibration record is a fingerprinted file, unlike every other bench
+artifact.** It is the only place `DAY_RANGE_ABNORMAL = 1.39` exists, and inv. 46
+will compare production against it on every push once the constant is adopted; a
+number whose provenance file can drift unnoticed is pinned to nothing.
+
+Gate at this revision: `bench.yml`, **12 steps, 1 250 369 checks**, all green on a
 runner. The number is a sum of per-comparison counters (inv. 43), not an
-estimate. TZ-12 moved four steps: 3 (`prot_bench.js`) 175 → 372, 5
-(`direction_bench.py`) 188 577 → 255 708, 12 (`exhaustion_bench.js`) 220 199 →
-220 275, and 7 (`journal_bench.js`) 694 030 → 691 109.
+estimate. TZ-13 moved exactly one step: 12 (`exhaustion_bench.js`) 220 275 →
+220 290, **+15**, every unit of it the new wiring section (inv. 48) — one check
+that the extractor found both sides, two inv. 22 non-emptiness checks, one per
+field read (`cd`, `cd.volatility`, `cur`, `hi24`, `lo24`, `t`, `t.fut`), two that
+the mutation controls differ from the source, and three that the controls name
+exactly the mutated field.
 
 **Step 7's count moves with verdict CONTENT, not only with control volume.**
 `journal_bench.js` counts numeric leaves of the records it writes, and a verdict
@@ -46,7 +55,9 @@ that returns before geometry writes no `geo` object; symmetric stress (§3.12
 Layer 0) therefore removed 2 921 leaves without removing a single control. The
 total stays one sum — inv. 43 already requires any delta to be explained term by
 term — but a fall in step 7 is attributed, never assumed benign, because a defect
-that nulls a field lowers it identically.
+that nulls a field lowers it identically. **TZ-13 held it at 691 109**, and that is
+a statement rather than an absence: a change that repaired a list-wide measure
+moved no verdict, which is the 308-board differ's finding read from the other side.
 
 **A TZ has executed if and only if `CryptoReports/` holds a report with its
 number.** `CryptoTZ/TZ-03-report-delivery.md` has no report and never ran: it was
@@ -71,7 +82,7 @@ iPhone Shortcut → workflow_dispatch → GitHub Actions → main.py
 | Verdict journal | `journal/write.js` | `journal.yml`, 13:00 UTC | Gist, `data-api.binance.vision`, `catalysts.json`, `index.html` | `journal/data/**`, `journal/out/**`, `journal/runs.jsonl` |
 | Benches | `bench/**` | `bench.yml` on push/PR | production files at runtime | nothing tracked |
 | Backtest | `bench/backtest_bench.py` | `backtest_bench.yml`, manual | `data.binance.vision` archive | artifacts only |
-| Calibration | `bench/exhaustion_calib.py` | `calib.yml`, `workflow_dispatch` + push on `claude/**` — never on `main` | `data.binance.vision` archive | `bench/exhaustion-calibration.txt` on a run inside the window; artifact always |
+| Calibration | `bench/exhaustion_calib.py` | `calib.yml`, `workflow_dispatch` + push on `claude/**` — never on `main` | `data.binance.vision` archive | `bench/exhaustion-calibration.txt` on a PASSING run; artifact always |
 
 **Schedule is not cron.** The only regular trigger is the Boss's iPhone
 Shortcut: hourly from 09:00 to 01:50 local = **17 runs/day ≈ 15.3k CoinGecko
@@ -892,11 +903,11 @@ date nobody confirms.
 
 ### 3.16 List exhaustion — the day-range measure
 
-**Built to the measure only; nothing on screen reads it yet.** The gap it exists
-to close: `regimeBanner` names the regime and says nothing about how far into it
-the session already sits. On 2026-08-22 the geometry layer refused 24 of 25
-covered coins while the banner printed «ТРЕНД ВВЕРХ — счёт по каналу импульса» in
-green, on a day whose list median day-range was 2.43 times a diffusive day.
+**Live and printed; compared against nothing.** The gap it exists to close:
+`regimeBanner` names the regime and says nothing about how far into it the session
+already sits. On 2026-08-22 the geometry layer refused 24 of 25 covered coins while
+the banner printed «ТРЕНД ВВЕРХ — счёт по каналу импульса» in green, on a day whose
+list median day-range was 2.43 times a diffusive day.
 
 ```
 dayRangeRatio(hi, lo, cur, vol) = (hi − lo) / ( cur · sigmaDay(vol) · √(8/π) )
@@ -914,18 +925,30 @@ n counts only rows that produced a ratio; n < 8 → median null, abnormal false
 
 **The reference value is 1, not «somewhere above 1» — and the archive confirms
 the scale.** `E[range] = σ·√(8/π)` makes the ratio unbiased when σ is right, so a
-diffusive day reads 1 on average. The TZ-11 archive run measured a pooled mean of
-**0.9509** against a simulated driftless null of ~0.98: the denominator is
-correctly scaled to within ~3 %, and a mismatch between the bot's `volatility` and
-a reconstructed one would have moved the mean and did not. The earlier claim that
+diffusive day reads 1 on average. The archive measures a pooled coin-day mean of
+**0.9509** against a null simulated in the same run at **1.0012** — a 5.03 % gap,
+inside the 15 % the rule allowed: the denominator is correctly scaled, and a
+mismatch between the bot's `volatility` and a reconstructed one would have moved
+the mean and did not. The earlier claim that
 close-based σ pushes the reading above 1 by construction is **withdrawn** — the
 intra-hour understatement and the √24 scaling of microstructure-inflated hourly
 returns cancel to within noise.
 
-**What the archive does show is over-dispersion against the null**: median 0.81 vs
-0.93, p90 1.59 vs 1.38, maximum 15.6 vs 3.2. That is volatility clustering (§7)
-thinning the middle and fattening both tails — the property the banner exists to
-surface, not an artefact to calibrate away.
+**What the archive does show is over-dispersion against the null**, on both
+objects. Coin-days (TZ-11): median 0.81 vs 0.93, p90 1.59 vs 1.38, maximum 15.6 vs
+3.2. List medians (TZ-13, the object the consumer actually thresholds): p0 0.2407
+vs 0.5850, p50 0.7769 vs 0.9325, p90 1.3911 vs 1.2393, p100 10.6653 vs 2.6604. That
+is volatility clustering (§7) thinning the middle and fattening both tails — the
+property the banner exists to surface, not an artefact to calibrate away.
+
+**The null is a floor on what a quiet market reaches, never a model of this one.**
+It is a constant-σ common-factor construction and has no vocabulary for a market
+that alternates between very quiet and very violent regimes: the empirical
+distribution is wider than it on BOTH tails, and the worst journaled date sits five
+times the null's p99.9. Its whole job is to say where a quiet market stops, so that
+an admissibility band can be drawn without writing one down (inv. 49). Reading a
+percentile of it as the probability of a real day is a category error, and the
+figure printed on screen is a measurement of the day, not a likelihood.
 
 **Nothing predictive is added.** This measures what the session already did, in
 the same standing as §3.12 Layer 1: it asserts «the geometry of entering right
@@ -951,26 +974,49 @@ while the list-median p90 is 1.27. A percentile of one is not a percentile of th
 other. The constant was measured on the wrong distribution, and that is a
 specification defect, not an execution failure.
 
-**Registered adoption rule — fired, and the failure is in the rule (inv. 23).**
-The rule was: `DAY_RANGE_ABNORMAL` = the pooled 90th percentile of the coin-day
-distribution, rounded to two decimals, taken as-is, admissible only inside
-`1.60 … 4.00`; outside it the consumer is not built and the answer is a new TZ,
-never a nudged number. The archive run returned **1.59** — 24 384 coin-days over
-24 of the 25 spot assets, `GRAM` having no archive history — the script exited
-non-zero, no constant was adopted and no consumer was built. **The rule worked.**
-The window did not: `1.60` sits above the p95 of both relevant nulls (single coin
-1.54, list median 1.40), so the floor was roughly 15 % too high before any data
-existed, resting on the premise withdrawn above. **`1.59` against `1.60` is a
-coincidence of magnitude, not a near miss, and the window is never widened to
-admit it** — moving a band to pass an observed number is fitting. The replacement
-rule is derived from the null distribution of the list median and registered
-before the re-run, in TZ-13: the object is the per-date LIST MEDIAN produced by
-production's own `listExhaustion`, the statistic stays the 90th percentile — the
-object was wrong, not the statistic, and changing both after a failure would be
-fitting — and the admissibility window is no longer written down at all. It is
-derived inside the same run from a simulated driftless null of the same statistic,
-so no band can be too high or too low before the data exists. Once adopted the
-constant is pinned to the run that produced it (inv. 46).
+**The rule that adopts the constant, and why it was rewritten once (inv. 23,
+49).** TZ-11's rule took the coin-day p90 as-is, admissible only inside a
+hand-written `1.60 … 4.00`; the run returned **1.59**, the script exited non-zero
+and nothing was adopted. **The rule worked; the window did not** — `1.60` sits
+above the p95 of both relevant nulls, so the floor was ~15 % too high before any
+data existed, and 1.59 against 1.60 is a coincidence of magnitude, not a near miss.
+A band is never widened to admit an observed number. TZ-13 registered the
+replacement before the re-run: the object becomes the per-date LIST MEDIAN produced
+by production's own `listExhaustion` (inv. 47), the statistic stays the 90th
+percentile — the object was wrong, not the statistic, and changing both after a
+failure would be fitting — and the band is no longer written down at all but
+derived in the same run from a simulated null of that same statistic (inv. 49).
+Once adopted, the constant is pinned to the run that produced it (inv. 46).
+
+**The re-registered rule ran, and it returned a number: `DAY_RANGE_ABNORMAL =
+1.39`.** The run is `Calibration (archive)` #2, id 32667872706, seed 20260823, and
+it is reproduced byte-for-byte on every statistic by #3 on a second runner with a
+warm cache. The record is `bench/exhaustion-calibration.txt`, fingerprinted in §0.
+
+| Quantity | Value |
+|---|---|
+| object | per-date list median, produced by production's own `listExhaustion` through a node hop |
+| sample | 1 110 dates, 2023-08-09 … 2026-08-22, none dropped below quorum |
+| universe | 24 of the 25 declared spot assets; `GRAM` has no three-year archive |
+| per-date contributing count | median 22, range 19 … 24 |
+| ρ, MEASURED per date | mean 0.6196, range 0.4557 … 0.8265, negative on zero dates |
+| null | 248 640 simulated date medians, p90 **1.2393**, MC s.e. 0.00117 |
+| empirical p90 | **1.3911** → **1.39** at two decimals |
+
+All four registered conditions passed, none marginally: the coin-day mean sits
+5.03 % from the null's against an allowance of 15 %, and the empirical p90 lands
+above the null's p95 (1.3626) and below its p99 (1.6271) — high enough that a quiet
+market does not reach it a tenth of the time, low enough not to be a broken
+pipeline. The known-answer control read **0.99980** over 10⁶ coin-days against a
+registered 1.000 ± 0.005, and the same walk built from hourly CLOSES read 0.8613 —
+the control detects the exact error it exists to catch. Step counts of 24/48/96/240
+per day move the control by less than 0.0002, so the Brownian-bridge day is exact
+in distribution rather than a discretisation.
+
+**inv. 47, now measured rather than argued:** the same archive, the same 24 384
+coin-days, two objects — coin-day p90 **1.59**, list-median p90 **1.39**. TZ-11's
+hand-written floor of 1.60 sits above this run's null **p99**. The object was the
+error; the data never moved.
 
 **Venue is read from the declaration, not from the row (TZ-12).**
 `listExhaustion` skips rows whose `tokens[]` entry carries `fut:true`, and the
@@ -982,31 +1028,44 @@ calibration covers 25 spot — the three perpetual-only assets read their range 
 the perpetual against a spot-index `volatility` (§3.14 Consequence 3), which is
 exactly the mismatch this section forbids.
 
-**The estimator is nevertheless dead on the live board, and the gate stayed
-green.** `listExhaustion` reads `row.hi24`, `row.lo24` and `row.cur`; the row
-object built in `update()` carries none of them — the render loop parses those
-three ticker fields into LOCALS inside its `sideOn` branch and passes them
-positionally to `directionVerdict`. Live, the function therefore returns
-`{median: null, n: 0}` on every render, and §3.17's list line prints «список не
-измерен» under a caption asserting a 25-coin coverage that never happened. Two
-gate steps proved the arithmetic on fixtures shaped the way the contract says,
-and no check ever asked whether production supplies that shape — the defect that
-inv. 48 now names. Closed by TZ-13.
+**The row is the contract, and it has exactly one parse site per quantity
+(TZ-13).** `update()` assigns `row.cur`, `row.hi24` and `row.lo24` from the ticker
+once, immediately after the `nopair` early return and before the dead-market test,
+for EVERY row that has a ticker — `fut:true` included, because the venue rule lives
+in `listExhaustion` and a row filtered at the producer would put that declaration in
+two places (inv. 41). Every consumer then reads the row: the `sideOn` branch, the
+board header, §3.17 row 2, the off-list relevance filter, the dead-market card and
+the card header. Only two `parseFloat(…lastPrice)` sites survive anywhere in
+`index.html` and both read `btcObj` — BTC is the regime measurer, is not a member of
+`rows[]` and never reaches the measure.
 
-**State at this revision.** The measure has exactly one reader, §3.17, and it is a
-PRINTER: `abnormal` is hardcoded `false`, `reg.day` is referenced nowhere, no
-threshold is compared, and no output enters `scoreCandidate`, `tradeGeometry`,
-`leverageDecision`, `directionVerdict` or the journal writer (inv. 27, proven at
-runtime by perturbing the list and re-rendering). **The constant does not exist
-and is not scheduled to exist until the rule is re-registered on the list-median
-distribution.** The first calibration ran once on a runner and its full decile
-table lives in `CryptoReports/TZ-11-exhaustion-threshold-report.md`; the run's own
-record file was not committed, because a record that pins no constant would look
-authoritative and pin nothing. Measured on the journaled days by replaying the
-production functions: **1.69** on 2026-08-21 (6 of 25 coins above 2.0) and **2.43**
-on 2026-08-22 (20 of 25). Both sit near the coin-day p90–p95, which is what two of
-the most violent sessions of the quarter should read; days are not a distribution
-and bound nothing.
+**Why this was a defect and not a preference.** Before TZ-13 the three fields were
+parsed into LOCALS inside the `sideOn` branch, so `listExhaustion` returned
+`{median: null, n: 0}` on every live render while §3.17 printed «список не измерен»
+under a caption asserting a 25-coin coverage that never happened — and two gate
+steps stayed green throughout, because both built their own rows. That is the defect
+inv. 48 now names, and the wiring section that closes it derives both sides of the
+contract from the source: measured live, `update()` writes `cd, coin, cur, dec,
+hi24, idx, lo24, sc, state, t, vd` and `listExhaustion` reads `cd, cd.volatility,
+cur, hi24, lo24, t, t.fut`. Run against the pre-TZ-13 file the same section names
+`cur, hi24, lo24` as missing and exits non-zero.
+
+**State at this revision.** The measure runs live and reads 25 on a full board. It
+has exactly one reader, §3.17, and that reader is a PRINTER: `abnormal` is still
+hardcoded `false`, `reg.day` is referenced nowhere, no threshold is compared, and no
+output enters `scoreCandidate`, `tradeGeometry`, `leverageDecision`,
+`directionVerdict` or the journal writer (inv. 27, proven at runtime by perturbing
+the list and re-rendering). **The constant exists in exactly one place — the
+calibration record — and in no line of `index.html`.** Adopting it and building the
+consumer is TZ-14, and the split is deliberate: a TZ that both produces a number and
+spends it can always rescue the number by adjusting what it is spent on.
+
+Two decile tables are on file: the coin-day one in
+`CryptoReports/TZ-11-exhaustion-threshold-report.md`, the list-median one in the
+record itself. Measured on the journaled days by replaying the production functions:
+**1.69** on 2026-08-21 (6 of 25 coins above 2.0) and **2.43** on 2026-08-22 (20 of
+25) — against 1.39 both are abnormal days, which is what two of the most violent
+sessions of the quarter should read. Days are not a distribution and bound nothing.
 
 ### 3.17 «РИСК ВЫНОСА» — the day's own risk
 
@@ -1032,7 +1091,8 @@ come from the single `touchProb` (inv. 20), so the two horizons can never
 disagree, and the ladder is not repeated here.
 
 **Row 2 prints and compares nothing.** No threshold, no colour, no word like
-«аномально», and `abnormal` is not read — the constant does not exist (§3.16). The
+«аномально», and `abnormal` is not read — the constant is measured but not adopted,
+and `index.html` contains no line that knows it (§3.16). The
 number is interpretable without one because the unit is derived, not chosen:
 `E[range] = σ·√(8/π)`, so 1,0 is an ordinary day. This is the standing of §3.12
 Layer 1 — an assertion about geometry that needs no forecast — and it adds no
@@ -1109,6 +1169,18 @@ read as a promise.
     never had. Inv. 42 makes a bench take production's EXTERNAL input; this makes
     it take production's INTERNAL shape. A green bench on invented input is
     evidence about arithmetic and never about reach.
+49. **An admissibility band is derived from a null computed in the same run.**
+    A band that decides whether a MEASUREMENT is plausible — «is this reading
+    consistent with a quiet market, or is the pipeline broken» — is computed from a
+    simulated null of the SAME statistic inside the run that produces the number,
+    never written into the rule as a numeral. A hand-written band is a prior about
+    the answer disguised as a control: TZ-11's `1.60 … 4.00` sat above the p95 of
+    both relevant nulls and was ~15 % too high before any data existed, so a
+    correct rule refused a correct number. Inv. 23 fixes the rule before the data;
+    this says a rule carrying a numeral about the outcome is not yet a rule. A band
+    stating what is WORTH acting on is a different object and may be written down
+    (§3.10c's `IC ≥ 0.030` is one): the first is a fact about the measurement, the
+    second is a decision about its value.
 
 ---
 
@@ -1150,6 +1222,10 @@ read as a promise.
 16. Regime symmetry (§3.12): a BTC week at `z ≥ +REG_STRESS_Z` prints «РЫНОК
     ПЕРЕГРЕТ» in red and no card is tradable on either side; at `z ≤ −REG_STRESS_Z`
     the wording is «СТРЕСС РЫНКА», also red; `dir` is 0 in both.
+17. Row contract (§3.16): on a full board the §3.17 list line reads 25 coins, not
+    zero; removing `highPrice` from one ticker drops it to 24 and changes nothing
+    else; `lastPrice` / `highPrice` / `lowPrice` are parsed at exactly one site per
+    field per row, and the only survivors elsewhere read `btcObj`.
 
 **Bench triggers.** Editing `verify_against_live` → run `bench/verify_bench.py`
 (offline, ~20 s, must give 0 failures). Editing `scoreCandidate`, `window_stats`,
@@ -1200,6 +1276,7 @@ Any production edit → the full `bench.yml` gate, 12 steps.
 | Cross-sectional term-futures basis | (a) perpetual basis = the premium index behind funding, measured zero; (b) the term contracts overlap our list on six coins, and a cross-section of six resolves only \|IC\| ≳ 0.18; (c) the factor decays exactly at our 7–14d horizon |
 | ML rankers, GARCH, on-chain/TVL as ranking inputs | 28 coins × ~145 dates guarantee overfit; ±30 % vol forecast error sits inside one leverage step and is absorbed by rounding down; on-chain moves on a weekly scale and covers a quarter of the list |
 | 7d/30d horizon switch | deliberate: scaling is manual (√H) and an extra control invites tuning the horizon to the desired leverage. Revisit if the holding period starts changing systematically |
+| Recording the day-range reading in the journal | fully derivable at analysis time: the snapshot already carries `px.hi`, `px.lo`, `px.cur` and `cd.volatility`, so the coin-day ratio and the list median are reproduced by cutting production's own `dayRangeRatio` / `listExhaustion` (inv. 21) — the standing of `#N` (§3.13). Writing it would add bytes to the only unbounded artifact and create a second place for one number to be wrong. The analysis note that matters: the journal's `px.hi`/`px.lo` are the 13:00 UTC kline day, the board's are the rolling 24 h ticker |
 
 ---
 
@@ -1224,11 +1301,13 @@ only when its trigger fires.
 | Journal outcome layer at scale | running | nothing — h7/h14 files appear automatically 7 and 14 days after each snapshot |
 | Journal storage growth | watched | ~73 KB/day. Act if the repository becomes unwieldy; records are immutable (inv. 38), so the answer is archival, never deletion |
 | Catalyst registry content | live, one confirmed entry | analyst work, delivered as a TZ; entries never promoted to `confirmed` without a primary source (inv. 39) |
-| `DAY_RANGE_ABNORMAL` and the banner consumer (§3.16) | rule re-registered on the list median in TZ-13; number does not exist; consumer not built | the TZ-13 calibration run returning a number by its own rule. Adoption and the screen consumer are the TZ after it, and are mechanical — the rule decides, not a reading of the number |
-| Live wiring of `listExhaustion` (§3.16) | dead: the row object carries no `hi24` / `lo24` / `cur`, so the live median is `n = 0` | TZ-13 stage A. Until it merges, §3.17's list line is honest but empty and its caption overstates coverage |
-| `journal_bench.js` count is content-sensitive | watched | step 7 falls when a verdict writes fewer fields, exactly as it would if a defect nulled one. Act on the first step-7 delta that cannot be attributed field by field, or on any TZ touching `journal/write.js` |
+| `DAY_RANGE_ABNORMAL` and its consumer (§3.16) | measured: **1.39**, pinned to `bench/exhaustion-calibration.txt`; absent from `index.html`; consumer not built | TZ-14. Mechanical by construction — the rule already decided, and no reading of the number may revise it |
+| Re-running the calibration | frozen, deliberately | nothing at present. `calib.yml`'s paths filter names `calib.yml` itself, so ANY edit to that workflow re-fires the whole 3-year run on the branch and commits a fresh record — on a longer archive, which can move the p90 away from the adopted constant and turn the inv. 46 bench red. Editing it is therefore a re-calibration, never a touch-up, and the stale `(TZ-11 stage B)` in its hardcoded commit message stays until a TZ genuinely needs a new run |
+| `calib.yml` commits the record only on a PASS | correct, recorded so it stops being re-reported | nothing. The commit step has no `if: always()`, so a refused run leaves no repository record and only an artifact — which is the intent: a record pinning no constant would look authoritative and pin nothing |
+| `badge_bench.js`, `clean_bench.py` unwired | deliberate, documented in `bench.yml`'s own header | nothing. Both are two-input differs needing a `before` file the repository does not carry, so they are manual tools, not controls (inv. 37). Named here so the monthly audit stops rediscovering them |
+| `journal_bench.js` count is content-sensitive | watched; held at 691 109 through TZ-13 | step 7 falls when a verdict writes fewer fields, exactly as it would if a defect nulled one. Act on the first step-7 delta that cannot be attributed field by field, or on any TZ touching `journal/write.js` |
 | `NaN% от входа` at `E ≤ 0` in «ГРАНИЦЫ СДЕЛКИ» | pre-existing, unreachable live | any TZ touching that block. `Math.abs(liqSel / E - 1)` at `E = 0` is `0/0`; entry price is never zero on a live board, so it buys a diff and no safety |
-| Raw Cyrillic literal at `bench/prot_bench.js:166` | pre-existing, bench-only | any TZ editing that bench. It violates the ES5/escape rule the frontend keeps, in a file no browser loads |
+| Raw Cyrillic literal at `bench/prot_bench.js:177` | pre-existing, bench-only | any TZ editing that bench. It violates the ES5/escape rule the frontend keeps, in a file no browser loads |
 | `prot_bench.js` optional baseline suite | repaired in TZ-11 — neither side stripped, unconditional identity run inside the default suite, comparison counter with a zero-comparison guard | nothing; inv. 45 is now satisfied by the gate itself |
 | `bench.yml` Node 20 pin | watched | GitHub already forces the actions onto Node 24 with a warning. Act when a step fails or the whole gate can be re-run as the validation |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
