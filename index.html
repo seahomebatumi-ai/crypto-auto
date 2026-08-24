@@ -726,6 +726,11 @@ var ENTRY_CHASE_SD = 0.5;
 // Недельный ход BTC в его собственных сигмах, с которого рынок считается
 // стрессовым и новых входов не выдаётся вовсе.
 var REG_STRESS_Z   = 2.0;
+// The 90th percentile of the distribution of PER-DATE LIST MEDIANS of the
+// day-range ratio (inv. 47), pinned to bench/exhaustion-calibration.txt
+// (inv. 46). Its null p90 is 1.2393, so a reading at or above this line is a
+// measurement of the day, not a probability.
+var DAY_RANGE_ABNORMAL = 1.39;
 // Окно катализатора в днях: событие дальше него на решение недели не влияет.
 var CAT_WINDOW_D   = 14;
 // Границы тиров счёта. Единственный читатель — tierOf (имя и цвет), одно
@@ -1291,14 +1296,17 @@ function listExhaustion(rows) {
         }
     }
     var n = vals.length;
-    // abnormal stays false at this revision: the measure has no consumer and
-    // no calibrated threshold yet. The comparison against DAY_RANGE_ABNORMAL
-    // is wired in Stage C, once the archive run has produced the constant.
+    // The ONE site that compares against DAY_RANGE_ABNORMAL (inv. 20). `>=`,
+    // not `>`: «at or above the calibrated p90» is the rule that was
+    // registered, and a tie on a continuous quantity has to fall on the named
+    // side rather than on the side an operator happens to be written with.
+    // A null median or a below-quorum list stays false — an unmeasured list is
+    // not a quiet one.
     if (n < 8) return { median: null, n: n, abnormal: false };
     vals.sort(function (a, b) { return a - b; });
     var mid = n >> 1;
     var med = (n % 2) ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
-    return { median: med, n: n, abnormal: false };
+    return { median: med, n: n, abnormal: med >= DAY_RANGE_ABNORMAL };
 }
 
 // Композитная оценка доверия к МОДЕЛИ карточки (0-100): 45% R2 текущего
@@ -2099,6 +2107,29 @@ function tierBadge(row) {
          + ' \u2014 ' + Math.round(row.sc.score) + stateMark(row) + '</span>';
 }
 
+// The ONE decimal-comma formatter (inv. 20). Lifted out of boardHtml, where it
+// was a local fixed at one decimal: the day line prints one decimal for the
+// median and two for the threshold, and two rounding helpers would eventually
+// disagree about the same number.
+function numRu(x, d) { return x.toFixed(d).replace('.', ','); }
+
+// The day state in words, built in exactly one place. Empty whenever there is
+// nothing measured to state — no day object, an unmeasured list, or a list at
+// or below the calibrated line — so a silent day costs no bytes on either
+// surface. Both the banner and the §3.17 board block call this and neither
+// builds the sentence itself (inv. 33), and no function outside
+// listExhaustion compares against DAY_RANGE_ABNORMAL.
+// It states a MEASUREMENT and says so: §3.12 Layer 1 standing, no veto, no
+// score effect, no ranking factor (inv. 27, 32).
+function dayStateNote(day) {
+    if (!day || day.median === null || !day.abnormal) return '';
+    return '\u0414\u0415\u041d\u042c \u0423\u0416\u0415 \u0412\u042b\u041d\u0415\u0421\u0415\u041d \u2014 \u043c\u0435\u0434\u0438\u0430\u043d\u0430 \u0441\u043f\u0438\u0441\u043a\u0430 '
+         + numRu(day.median, 1)
+         + ' \u043e\u0431\u044b\u0447\u043d\u043e\u0433\u043e \u0434\u043d\u044f, \u043f\u043e\u0440\u043e\u0433 '
+         + numRu(DAY_RANGE_ABNORMAL, 2)
+         + '. \u041c\u0435\u0440\u0430 \u0434\u043d\u044f, \u043d\u0435 \u0437\u0430\u043f\u0440\u0435\u0442.';
+}
+
 // Одна строка над списком: какой приор сейчас разрешён и открыта ли сторона.
 // Ничего не считает — только называет уже вычисленный marketRegime (инв. 15).
 function regimeBanner(reg, isLong) {
@@ -2134,8 +2165,20 @@ function regimeBanner(reg, isLong) {
         txt = '\u0414\u0418\u0410\u041f\u0410\u0417\u041e\u041d \u2014 \u0441\u0447\u0451\u0442 \u043f\u043e \u043a\u0430\u043d\u0430\u043b\u0443 \u0432\u043e\u0437\u0432\u0440\u0430\u0442\u0430';
         col = 'var(--accent)';
     }
-    return '<div style="margin:2px 0 8px;padding:6px 10px;border-left:3px solid ' + col
-         + ';font-size:0.82em;letter-spacing:0.04em;color:' + col + ';">' + txt + '</div>';
+    // The regime line's own bytes are untouched. The day state, when there is
+    // one, is a SECOND line in the same shape: one line, one fact. Amber is the
+    // ATTENTION alarm's standing — attention without prohibition — and
+    // recolouring the regime line itself would overwrite the stress red exactly
+    // when it matters most. At abnormal === false the output is a strict PREFIX
+    // of this one.
+    var out = '<div style="margin:2px 0 8px;padding:6px 10px;border-left:3px solid ' + col
+            + ';font-size:0.82em;letter-spacing:0.04em;color:' + col + ';">' + txt + '</div>';
+    var note = dayStateNote(reg && reg.day);
+    if (note) {
+        out += '<div style="margin:2px 0 8px;padding:6px 10px;border-left:3px solid var(--accent)'
+             + ';font-size:0.82em;letter-spacing:0.04em;color:var(--accent);">' + note + '</div>';
+    }
+    return out;
 }
 
 // Строка плана сделки. Печатается ТОЛЬКО когда модель сделку разрешила
@@ -2763,9 +2806,6 @@ function boardHtml(row, pos) {
     // журнал. Формулы не переписаны — вызываются продакшн-функции liqPrice,
     // sigmaDay, touchProb, probTxt, dayRangeRatio, listExhaustion (инв. 20, 21).
     var sSqz = '';
-    // Запятая как десятичный разделитель — так эти строки заданы в ТЗ; ниже
-    // это единственная форматная вольность блока.
-    function sqzNum(x) { return x.toFixed(1).replace('.', ','); }
     sSqz += '<div class="bd-sec"><div class="bd-h">\u0420\u0418\u0421\u041a \u0412\u042b\u041d\u041e\u0421\u0410</div>';
 
     // Строка 1. Запас до ликвидации от НАЖАТОГО плеча, не от ИТОГА (инв. 14).
@@ -2777,7 +2817,7 @@ function boardHtml(row, pos) {
         var sqzP   = sqzVol !== null ? touchProb(sqzVol, sqzB, 24) : null;
         sSqz += '<div class="bd-kv" style="margin-top:0;"><span class="bd-k">\u0417\u0430\u043f\u0430\u0441 \u0434\u043e \u043b\u0438\u043a\u0432\u0438\u0434\u0430\u0446\u0438\u0438 \u043f\u0440\u0438 ' + currentLev + 'X</span>'
            + '<span class="bd-v">'
-           + (sqzSd !== null ? sqzNum(sqzSd) + '\u03c3 \u0434\u043d\u044f' : '\u2014') + '</span></div>'
+           + (sqzSd !== null ? numRu(sqzSd, 1) + '\u03c3 \u0434\u043d\u044f' : '\u2014') + '</span></div>'
            + '<div class="bd-kv" style="margin-top:0;"><span class="bd-k"></span>'
            + '<span class="bd-v" style="font-size:0.9em;color:#8f8fa0;">'
            + (sqzP !== null ? '\u0448\u0430\u043d\u0441 \u0437\u0430\u0434\u0435\u0442\u044c \u0437\u0430 \u0441\u0443\u0442\u043a\u0438 ' + probTxt(sqzP) : '\u0431\u043e\u0442 \u043d\u0435 \u0434\u0430\u043b \u0432\u043e\u043b\u0430\u0442\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u044c \u2014 \u0432 \u0441\u0438\u0433\u043c\u0430\u0445 \u043d\u0435 \u0438\u0437\u043c\u0435\u0440\u0438\u0442\u044c')
@@ -2786,21 +2826,34 @@ function boardHtml(row, pos) {
     }
 
     // Строка 2. Насколько день уже вынесен — монета и список, оба сырыми.
-    // Порога нет и abnormal не читается: измерение печатается, вывод не
-    // делается (§3.16, инв. 23, 47).
+    // TZ-14. The two raw numbers are printed exactly as before. What is new is
+    // the day-state sentence below them, and it is still only a statement:
+    // nothing here reaches a score, a verdict, a leverage or the journal
+    // (§3.16, inv. 27, 47).
     var sqzOwn  = dayRangeRatio(row.hi24, row.lo24, cur, cd.volatility);
     var sqzList = listExhaustion(lastRows);
     if (sqzOwn !== null) {
         sSqz += '<div class="bd-kv" style="margin-top:11px;"><span class="bd-k">\u0421\u0435\u0433\u043e\u0434\u043d\u044f \u0443\u0436\u0435 \u0432\u044b\u043d\u0435\u0441\u0435\u043d\u043e</span>'
-           + '<span class="bd-v">' + sqzNum(sqzOwn) + ' \u043e\u0431\u044b\u0447\u043d\u043e\u0433\u043e \u0434\u043d\u044f</span></div>';
+           + '<span class="bd-v">' + numRu(sqzOwn, 1) + ' \u043e\u0431\u044b\u0447\u043d\u043e\u0433\u043e \u0434\u043d\u044f</span></div>';
     }
     sSqz += '<div class="bd-kv" style="margin-top:' + (sqzOwn !== null ? '0' : '11px') + ';"><span class="bd-k"></span>'
        + '<span class="bd-v" style="font-size:0.9em;color:#8f8fa0;">'
        + (sqzList.median !== null
-           ? '\u043c\u0435\u0434\u0438\u0430\u043d\u0430 \u0441\u043f\u0438\u0441\u043a\u0430 ' + sqzNum(sqzList.median) + ' \u043f\u043e ' + sqzList.n + ' \u043c\u043e\u043d\u0435\u0442\u0430\u043c'
+           ? '\u043c\u0435\u0434\u0438\u0430\u043d\u0430 \u0441\u043f\u0438\u0441\u043a\u0430 ' + numRu(sqzList.median, 1) + ' \u043f\u043e ' + sqzList.n + ' \u043c\u043e\u043d\u0435\u0442\u0430\u043c'
            : '\u0441\u043f\u0438\u0441\u043e\u043a \u043d\u0435 \u0438\u0437\u043c\u0435\u0440\u0435\u043d: \u0441\u0432\u043e\u044f \u043c\u0435\u0440\u0430 \u0435\u0441\u0442\u044c \u0443 ' + sqzList.n + ' \u043c\u043e\u043d\u0435\u0442, \u043d\u0443\u0436\u043d\u043e 8')
-       + '</span></div>'
-       + '<div class="bd-note">1,0 \u2014 \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c: \u0443 \u0431\u0440\u043e\u0443\u043d\u043e\u0432\u0441\u043a\u043e\u0433\u043e \u0431\u043b\u0443\u0436\u0434\u0430\u043d\u0438\u044f E[\u0445\u043e\u0434\u0430] = \u03c3\u00b7\u221a(8/\u03c0), \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0435\u0434\u0438\u043d\u0438\u0446\u0430 \u0437\u0434\u0435\u0441\u044c \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d\u0430, \u0430 \u0432\u044b\u0432\u0435\u0434\u0435\u043d\u0430. \u0427\u0438\u0441\u043b\u043e \u043f\u0435\u0447\u0430\u0442\u0430\u0435\u0442\u0441\u044f \u043a\u0430\u043a \u0435\u0441\u0442\u044c \u2014 \u043f\u043e\u0440\u043e\u0433\u0430 \u043d\u0435\u0442, \u0441\u0440\u0430\u0432\u043d\u0435\u043d\u0438\u044f \u043d\u0435\u0442, \u043d\u0430 \u0441\u0447\u0451\u0442, \u043f\u043b\u0435\u0447\u043e \u0438 \u0432\u0435\u0440\u0434\u0438\u043a\u0442 \u043e\u043d\u043e \u043d\u0435 \u0432\u043b\u0438\u044f\u0435\u0442. \u0421\u043f\u0438\u0441\u043e\u043a \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u043f\u043e 25 \u0441\u043f\u043e\u0442\u043e\u0432\u044b\u043c \u043c\u043e\u043d\u0435\u0442\u0430\u043c: \u0442\u0440\u0438 \u0444\u044c\u044e\u0447\u0435\u0440\u0441\u043d\u044b\u0435 \u0432 \u043c\u0435\u0440\u0443 \u043d\u0435 \u0432\u0445\u043e\u0434\u044f\u0442.</div>';
+       + '</span></div>';
+    // The day state, in the SAME sentence the regime banner prints (inv. 33).
+    // dayStateNote is the only builder of it and listExhaustion the only
+    // comparison against the constant; this line neither re-reads the threshold
+    // nor re-decides anything. It is a bd-kv like its neighbours, so the
+    // .bd-sec keeps its ring: no inline style is added to the section (§3.7,
+    // inv. 19), and the caption below is unchanged.
+    var sqzDay = dayStateNote(sqzList);
+    if (sqzDay) {
+        sSqz += '<div class="bd-kv" style="margin-top:0;"><span class="bd-k"></span>'
+           + '<span class="bd-v" style="font-size:0.9em;color:var(--accent);">' + sqzDay + '</span></div>';
+    }
+    sSqz += '<div class="bd-note">1,0 \u2014 \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c: \u0443 \u0431\u0440\u043e\u0443\u043d\u043e\u0432\u0441\u043a\u043e\u0433\u043e \u0431\u043b\u0443\u0436\u0434\u0430\u043d\u0438\u044f E[\u0445\u043e\u0434\u0430] = \u03c3\u00b7\u221a(8/\u03c0), \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0435\u0434\u0438\u043d\u0438\u0446\u0430 \u0437\u0434\u0435\u0441\u044c \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d\u0430, \u0430 \u0432\u044b\u0432\u0435\u0434\u0435\u043d\u0430. \u0427\u0438\u0441\u043b\u043e \u043f\u0435\u0447\u0430\u0442\u0430\u0435\u0442\u0441\u044f \u043a\u0430\u043a \u0435\u0441\u0442\u044c \u2014 \u043f\u043e\u0440\u043e\u0433\u0430 \u043d\u0435\u0442, \u0441\u0440\u0430\u0432\u043d\u0435\u043d\u0438\u044f \u043d\u0435\u0442, \u043d\u0430 \u0441\u0447\u0451\u0442, \u043f\u043b\u0435\u0447\u043e \u0438 \u0432\u0435\u0440\u0434\u0438\u043a\u0442 \u043e\u043d\u043e \u043d\u0435 \u0432\u043b\u0438\u044f\u0435\u0442. \u0421\u043f\u0438\u0441\u043e\u043a \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u043f\u043e 25 \u0441\u043f\u043e\u0442\u043e\u0432\u044b\u043c \u043c\u043e\u043d\u0435\u0442\u0430\u043c: \u0442\u0440\u0438 \u0444\u044c\u044e\u0447\u0435\u0440\u0441\u043d\u044b\u0435 \u0432 \u043c\u0435\u0440\u0443 \u043d\u0435 \u0432\u0445\u043e\u0434\u044f\u0442.</div>';
 
     // Строка 3. Стоп относительно шума — читается из dec.inv, ничего не
     // пересчитывается (инв. 20). Без inv читать нечего, и строки нет.
@@ -2810,7 +2863,7 @@ function boardHtml(row, pos) {
            + (dec.inv.capped ? '\u043e\u043f\u043e\u0440\u044b \u0440\u044f\u0434\u043e\u043c \u043d\u0435\u0442, \u0443\u0440\u043e\u0432\u0435\u043d\u044c \u043d\u0430\u0440\u0438\u0441\u043e\u0432\u0430\u043d \u2014 \u0441\u0442\u043e\u043f \u0434\u0435\u0440\u0436\u0438\u0442\u0441\u044f \u0432\u0440\u0443\u0447\u043d\u0443\u044e'
               : (dec.inv.floored ? '\u0441\u0442\u043e\u043f \u043f\u0440\u0438\u0436\u0430\u0442 \u043a \u043f\u043e\u043b\u0443 2\u03c3: \u0431\u043b\u0438\u0436\u0435 \u0448\u0443\u043c\u0430 \u0441\u0442\u0430\u0432\u0438\u0442\u044c \u043d\u0435\u043b\u044c\u0437\u044f'
                  : (has(dec.inv.sd) && dec.inv.sd > 0
-                     ? sqzNum(dec.inv.dist / dec.inv.sd) + '\u03c3 \u0434\u043d\u044f' : '\u2014')))
+                     ? numRu(dec.inv.dist / dec.inv.sd, 1) + '\u03c3 \u0434\u043d\u044f' : '\u2014')))
            + '</span></div>';
     }
     sSqz += '</div>';
@@ -3240,6 +3293,14 @@ function update() {
     var stressMult  = STRESS_MULT[currentStress];
     // Снимок сценария и строк — доска читает их, а не пересчитывает список.
     lastRows = rows;
+    // The list-level day state, computed once for the whole render and hung on
+    // the regime object the banner already reads. Unconditional and above the
+    // sideOn branch: whether the day is abnormal is a fact about the session,
+    // not about the side the Boss has selected. The board keeps its own
+    // listExhaustion(lastRows) call — one pure function over one array cannot
+    // disagree with itself, and routing the board through lastCtx would force
+    // every board fixture to invent the field (inv. 48).
+    reg.day = listExhaustion(rows);
     // Отсев нерелевантной стороны (правка Босса 09.08): в ЛОНГЕ прячем монеты
     // у верхнего края диапазона, в ШОРТЕ — у нижнего. Не удаляем, а сворачиваем
     // в полосу с раскрытием: молча исчезнувшая монета опаснее лишней строки.

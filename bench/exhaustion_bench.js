@@ -8,46 +8,61 @@
 // independent reference for the identity case — that is the assertion, not a
 // second implementation of the rule.
 //
-// SCOPE AT THIS REVISION. TZ-10 Stage C is not implemented: the archive
-// calibration (Stage B) could not run, so DAY_RANGE_ABNORMAL does not exist
-// and listExhaustion().abnormal is permanently false. The two §5.2 cases that
-// depend on it — the threshold edge, and the eight banner cases with
-// abnormal === true — are therefore NOT written here: a bench cannot assert
-// against code that does not exist, and inventing a threshold to test against
-// would be exactly the retune inv. 23 forbids. What this file does instead is
-// pin every case that IS well-defined today, and add one the final revision
-// will not need: that the new measure is INERT — it reaches no consumer, so
-// the board is unchanged. When Stage C lands, sections D2 and E extend.
+// SCOPE AT THIS REVISION (TZ-14). The constant now exists. DAY_RANGE_ABNORMAL
+// = 1.39 is declared in index.html, pinned to bench/exhaustion-calibration.txt,
+// and listExhaustion compares the list median against it. The two cases TZ-10
+// could not write — the threshold edge and the banner at abnormal === true —
+// are written here, and the sections whose comments predicted their own
+// inversion (C's «permanently false», E's «inertness») are inverted rather
+// than deleted: what was «the measure reaches no consumer» is now «the measure
+// reaches EXACTLY ONE consumer, in EXACTLY ONE shape, and nothing else moved».
+//
+// Sections added by TZ-14:
+//   I  record     the source constant and the calibration record agree (inv. 46)
+//   J  threshold  the truth table of `abnormal`, plus a negative control that
+//                 proves the comparison reads the CONSTANT and not a literal
+//   K  live       the real update() over two lists straddling 1.39, rendered
+//                 through the real DOM path (inv. 48)
+//   L  surfaces   the same sentence on the card list and on the board (inv. 33)
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const HTML_PATH = path.join(__dirname, '..', 'index.html');
+const RECORD_PATH = path.join(__dirname, 'exhaustion-calibration.txt');
+const HTML = fs.readFileSync(HTML_PATH, 'utf8');
 const src = HTML.slice(HTML.indexOf('<script>') + 8, HTML.lastIndexOf('</script>'));
 
 // Minimal DOM/browser shims: the module body only needs these to evaluate.
-const stub = new Proxy(function () {}, {
-    get: () => stub, set: () => true, apply: () => stub, construct: () => stub
-});
-const sandbox = {
-    document: { getElementById: () => stub, querySelector: () => stub,
-                querySelectorAll: () => [], addEventListener: () => {},
-                createElement: () => stub, body: stub, head: stub },
-    window: {}, localStorage: { getItem: () => null, setItem: () => {} },
-    navigator: { userAgent: 'node' }, location: { href: '' },
-    fetch: () => Promise.resolve({ json: () => ({}) }),
-    setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0,
-    clearInterval: () => {}, requestAnimationFrame: () => 0,
-    console, Math, Date, JSON, parseFloat, parseInt, isFinite, isNaN
-};
-sandbox.window = sandbox;
-vm.createContext(sandbox);
-vm.runInContext(src, sandbox, { filename: 'index.html:<script>' });
+// Factored into a loader because section J re-evaluates a MUTATED copy of the
+// same source in its own context — a negative control that has to run the real
+// module body, not a patched copy of one function.
+function loadProduction(source) {
+    const stub = new Proxy(function () {}, {
+        get: () => stub, set: () => true, apply: () => stub, construct: () => stub
+    });
+    const sb = {
+        document: { getElementById: () => stub, querySelector: () => stub,
+                    querySelectorAll: () => [], addEventListener: () => {},
+                    createElement: () => stub, body: stub, head: stub },
+        window: {}, localStorage: { getItem: () => null, setItem: () => {} },
+        navigator: { userAgent: 'node' }, location: { href: '' },
+        fetch: () => Promise.resolve({ json: () => ({}) }),
+        setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0,
+        clearInterval: () => {}, requestAnimationFrame: () => 0,
+        console, Math, Date, JSON, parseFloat, parseInt, isFinite, isNaN
+    };
+    sb.window = sb;
+    vm.createContext(sb);
+    vm.runInContext(source, sb, { filename: 'index.html:<script>' });
+    return sb;
+}
 
-const P = sandbox;   // production namespace
+const P = loadProduction(src);   // production namespace
 
-['dayRangeRatio', 'sigmaDay', 'listExhaustion', 'regimeBanner', 'marketRegime'].forEach(function (f) {
+['dayRangeRatio', 'sigmaDay', 'listExhaustion', 'regimeBanner', 'marketRegime',
+ 'dayStateNote', 'numRu', 'boardHtml'].forEach(function (f) {
     if (typeof P[f] !== 'function') {
         console.log('FAIL ' + f + ' is not defined in index.html');
         process.exit(1);
@@ -57,7 +72,8 @@ const P = sandbox;   // production namespace
 // Per-section counters. The gate total is a SUM of these, never an estimate
 // (inv. 43), and each one counts comparisons actually made at its own site.
 const N = { identity: 0, nulls: 0, quorum: 0, venue: 0, banner: 0, stress: 0, inert: 0,
-            purity: 0, control: 0, wiring: 0 };
+            purity: 0, control: 0, wiring: 0,
+            record: 0, threshold: 0, live: 0, surfaces: 0 };
 let section = 'identity';
 let checks = 0, fails = 0;
 
@@ -269,11 +285,16 @@ for (let k = 0; k <= 12; k++) {
     eq('n is an integer', r.n === Math.floor(r.n), true);
     eq('abnormal is a boolean', typeof r.abnormal, 'boolean');
 }
-// Stage A contract: abnormal is permanently false, at any magnitude.
+// TZ-14 contract, replacing TZ-10's «abnormal is permanently false». The
+// measure now carries the verdict of the calibrated rule at every magnitude,
+// and the expectation is derived from the production constant rather than
+// restated: a bench that hard-coded 1.39 here would go green on a source whose
+// constant had drifted, which is what section I exists to prevent.
 [0.01, 1, 2.43, 5, 100, 1e6].forEach(function (r) {
     const rows = [];
     for (let i = 0; i < 25; i++) rows.push(rowFor(r));
-    eq('abnormal stays false at median ' + r, P.listExhaustion(rows).abnormal, false);
+    const got = P.listExhaustion(rows);
+    eq('abnormal at median ' + r, got.abnormal, got.median >= P.DAY_RANGE_ABNORMAL);
 });
 console.log('  compared: ' + N.quorum);
 
@@ -391,7 +412,10 @@ console.log('=== D. regimeBanner: every abnormal === false case ===');
 // The four banner branches, with trend split by direction because the branch
 // picks a different colour on each: five states x isLong = ten combinations,
 // a superset of the eight §5.2 requires to be byte-identical to today's
-// output. The matching abnormal === true half arrives with Stage C.
+// output. Every reg here carries NO `day` field at all — the shape a caller
+// that never wired the measure would hand in — so these ten outputs are the
+// abnormal === false half, and section E proves the day field cannot move
+// them either. The matching abnormal === true half is section E's second half.
 const STATES = [
     ['unknown', { known: false, mode: 'range',  dir: 0 }, '#888'],
     ['stress',  { known: true,  mode: 'stress', dir: 0 }, 'var(--red)'],
@@ -421,9 +445,12 @@ STATES.forEach(function (s) {
            out.indexOf(';color:') !== -1);
     });
 });
-// Amber is Stage C's colour and must not appear anywhere yet.
+// A reg with no day field prints ONE div and nothing amber after it. The
+// literal below is production's own accent border, so a day line appearing
+// where no day was supplied fails here rather than downstream.
+const ACCENT_DIV = 'border-left:3px solid var(--accent);font-size:0.82em;letter-spacing:0.04em;color:var(--accent);';
 Object.keys(seen).forEach(function (k) {
-    eq(k + ' is not amber yet', seen[k].indexOf('#e0a02a'), -1);
+    eq(k + ' prints exactly one div without a day', seen[k].split('<div ').length - 1, 1);
 });
 // Red belongs to stress, and stress alone must never be softened away from it.
 ok('stress/long is red', seen['stress/long'].indexOf('var(--red)') !== -1);
@@ -521,25 +548,74 @@ console.log('  compared: ' + N.stress);
 
 // ───────────────────────────────────────────────────────────────────────────
 section = 'inert';
-console.log('=== E. Inertness: the new measure reaches no consumer ===');
-// Stage A's whole contract. When Stage C lands this section inverts for
-// abnormal === true and keeps holding for abnormal === false.
+console.log('=== E. The measure reaches ONE consumer, in ONE shape (TZ-14 D3) ===');
+// TZ-10 wrote this section as «the new measure reaches no consumer» and said in
+// its own comment that it would invert for abnormal === true and keep holding
+// for abnormal === false. That is exactly what it does now. The quiet half is
+// the stronger half: a day the rule did not call abnormal, and a day the list
+// was too short to measure, must leave all ten (state x side) outputs
+// byte-identical to the released banner.
+//
+// MED / THR / WORD are the three things the appended tail has to carry. They
+// are written as escapes like every Russian string in this file, and they are
+// NOT the whole sentence: asserting the sentence twice would only prove this
+// file agrees with itself, while these three prove the tail says WHICH median,
+// against WHICH threshold, in the state word the Boss reads first.
+const WORD = '\u0414\u0415\u041d\u042c \u0423\u0416\u0415 \u0412\u042b\u041d\u0415\u0421\u0415\u041d';   // ДЕНЬ УЖЕ ВЫНЕСЕН
+const MED  = '\u043c\u0435\u0434\u0438\u0430\u043d\u0430 \u0441\u043f\u0438\u0441\u043a\u0430 ';   // медиана списка
+const THR  = '\u043f\u043e\u0440\u043e\u0433 ';   // порог
+const NOTBAN = '\u041c\u0435\u0440\u0430 \u0434\u043d\u044f, \u043d\u0435 \u0437\u0430\u043f\u0440\u0435\u0442.';   // Мера дня, не запрет.
+const DAY_MED = 2.43;
+let tailSeen = null;
 STATES.forEach(function (s) {
     [true, false].forEach(function (isLong) {
         const key = s[0] + '/' + (isLong ? 'long' : 'short');
-        [true, false].forEach(function (abnormal) {
-            const reg = JSON.parse(JSON.stringify(s[1]));
-            reg.day = { median: 2.43, n: 25, abnormal: abnormal };
-            eq(key + ' unchanged by reg.day.abnormal=' + abnormal,
-               P.regimeBanner(reg, isLong), seen[key]);
-        });
-        // A null day, the shape listExhaustion returns below quorum.
+
+        // ── the quiet half: byte-identical to the released banner ──────────
+        const regQuiet = JSON.parse(JSON.stringify(s[1]));
+        regQuiet.day = { median: DAY_MED, n: 25, abnormal: false };
+        eq(key + ' unchanged at abnormal === false',
+           P.regimeBanner(regQuiet, isLong), seen[key]);
+        // A null median, the shape listExhaustion returns below quorum. An
+        // unmeasured list is not a quiet one and must print nothing either.
         const regNull = JSON.parse(JSON.stringify(s[1]));
         regNull.day = { median: null, n: 3, abnormal: false };
         eq(key + ' unchanged by a below-quorum reg.day',
            P.regimeBanner(regNull, isLong), seen[key]);
+
+        // ── the loud half: a strict PREFIX plus exactly one appended line ──
+        const regLoud = JSON.parse(JSON.stringify(s[1]));
+        regLoud.day = { median: DAY_MED, n: 25, abnormal: true };
+        const out = P.regimeBanner(regLoud, isLong);
+        eq(key + ' at abnormal === true: the quiet output is a strict prefix',
+           out.slice(0, seen[key].length), seen[key]);
+        ok(key + ' at abnormal === true: something was appended',
+           out.length > seen[key].length);
+        const tail = out.slice(seen[key].length);
+        eq(key + ' tail is exactly one div',
+           tail.split('<div ').length - 1 + '/' + (tail.slice(-6) === '</div>' ? 'closed' : 'open'),
+           '1/closed');
+        ok(key + ' tail is amber', tail.indexOf(ACCENT_DIV) > 0);
+        ok(key + ' tail carries the state word', tail.indexOf(WORD) > 0);
+        ok(key + ' tail carries the median text',
+           tail.indexOf(MED + P.numRu(DAY_MED, 1)) > 0);
+        ok(key + ' tail carries the threshold text',
+           tail.indexOf(THR + P.numRu(P.DAY_RANGE_ABNORMAL, 2)) > 0);
+        ok(key + ' tail says it is a measure and not a prohibition',
+           tail.indexOf(NOTBAN) > 0);
+        // The regime line's OWN colour is not touched by the day state: the
+        // prefix assertion above already proves it byte for byte, and this
+        // names the failure if it ever stops holding.
+        eq(key + ' the regime line keeps its own colour',
+           out.indexOf(seen[key].slice(0, seen[key].indexOf('>') + 1)), 0);
+        // Every state appends the SAME line: the day is a property of the
+        // session, not of the regime it happens to sit in.
+        if (tailSeen === null) tailSeen = tail;
+        else eq(key + ' appends the same tail as every other state', tail, tailSeen);
     });
 });
+ok('a tail was captured for the report', tailSeen !== null && tailSeen.length > 0);
+console.log('  appended tail (verbatim): ' + tailSeen);
 console.log('  compared: ' + N.inert);
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -563,6 +639,45 @@ STATES.forEach(function (s) {
     P.listExhaustion(rows);
     eq('listExhaustion does not mutate its rows', JSON.stringify(rows), before);
     eq('listExhaustion does not reorder its rows', rows.length, 8);
+}
+// dayStateNote, held to the same standard as regimeBanner before it (TZ-14 D3):
+// deterministic, non-mutating, and empty on every shape that has nothing to
+// state. The empty cases are asserted as EXACTLY '' — a note that returned a
+// space or a stray div would still be falsy at the call sites and would print
+// an empty amber line on both surfaces.
+{
+    const SILENT = [
+        ['absent day',      undefined],
+        ['null day',        null],
+        ['below quorum',    { median: null, n: 3, abnormal: false }],
+        ['quiet day',       { median: 1.0, n: 25, abnormal: false }],
+        ['loud but unmeasured', { median: null, n: 3, abnormal: true }]
+    ];
+    SILENT.forEach(function (c) {
+        eq('dayStateNote is empty on a ' + c[0], P.dayStateNote(c[1]), '');
+    });
+    const day = Object.freeze({ median: 2.43, n: 25, abnormal: true });
+    const before = JSON.stringify(day);
+    const a = P.dayStateNote(day), b = P.dayStateNote(day);
+    ok('dayStateNote speaks on a loud day', a.length > 0);
+    eq('dayStateNote is deterministic', a, b);
+    eq('dayStateNote does not mutate its day', JSON.stringify(day), before);
+    // numRu is the ONE formatter (inv. 20): swap it and the sentence must move.
+    // Proven by behaviour rather than by reading the source, the same way A1
+    // proves dayRangeRatio routes through sigmaDay.
+    const realNum = P.numRu;
+    P.numRu = function (x, d) { return 'Z' + realNum(x, d); };
+    const swapped = P.dayStateNote(day);
+    P.numRu = realNum;
+    ok('dayStateNote routes both numbers through numRu',
+       swapped !== a && swapped.split('Z').length - 1 === 2, swapped);
+    eq('numRu restored', P.dayStateNote(day), a);
+    // numRu itself: two decimals for the threshold, one for the median, comma
+    // in both. Two rounding helpers would eventually disagree; there is one.
+    eq('numRu(1.39, 2)', P.numRu(1.39, 2), '1,39');
+    eq('numRu(2.43, 1)', P.numRu(2.43, 1), '2,4');
+    eq('numRu(2, 1)', P.numRu(2, 1), '2,0');
+    eq('numRu(-0.25, 1)', P.numRu(-0.25, 1), '-0,3');
 }
 console.log('  compared: ' + N.purity);
 
@@ -759,6 +874,671 @@ if (W.error) {
     console.log('  controls: deleted write named, added read named, clean source silent');
 }
 console.log('  compared: ' + N.wiring);
+
+// ── H2. The SECOND contract: reg.day (TZ-14 D4, inv. 48) ───────────────────
+// The same mechanism, one object over. listExhaustion reads fields off the ROW
+// update() builds; regimeBanner reads fields off the REG update() hands it, and
+// TZ-14 adds one to that object. The failure mode is identical to the one H
+// exists to catch: every fixture in this file builds its own reg, so a revision
+// in which update() forgot to write reg.day would leave the whole file green
+// and the live banner permanently silent. Read both sides off the source and
+// compare them, with one check per field read and the same mutation controls.
+//
+// The reg object is produced in TWO places and that is the contract: the object
+// literal marketRegime returns, plus every `reg.<f> =` update() performs on it.
+// Both are counted, or the field TZ-14 adds would look like a gap.
+const REG_READERS = ['regimeBanner'];
+function regFieldsRead(body) {
+    const out = {};
+    const re = /\breg\.([A-Za-z_$][\w$]*)(?:\.([A-Za-z_$][\w$]*))?/g;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+        out[m[1]] = true;
+        if (m[2]) out[m[1] + '.' + m[2]] = true;
+    }
+    return Object.keys(out).sort();
+}
+function regFieldsWritten(source) {
+    const out = {};
+    const mr = cutFunction(source, 'marketRegime');
+    if (mr === null) return null;
+    const lit = /var\s+out\s*=\s*\{([\s\S]*?)\}/.exec(mr);
+    if (lit) {
+        const re = /([A-Za-z_$][\w$]*)\s*:/g;
+        let m;
+        while ((m = re.exec(lit[1])) !== null) out[m[1]] = true;
+    }
+    const re2 = /\bout\.([A-Za-z_$][\w$]*)\s*=(?!=)/g;
+    let m2;
+    while ((m2 = re2.exec(mr)) !== null) out[m2[1]] = true;
+    const prod = cutFunction(source, PRODUCER);
+    if (prod === null) return null;
+    const re3 = /\breg\.([A-Za-z_$][\w$]*)\s*=(?!=)/g;
+    let m3;
+    while ((m3 = re3.exec(prod)) !== null) out[m3[1]] = true;
+    return Object.keys(out).sort();
+}
+function regGaps(source) {
+    const writes = regFieldsWritten(source);
+    if (writes === null) return { error: 'the reg producers were not found' };
+    const per = [];
+    for (let r = 0; r < REG_READERS.length; r++) {
+        const body = cutFunction(source, REG_READERS[r]);
+        if (body === null) return { error: 'reader ' + REG_READERS[r] + ' not found' };
+        const reads = regFieldsRead(body);
+        const missing = reads.filter(function (f) {
+            return writes.indexOf(f.split('.')[0]) < 0;
+        });
+        per.push({ reader: REG_READERS[r], reads: reads, missing: missing });
+    }
+    return { writes: writes, per: per };
+}
+
+const RW = regGaps(src);
+ok('reg wiring extractor found both sides', !RW.error);
+if (RW.error) {
+    console.log('  FAIL ' + RW.error);
+} else {
+    ok('the reg producers write at least one field', RW.writes.length > 0);
+    console.log('  marketRegime + ' + PRODUCER + '() write reg: ' + RW.writes.join(', '));
+    for (let r = 0; r < RW.per.length; r++) {
+        const p = RW.per[r];
+        ok(p.reader + ' reads at least one reg field', p.reads.length > 0);
+        console.log('  ' + p.reader + ' reads reg: ' + p.reads.join(', '));
+        for (let f = 0; f < p.reads.length; f++) {
+            const fld = p.reads[f];
+            const root = fld.split('.')[0];
+            ok(p.reader + ' reads reg.' + fld + ' -> reg.' + root + ' is written',
+               RW.writes.indexOf(root) >= 0);
+        }
+        if (p.missing.length) {
+            console.log('  FAIL ' + p.reader + ' reads reg fields nothing writes: '
+                      + p.missing.join(', '));
+        }
+    }
+    // The field this TZ adds, named. A generic gap check would pass on a source
+    // that had dropped reg.day from BOTH sides at once.
+    ok('regimeBanner reads reg.day', RW.per[0].reads.indexOf('day') >= 0,
+       RW.per[0].reads.join(','));
+    ok(PRODUCER + '() writes reg.day', RW.writes.indexOf('day') >= 0, RW.writes.join(','));
+    // …and it is written from listExhaustion, not from a literal.
+    ok(PRODUCER + '() writes reg.day from listExhaustion',
+       /\breg\.day\s*=\s*listExhaustion\s*\(/.test(cutFunction(src, PRODUCER) || ''));
+}
+
+// Positive controls, the same three as section H: a deleted write, an added
+// read, and a clean source that must stay silent.
+{
+    const realLog = console.log;
+
+    const cutDay = src.replace('reg.day = listExhaustion(rows);', '');
+    ok('the reg control copy differs from the source', cutDay !== src);
+    console.log = function () {};
+    const A2 = regGaps(cutDay);
+    console.log = realLog;
+    eq('deleting reg.day reports exactly [day]',
+       A2.error ? 'ERR:' + A2.error : A2.per[0].missing.join(','), 'day');
+
+    const addRead = src.replace('function regimeBanner(reg, isLong) {\n    var txt, col;',
+                                'function regimeBanner(reg, isLong) {\n    var txt, col;\n    if (reg && reg.zzzNotWritten) { txt = 1; }');
+    ok('the reg read-control copy differs from the source', addRead !== src);
+    console.log = function () {};
+    const B2 = regGaps(addRead);
+    console.log = realLog;
+    eq('adding a read of reg.zzzNotWritten reports exactly [zzzNotWritten]',
+       B2.error ? 'ERR:' + B2.error : B2.per[0].missing.join(','), 'zzzNotWritten');
+
+    eq('the real source reports no missing reg field',
+       RW.error ? 'ERR:' + RW.error : RW.per[0].missing.join(','), '');
+    console.log('  reg controls: deleted write named, added read named, clean source silent');
+}
+console.log('  compared: ' + N.wiring);
+
+// ───────────────────────────────────────────────────────────────────────────
+section = 'record';
+console.log('=== I. The constant and the record it is pinned to (TZ-14 D1, inv. 46) ===');
+// A production constant copied out of a calibration record is only as good as
+// the record still saying what it said when it was audited. Both sides are read
+// from disk HERE, at gate time, and compared as numbers. A missing, unreadable
+// or line-less record is a FAILURE and never a skip: a gate that quietly passed
+// when it could not find its evidence would be the exact defect inv. 22 and 42
+// name.
+const DECL_RE = /\bvar\s+DAY_RANGE_ABNORMAL\s*=\s*([0-9]+\.[0-9]+)\s*;/g;
+{
+    // 1. Exactly one declaration in the source, and it is a two-decimal literal.
+    const decls = [];
+    let m;
+    DECL_RE.lastIndex = 0;
+    while ((m = DECL_RE.exec(src)) !== null) decls.push(m[1]);
+    eq('exactly one DAY_RANGE_ABNORMAL declaration in index.html', decls.length, 1);
+    const literal = decls.length === 1 ? decls[0] : '';
+    eq('the source literal carries two decimals',
+       /^[0-9]+\.[0-9]{2}$/.test(literal), true);
+    eq('the declared value reaches the runtime',
+       P.DAY_RANGE_ABNORMAL, parseFloat(literal));
+    eq('DAY_RANGE_ABNORMAL is a finite number at runtime',
+       typeof P.DAY_RANGE_ABNORMAL === 'number' && isFinite(P.DAY_RANGE_ABNORMAL), true);
+
+    // 2. The record. Read it, or fail naming the file.
+    let record = null, readErr = null;
+    try { record = fs.readFileSync(RECORD_PATH, 'utf8'); }
+    catch (e) { readErr = (e && e.message) || String(e); }
+    ok('the calibration record is readable: ' + RECORD_PATH,
+       record !== null, readErr === null ? '' : readErr);
+    if (record === null) {
+        console.log('  FAIL calibration record missing or unreadable: '
+                  + RECORD_PATH + (readErr ? ' — ' + readErr : ''));
+    } else {
+        const lines = record.split('\n').filter(function (l) {
+            return /^\s*DAY_RANGE_ABNORMAL\s*=\s*[0-9.]+\s*$/.test(l);
+        });
+        eq('exactly one DAY_RANGE_ABNORMAL line in the record', lines.length, 1);
+        if (lines.length !== 1) {
+            console.log('  FAIL the record carries ' + lines.length
+                      + ' DAY_RANGE_ABNORMAL lines, expected 1');
+        } else {
+            const recVal = parseFloat(lines[0].split('=')[1]);
+            ok('the record value parses as a number', isFinite(recVal), lines[0]);
+            eq('source constant equals the record value', P.DAY_RANGE_ABNORMAL, recVal);
+            console.log('  index.html: ' + literal + '   '
+                      + path.basename(RECORD_PATH) + ': ' + recVal.toFixed(2)
+                      + '   equal: ' + (P.DAY_RANGE_ABNORMAL === recVal));
+        }
+    }
+}
+console.log('  compared: ' + N.record);
+
+// ───────────────────────────────────────────────────────────────────────────
+section = 'threshold';
+console.log('=== J. The truth table of `abnormal` (TZ-14 D2) ===');
+// The rule adopted is «at or above the calibrated p90», so the tie must land on
+// TRUE. To state that as an assertion rather than a hope, the fixture has to
+// produce a median EXACTLY equal to the constant — and rowFor cannot: the
+// ratio grid steps over 1.39 and lands one ULP away on either side.
+//
+// The construction below removes the rounding instead of tolerating it. The
+// production denominator is cur * sigmaDay(vol) * sqrt(8/pi); scan cur over
+// ULPs until that product is exactly 1, then a row with lo = 0 has ratio
+// hi - 0 = hi, exactly. Every ratio in the double grid becomes reachable, and
+// the epsilons below are ONE ULP — the smallest ε that exists, so no operator
+// with any slack at all can pass this table.
+const F64 = new Float64Array(1);
+const U32 = new Uint32Array(F64.buffer);
+function ulp(x, dir) {
+    F64[0] = x;
+    let lo = U32[0], hi = U32[1];
+    if (dir > 0) { lo = (lo + 1) >>> 0; if (lo === 0) hi = (hi + 1) >>> 0; }
+    else { if (lo === 0) { hi = (hi - 1) >>> 0; lo = 0xFFFFFFFF; } else lo = (lo - 1) >>> 0; }
+    U32[0] = lo; U32[1] = hi;
+    return F64[0];
+}
+const TH = P.DAY_RANGE_ABNORMAL;
+const T_VOL = 0.01;
+const T_CUR = (function () {
+    const K2 = Math.sqrt(8 / Math.PI);
+    const start = 1 / (P.sigmaDay(T_VOL) * K2);
+    for (let i = 0; i <= 4096; i++) {
+        for (const dir of [1, -1]) {
+            let c = start;
+            for (let k = 0; k < i; k++) c = ulp(c, dir);
+            if (c * P.sigmaDay(T_VOL) * K2 === 1) return c;
+            if (i === 0) break;
+        }
+    }
+    return null;
+})();
+ok('a fixture family with an exact denominator was found', T_CUR !== null);
+// Inv. 22/23: the fixture is asserted to BE what it claims before anything is
+// concluded from it. Without this, a family whose denominator drifted off 1
+// would silently turn the whole table into a test of rowFor's rounding.
+if (T_CUR !== null) {
+    eq('the fixture denominator is exactly 1',
+       T_CUR * P.sigmaDay(T_VOL) * Math.sqrt(8 / Math.PI), 1);
+    eq('the fixture reproduces a requested ratio exactly',
+       P.dayRangeRatio(TH, 0, T_CUR, T_VOL), TH);
+}
+function thRows(ratio, n) {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+        out.push({ t: { name: 'S' + i, s: 'S' + i + 'USDT' },
+                   hi24: ratio, lo24: 0, cur: T_CUR, cd: { volatility: T_VOL } });
+    }
+    return out;
+}
+const TRUTH = [
+    ['median at 1 ULP below the threshold', ulp(TH, -1), 9,  false, 'lt'],
+    ['median exactly at the threshold',     TH,          9,  true,  'eq'],
+    ['median at 1 ULP above the threshold', ulp(TH, +1), 9,  true,  'gt'],
+    ['median null (below quorum, n = 7)',   2.0,         7,  false, 'null'],
+    ['median null (empty list)',            2.0,         0,  false, 'null']
+];
+const TRUTH_ROWS = [];
+TRUTH.forEach(function (c) {
+    const rows = thRows(c[1], c[2]);
+    const got = P.listExhaustion(rows);
+    // First: the fixture really is the case it claims (inv. 23).
+    if (c[4] === 'null') eq(c[0] + ': fixture median is null', got.median, null);
+    else if (c[4] === 'lt') ok(c[0] + ': fixture median is strictly below', got.median < TH);
+    else if (c[4] === 'eq') eq(c[0] + ': fixture median is exactly the constant', got.median, TH);
+    else ok(c[0] + ': fixture median is strictly above', got.median > TH);
+    // Then: the verdict.
+    eq(c[0] + ' -> abnormal ' + c[3], got.abnormal, c[3]);
+    eq(c[0] + ': n is the contributing count', got.n, c[2]);
+    TRUTH_ROWS.push([c[0], got.median === null ? 'null' : String(got.median),
+                     got.n, got.abnormal, c[3]]);
+});
+console.log('  --- truth table ---');
+TRUTH_ROWS.forEach(function (r) {
+    console.log('    ' + r[0] + '  median=' + r[1] + '  n=' + r[2]
+              + '  abnormal=' + r[3] + '  (want ' + r[4] + ')');
+});
+
+// Negative control (inv. 22, 23). The comparison must read the CONSTANT, not a
+// literal 1.39 that happens to equal it. Re-evaluate the WHOLE module body from
+// a copy of the source with the declaration rewritten to 9.99, and require the
+// same list — which is above 1.39 and below 9.99 — to flip to false. A
+// hard-coded comparison would keep saying true and this control would fail.
+{
+    const mutated = src.replace(/\bvar\s+DAY_RANGE_ABNORMAL\s*=\s*[0-9.]+\s*;/,
+                                'var DAY_RANGE_ABNORMAL = 9.99;');
+    ok('the 9.99 control copy differs from the source', mutated !== src);
+    const Q = loadProduction(mutated);
+    eq('the control copy really carries 9.99', Q.DAY_RANGE_ABNORMAL, 9.99);
+    // One list, two constants. Built for Q's own arithmetic so the fixture is
+    // not smuggled across contexts.
+    const ratio = 2.43;
+    function qRows(n) {
+        const out = [];
+        for (let i = 0; i < n; i++) {
+            const hi = 100 + ratio * (100 * Q.sigmaDay(0.01) * Math.sqrt(8 / Math.PI));
+            out.push({ hi24: hi, lo24: 100, cur: 100, cd: { volatility: 0.01 } });
+        }
+        return out;
+    }
+    const rows = qRows(25);
+    const under99 = Q.listExhaustion(rows);
+    ok('the control list sits between the two constants',
+       under99.median > TH && under99.median < 9.99, String(under99.median));
+    eq('with the constant at 9.99 the same list is NOT abnormal', under99.abnormal, false);
+    // …and the real source calls the same list abnormal, or the control above
+    // would pass on a comparison that never fires at all.
+    const rowsP = [];
+    for (let i = 0; i < 25; i++) rowsP.push(rowFor(ratio));
+    eq('with the real constant the same list IS abnormal',
+       P.listExhaustion(rowsP).abnormal, true);
+    // The sentence follows the constant too: dayStateNote prints 9,99 there.
+    eq('dayStateNote in the control prints the control threshold',
+       Q.dayStateNote({ median: 2.43, n: 25, abnormal: true })
+        .indexOf(Q.numRu(9.99, 2)) > 0, true);
+    console.log('  negative control: constant 9.99 -> median '
+              + under99.median.toFixed(4) + ' abnormal=' + under99.abnormal
+              + ' (real constant ' + TH + ' -> abnormal=true)');
+}
+console.log('  compared: ' + N.threshold);
+
+// ───────────────────────────────────────────────────────────────────────────
+section = 'live';
+console.log('=== K. The live path: real update(), real render (TZ-14 D4, inv. 48) ===');
+// Section H proves the CONTRACT off the source text. This proves the REACH:
+// production's own update() is run over two fixture books whose list medians
+// straddle the constant, the output is taken from the element the browser would
+// paint, and the two renders are differenced. A bench that builds its own rows
+// proves the function; only this proves that the field the banner reads is the
+// field the render loop wrote.
+//
+// The two books differ by ONE ULP-scale nudge of highPrice — about 1.4e-11
+// relative — chosen so that nothing a human or a toFixed can see has moved.
+// Any byte of difference beyond the day line is therefore a real reach into
+// something this TZ was not allowed to touch, not a rounding artefact.
+function loadLive(source) {
+    const CAPTURED = {};
+    const CACHE = {};
+    function recEl(id) {
+        const e = { _id: id, style: {}, innerText: '', value: '', className: '',
+            classList: { add: function () {}, remove: function () {} },
+            addEventListener: function () {}, appendChild: function () {},
+            setAttribute: function () {}, getAttribute: function () { return null; },
+            oninput: null, onclick: null, onchange: null, checked: false,
+            scrollIntoView: function () {}, focus: function () {}, blur: function () {},
+            remove: function () {}, querySelector: function () { return recEl('q'); },
+            querySelectorAll: function () { return []; },
+            getElementsByClassName: function () { return []; },
+            getBoundingClientRect: function () {
+                return { top: 0, left: 0, width: 0, height: 0, bottom: 0, right: 0 }; },
+            scrollTop: 0, scrollHeight: 0, offsetTop: 0, offsetHeight: 0,
+            parentNode: null, children: [] };
+        Object.defineProperty(e, 'innerHTML', {
+            get: function () { return CAPTURED[id] || ''; },
+            set: function (v) { CAPTURED[id] = String(v); }
+        });
+        return e;
+    }
+    const sb = {
+        document: {
+            getElementById: function (id) {
+                if (!CACHE[id]) CACHE[id] = recEl(id);
+                return CACHE[id];
+            },
+            addEventListener: function () {},
+            querySelector: function () { return recEl('q'); },
+            querySelectorAll: function () { return []; },
+            createElement: function () { return recEl('new'); },
+            body: recEl('body'), head: recEl('head')
+        },
+        localStorage: { getItem: function () { return null; },
+                        setItem: function () {}, removeItem: function () {} },
+        navigator: { userAgent: 'node' }, location: { href: '' },
+        fetch: function () { const d = {}; d.then = function () { return d; };
+                             d.catch = function () { return d; };
+                             d.finally = function () { return d; }; return d; },
+        setTimeout: function () { return 0; }, clearTimeout: function () {},
+        setInterval: function () { return 0; }, clearInterval: function () {},
+        requestAnimationFrame: function () { return 0; }, alert: function () {},
+        console, Math, Date, JSON, parseFloat, parseInt, isFinite, isNaN
+    };
+    sb.window = sb;
+    vm.createContext(sb);
+    vm.runInContext(source, sb, { filename: 'index.html:<script> (live)' });
+    // The real registry, loaded by the one mechanism already written for it —
+    // no second loader and no XHR stub (the same injection prot_bench.js and
+    // board2_bench.js perform). An empty registry would make this a render of a
+    // configuration that is not production (inv. 22, 40).
+    let cat;
+    try { cat = require('../journal/write.js').loadCatalysts(); }
+    catch (e) {
+        console.log('FAIL catalyst registry: ' + ((e && e.message) || e));
+        process.exit(1);
+    }
+    sb.CATALYSTS = cat.items; sb.CAT_LOADED = true; sb.CAT_ERR = null;
+    sb.catUpdated = cat.updated;
+    sb.__captured = CAPTURED;
+    return sb;
+}
+
+// One book, built from the REAL token registry so the venue split is the live
+// one: every spot token gets a ticker whose day range is exactly `ratio`
+// typical days wide, and the three fut:true tokens are given a wild range that
+// must not reach the measure at all.
+function liveBook(L, ratio) {
+    const VOL = 0.01, CUR = 100, LO = 100;
+    const denom = CUR * L.sigmaDay(VOL) * Math.sqrt(8 / Math.PI);
+    const HI = LO + ratio * denom;
+    const market = [], fut = {}, analysis = [], funding = {};
+    market.push({ symbol: 'BTCUSDT', lastPrice: '68000', priceChangePercent: '0.4',
+                  quoteVolume: '900000000', highPrice: '68500', lowPrice: '67500',
+                  count: '900000', bidPrice: '67999', askPrice: '68001' });
+    for (let i = 0; i < L.tokens.length; i++) {
+        const t = L.tokens[i];
+        const wild = !!t.fut;
+        const tick = {
+            symbol: t.s, lastPrice: String(CUR), priceChangePercent: '1.5',
+            quoteVolume: '90000000',
+            highPrice: wild ? String(LO + 40 * denom) : String(HI),
+            lowPrice: String(LO),
+            count: '120000', bidPrice: '99.99', askPrice: '100.01'
+        };
+        if (wild) fut[t.s] = tick; else market.push(tick);
+        funding[t.s] = 0.0001;
+        analysis.push({
+            symbol: t.name, error: false, volatility: VOL,
+            min_price: 70, max_price: 140, min30: 80, max30: 130,
+            corr_90: 0.7, up_beta: 1.1, down_beta: 1.2, up_r2: 0.4, down_r2: 0.45,
+            up_beta_90: 1.05, down_beta_90: 1.15, up_r2_90: 0.42, down_r2_90: 0.44,
+            r7: 0.02, r14: -0.03, r30: 0.05, vol7: 0.011, eff14: 0.3,
+            vol_ratio: 1.0, rank: 30 + i, rank_prev: 30 + i, fdv_mc: 1.2,
+            price_pos: 50
+        });
+    }
+    return {
+        botData: { generated_at: '2026-08-24T09:00:00Z',
+                   btc: { min_price: 58244, max_price: 77847, volatility: 0.0102,
+                          r7: 0.01, r14: 0.02, r30: 0.03 },
+                   analysis_data: analysis },
+        market: market, fut: fut, funding: funding
+    };
+}
+
+function liveRender(L, book, side) {
+    L.botData = book.botData;
+    L.cachedMarketData = book.market;
+    L.cachedFutTickers = book.fut;
+    L.cachedFunding = book.funding;
+    L.currentSide = side;
+    L.currentStress = 'normal';
+    L.currentLev = 3;
+    L.showOff = false;
+    L.boardSym = null;
+    L.entryState = {};
+    L.document.getElementById('slider').value = '69000';
+    L.__captured['results'] = '';
+    L.update();
+    return { html: L.__captured['results'] || '',
+             day: L.lastRegime ? L.lastRegime.day : undefined,
+             rows: L.lastRows.length };
+}
+
+{
+    const L = loadLive(src);
+    ok('the live context evaluated production', typeof L.update === 'function');
+    ok('the live context sees the real token registry',
+       Array.isArray(L.tokens) && L.tokens.length > 20, String(L.tokens && L.tokens.length));
+
+    // The straddle is relative 1e-9, not one ULP: the book travels through
+    // String() and parseFloat() the way a ticker does, and a ratio rebuilt from
+    // hi - lo over a recomputed denominator round-trips only to about one ULP.
+    // 1e-9 is seven orders of magnitude above that noise and eleven below
+    // anything a toFixed on this book can print, so the two renders differ in
+    // the measure and in nothing a reader could see.
+    const QUIET = TH * (1 - 1e-9), LOUD = TH * (1 + 1e-9);
+    const rendered = {};
+    [['long', true], ['short', false]].forEach(function (sideCase) {
+        const side = sideCase[0];
+        const a = liveRender(L, liveBook(L, QUIET), side);
+        const b = liveRender(L, liveBook(L, LOUD), side);
+        rendered[side] = { a: a, b: b };
+
+        // 1. update() wrote reg.day, and it is the shape listExhaustion returns.
+        ok(side + ': update() wrote reg.day', a.day !== undefined && a.day !== null);
+        eq(side + ': reg.day has the measure shape',
+           a.day ? Object.keys(a.day).sort().join(',') : '', 'abnormal,median,n');
+        // 2. The two books really straddle the constant (inv. 23): without this
+        //    the whole comparison below could be two identical quiet renders.
+        ok(side + ': the quiet book is measured', a.day.median !== null);
+        ok(side + ': the loud book is measured', b.day.median !== null);
+        ok(side + ': the quiet median is strictly below the constant',
+           a.day.median < TH, String(a.day.median));
+        ok(side + ': the loud median is strictly above the constant',
+           b.day.median > TH, String(b.day.median));
+        eq(side + ': the quiet book is not abnormal', a.day.abnormal, false);
+        eq(side + ': the loud book IS abnormal', b.day.abnormal, true);
+        // 3. The venue rule survived the live path: the three fut tokens carry a
+        //    40-sigma range and would have dragged the median if counted.
+        eq(side + ': the measure counted the spot tokens only', a.day.n, b.day.n);
+        eq(side + ': n equals the declared spot count', a.day.n,
+           L.tokens.filter(function (t) { return !t.fut; }).length);
+        // 4. The render reached the screen at all.
+        ok(side + ': the quiet render produced a list', a.html.length > 1000);
+        ok(side + ': the loud render produced a list', b.html.length > 1000);
+
+        // 5. THE claim. The loud render is the quiet render plus exactly one
+        //    day line, and nothing else moved.
+        const line = P.regimeBanner({ known: true, mode: 'range', dir: 0, z: 0.1,
+                                      day: b.day }, side === 'long')
+                      .slice(P.regimeBanner({ known: true, mode: 'range', dir: 0, z: 0.1 },
+                                            side === 'long').length);
+        ok(side + ': a day line was derived for the differ', line.length > 0);
+        eq(side + ': the quiet render carries no day line', a.html.indexOf(WORD), -1);
+        eq(side + ': the loud render carries exactly one day line',
+           b.html.split(line).length - 1, 1);
+        eq(side + ': removing the day line reproduces the quiet render byte for byte',
+           b.html.split(line).join(''), a.html);
+        console.log('  ' + side + ': quiet median ' + a.day.median.toFixed(12)
+                  + ' n=' + a.day.n + ' dayLine=' + (a.html.indexOf(WORD) >= 0)
+                  + '  |  loud median ' + b.day.median.toFixed(12)
+                  + ' n=' + b.day.n + ' dayLine=' + (b.html.indexOf(WORD) >= 0)
+                  + '  |  rest identical: '
+                  + (b.html.split(line).join('') === a.html));
+    });
+
+    // 6. The day state does not depend on the side the Boss selected: the same
+    //    book must produce the same reg.day in LONG and in SHORT.
+    eq('the day state is the same in LONG and SHORT',
+       JSON.stringify(rendered.long.b.day), JSON.stringify(rendered.short.b.day));
+
+    // 7. Side «none»: the banner is not rendered at all, so no day line either,
+    //    and reg.day is still computed — it is unconditional by construction.
+    {
+        const c = liveRender(L, liveBook(L, LOUD), 'none');
+        ok('side none still computes reg.day', c.day !== undefined && c.day !== null);
+        eq('side none: reg.day is abnormal all the same', c.day.abnormal, true);
+        eq('side none prints no day line', c.html.indexOf(WORD), -1);
+    }
+}
+console.log('  compared: ' + N.live);
+
+// ───────────────────────────────────────────────────────────────────────────
+section = 'surfaces';
+console.log('=== L. One sentence, both surfaces (TZ-14 D5, inv. 33) ===');
+// Inv. 33 names the defect: the card list and the board are two surfaces of the
+// same verdict, and a board silent about what the list said is the same bug as
+// a list silent about what the board said. The sentence is compared as a
+// STRING between the two renders, not as a pair of substrings that merely look
+// alike.
+{
+    const L = loadLive(src);
+    const book = liveBook(L, TH * (1 + 1e-9));
+    const listRes = liveRender(L, book, 'long');
+    ok('the list render is abnormal', listRes.day && listRes.day.abnormal === true);
+    const sentence = L.dayStateNote(listRes.day);
+    ok('a sentence exists to compare', sentence.length > 0);
+
+    // Surface 1 — the card list, through the banner.
+    ok('the card list carries the sentence', listRes.html.indexOf(sentence) > 0);
+    eq('the card list carries it exactly once',
+       listRes.html.split(sentence).length - 1, 1);
+
+    // Surface 2 — the board, through «РИСК ВЫНОСА», rendered by production's
+    // own renderBoard over the same lastRows the list just produced.
+    L.boardSide = 'long';
+    L.boardSym = L.lastShownSyms[0];
+    L.__captured['board'] = '';
+    L.renderBoard();
+    const boardHtml = L.__captured['board'] || '';
+    ok('the board rendered', boardHtml.length > 500, String(boardHtml.length));
+    ok('the board carries the sentence', boardHtml.indexOf(sentence) > 0);
+    eq('the board carries it exactly once', boardHtml.split(sentence).length - 1, 1);
+    eq('the two surfaces print the IDENTICAL sentence',
+       boardHtml.slice(boardHtml.indexOf(sentence), boardHtml.indexOf(sentence) + sentence.length),
+       listRes.html.slice(listRes.html.indexOf(sentence), listRes.html.indexOf(sentence) + sentence.length));
+    // §3.7 / inv. 19: the sentence rides in a bd-kv, and the section keeps its
+    // metal ring — an inline style on the .bd-sec would kill it.
+    const SQZ_H = '\u0420\u0418\u0421\u041a \u0412\u042b\u041d\u041e\u0421\u0410';   // РИСК ВЫНОСА
+    const at = boardHtml.indexOf(SQZ_H);
+    ok('the board carries the squeeze-risk block', at > 0);
+    const secStart = boardHtml.lastIndexOf('<div class="bd-sec', at);
+    eq('no inline style on the squeeze-risk .bd-sec',
+       boardHtml.substring(secStart, at).indexOf('style='), -1);
+    ok('the sentence sits inside the squeeze-risk block',
+       boardHtml.indexOf(sentence) > at);
+    // The caption is unchanged and still follows the sentence.
+    const CAPT = '1,0 \u2014 \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c';   // 1,0 - obychnyy den
+    ok('the caption survives and follows the sentence',
+       boardHtml.indexOf(CAPT) > boardHtml.indexOf(sentence));
+    // A quiet day must silence BOTH surfaces, or «both print it» is vacuous.
+    {
+        const quiet = liveRender(L, liveBook(L, TH * (1 - 1e-9)), 'long');
+        eq('a quiet day silences the card list', quiet.html.indexOf(WORD), -1);
+        L.boardSym = L.lastShownSyms[0];
+        L.__captured['board'] = '';
+        L.renderBoard();
+        eq('a quiet day silences the board', (L.__captured['board'] || '').indexOf(WORD), -1);
+    }
+    console.log('  sentence: ' + sentence);
+}
+
+// D5's second claim: the identifier occurs in exactly three enclosing sites in
+// index.html — the declaration, listExhaustion, dayStateNote — using the brace
+// matcher section H already carries. A fourth site would be a second place
+// where the threshold is spent, which is what inv. 20 exists to prevent.
+//
+// Counted over CODE, not over prose: the same state machine cutFunction uses to
+// tell a string from a comment strips the comments first, so a doc comment that
+// explains the constant is not mistaken for a place that reads it.
+function stripComments(source) {
+    let out = '';
+    let inS = null, inLine = false, inBlock = false, inRe = false, esc = false, prev = '';
+    for (let i = 0; i < source.length; i++) {
+        const c = source[i];
+        if (inLine) { if (c === '\n') { inLine = false; out += c; } continue; }
+        if (inBlock) { if (c === '*' && source[i + 1] === '/') { inBlock = false; i++; } continue; }
+        if (inS) { out += c;
+                   if (esc) { esc = false; } else if (c === '\\') { esc = true; }
+                   else if (c === inS) { inS = null; prev = c; } continue; }
+        if (inRe) { out += c;
+                    if (esc) { esc = false; } else if (c === '\\') { esc = true; }
+                    else if (c === '/') { inRe = false; prev = c; } continue; }
+        if (c === '/' && source[i + 1] === '/') { inLine = true; i++; continue; }
+        if (c === '/' && source[i + 1] === '*') { inBlock = true; i++; continue; }
+        if (c === '"' || c === "'" || c === '`') { inS = c; prev = c; out += c; continue; }
+        if (c === '/') {
+            out += c;
+            if (/[\w$)\]'"`]/.test(prev)) { prev = c; continue; }   // division
+            inRe = true; continue;
+        }
+        out += c;
+        if (!/\s/.test(c)) prev = c;
+    }
+    return out;
+}
+{
+    const code = stripComments(src);
+    ok('the comment stripper kept the code', code.indexOf('function listExhaustion(') > 0);
+    ok('the comment stripper removed the prose',
+       code.indexOf('The ONE site that compares against') < 0);
+    const total = (code.match(/\bDAY_RANGE_ABNORMAL\b/g) || []).length;
+    const decls = (code.match(/\bvar\s+DAY_RANGE_ABNORMAL\s*=/g) || []).length;
+    eq('exactly one declaration', decls, 1);
+
+    const SITES = ['listExhaustion', 'dayStateNote'];
+    let inFunctions = 0;
+    const per = [];
+    SITES.forEach(function (fn) {
+        const body = cutFunction(code, fn);
+        ok(fn + ' is cut from the stripped source', body !== null);
+        const c = body === null ? 0 : (body.match(/\bDAY_RANGE_ABNORMAL\b/g) || []).length;
+        eq(fn + ' names DAY_RANGE_ABNORMAL exactly once', c, 1);
+        inFunctions += c;
+        per.push(fn + '=' + c);
+    });
+    eq('three enclosing sites in total, and no fourth', decls + inFunctions, total);
+    eq('the total is three', total, 3);
+    // The comparison itself lives in listExhaustion and nowhere else.
+    const cmp = (cutFunction(code, 'listExhaustion') || '')
+                 .match(/>=\s*DAY_RANGE_ABNORMAL/g) || [];
+    eq('listExhaustion carries the one >= comparison', cmp.length, 1);
+    eq('and it is >=, never >',
+       /[^>=]>\s*DAY_RANGE_ABNORMAL/.test(cutFunction(code, 'listExhaustion') || ''), false);
+    const noteBody = cutFunction(code, 'dayStateNote') || '';
+    eq('dayStateNote compares nothing against the constant',
+       /[<>]=?\s*DAY_RANGE_ABNORMAL|DAY_RANGE_ABNORMAL\s*[<>]=?/.test(noteBody), false);
+    // Nobody else may compare against it either: every other top-level function
+    // is cut and required to be silent about the constant.
+    const OTHERS = ['regimeBanner', 'boardHtml', 'update', 'scoreCandidate',
+                    'tradeGeometry', 'leverageDecision', 'directionVerdict',
+                    'liqPrice', 'tierBadge', 'byScore', 'assignRanks', 'planLine',
+                    'marketRegime', 'numRu'];
+    OTHERS.forEach(function (fn) {
+        const body = cutFunction(code, fn);
+        ok(fn + ' is cut from the stripped source', body !== null);
+        eq(fn + ' never names DAY_RANGE_ABNORMAL',
+           body === null ? -1 : (body.match(/\bDAY_RANGE_ABNORMAL\b/g) || []).length, 0);
+    });
+    console.log('  DAY_RANGE_ABNORMAL code sites: declaration=' + decls
+              + ', ' + per.join(', ') + '  total=' + total
+              + '  (comments included: '
+              + ((src.match(/\bDAY_RANGE_ABNORMAL\b/g) || []).length) + ')');
+}
+console.log('  compared: ' + N.surfaces);
 
 // ───────────────────────────────────────────────────────────────────────────
 const sum = Object.keys(N).reduce(function (a, k) { return a + N[k]; }, 0);
