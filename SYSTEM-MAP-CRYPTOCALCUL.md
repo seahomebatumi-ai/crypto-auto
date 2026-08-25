@@ -12,14 +12,18 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-25-a.** Baseline: TZ-14 merged (PR #14, `44e100b`).
+**Revision 2026-08-25-b.** Baseline: TZ-15 merged into `main`; implementation
+commit `c8be42b`, report `CryptoReports/TZ-15-caption-truth-report.md`.
 
-Every TZ header quotes this block. The Executor compares it against the
-repository copy before doing any work (contract §5); a mismatch is BLOCKED.
+Every TZ header quotes this block IN FULL — all six anchors and the file table,
+never a subset. The Executor compares it against the repository copy before doing
+any work (contract §5); a mismatch is BLOCKED. The baseline names the
+implementation commit, not the merge commit: a merge commit carries no content,
+and content is what this block exists to pin.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-25-a.**` |
+| revision | `**Revision 2026-08-25-b.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -30,7 +34,7 @@ Live files at this revision:
 
 | File | Lines | MD5 |
 |---|---:|---|
-| `index.html` | 3727 | `38d862bf3990b88dc8fcf5bc76d35015` |
+| `index.html` | 3729 | `fdf331906bf205944b25e3635135789c` |
 | `main.py` | 506 | `1a5a5d98b2fd76010f202ee3eebaa717` |
 | `catalysts.json` | 11 | `021dd2c90dc395240c0b0c3dbae40426` |
 | `bench/exhaustion-calibration.txt` | 175 | `3b8730b254467c9df4c0a845a0f3cfb3` |
@@ -42,17 +46,18 @@ provenance file can drift unnoticed is pinned to nothing. Both directions were
 proven red before the gate was trusted: a deleted record and a source constant
 moved to `1.40` each exit non-zero naming exactly what disagreed.
 
-Gate at this revision: `bench.yml`, **12 steps, 1 250 613 checks**, green on the
-hosted runner for `main` at this commit. The number is a sum of per-comparison
-counters (inv. 43), not an estimate. TZ-14 moved exactly one step: 12
-(`exhaustion_bench.js`) 220 290 → 220 534, **+244**, term by term — four sections
-that did not exist (`record` 8, `threshold` 24, `live` 38, `surfaces` 54) and
-three that its own comments predicted would grow: `inert` 30 → 120 (each of the
-ten banner keys gained the loud half), `purity` 22 → 36 (`dayStateNote` and
-`numRu`), `wiring` 15 → 31 (the `reg.day` reader/producer contract). `identity`
-200 002, `nulls` 20 027, `quorum` 65, `venue` 25, `banner` 52, `stress` 51 and
-`control` 1 are unmoved; two of them rewrote a vacuous check into a real one at
-the same count, which is a gain the total cannot show.
+Gate at this revision: `bench.yml`, **12 steps, 1 250 677 checks**, green on the
+hosted runner (run `32780919062`, head `c8be42b`, all 12 steps `success`). The
+number is a sum of per-comparison counters (inv. 43), not an estimate. TZ-15 moved
+exactly one step: 12 (`exhaustion_bench.js`) 220 534 → 220 598, **+64**, term by
+term — one section that did not exist, `caption`, decomposing as preamble 2, scope
+16 (M5), denial scan 14 (M1), what-remains-true 14 (M2), inv. 20 sites 7 (M3),
+negative control 11 (M4). All fourteen pre-existing counters of that bench are
+unmoved — `identity` 200 002, `nulls` 20 027, `quorum` 65, `venue` 25, `banner` 52,
+`stress` 51, `inert` 120, `purity` 36, `control` 1, `wiring` 31, `record` 8,
+`threshold` 24, `live` 38, `surfaces` 54 — and so are steps 1–11, which for a
+change touching one display string, one comment and one bench is the required
+result rather than a pleasant one.
 
 **Step 7's count moves with verdict CONTENT, not only with control volume.**
 `journal_bench.js` counts numeric leaves of the records it writes, and a verdict
@@ -60,10 +65,11 @@ that returns before geometry writes no `geo` object; symmetric stress (§3.12
 Layer 0) therefore removed 2 921 leaves without removing a single control. The
 total stays one sum — inv. 43 already requires any delta to be explained term by
 term — but a fall in step 7 is attributed, never assumed benign, because a defect
-that nulls a field lowers it identically. **TZ-13 and TZ-14 both held it at
-691 109**, and that is a statement rather than an absence: two changes that put a
-list-wide measure on the screen moved no verdict, which is the whole-board
-differ's finding read from the other side.
+that nulls a field lowers it identically. **TZ-13, TZ-14 and TZ-15 have all held
+it at 691 109**, and that is a statement rather than an absence: two changes that
+put a list-wide measure on the screen and one that rewrote the sentence describing
+it moved no verdict, which is the whole-board differ's finding read from the other
+side.
 
 **A TZ has executed if and only if `CryptoReports/` holds a report with its
 number.** `CryptoTZ/TZ-03-report-delivery.md` has no report and never ran: it was
@@ -852,8 +858,15 @@ spot index, and the basis is the difference.
 built on the journal is a statement about 25 assets. Closing that gap would
 require a second price source bought for three rows.
 
-Reversed if Binance relists XMR or LIT on spot with real volume: that is a
-`tokens[]` edit plus this paragraph, not a code change anywhere else.
+Reversed if Binance relists XMR or LIT on spot with real volume — and since TZ-15
+that is no longer a `tokens[]` edit plus this paragraph. The «РИСК ВЫНОСА» caption
+states the coverage as a static «25 спотовым монетам» (§3.17), and section M of
+`exhaustion_bench.js` pins that caption as one exact string, so the reversal is
+four moves in one change: `tokens[]`, this paragraph, that literal and that
+expectation. The gate is red until all four move together, which is the safe
+direction — a declaration and the sentence describing it cannot drift apart
+quietly (inv. 20, 50). The count in the caption is a code site of the coverage in
+everything but syntax.
 
 ### 3.15 Catalyst registry — `catalysts.json`
 
@@ -1077,7 +1090,11 @@ side, and the record `journal/write.js` would write stays byte-identical at
 perturbation, `geo.wait` on SHORT, moves identically on the pre-TZ-14 revision: it
 is the entry-chase anchor's long-standing dependency on the 24-hour range, not a
 new coupling. That two-sided form of the test is the general one — a perturbation
-that moves a field on both revisions has proven nothing about the change.
+that moves a field on both revisions has proven nothing about the change. TZ-15 ran
+the identical protocol on a harness written fresh and read 0 of **1 240** fields
+with the journal record byte-identical again: the field count is a property of the
+harness's own enumeration and the two totals are not a discrepancy, while the
+result replicating across two independent harnesses is worth more than either run.
 
 `[решение принято мной]` Discarded: making exhaustion a Layer 1 veto. At the
 adopted line it would close roughly a tenth of all sessions on both sides on the
@@ -1089,6 +1106,11 @@ snapshot and a whole date sits in one file, so both the coin-day ratio and the
 list median are reconstructible by replaying production's own functions
 (inv. 21, 38). Recording `reg.day` in the journal is therefore rejected as
 duplication, and it would move step 7's content-sensitive count for nothing.
+**The decision now has a text dependency, and it is mechanical rather than
+remembered:** since TZ-15 the caption tells the Boss in his own language that this
+is «мера дня, а не запрет», so a TZ reopening the veto must repair that sentence in
+the same change (inv. 50) — and it cannot forget, because section M pins the
+caption as one exact string and turns red on any rewrite.
 
 Two decile tables are on file: the coin-day one in
 `CryptoReports/TZ-11-exhaustion-threshold-report.md`, the list-median one in the
@@ -1136,12 +1158,35 @@ interpretable without a threshold because the unit is derived, not chosen:
 Layer 1 — an assertion about geometry that needs no forecast — and it adds no
 ranking factor, so §3.10b's resolution ceiling is untouched.
 
-**The block's caption still denies the threshold printed above it, and that is a
-live defect (inv. 50).** It reads «Число печатается как есть — порога нет,
-сравнения нет…» one line below a line reading «порог 1,39». TZ-14's file list did
-not include the caption and the Executor was right to leave it; the sentence is
-repaired by TZ-15. The caption's second half — that the number reaches no score,
-no leverage and no verdict — is true and proven (§3.16).
+**The caption states the mechanism it used to deny (TZ-15, inv. 50).** Until TZ-15
+it read «Число печатается как есть — порога нет, сравнения нет…» one line below a
+line reading «порог 1,39»: the board contradicting itself two lines apart in the
+reader's own language, with no way for him to tell which half was stale. It now
+says what the line MEANS — 1,0 is an ordinary day because `E[range] = σ·√(8/π)` is
+derived and not chosen; the threshold is the 90th percentile of the LIST MEDIAN
+over the three-year archive, which names the object rather than the coin-day
+distribution it was once wrongly measured on (inv. 47); it is a measure of the day
+and not a prohibition, reaching no score, no leverage and no verdict (inv. 27,
+proven in §3.16); and the list is the 25 spot coins, the three futures-only assets
+excluded (§3.14). **The caption deliberately does not print `1,39`:** the constant
+keeps exactly three code sites, and a literal in static prose would be a fourth in
+a form no re-calibration could reach (inv. 20). The value is already one line
+above, printed by `dayStateNote` on the days it matters.
+
+**The caption is now a checked claim rather than prose.** Section M of
+`exhaustion_bench.js` (64 checks) locates the block exactly as section L does and
+asserts, on a quiet and a loud render both: six denial phrasings absent, the
+sentence equal to its specification character for character, `numRu(
+DAY_RANGE_ABNORMAL, 2)` read through the live context present in the day line and
+absent from the caption, and a control that plants the pre-TZ-15 caption back into
+a copy of the source fires the scan and names both denials. **The control is worth
+more than the assertion:** with the old caption restored, sections A through L all
+stay green and only M turns red — TZ-14's gate genuinely could not see the
+contradiction, measured rather than argued. Two couplings the next TZ inherits: M2
+pins the sentence, so a legitimate rewrite of the caption moves the bench in the
+same change; and M1 is a blacklist of six phrasings, so a denial worded outside it
+would pass M1 and be caught only by M2's equality — which is why the equality, not
+the scan, is the load-bearing half.
 
 **Degradation is stated, never hidden** (inv. 9): no `volatility` → the sigma
 distance and the 24h probability go, the block lives; `E ≤ 0` or non-finite `liq`
@@ -1230,16 +1275,20 @@ read as a promise.
     on-screen sentence or a checklist clause asserting that some mechanism does
     NOT exist — «порога нет, сравнения нет», «no threshold word appears anywhere
     in the block» — is load-bearing text that turns false the moment the mechanism
-    is built, and no bench catches it: a bench compares behaviour against a
-    specification, while this is a claim ABOUT the specification. Therefore a TZ
+    is built, and no bench comparing BEHAVIOUR catches it: such a bench measures
+    the specification, while this is a claim ABOUT the specification. Therefore a TZ
     that builds a mechanism enumerates every place that currently denies it and
     either repairs them in the same TZ or records the contradiction together with
     the TZ that closes it. A denial that outlives its subject is the board
     contradicting itself in the reader's own language, two lines apart, and the
     reader has no way to tell which half is stale. TZ-14 adopted
     `DAY_RANGE_ABNORMAL`, printed «порог 1,39» in §3.17 and left the caption
-    beneath it saying there is no threshold — the Executor was right to obey its
-    file list and the specification was wrong to omit the sentence.
+    beneath it denying any threshold; the Executor was right to obey its file list
+    and the specification was wrong to omit the sentence. **TZ-15 repaired it and
+    supplied the general remedy:** a denial escapes the gate only while it is prose,
+    so the sentence is asserted as one exact string beside a control that plants the
+    old wording back and must fail. A stated absence nobody can plant and catch is
+    not yet checked.
 
 ---
 
@@ -1279,8 +1328,10 @@ read as a promise.
     screen, never zero; the threshold is named inside this block and nowhere else
     on the board or the card, and inside it only through the `dayStateNote`
     sentence and only when the day is abnormal; the caption denies no mechanism
-    the block has (inv. 50); the `.bd-sec` carries no inline `style`, so the metal
-    ring survives (§3.7).
+    the block has AND states the ones it does — the derived unit, the object of the
+    threshold, the inv. 27 words and the 25-coin coverage — equal to its
+    specification character for character (inv. 50, gate section M); the `.bd-sec`
+    carries no inline `style`, so the metal ring survives (§3.7).
 16. Regime symmetry (§3.12): a BTC week at `z ≥ +REG_STRESS_Z` prints «РЫНОК
     ПЕРЕГРЕТ» in red and no card is tradable on either side; at `z ≤ −REG_STRESS_Z`
     the wording is «СТРЕСС РЫНКА», also red; `dir` is 0 in both.
@@ -1371,11 +1422,12 @@ only when its trigger fires.
 | Journal storage growth | watched | ~73 KB/day. Act if the repository becomes unwieldy; records are immutable (inv. 38), so the answer is archival, never deletion |
 | Catalyst registry content | live, one confirmed entry | analyst work, delivered as a TZ; entries never promoted to `confirmed` without a primary source (inv. 39) |
 | `DAY_RANGE_ABNORMAL` and its consumer (§3.16) | **closed by TZ-14**: 1.39 declared once, compared once with `>=`, worded once; both surfaces print the same sentence; pinned to the record by gate step 12 | nothing. Re-opened only by a re-calibration, which is the row below |
-| §3.17 caption denies the threshold it prints (inv. 50) | live defect: «порога нет, сравнения нет» sits one line under «порог 1,39» | TZ-15, which also installs the gate control that makes a stated absence checkable |
+| §3.17 caption (inv. 50) | **closed by TZ-15**: the caption states the derived unit, the object of the threshold, the inv. 27 words and the coverage; gate section M pins it as one exact string and its control proves sections A–L cannot see a denial | nothing |
+| The caption's own couplings | live, deliberate | any TZ that rewrites the caption (M2 fails until the bench moves with it), reopens the exhaustion veto (§3.16) or relists a `fut:true` asset on spot (§3.14) — each must move the sentence in the same change |
 | Re-running the calibration | frozen, deliberately | nothing at present. `calib.yml`'s paths filter names `calib.yml` itself, so ANY edit to that workflow re-fires the whole 3-year run on the branch and commits a fresh record — on a longer archive, which can move the p90 away from the adopted constant and turn the inv. 46 bench red. Editing it is therefore a re-calibration, never a touch-up, and the stale `(TZ-11 stage B)` in its hardcoded commit message stays until a TZ genuinely needs a new run |
 | `calib.yml` commits the record only on a PASS | correct, recorded so it stops being re-reported | nothing. The commit step has no `if: always()`, so a refused run leaves no repository record and only an artifact — which is the intent: a record pinning no constant would look authoritative and pin nothing |
 | `badge_bench.js`, `clean_bench.py` unwired | deliberate, documented in `bench.yml`'s own header | nothing. Both are two-input differs needing a `before` file the repository does not carry, so they are manual tools, not controls (inv. 37). Named here so the monthly audit stops rediscovering them |
-| `journal_bench.js` count is content-sensitive | watched; held at 691 109 through TZ-13 and TZ-14 | step 7 falls when a verdict writes fewer fields, exactly as it would if a defect nulled one. Act on the first step-7 delta that cannot be attributed field by field, or on any TZ touching `journal/write.js` |
+| `journal_bench.js` count is content-sensitive | watched; held at 691 109 through TZ-13, TZ-14 and TZ-15 | step 7 falls when a verdict writes fewer fields, exactly as it would if a defect nulled one. Act on the first step-7 delta that cannot be attributed field by field, or on any TZ touching `journal/write.js` |
 | `NaN% от входа` at `E ≤ 0` in «ГРАНИЦЫ СДЕЛКИ» | pre-existing, unreachable live | any TZ touching that block. `Math.abs(liqSel / E - 1)` at `E = 0` is `0/0`; entry price is never zero on a live board, so it buys a diff and no safety |
 | Raw Cyrillic literal at `bench/prot_bench.js:177` | pre-existing, bench-only | any TZ editing that bench. It violates the ES5/escape rule the frontend keeps, in a file no browser loads |
 | `prot_bench.js` optional baseline suite | repaired in TZ-11 — neither side stripped, unconditional identity run inside the default suite, comparison counter with a zero-comparison guard | nothing; inv. 45 is now satisfied by the gate itself |
