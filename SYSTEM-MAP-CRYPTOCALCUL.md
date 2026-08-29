@@ -14,8 +14,8 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-29-a.** Baseline: TZ-17 merged into `main`; implementation
-commit `850e263`, report `CryptoReports/TZ-17-analyst-engine-build-report.md`. **The
+**Revision 2026-08-29-b.** Baseline: TZ-18 merged into `main`; implementation
+commit `8f45ea8`, report `CryptoReports/TZ-18-gate-floor-and-md-filter-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
 
@@ -25,13 +25,13 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-29-a.**` |
+| revision | `**Revision 2026-08-29-b.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `52. **A deny-list filter is proven against real paths, never against its own intent.**` |
+| newest invariant | `52. **A filter is measured on the runner, never derived from the pattern.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -46,11 +46,14 @@ The calibration record is fingerprinted, unlike every other bench artifact, beca
 it is one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists and gate step 12
 compares the two on every push (inv. 46).
 
-Gate at this revision: `bench.yml`, **13 steps, 1 250 712 checks**, green on the
-hosted runner (run `33241068850`, head `850e263`, all 13 steps `success`). TZ-17
-added step 13 (`analyst/live-gate.sh --selftest`, **35**) and moved steps 1–12 by
-exactly zero — a change that writes no production file and moves a production counter
-is a defect, so the zero is the required result rather than a pleasant one. The
+Gate at this revision: `bench.yml`, **13 steps, 1 250 717 checks**, green on the
+hosted runner (run `33251833997`, head `8f45ea8`, all 13 steps `success`). Step 13
+(`analyst/live-gate.sh --selftest`) arrived with TZ-17 at **35** and reads **40** after
+TZ-18 added two freshness cases; steps 1–12 have not moved through either change, which
+for changes writing no production file is the required result rather than a pleasant
+one. Step 13's counter is assertions and not cases — three per failing case (exit code ·
+empty stdout · exactly one stderr line) and two per passing case — so 12 × 3 + 2 × 2 = 40
+and the +5 is attributable without inspecting the script. The
 number is a sum of per-comparison counters (inv. 43), never an estimate, and every
 delta between revisions is attributed term by term. TZ-15 moved exactly one step:
 12 (`exhaustion_bench.js`) 220 534 → 220 598, **+64**, one new section `caption`
@@ -1224,19 +1227,27 @@ cite them, so an invariant is rewritten in place and never renumbered.
     a hard zero would refuse healthy data every time they disagree by a second. The
     one-sided form is invisible in testing because every fixture a author writes is
     in the past.
-52. **A deny-list filter is proven against real paths, never against its own intent.**
-    `'**/*.md'` carries a literal separator, so it never matches a root-level file:
-    a filter written to mean «no Markdown starts the bot» started it on every upload
-    of the map or a contract, and nothing anywhere reported it, because a filter that
-    fails open produces a workflow that runs and succeeds. Green is not evidence about
-    a filter. Any `paths` or `paths-ignore` entry is therefore evaluated against a
-    changed-file list taken from `git diff --name-only` rather than typed, in **both**
-    directions — with the pattern and without it — and against a control path that
-    must still fire, since a filter matching everything also passes the first test.
-    This is inv. 45 applied to a matcher: a comparator never proven on identity, and a
-    filter never proven to exclude, support no claim. A `paths-ignore` list with no
-    `paths` allow-list beside it fires on every path nobody thought to name, which is
-    the shape that produced this entry and remains the shape in `main.yml`.
+52. **A filter is measured on the runner, never derived from the pattern.**
+    Glob semantics differ between matchers on exactly the cases that matter, so a
+    reading of a pattern is a hypothesis about a third party's code and never a fact
+    about it. This entry exists because the Architect derived one and was wrong:
+    `'**/*.md'` was declared unable to match a root-level file, an invariant was
+    written on that reading, and a corrective TZ was issued — while the repository's
+    own run history already showed three pushes of root-level Markdown, none of which
+    started the bot. The pattern had always matched. **The evidence was older than the
+    error and nobody had looked.** Therefore: any claim about a `paths` or
+    `paths-ignore` entry is settled first against runner history for paths that have
+    actually been pushed, and only where history is silent by evaluation against a
+    changed-file list taken from `git diff --name-only` rather than typed — in **both**
+    directions, with the pattern and without it, and against a control path that must
+    still fire, since a filter matching everything also passes every «must not run»
+    row. This is inv. 45 applied to a matcher, and inv. 23's known-answer discipline
+    applied to a belief about someone else's implementation. Where two readings of a
+    pattern disagree, the pattern is replaced by one that reads the same under both —
+    `'**.md'` over `'**/*.md'` — because closing an ambiguity is a real gain even when
+    the behaviour does not move. A `paths-ignore` list with no `paths` allow-list
+    beside it still fires on every path nobody thought to name, which remains the
+    shape in `main.yml` and is a separate, open matter.
 ---
 
 ## 5. Limits
@@ -1381,9 +1392,11 @@ monthly audit stops rediscovering them.
 | `bench.yml` Node 20 pin | watched | GitHub already forces the actions onto Node 24 with a warning. Act when a step fails or the whole gate can be re-run as the validation |
 | `CryptoTZ/TZ-03-report-delivery.md` | never executed; declared dead by TZ-04 and retained as evidence, so no report exists by design | nothing — a specification without a report is never resurrected (contract §13) |
 | Analyst engine transport | **closed by TZ-17**: no network path; the payload is a file in the tree, the gate exits non-zero on stale, short or corrupt input, step 13 holds it | nothing. Re-opened only by a fresh egress measurement (§11) |
-| `live-gate.sh` check 3 is one-sided | **open, corrective TZ authored** | a payload timestamped ahead of the reader passes as fresh (inv. 51). Fixed by a floor on the age window |
-| `'**/*.md'` never matches a root-level file | **open, corrective TZ authored** | every upload of the map or a contract starts the bot (inv. 52). Fixed by `'**.md'` |
-| `analyst/live.json` has no producer yet | blocked on the Boss | the Shortcut still PATCHes the Gist. Until it writes the repository path, every analysis run publishes no levels — correct behaviour, unusable engine |
+| `live-gate.sh` check 3 is one-sided | **closed by TZ-18** | nothing. Window is `−120 … +900` s, both sides named in stderr, both constants single-site |
+| `'**/*.md'` root-level claim | **withdrawn by TZ-18** | nothing. The claim was false: runner history shows three root-Markdown pushes and no bot run. `'**.md'` was adopted anyway, for the ambiguity, not for a repair (inv. 52) |
+| `live-gate.sh` sits under `bench.yml`'s `analyst/**` ignore | **open** | a commit touching only the gate script skips step 13 — the gate's own control (inv. 37). Closed by narrowing the ignore to the analyst's written paths |
+| `analyst/live.json` producer emits a stray newline | **open, Boss-side** | the payload carries a raw LF inside `"LITUSDT\n"`, so the file is not valid JSON and the gate refuses it at check 1. A Shortcut fix, not a TZ |
+| Producer clock drift is unmeasured | watched | the floor refuses a payload more than 120 s ahead and nothing tracks approach. `age_sec` is signed and already recorded in the day log, so drift becomes visible before it becomes a refusal |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
 
 **Standing decisions.** No new coins beyond 28 · weights are never tuned · the
@@ -1422,6 +1435,12 @@ promise fails by returning something rather than by erroring, and a price behind
 stop may not depend on that. The Shortcut's collection is unchanged — same calls, same
 network, same payload — and only the destination moved, so the engine reads a file in
 its own tree and the transport leaves the design instead of being hardened.
+
+**The freshness window is two-sided:** `LIVE_SKEW_SEC = 120` s below, `LIVE_MAX_AGE_SEC
+= 900` s above, one declaration site each, both breaches sharing exit 3 and naming their
+side in stderr. The floor exists because the producer is a phone and the reader is not:
+a one-sided ceiling passes every payload stamped in the future, which is the failure the
+check exists to prevent arriving through the check itself (inv. 51).
 
 **`analyst/live-gate.sh` is the blocking gate and returns an exit code** (inv. 29),
 one distinct class per failure: unreadable or unparseable 2 · stale 3 · `n ≠ len(c)` 4
