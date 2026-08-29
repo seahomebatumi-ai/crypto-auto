@@ -14,8 +14,8 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-29-b.** Baseline: TZ-18 merged into `main`; implementation
-commit `8f45ea8`, report `CryptoReports/TZ-18-gate-floor-and-md-filter-report.md`. **The
+**Revision 2026-08-29-c.** Baseline: TZ-19 merged into `main`; implementation
+commit `cc8bade`, report `CryptoReports/TZ-19-gate-script-under-gate-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
 
@@ -25,13 +25,13 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-29-b.**` |
+| revision | `**Revision 2026-08-29-c.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `52. **A filter is measured on the runner, never derived from the pattern.**` |
+| newest invariant | `53. **A control is not wired until the trigger that reaches it has been measured.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -47,11 +47,11 @@ it is one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists and gate step
 compares the two on every push (inv. 46).
 
 Gate at this revision: `bench.yml`, **13 steps, 1 250 717 checks**, green on the
-hosted runner (run `33251833997`, head `8f45ea8`, all 13 steps `success`). Step 13
+hosted runner (run `33254327296`, head `cc8bade`, all 13 steps `success`). Step 13
 (`analyst/live-gate.sh --selftest`) arrived with TZ-17 at **35** and reads **40** after
-TZ-18 added two freshness cases; steps 1–12 have not moved through either change, which
-for changes writing no production file is the required result rather than a pleasant
-one. Step 13's counter is assertions and not cases — three per failing case (exit code ·
+TZ-18 added two freshness cases; steps 1–12 have not moved through TZ-17, TZ-18 or
+TZ-19, which for changes writing no production file is the required result rather than a
+pleasant one. Step 13's counter is assertions and not cases — three per failing case (exit code ·
 empty stdout · exactly one stderr line) and two per passing case — so 12 × 3 + 2 × 2 = 40
 and the +5 is attributable without inspecting the script. The
 number is a sum of per-comparison counters (inv. 43), never an estimate, and every
@@ -1248,6 +1248,20 @@ cite them, so an invariant is rewritten in place and never renumbered.
     the behaviour does not move. A `paths-ignore` list with no `paths` allow-list
     beside it still fires on every path nobody thought to name, which remains the
     shape in `main.yml` and is a separate, open matter.
+53. **A control is not wired until the trigger that reaches it has been measured.**
+    Inv. 37 says a bench outside the gate is not a control; this says a bench inside the
+    gate is not one either while the trigger excludes the commits that would exercise it.
+    `analyst/live-gate.sh` was step 13 of a green gate and sat under an ignore written for
+    the analyst's DATA, so a commit changing only the gate script started nothing — the
+    control existed, was wired, was green, and could not be reached by the one change it
+    exists to judge. The failure is invisible by construction, because the thing that would
+    have complained is the workflow that does not run. **An exclusion is written for a class
+    of file, but it is applied to a path**, so whenever one is added or widened the question
+    is not «is this data» but «does this path also hold a control». Proof is a real push
+    carrying only that file (inv. 52), never a reading of the pattern. The converse is the
+    price and is the right direction to fail in: a narrowed list must be extended whenever
+    the writing set grows, and a forgotten entry costs runner minutes loudly instead of
+    costing a control silently.
 ---
 
 ## 5. Limits
@@ -1394,8 +1408,11 @@ monthly audit stops rediscovering them.
 | Analyst engine transport | **closed by TZ-17**: no network path; the payload is a file in the tree, the gate exits non-zero on stale, short or corrupt input, step 13 holds it | nothing. Re-opened only by a fresh egress measurement (§11) |
 | `live-gate.sh` check 3 is one-sided | **closed by TZ-18** | nothing. Window is `−120 … +900` s, both sides named in stderr, both constants single-site |
 | `'**/*.md'` root-level claim | **withdrawn by TZ-18** | nothing. The claim was false: runner history shows three root-Markdown pushes and no bot run. `'**.md'` was adopted anyway, for the ambiguity, not for a repair (inv. 52) |
-| `live-gate.sh` sits under `bench.yml`'s `analyst/**` ignore | **open** | a commit touching only the gate script skips step 13 — the gate's own control (inv. 37). Closed by narrowing the ignore to the analyst's written paths |
-| `analyst/live.json` producer emits a stray newline | **open, Boss-side** | the payload carries a raw LF inside `"LITUSDT\n"`, so the file is not valid JSON and the gate refuses it at check 1. A Shortcut fix, not a TZ |
+| `live-gate.sh` sits under `bench.yml`'s `analyst/**` ignore | **closed by TZ-19** | nothing. Proven on the runner: a push carrying only the script now starts the gate |
+| `bench.yml`'s analyst ignore must grow with the written set | watched | any TZ or methodology change that adds a file the analyst writes. A forgotten entry burns a gate per run — loud, not silent (inv. 53) |
+| `analyst/live.json` producer emits a stray newline | **open, Boss-side — the last blocker** | the payload carries a raw LF inside `"LITUSDT\n"`, so the file is not valid JSON and the gate refuses it at check 1. A trailing newline in the Shortcut's symbol list, split on spaces. A Shortcut fix, not a TZ; until it lands the engine is complete and has no usable input |
+| First live analysis run | not yet performed | the payload parsing. Nothing in the repository blocks it |
+| CANON Part I amputation | prepared, held | one verified analysis run. Removing the Architect's engine before its replacement has produced a correct answer leaves no fallback |
 | Producer clock drift is unmeasured | watched | the floor refuses a payload more than 120 s ahead and nothing tracks approach. `age_sec` is signed and already recorded in the day log, so drift becomes visible before it becomes a refusal |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
 
@@ -1463,11 +1480,24 @@ known-answer cases, 35 assertions, offline. That step, not a fingerprint entry, 
 to the `## 0` table would put a hash in every TZ header for a file whose behaviour is
 already under a control.
 
-**`analyst/**` is in the `paths-ignore` of `main.yml` and `bench.yml`, and this is
-load-bearing.** Before TZ-17 a commit touching `analyst/state.json` started the bot —
-`main.py` with `GIST_TOKEN`, rewriting the live Gist, with a retry doubling the
-CoinGecko draw — so the engine saving its own state redrew 28 coins as a side effect.
-`main.yml` has no `paths` allow-list, only `paths-ignore`, so every path nobody named
+**The two workflows treat this tree differently, on purpose.** `main.yml` ignores
+`analyst/**` whole: no file here, script included, is a reason to start the bot, redraw 28
+coins through CoinGecko and rewrite the live Gist. Before TZ-17 it ignored none of them, so
+the engine saving its own state did exactly that, with a retry doubling the draw.
+`bench.yml` ignores only the three paths the analyst WRITES — `analyst/state.json`,
+`analyst/live.json`, `analyst/log/**` — because `analyst/live-gate.sh` is code whose control
+is step 13, and the wider form excluded the gate script from its own gate (inv. 53, measured
+on the runner: run `33254342462`, a push carrying only the script, which started nothing
+under the old filter). `analyst/README.md` needs no entry; `'**.md'` covers it.
+
+**That narrowing creates a coupling and it is deliberate.** Any NEW file the analyst writes
+must be added to `bench.yml`'s list, or it starts a 13-step gate on every analysis run.
+Making the coupling mechanical would need the written set to exist as data that both the
+filter and a bench read, i.e. a second list of three paths — rejected as worse than the
+coupling it removes (inv. 20). The failure is loud and costs runner minutes, which is the
+direction to fail in.
+
+`main.yml` still has no `paths` allow-list, only `paths-ignore`, so every path nobody named
 fires it (inv. 52).
 
 **Two states are permanent and different.** `analyst/state.json` is the working set —
