@@ -16,7 +16,7 @@
 # Exit codes — one distinct code per failure class (TZ-17 §3.A.3):
 #   0  every check passed
 #   2  payload missing, unparseable, or its `ts` is absent/unparseable   (checks 1, 2)
-#   3  payload is stale: now - ts > 900 s                                (check 3)
+#   3  payload lies outside the freshness window, either side            (check 3)
 #   4  `n` disagrees with len(c)                                         (check 4)
 #   5  a tokens[] symbol is absent from the payload                      (check 5)
 #   6  a `p`, `h` or `l` does not cast to a finite number > 0            (check 6)
@@ -44,6 +44,13 @@ import json, math, re, sys
 from datetime import datetime
 
 E_PARSE, E_STALE, E_COUNT, E_COVER, E_PRICE, E_NODATA, E_UNIVERSE = 2, 3, 4, 5, 6, 7, 8
+
+# The freshness window, both sides, declared once each (inv. 20): no comparison
+# site below carries either number as a literal. The floor exists because the
+# producer and the reader are different machines with independent clocks, and a
+# ceiling alone accepts every payload stamped in the future (TZ-18 §2).
+LIVE_MAX_AGE_SEC = 900   # ceiling: how far behind now the payload may be, in seconds
+LIVE_SKEW_SEC = 120      # floor: how far ahead of now the producer may plausibly be
 
 def die(code, msg):
     sys.stderr.write("live-gate: " + msg + "\n")
@@ -117,15 +124,24 @@ if ts.tzinfo is None:
     die(E_PARSE, "check 2: ts carries no UTC offset, its age is undefined: %r" % ts_raw)
 checked += 1
 
-# --- check 3: now - ts <= 900 s, now from `date -u` ------------------------
+# --- check 3: -LIVE_SKEW_SEC <= now - ts <= LIVE_MAX_AGE_SEC --------------
+# now comes from `date -u`. Both sides fail as E_STALE: no caller distinguishes
+# "too old" from "too new", both mean the payload is not usable as now. The
+# stderr line names the side, so the day log records them as different
+# observations (TZ-18 §2). age_sec keeps its sign and is never clamped.
 try:
     now = iso(now_iso)
 except ValueError:
     die(9, "internal: --now value is not parseable ISO-8601: %r" % now_iso)
 age = (now - ts).total_seconds()
 checked += 1
-if age > 900:
-    die(E_STALE, "check 3: payload is stale, age %.0f s exceeds 900 s" % age)
+if age > LIVE_MAX_AGE_SEC:
+    die(E_STALE, "check 3: payload is stale, age %.0f s exceeds the %d s ceiling"
+        % (age, LIVE_MAX_AGE_SEC))
+checked += 1
+if age < -LIVE_SKEW_SEC:
+    die(E_STALE, "check 3: payload is ahead of now, age %.0f s is below the -%d s floor"
+        % (age, LIVE_SKEW_SEC))
 
 # --- check 4: n equals len(c) ----------------------------------------------
 # Not redundant: TZ-16 used it to prove a whole file had been delivered rather
@@ -250,6 +266,10 @@ if case == "fresh":
     pass
 elif case == "stale16":
     pass                                   # caller supplies a ts 16 minutes old
+elif case == "future121":
+    pass                                   # caller supplies a ts 121 s ahead of now
+elif case == "future_ok":
+    pass                                   # caller supplies a ts 60 s ahead of now
 elif case == "no_ts":
     del doc["ts"]
 elif case == "n_mismatch":
@@ -280,6 +300,8 @@ with open(out_path, "w", encoding="utf-8") as fh:
 CASES=(
     "fresh:0"
     "stale16:3"
+    "future121:3"
+    "future_ok:0"
     "no_ts:2"
     "bad_json:2"
     "n_mismatch:4"
@@ -305,12 +327,17 @@ selftest() {
     local tmp="$SELFTEST_TMP"
 
     # One clock for the whole selftest, from the same source a real run uses.
-    local now fresh_ts stale_ts
+    local now fresh_ts stale_ts future_ts skew_ts
     now="$(now_utc)"
     fresh_ts="$(date -u -d "$now" +%Y-%m-%dT%H:%M:%S+00:00)"
     stale_ts="$(date -u -d "$now - 16 minutes" +%Y-%m-%dT%H:%M:%S+04:00)"
     # stale_ts deliberately carries a +04:00 offset, the form TZ-16 measured, so
     # the offset path is exercised rather than only the Z form.
+    # The two future stamps straddle the floor by one second and are written in
+    # UTC: the assertion is about the window, and an offset here would move the
+    # instant rather than only its spelling.
+    future_ts="$(date -u -d "$now + 121 seconds" +%Y-%m-%dT%H:%M:%S+00:00)"
+    skew_ts="$(date -u -d "$now + 60 seconds" +%Y-%m-%dT%H:%M:%S+00:00)"
 
     syms="$(python3 -c "$VALIDATOR" --universe "$INDEX")"
     printf 'universe: %d symbols cut from %s\n' \
@@ -327,6 +354,8 @@ selftest() {
 
         case "$name" in
             stale16)   ts_for_case="$stale_ts" ;;
+            future121) ts_for_case="$future_ts" ;;
+            future_ok) ts_for_case="$skew_ts" ;;
             bad_json)  : ;;
             file_absent) : ;;
             universe_unreadable) : ;;
