@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-08-29-c.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-08-29-d.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -340,11 +340,36 @@ approximate zone, never softened, and its absence is never explained.
 `catalysts.json` is a veto mechanism for the board, not the source of this section:
 an event absent from it is still published if it moves price.
 
-Coverage that must be checked every time: macro prints and central-bank dates ·
-**major equity earnings that set the risk tone (NVIDIA is the standing example and
-must never be missed)** · regulatory votes and filings · ETF launches and flow
-inflections · token unlocks inside 14 days · protocol upgrades and governance votes ·
-listings and delistings.
+**The bar is not «does it move price», it is «does it move price AND is it not already
+on every calendar».** A run that publishes only CPI, NFP and FOMC has not hunted; it has
+transcribed. Those dates are still printed when they bind a setup, but **at most two
+standard macro prints may occupy the section**, and every run must either carry at least
+one dated event that is not on the retail macro calendar or state in the internal
+appendix which sweeps were run and returned nothing. An empty sweep is a measurement; an
+unrun sweep is a gap, and only the appendix can tell them apart.
+
+Coverage that must be checked every time:
+
+- macro prints and central-bank dates;
+- **the international institutional calendar** — G7 and G20 ministerials, sherpa
+  meetings and leaders' summits, IMF and World Bank meetings, BIS, FSB and IOSCO
+  publications. An innovation, digital-economy or finance-ministers track sets the risk
+  tone for AI-adjacent and regulated-asset names days before any price moves, and it is
+  published on official calendars nobody in retail reads;
+- **major equity earnings that set the risk tone (NVIDIA is the standing example and
+  must never be missed)**;
+- regulatory votes, filings, comment-period deadlines and court dates;
+- **ETF and fund plumbing** — issuer registration amendments, new ticker launches,
+  conversions, index inclusion and rebalance dates — not only the daily flow number;
+- token unlocks inside 14 days, and changes to emission, buyback or burn schedules;
+- protocol upgrades and governance votes, **including a date that has SLIPPED**;
+- listings, delistings and exchange roadmap announcements.
+
+**A slipped date is itself a catalyst.** An upgrade moved from September to October has
+changed the trade, and it is printed as `ИЗМЕНИЛОСЬ` on the thesis it supported. Dropping
+the thesis silently because its catalyst evaporated leaves the Boss believing a signal was
+lost rather than withdrawn, which is the §11 failure arriving through the catalyst section
+instead of the state file.
 
 Each item: date · the event in one sentence a non-specialist understands · the
 effect as ЛОНГ / ШОРТ / ЖДАТЬ / НЕТ ВЛИЯНИЯ · the impact tag. Nothing else.
@@ -487,10 +512,21 @@ read to the Boss.
 
 **A thesis decays without the price moving, and that withdrawal is spoken.** §4
 withdraws a level by name when price leaves the zone; this withdraws the idea by name
-when the reason for it does — flows reverse, the catalyst is priced, a stronger setup
-takes its place — even though the entry was never touched. One clause, in the answer
-that drops it. Silence is not a downgrade: an item quietly deleted reads next run as
-an opportunity nobody has found yet.
+when the reason for it does — flows reverse, the catalyst is priced, its date slips, a
+stronger setup takes its place — even though the entry was never touched. One clause, in
+the answer that drops it. Silence is not a downgrade: an item quietly deleted reads next
+run as an opportunity nobody has found yet.
+
+**A REVERSAL is louder than a withdrawal and is spoken first.** Where a previously
+published thesis returns on the opposite side — a long that becomes a short, or a coin
+that moves to `ИЗБЕГАТЬ` — the answer names it in its first line, before the regime, with
+the fact that changed: «снимаю лонг X, ставлю шорт — <одна причина>». A reader who is
+handed the opposite side of his own open idea with no acknowledgement cannot tell an
+analysis from a contradiction, and will trust neither. **This rule has a hard dependency
+on the state file being readable at the start of the run**: an engine that cannot see what
+it published yesterday cannot withdraw it, and will reverse silently every time. A run
+that finds the seed state where a written state was expected records that in the appendix
+as a broken chain, not as a first run.
 
 **Repetition is compressed, not banned.** Unchanged items collapse into one line; a
 known catalyst is never presented as a discovery. **A `ВЫСОКОЕ` catalyst inside 48 h
