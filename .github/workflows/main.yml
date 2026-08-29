@@ -20,6 +20,9 @@ on:
       - 'index.html'
       - '.github/workflows/bench.yml'
       - '.github/workflows/backtest_bench.yml'
+      # Дерево analyst/ читает и пишет аналитик, а не бот: запись состояния —
+      # не повод гонять 28 монет через CoinGecko и переписывать живой Gist.
+      - 'analyst/**'
   workflow_dispatch:
 
 jobs:
