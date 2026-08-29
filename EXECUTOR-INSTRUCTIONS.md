@@ -1,6 +1,6 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 11.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 12.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
@@ -11,7 +11,10 @@ item 10 named one direct-push path while three other clauses authorised two (§7
 the day-log field list existed in two documents and had already drifted (§10), and a
 required one-line message collided with a ban declared to have no exception (§7.9).
 **v11 adds the third language exception**, which TZ-17 and TZ-19 both had to work
-around. Every clause below that did not name a role in v8 governs the
+around. **v12 repairs §4b step 2**: fetching without updating the working tree left the
+analyst reading a payload it could see was superseded on the remote — the one defect that
+would have made a correctly built engine publish no levels, every run, and look like the
+producer's fault. Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
 floor, the same repository rules and the same evidence standard.
@@ -201,8 +204,16 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
 
 1. Read this file, then read `ANALYST-INSTRUCTIONS.md` from the repository in full.
    Never from memory, never from a previous session's summary.
-2. **`git fetch --all --prune`** (§3), then confirm the working tree is clean and on
-   `main`. An analysis run never starts from a branch.
+2. **Bring the WORKING TREE to `origin/main`, not just the refs.** `git fetch --all
+   --prune` (§3), confirm the tree is clean and on `main`, then **`git pull --ff-only`**
+   and confirm it succeeded. A fetch updates what the clone knows and changes no file on
+   disk, and the analyst reads files: `analyst/live.json` is written to `main` by the
+   Boss's Shortcut minutes before the trigger, so a run that only fetched reads the
+   PREVIOUS payload, fails the freshness gate on a snapshot that is actually fresh at the
+   remote, and publishes no levels for a reason that is invisible from the answer. A
+   non-fast-forward result means someone else wrote to `main` mid-run: stop and report it
+   in one line rather than merging — an analysis run resolves no divergence. An analysis
+   run never starts from a branch and never starts from a stale tree.
 3. Fix the analysis moment: `date -u`, once, as the first external fact. Every age in
    the run is measured against it (methodology §5 step 1).
 4. **Run the live-data gate.** It is executable and it returns an exit code; a
