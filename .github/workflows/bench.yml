@@ -26,7 +26,11 @@ on:
       - 'journal/data/**'
       - 'journal/out/**'
       - 'journal/runs.jsonl'
-      - 'analyst/**'
+      # Данные аналитика: состояние, журнал и payload от шортката.
+      # Скрипт шлюза сюда не входит намеренно — его контроль это шаг 13.
+      - 'analyst/state.json'
+      - 'analyst/live.json'
+      - 'analyst/log/**'
       - '**.md'
   pull_request:
 
