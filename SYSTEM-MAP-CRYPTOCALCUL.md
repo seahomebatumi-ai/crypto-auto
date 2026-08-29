@@ -14,23 +14,24 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-28-a.** Baseline: TZ-15 merged into `main`; implementation
-commit `c8be42b`, report `CryptoReports/TZ-15-caption-truth-report.md`. **The
+**Revision 2026-08-29-a.** Baseline: TZ-17 merged into `main`; implementation
+commit `850e263`, report `CryptoReports/TZ-17-analyst-engine-build-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
 
-Every TZ header quotes this block IN FULL — all six anchors and the file table,
+Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
 repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-28-a.**` |
+| revision | `**Revision 2026-08-29-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
+| analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `50. **A stated absence is a dependency of the thing it denies.**` |
+| newest invariant | `52. **A deny-list filter is proven against real paths, never against its own intent.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -45,8 +46,11 @@ The calibration record is fingerprinted, unlike every other bench artifact, beca
 it is one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists and gate step 12
 compares the two on every push (inv. 46).
 
-Gate at this revision: `bench.yml`, **12 steps, 1 250 677 checks**, green on the
-hosted runner (run `32780919062`, head `c8be42b`, all 12 steps `success`). The
+Gate at this revision: `bench.yml`, **13 steps, 1 250 712 checks**, green on the
+hosted runner (run `33241068850`, head `850e263`, all 13 steps `success`). TZ-17
+added step 13 (`analyst/live-gate.sh --selftest`, **35**) and moved steps 1–12 by
+exactly zero — a change that writes no production file and moves a production counter
+is a defect, so the zero is the required result rather than a pleasant one. The
 number is a sum of per-comparison counters (inv. 43), never an estimate, and every
 delta between revisions is attributed term by term. TZ-15 moved exactly one step:
 12 (`exhaustion_bench.js`) 220 534 → 220 598, **+64**, one new section `caption`
@@ -81,6 +85,7 @@ iPhone Shortcut → workflow_dispatch → GitHub Actions → main.py
 | Benches | `bench/**` | `bench.yml` on push/PR | production files at runtime | nothing tracked |
 | Backtest | `bench/backtest_bench.py` | `backtest_bench.yml`, manual | `data.binance.vision` archive | artifacts only |
 | Calibration | `bench/exhaustion_calib.py` | `calib.yml`, `workflow_dispatch` + push on `claude/**` — never on `main` | `data.binance.vision` archive | `bench/exhaustion-calibration.txt` on a PASSING run; artifact always |
+| Analytical engine | `ANALYST-INSTRUCTIONS.md` + `analyst/**` | Boss-triggered, in a Claude Code session | `analyst/live.json`, `analyst/state.json`, `index.html` (`tokens[]`) | `analyst/state.json`, `analyst/log/**` |
 
 **Schedule is not cron.** The only regular trigger is the Boss's iPhone
 Shortcut: hourly from 09:00 to 01:50 local = **17 runs/day ≈ 15.3k CoinGecko
@@ -1209,6 +1214,29 @@ cite them, so an invariant is rewritten in place and never renumbered.
     old wording back and must fail. A stated absence nobody can plant and catch is
     not yet checked.
 
+51. **A freshness check is two-sided, or it is not a freshness check.**
+    `now − ts ≤ limit` is satisfied by every payload timestamped in the future, so a
+    producer whose clock runs ahead delivers a stale snapshot that presents as fresh —
+    the exact failure the check exists to prevent, arriving through the check itself
+    and reported as a pass. An age window therefore has a floor as well as a ceiling,
+    and the floor is the producer's plausible clock skew rather than zero: the phone
+    that writes the payload and the machine that reads it are different clocks, and
+    a hard zero would refuse healthy data every time they disagree by a second. The
+    one-sided form is invisible in testing because every fixture a author writes is
+    in the past.
+52. **A deny-list filter is proven against real paths, never against its own intent.**
+    `'**/*.md'` carries a literal separator, so it never matches a root-level file:
+    a filter written to mean «no Markdown starts the bot» started it on every upload
+    of the map or a contract, and nothing anywhere reported it, because a filter that
+    fails open produces a workflow that runs and succeeds. Green is not evidence about
+    a filter. Any `paths` or `paths-ignore` entry is therefore evaluated against a
+    changed-file list taken from `git diff --name-only` rather than typed, in **both**
+    directions — with the pattern and without it — and against a control path that
+    must still fire, since a filter matching everything also passes the first test.
+    This is inv. 45 applied to a matcher: a comparator never proven on identity, and a
+    filter never proven to exclude, support no claim. A `paths-ignore` list with no
+    `paths` allow-list beside it fires on every path nobody thought to name, which is
+    the shape that produced this entry and remains the shape in `main.yml`.
 ---
 
 ## 5. Limits
@@ -1352,8 +1380,91 @@ monthly audit stops rediscovering them.
 | Hosted gate evidence per TZ | watched | an Executor session cannot start GitHub Actions, so its 12-step table is a LOCAL measurement with the workflow's own step list. The hosted `Bench gate` fires on `pull_request` and on push to `claude/**` and `main` regardless, so the evidence exists; the audit reads it rather than taking the report's word |
 | `bench.yml` Node 20 pin | watched | GitHub already forces the actions onto Node 24 with a warning. Act when a step fails or the whole gate can be re-run as the validation |
 | `CryptoTZ/TZ-03-report-delivery.md` | never executed; declared dead by TZ-04 and retained as evidence, so no report exists by design | nothing — a specification without a report is never resurrected (contract §13) |
+| Analyst engine transport | **closed by TZ-17**: no network path; the payload is a file in the tree, the gate exits non-zero on stale, short or corrupt input, step 13 holds it | nothing. Re-opened only by a fresh egress measurement (§11) |
+| `live-gate.sh` check 3 is one-sided | **open, corrective TZ authored** | a payload timestamped ahead of the reader passes as fresh (inv. 51). Fixed by a floor on the age window |
+| `'**/*.md'` never matches a root-level file | **open, corrective TZ authored** | every upload of the map or a contract starts the bot (inv. 52). Fixed by `'**.md'` |
+| `analyst/live.json` has no producer yet | blocked on the Boss | the Shortcut still PATCHes the Gist. Until it writes the repository path, every analysis run publishes no levels — correct behaviour, unusable engine |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
 
 **Standing decisions.** No new coins beyond 28 · weights are never tuned · the
 directional layer is closed at the current evidence level: the machine owns risk,
 sizing, honesty and geometry, the human owns direction via catalysts and REVIEW.
+
+---
+
+## 11. Analytical engine — `analyst/**`
+
+**The Claude Code Executor carries two roles.** Role 1 implements an approved TZ;
+role 2 is the operational market-analysis engine. One process, one contract
+(`EXECUTOR-INSTRUCTIONS.md`), two triggers, never both in one turn. The methodology —
+what is analysed, what is published, in what shape, under what data discipline — is
+`ANALYST-INSTRUCTIONS.md`, which stands to role 2 exactly as this map stands to role 1:
+binding text the Executor reads and never writes.
+
+**This section states what the engine IS.** It carries no analytical rule, because a
+rule written here and in the methodology would eventually be written two ways.
+
+| Path | Written by | Retention |
+|---|---|---|
+| `analyst/live.json` | the Boss's iOS Shortcut | one copy, replaced |
+| `analyst/state.json` | role 2 | one copy, replaced |
+| `analyst/log/YYYY-MM-DD.md` | role 2 | **permanent, immutable** |
+| `analyst/live-gate.sh` | role 1, under a TZ | live |
+
+**The engine performs no network fetch, and that is a measurement rather than a
+preference (TZ-16).** From an Executor session every market host is refused at
+CONNECT — `fapi.binance.com`, CoinGecko, `gist.githubusercontent.com`, and
+`data-api.binance.vision` **which inv. 24 permits from a runner**. The runner's egress
+and a session's egress are different networks and neither may be assumed from the
+other. The one surviving route to the payload was scraping a rendered Gist HTML page;
+it was refused as a transport, because a presentation detail with no compatibility
+promise fails by returning something rather than by erroring, and a price behind a
+stop may not depend on that. The Shortcut's collection is unchanged — same calls, same
+network, same payload — and only the destination moved, so the engine reads a file in
+its own tree and the transport leaves the design instead of being hardened.
+
+**`analyst/live-gate.sh` is the blocking gate and returns an exit code** (inv. 29),
+one distinct class per failure: unreadable or unparseable 2 · stale 3 · `n ≠ len(c)` 4
+· a `tokens[]` symbol absent 5 · a price that does not cast to a finite positive 6 ·
+zero rows compared 7 (inv. 22) · `tokens[]` unreadable 8. A non-zero exit removes
+every price level from the answer and nothing else; the regime, the catalysts and the
+verdict are still produced. The universe is cut from `tokens[]` at run time and never
+typed (inv. 21), and the selftest's fixtures are generated from that same parse, so a
+change to `tokens[]` cannot leave the selftest behind.
+
+**The cast is explicit because `jq` is not safe on this payload.** Every value except
+top-level `n` is a JSON string, and `jq '.p|tonumber'` accepts `"Infinity"` and
+`"1e999"` as finite-looking positives while `"NaN"` passes a naive range check *by
+failing it*: `NaN > 0` and `NaN <= 0` are both false. The validator uses
+`float()` with `math.isfinite(x) and x > 0`, which rejects all four.
+
+**The gate is wired into `bench.yml` as step 13** (inv. 37) — `--selftest`, 12
+known-answer cases, 35 assertions, offline. That step, not a fingerprint entry, is why
+`live-gate.sh` is trustworthy after the session that wrote it ended; adding the script
+to the `## 0` table would put a hash in every TZ header for a file whose behaviour is
+already under a control.
+
+**`analyst/**` is in the `paths-ignore` of `main.yml` and `bench.yml`, and this is
+load-bearing.** Before TZ-17 a commit touching `analyst/state.json` started the bot —
+`main.py` with `GIST_TOKEN`, rewriting the live Gist, with a retry doubling the
+CoinGecko draw — so the engine saving its own state redrew 28 coins as a side effect.
+`main.yml` has no `paths` allow-list, only `paths-ignore`, so every path nobody named
+fires it (inv. 52).
+
+**Two states are permanent and different.** `analyst/state.json` is the working set —
+one copy, replaced every run, carrying only what is currently true. `analyst/log/**`
+is evidence — written once, never reopened, in the standing of a journal record
+(inv. 38). Merging them would make the working set grow without bound and the evidence
+rewritable, which is the pairing §3.13 already uses.
+
+**The engine never writes `catalysts.json`** (inv. 39). That registry vetoes the
+board's verdict and its `confirmed` flag is the compensating control for an
+externalised file; an analysis run able to edit it would turn one file write into a
+silent change to production behaviour. A discovered event that deserves an entry is a
+line in the day log, and the Architect turns it into a TZ or does not.
+
+**The state was seeded empty, never imported.** The Gist copy written by the Shortcut
+from a printed chat block carries 211 pairs of typographic quotes and an abbreviated
+item schema; it fails `json.loads` at character 1, and an unparseable state file stops
+an analysis run outright. Importing it would have stopped every future run — a file
+that exists, looks right and is refused.
