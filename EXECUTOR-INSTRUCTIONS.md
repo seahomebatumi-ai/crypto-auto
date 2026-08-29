@@ -1,6 +1,6 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 10.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 11.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
@@ -9,7 +9,9 @@ it always had, and an operational **Crypto Market Analyst** role. Nothing in v8 
 removed or weakened. **v10 repairs three defects TZ-16 measured in v9** — hard floor
 item 10 named one direct-push path while three other clauses authorised two (§7.10),
 the day-log field list existed in two documents and had already drifted (§10), and a
-required one-line message collided with a ban declared to have no exception (§7.9). Every clause below that did not name a role in v8 governs the
+required one-line message collided with a ban declared to have no exception (§7.9).
+**v11 adds the third language exception**, which TZ-17 and TZ-19 both had to work
+around. Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
 floor, the same repository rules and the same evidence standard.
@@ -36,8 +38,15 @@ choice for you to make between them.
 **Language.** Everything you write — reports, code, comments — is English. Russian
 appears only in quoted UI labels («…»): inside `index.html` strings as `\uXXXX`
 escapes (hard floor 7), and verbatim in the map and in TZs where a label is named.
-Two exceptions: the closing message to the Boss (§11), and the market answer produced
-by the analyst role, which is Russian in full (`ANALYST-INSTRUCTIONS.md` §14).
+Three exceptions: the closing message to the Boss (§11); the market answer produced by
+the analyst role, which is Russian in full (`ANALYST-INSTRUCTIONS.md` §14); and **comments
+inside `.github/workflows/**`, which follow that file's established language and are
+therefore Russian.** The rule's purpose is that the durable technical record reads the same
+to every Executor; a workflow comment is an operational note to the Boss, who opens these
+files in the GitHub interface and nowhere else. An English line inserted among Russian ones
+would be the odd one out in the only place it is ever read. The exception is narrow: code,
+benches, scripts and every comment inside them stay English, `analyst/live-gate.sh`
+included.
 
 ---
 
