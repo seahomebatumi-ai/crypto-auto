@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-08-29-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-08-29-c.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -63,7 +63,17 @@ statistic in place of a trade.
   invariants, section numbers, past measurements, whether the model agrees with
   itself, which data rung was used, which files were read or written.
 - «Системных данных нет», «доска недоступна», or any statement about what the
-  analyst could not read. Absent data changes the decision or it is not mentioned.
+  analyst could not read — **with exactly one exception, worded once and never
+  extended.** Absent data changes the decision or it is not mentioned; when it
+  removes the levels, the answer prints this sentence and no other:
+
+  > **«Нужен свежий снимок — запусти LIVE SNAP.»**
+
+  It is an instruction, not an account. No reason follows it, no host is named, no
+  age is quoted, no apology is offered, and it appears at most once in an answer.
+  A ban that forbade it outright would leave the Boss with a level-less answer and
+  no way to fix it, and a ban that permitted an explanation would license the whole
+  banned class through one door.
 - Internal mathematics, z-scores, sigma counts, beta values, score values.
 - The same market statistic repeated in more than one section — liquidations,
   funding, open interest and flows appear at most **once**, and only if they move a
@@ -242,44 +252,51 @@ inferred from article timestamps, search-result ages or the knowledge cutoff is
 fabricated data and carries the same weight as a fabricated price. The moment fixed
 here is what the header line prints and what every age below is measured against.
 
-**2 · Prices — the existing pipeline, reused.**
+**2 · Prices — the existing pipeline, one hop shorter.**
 
-The Boss's iOS Shortcut collects Binance Futures data from his own network and
-PATCHes `live.json` to its Gist. **That is the price-delivery mechanism of this
-system and the analyst reads it; it does not replace it.** Working infrastructure is
-integrated with, never rebuilt: a second delivery path would double the surface on
-which one number can be wrong, and the two would disagree silently.
+The Boss's iOS Shortcut collects Binance Futures data from his own network — the only
+network in this system that Binance answers — and writes it as `analyst/live.json`.
+**That collection is the price-delivery mechanism of this system and it is unchanged:
+the same calls, the same payload, the same producer.** Only the destination moved, from
+a Gist the engine cannot reliably fetch to the repository the engine already has open.
 
 ```
-source    live.json from the Gist, fetched at run time, freshness proven from ts
+source    analyst/live.json, read from the working tree — no network, no transport
 absent    no level of any kind is published
 ```
 
-**A direct call to `fapi.binance.com` is not part of this method.** It is admitted
-only if a measurement proves the payload path technically incapable of feeding the
-engine — frozen for this client, or unable to carry the metrics an answer needs — and
-then it arrives as a TZ amending this section, never as a run's own initiative.
-Until that measurement exists, one source.
+**Reading a file cannot fail the way fetching one can.** Measured 2026-08-28: from an
+Executor session every market host is refused at CONNECT, the Gist raw host with them,
+and the only surviving route to the payload was scraping a rendered HTML page — a
+presentation detail with no compatibility promise, which would fail by returning
+something rather than by erroring. A price behind a stop may not depend on that. A file
+in the tree removes the transport from the design instead of hardening it.
 
-The fetch is performed by an executable gate that **returns an exit code**, and a
+**A direct call to `fapi.binance.com` is not part of this method,** and neither is any
+network fetch of the payload. Either is admitted only by a TZ amending this section,
+on a measurement showing the file path incapable — never as a run's own initiative.
+
+The read is performed by an executable gate that **returns an exit code**, and a
 non-zero exit means the answer is written without levels. The check is mechanical
 because the failure it prevents — a plausible number with no source behind it — is
 invisible in prose.
 
 Validate in this order: `ts` against step 1, then symbol coverage against `tokens[]`
 cut from `index.html` at run time, then that every published coin carries a numeric
-price. An article, aggregator, terminal, search snippet, cached page or remembered
-number is **not a price** and may never sit behind an entry, a stop or a target.
-Outside-list candidates (§3B) have no Binance-native feed and keep the two-source
-rule below.
+price. Every value in the payload is a JSON **string**; a cast that fails silently
+yields `NaN` rather than an error, so the gate casts and checks finiteness rather than
+trusting the parse. An article, aggregator, terminal, search snippet, cached page or
+remembered number is **not a price** and may never sit behind an entry, a stop or a
+target. Outside-list candidates (§3B) have no Binance-native feed and keep the
+two-source rule below.
 
-**A successful fetch is not freshness.** A frozen or proxied copy of a URL is
-indistinguishable from a live one at the HTTP layer, so the timestamp inside the file
-is the only evidence that exists, and it is checked on every read without exception.
+**The file being present is not freshness.** `ts` is checked on every read without
+exception: a payload from an earlier session looks exactly like a payload from this
+one, and the timestamp is the only evidence that distinguishes them.
 
 No payload, or a payload past its age limit → the regime, the catalysts, `СОЗРЕВАЕТ`
-and `ИТОГ` are still produced, without levels, and one line asks the Boss to run LIVE
-SNAP. Nothing else is sent about it.
+and `ИТОГ` are still produced, without levels, and the answer prints the one sentence
+of §1 and nothing further.
 
 **3 · State.** `analyst/state.json` is read before anything is written, and the §11
 lifecycle is applied to every item before the answer is composed. A run that cannot
@@ -297,7 +314,7 @@ ETF flows, dominance: current at the analysis moment or absent from the answer.
 
 | Field | Maximum age | Source |
 |---|---|---|
-| Price behind any entry / stop / target | **15 minutes** | `live.json`, from the Boss's Shortcut |
+| Price behind any entry / stop / target | **15 minutes** | `analyst/live.json` |
 | 24 h high / low, volume, funding, open interest | 1 hour | Binance Futures |
 | Structure — 90d/30d extremes, β, R², volatility | 24 hours | Gist `coeffs.json` / journal |
 | Catalyst dates, filings, votes, listings, unlocks | current | primary source only |
@@ -423,6 +440,14 @@ analytical artifact and it exists in exactly one place; a second copy — in a G
 a chat block, in a second file — is banned, because two states disagree silently and
 the disagreement is invisible until a trade is built on the stale half.
 
+**The state is seeded empty, never imported.** A `state.json` written by the Boss's
+Shortcut from a printed chat block exists in the live-data Gist; it is not valid JSON
+(typographic quotes throughout) and its item keys are a different, abbreviated schema.
+Seeding from it would satisfy step 3 of the gate and then stop every run forever, which
+is the worst shape a defect can take — a file that exists, looks right and is refused.
+That copy is retired with the Shortcut branch that wrote it, and the first real run
+overwrites the empty seed.
+
 **Schema v1** — one object, one shape, additive-only:
 
 ```json
@@ -486,11 +511,25 @@ tranche.
 `analyst/log/YYYY-MM-DD.md`, written once per run, never reopened (map inv. 38). A
 second run on the same date writes `YYYY-MM-DD-2.md`.
 
-Contents: the answer exactly as sent to the Boss, then a fenced internal appendix —
-data rung used and the payload `ts`, the searches that changed a conclusion, items
-opened and closed with reasons, any `catalysts.json` proposal, anything the next run
-would otherwise rediscover. **The appendix is for the engine and the Architect's
-audit; it is never read back to the Boss and never summarised for him.**
+**This section is the only specification of the log's contents.** The contract says
+where it lives and how long; it deliberately carries no field list, because a list
+written twice becomes two lists and a run following either one alone writes an
+incomplete record.
+
+Contents: the answer exactly as sent to the Boss, then a fenced internal appendix
+carrying, at minimum:
+
+```
+analysis moment (date -u)          payload ts and its age in seconds
+gate exit code                     MD5 of ANALYST-INSTRUCTIONS.md as read this run
+every lifecycle transition, with the reason for it
+the searches that changed a conclusion
+any catalysts.json proposal (§6)
+anything the next run would otherwise rediscover
+```
+
+**The appendix is for the engine and the Architect's audit; it is never read back to
+the Boss and never summarised for him.**
 
 The log is evidence, the state is the working set. The state answers «what is true
 now», the log answers «what did the engine say and why» — merging them would make the
