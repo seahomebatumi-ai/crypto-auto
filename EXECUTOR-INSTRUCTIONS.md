@@ -1,12 +1,15 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 9.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 10.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
 **What changed from v8.** One process now carries two roles: the implementation role
 it always had, and an operational **Crypto Market Analyst** role. Nothing in v8 was
-removed or weakened. Every clause below that did not name a role in v8 governs the
+removed or weakened. **v10 repairs three defects TZ-16 measured in v9** — hard floor
+item 10 named one direct-push path while three other clauses authorised two (§7.10),
+the day-log field list existed in two documents and had already drifted (§10), and a
+required one-line message collided with a ban declared to have no exception (§7.9). Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
 floor, the same repository rules and the same evidence standard.
@@ -97,6 +100,7 @@ table is created without a TZ that names it.
 | Journal code | `journal/write.js`, `journal/README.md` | you | branch + PR | live |
 | Journal records | `journal/data/**`, `journal/out/**`, `journal/runs.jsonl` | `journal.yml` | machine, direct to `main` | **permanent, immutable** |
 | Analyst methodology | `ANALYST-INSTRUCTIONS.md` | Architect | Boss upload to `main` | one copy, replaced in place |
+| Live payload | `analyst/live.json` | Boss's Shortcut | machine, direct to `main` | one copy, replaced in place |
 | Analytical state | `analyst/state.json` | you (role 2) | you, direct to `main` | one copy, replaced in place |
 | Day log | `analyst/log/**` | you (role 2) | you, direct to `main` | **permanent, immutable** |
 | Assets | `image.PNG`, `README.md` | you | branch + PR | live |
@@ -194,8 +198,9 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
    the run is measured against it (methodology §5 step 1).
 4. **Run the live-data gate.** It is executable and it returns an exit code; a
    non-zero exit means no price level of any kind is published in this run. The gate
-   is never bypassed, never re-run with a widened tolerance, and its failure is never
-   explained to the Boss beyond the one line the methodology allows.
+   is never bypassed and never re-run with a widened tolerance. Its failure reaches
+   the Boss as the single sentence `ANALYST-INSTRUCTIONS.md` §1 fixes verbatim, and
+   as nothing else — the reason belongs in the day log, where it can be audited.
 5. Read `analyst/state.json` and apply the lifecycle (methodology §11) before writing
    a single line of the answer.
 6. Perform the analysis and compose the answer, in Russian, under the methodology's
@@ -307,16 +312,22 @@ TZs and reports.
    fetch live market data. An analysis run therefore attempts its fetches and treats
    the result as a measurement: reachable is used, refused is a fact about the machine
    this session runs on, recorded in the day log, never retried in a loop and never
-   explained to the Boss. **Every host refused → the run publishes no levels and says
-   so in one line** (§4b step 4). What role 2 may never do is the thing this clause
+   explained to the Boss. **No usable price → the run publishes no levels and prints
+   the one sentence `ANALYST-INSTRUCTIONS.md` §1 permits, verbatim** (§4b step 4) —
+   that sentence is an instruction to the Boss, not an account of what failed, and no
+   second sentence joins it. What role 2 may never do is the thing this clause
    actually protects: put an unreachable host inside CI, or ship code that depends on
    an egress one environment happens to have.
 10. **`main` is production.** GitHub Pages deploys the calculator from `main`. Never
-    force-push and never rewrite published history. The only path you may push
-    directly to `main` is `CryptoReports/**` (§8); everything else goes through a
-    branch and a pull request the Boss merges. `journal/data/**`, `journal/out/**`
-    and `journal/runs.jsonl` also arrive on `main` directly — written by
-    `journal.yml`, not by you; never hand-edit them (inv. 38, §13).
+    force-push and never rewrite published history. **Exactly two paths may be pushed
+    directly to `main`: `CryptoReports/**` and `analyst/**`** (§8, §4b) — everything
+    else goes through a branch and a pull request the Boss merges. `journal/data/**`,
+    `journal/out/**` and `journal/runs.jsonl` also arrive on `main` directly — written
+    by `journal.yml`, not by you; never hand-edit them (inv. 38, §13). **A direct push
+    is authorised only while the tree it touches cannot start a workflow or change
+    what Pages executes**; §8 states the two facts this rests on and requires them
+    verified rather than assumed, and a path whose filter does not hold is reported,
+    not pushed.
 11. **Venue flags are declarations, not observations** (map §3.14, inv. 41).
     `fut:true` on XMR, LIT and HYPE is fixed by the Boss. A host answering for a
     delisted spot pair does not revoke it and is never a reason to change the flag,
@@ -427,13 +438,13 @@ TZs and reports.
 
 ## 10. Report format
 
-**Role 2 writes no report.** Its record is the day log defined by
-`ANALYST-INSTRUCTIONS.md` §12 — the answer as sent, plus an internal appendix that
-must carry, at minimum, the analysis moment, the data gate's exit code and payload
-age, the MD5 of the methodology file the run read, and every lifecycle transition
-with its reason. The log is written under `analyst/log/`, never under
-`CryptoReports/`, and it is immutable in the standing of a journal record (§13). The
-rest of this section is role 1.
+**Role 2 writes no report.** Its record is the day log, and **its contents are
+specified in exactly one place: `ANALYST-INSTRUCTIONS.md` §12.** This section does not
+restate the field list, because a list written twice becomes two lists and a run
+following either one alone writes an incomplete record. What this contract adds is
+only where it lives and how long: under `analyst/log/`, never under
+`CryptoReports/`, immutable in the standing of a journal record (§13). The rest of
+this section is role 1.
 
 `CryptoReports/TZ-NN-<short-name>-report.md`:
 
