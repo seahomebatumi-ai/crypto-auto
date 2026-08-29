@@ -26,6 +26,7 @@ on:
       - 'journal/data/**'
       - 'journal/out/**'
       - 'journal/runs.jsonl'
+      - 'analyst/**'
   pull_request:
 
 jobs:
@@ -118,3 +119,12 @@ jobs:
       - name: Истощение списка и баннер режима (exhaustion_bench.js)
         shell: bash -euo pipefail {0}
         run: node bench/exhaustion_bench.js
+
+      # ТЗ-17 §6. Ворота живых данных аналитика. Сети шагу не нужно: стенд
+      # строит фикстуры во временном каталоге и гоняет их через ТОТ ЖЕ
+      # проверяющий код, что и настоящий payload (инв. 21). Стенд вне ворот
+      # контролем не является (инв. 37) — потому шаг стоит здесь, а не в
+      # инструкции по запуску.
+      - name: Ворота живых данных аналитика (live-gate.sh --selftest)
+        shell: bash -euo pipefail {0}
+        run: bash analyst/live-gate.sh --selftest
