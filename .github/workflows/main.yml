@@ -16,7 +16,7 @@ on:
     # main.yml повод даёт — они здесь не перечислены и запуск не гасят.
     paths-ignore:
       - 'bench/**'
-      - '**/*.md'
+      - '**.md'
       - 'index.html'
       - '.github/workflows/bench.yml'
       - '.github/workflows/backtest_bench.yml'

@@ -27,6 +27,7 @@ on:
       - 'journal/out/**'
       - 'journal/runs.jsonl'
       - 'analyst/**'
+      - '**.md'
   pull_request:
 
 jobs:
