@@ -14,8 +14,9 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-30-b.** Baseline: TZ-19 merged into `main`; implementation
-commit `cc8bade`, report `CryptoReports/TZ-19-gate-script-under-gate-report.md`. **The
+**Revision 2026-08-30-c.** Baseline: TZ-21 merged into `main`; implementation
+commit `8069341`, merge commit `edd650c`, report
+`CryptoReports/TZ-21-catalyst-registry-scope-and-basis-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
 
@@ -25,13 +26,13 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-30-b.**` |
+| revision | `**Revision 2026-08-30-c.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `54. **A record cannot contain the outcome of the action that stores it.**` |
+| newest invariant | `55. **A specification is checked against the text it must obey, never against memory of it.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -39,15 +40,21 @@ Live files at this revision — the set every TZ header and every report fingerp
 |---|---:|---|
 | `index.html` | 3729 | `fdf331906bf205944b25e3635135789c` |
 | `main.py` | 506 | `1a5a5d98b2fd76010f202ee3eebaa717` |
-| `catalysts.json` | 11 | `021dd2c90dc395240c0b0c3dbae40426` |
+| `catalysts.json` | 17 | `f9b2dd4a3594134b2b7b603de19075c3` |
 | `bench/exhaustion-calibration.txt` | 175 | `3b8730b254467c9df4c0a845a0f3cfb3` |
 
 The calibration record is fingerprinted, unlike every other bench artifact, because
 it is one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists and gate step 12
 compares the two on every push (inv. 46).
 
-Gate at this revision: `bench.yml`, **13 steps, 1 250 717 checks**, green on the
-hosted runner (run `33254327296`, head `cc8bade`, all 13 steps `success`). Step 13
+Gate at this revision: `bench.yml`, **13 steps, 1 250 739 checks**, green on the
+hosted runner (`Bench gate` #110 on head `8069341`, #111 on merge commit `edd650c`).
+TZ-21 moved exactly one step: 8 (`catalyst_bench.js`) 23 040 -> 23 062, **+22** —
+`+2` per-symbol for `ENA`, `+10` per-entry schema, `+10` for five `basis` assertions
+across two entries, `+1` quorum, `−1` as the silent-symbol sweep falls 27 -> 26. The
+`basis` term is measured rather than inferred: the modified bench run against the
+unmodified registry reads 23 045, isolating +5 per entry. Steps 7 and 12 did not move.
+Step 13
 (`analyst/live-gate.sh --selftest`) arrived with TZ-17 at **35** and reads **40** after
 TZ-18 added two freshness cases; steps 1–12 have not moved through TZ-17, TZ-18 or
 TZ-19, which for changes writing no production file is the required result rather than a
@@ -863,13 +870,24 @@ read by the frontend over ES5 XHR. **The data lives in the file; the rule lives 
 { "v":1, "updated":"YYYY-MM-DD",
   "items": { "SYM": [ { d, dir, kind, t, conf, src[], added } ] } }
 
-d      ISO date of the event            dir   long | short | both
-kind   unlock | protocol | listing | …  t     the string the card prints
-conf   confirmed | disputed             src   array of source URLs
-added  ISO date the entry was written
+d      ISO date of the event       dir    long | short | both
+kind   unlock | protocol | listing | macro     CLOSED set, gate-asserted
+t      the string the card prints  conf   confirmed | disputed
+src    array of source URLs        added  ISO date the entry was written
+basis  why the date is believed    OPTIONAL; MANDATORY at conf 'disputed'
 ```
 
 The file is ASCII-only and the printed string `t` is `\uXXXX`-escaped.
+
+**The `kind` enum is CLOSED.** It was once written with an ellipsis and read as open, so a
+TZ proposed a fifth value and the gate refused it — one rule living in two places and
+disagreeing (inv. 20). A new member is additive, needs its own TZ, and arrives with the
+entry that consumes it, never speculatively.
+
+**`basis` is invisible to production.** `catalystsApply` copies `items` wholesale and
+`catalystCheck` reads `d`, `dir`, `conf` and `t` only, so an unknown key is inert by
+construction (inv. 1, inv. 9) — measured, not assumed: the identifier appears in no
+production file. It is inside `cat.hash`, so it sits beside every journalled verdict.
 
 **Authority — `conf`, and the quorum behind it (inv. 39).** A registry edit
 bypasses the TZ → Executor → pull request → audit chain, so the compensating
@@ -895,11 +913,47 @@ could not read, in every mode, with a non-zero exit. `cat.hash` is sha256 over
 canonicalised `items` — object keys sorted, array order preserved, because within
 a coin the order decides which note wins.
 
-**Registry content is analyst work under a TZ.** Current content: one `confirmed`
-ZEC entry, `dir:'both'`, primary source, for the NU7 vote resolution on 14.09.
-Entries that no host confirms are deleted rather than demoted — a `disputed` entry
-still annotates its own side, so keeping one keeps printing an argument built on a
-date nobody confirms.
+**Registry content is analyst work under a TZ.** Current content: one `confirmed` ZEC
+entry, `dir:'both'`, primary source, for the NU7 vote resolution on 14.09; one `disputed`
+ENA entry, `dir:'short'`, for a derived unlock date on 05.09.
+
+**Three classes of standing, and the third is why `basis` exists.**
+
+| The primary publishes | Treatment |
+|---|---|
+| the date | `conf:'confirmed'` per inv. 39 |
+| the mechanism but not the date | `conf:'disputed'`, **`basis` mandatory** |
+| nothing about the event at all | the entry is deleted, never demoted |
+
+The third row is the original rule, unchanged: a `disputed` entry annotates its own side,
+so keeping one built on nothing keeps printing an argument nobody can check. The second
+row is a case that rule did not name. Ethena publishes a 25 % cliff one year after TGE on
+2024-03-05 and three years of linear monthly vesting thereafter, so monthly steps fall on
+the 5th and 2026-09-05 is DERIVED from a primary-published rule rather than asserted
+against silence. `basis` records the derivation in the file, which answers the objection
+the third row raises — the argument is no longer unrecorded, and it can be argued with.
+
+**An owner's assertion is not a source.** The date may be set by the Boss; `conf` may not.
+`confirmed` is the compensating control over an externally editable file, and a flag that
+can be set by assertion has stopped being one (inv. 39).
+
+**Two scope rules, both closed permanently.**
+
+1. **Coin-scoped events only.** A macro release, a central-bank decision, an index
+   rebalance never enters this file. Market-wide risk is measured by §3.12 Layer 0, and a
+   `dir:'both'` macro entry would close both sides on all 28 coins for fifteen days out of
+   roughly forty-five. A `"*"` key is therefore not a missing feature, and the
+   `items key "<sym>" is in tokens[]` assertion that refuses it is correct.
+2. **Resolving events only.** An event qualifies when something the market prices becomes
+   known or irreversible on `d` — an unlock releases supply, a vote concludes, a listing
+   goes live, an agency decides. An administrative milestone on the path to one does not:
+   a comment-period deadline, a filing date, a hearing being scheduled. Nothing resolves,
+   and the veto would spend fifteen days of both sides on a non-event. TZ-20's ONDO row
+   was closed by this rule with its date fully verified — the date was never in doubt, the
+   event was.
+
+Both rules also live in `bench/catalyst_bench.js`'s editing-rules comment, which is where
+an editor meets them.
 
 ### 3.16 List exhaustion — the day-range measure
 
@@ -1171,7 +1225,7 @@ cite them, so an invariant is rewritten in place and never renumbered.
 41. **The declared venue is read BEFORE the degradation ladder.** `fut:true` is a DECLARATION (§3.14), not an observation, so a skip on such an asset is DECLARED coverage in any form it takes and never raises `hardSkip`. The reverse order already cost the `status` field: a mirror served a delisted row and a healthy system reported `partial` every day. The reason is still MEASURED in three distinct strings, and a live spot pair on a `fut:true` asset must reach `run.note` — a contradiction of the declaration may not pass quietly. The rule is wider than the journal: any future consumer of `tokens[]` asks the declaration, not the host.
 42. **A bench must execute production with the SAME external input as production.** Three board benches ran the board with an empty `CATALYSTS` for eight days because the sandbox has no `XMLHttpRequest`: the loader failed silently and the benches reproduced a configuration that exists neither for the Boss nor on Pages. Therefore: the registry is read from the checkout by the SAME loader as production (inv. 21), injection happens AFTER `vm.runInContext` (otherwise the production line `var CATALYSTS = {}` overwrites it), and a missing or corrupt file fails the bench NON-ZERO — there is no fallback to an empty registry.
 43. **A check count must be a count.** The number a bench prints as «checks» is used as proof of control volume and as the input to inv. 22, so it must count comparisons, not be estimated as a product of unrelated quantities. The counter is incremented at the comparison site, the gate total is the sum of those counters, and any discrepancy is explained term by term. A quantity that is merely measured and printed — scenarios, rows, lists — is not a check.
-44. **External data is fetched on a runner, never in an implementation session.** Inv. 24 names what a runner can reach; this names where a fetch may happen at all. An Executor session's egress refuses every market host at CONNECT — archive, mirror, both production hosts, CoinGecko — so a stage needing external data cannot execute there however well it is written. Any TZ stage requiring external data is therefore specified as a workflow step and nothing else, and a TZ that asks for an in-session fetch is blocked before it starts. TZ-10 Stage B was specified as a session run: the instrument was correct, complete, self-tested — and returned no number.
+44. **A fetch may stand behind a product fact only if anyone can reproduce it; a session fetch cannot.** The earlier form of this invariant said external data is fetched on a runner and never in an implementation session, and gave reachability as the reason: an Executor session refused every market host at CONNECT. **That measurement no longer reproduces** — TZ-20 reached four hosts from the VPS and read 200 on all four — and a rule resting on a measurement falls with it (inv. 52). What survives is a rule about STANDING, not about reach. A runner fetch is recorded, repeatable by anyone holding the repository, and its inputs are named in a workflow file; a session fetch is none of those, because the session ends, the market moves, and the only trace is a sentence in a report. Therefore: **forbidden in a session** — fetching an external FACT that enters the product (a price, a date, a figure, an event) as the standing behind it; such a stage is specified as a workflow step and nothing else, and a TZ asking for it in-session is blocked before it starts. **Permitted in a session** — measuring the session's OWN ENVIRONMENT (egress, tool availability, host reachability), because the artifact IS the measurement, the command is recorded beside its result, and re-running the command is the reproduction; this class produces no product fact. TZ-10 Stage B remains the cautionary case for the first class: the instrument was correct, complete, self-tested — and returned no number. TZ-20 is the case for the second: reachability was asserted from an old measurement and was wrong.
 45. **A differ returns zero on identical input.** Any comparison offered as no-regression evidence is first run with the SAME revision on both sides and must report zero differences, and a transformation applied to one side is applied to the other. `prot_bench.js`'s optional baseline suite strips one section from the candidate only, so it reports six failures against a byte-identical baseline — a stale expectation a self-comparison would have caught the day it was written. Identity is the known-answer control of a comparator (inv. 23); a comparator never proven on identity supports no claim about a real diff.
 46. **A calibrated constant is checked against its calibration record.** A production number derived from a measurement lives in two places — the constant in the source and the committed output of the run that produced it — and a bench inside the gate compares them on every push. Inv. 23 fixes the rule before the data; this fixes the number to its run afterwards. A constant that agrees with nothing can be moved silently in either direction, and the move is invisible precisely because the number looks measured.
 47. **A threshold is calibrated on the distribution of the quantity its consumer compares.** A constant thresholding a LIST MEDIAN is measured on the distribution of list medians, never on the distribution of the individual readings the median is taken over: averaging across correlated members strips idiosyncratic dispersion and moves the upper tail (driftless null at ρ = 0.75: coin-day p90 1.38, list-median p90 1.27). Inv. 46 pins a constant to its run; this pins it to the right random variable. A percentile measured on the wrong object looks fully calibrated and is wrong by exactly the amount nobody can see, and an admissibility window drawn around that object inherits the error.
@@ -1262,8 +1316,10 @@ cite them, so an invariant is rewritten in place and never renumbered.
     price and is the right direction to fail in: a narrowed list must be extended whenever
     the writing set grows, and a forgotten entry costs runner minutes loudly instead of
     costing a control silently.
-54. **A record cannot contain the outcome of the action that stores it.**
-    The analyst's day log is written, then committed, then pushed, so every sentence it
+54. **An immutable record cannot contain the outcome of the action that stores it.**
+    This binds every record the repository never reopens — the analyst's day log, a TZ
+    implementation report under `CryptoReports/**`, any future artifact in that standing.
+    Such a record is written, then committed, then pushed, so every sentence it
     carries about its own commit or push is a forecast of a step that has not run — and
     the first one written was wrong in the dangerous direction, declaring a push that had
     in fact succeeded to have failed. A reader of an immutable record cannot tell a
@@ -1272,6 +1328,22 @@ cite them, so an invariant is rewritten in place and never renumbered.
     the outcome belongs to the NEXT record, where it is history. This is inv. 38's
     immutability read forwards — a file that may not be corrected must not contain the
     class of statement most likely to need correcting.
+    **It is enforced by the report template, not by care.** TZ-21 named this prohibition
+    in its own §8 and the report violated it anyway, in the section that always carries
+    that sentence — the second occurrence in two consecutive TZs. A clause an author must
+    remember is not a control; a template with no such line is.
+
+55. **A specification is checked against the text it must obey, never against memory of it.**
+    Six defects across two consecutive TZs came from one mechanism: the Architect
+    wrote a requirement from a correct recollection of a rule and a wrong recollection of
+    its detail — an enum's members, an allow-list's host, a hard-floor clause, a count of
+    entries. Each was caught downstream, which is the design working, and each cost a
+    full Executor session. Therefore every TZ, before it ships, reads FROM THE REPOSITORY
+    every constant, enum and allow-list it names and every hard-floor clause its stages
+    touch, and quotes them into the TZ where the Executor can compare. Inv. 21 bans a
+    second implementation of a rule; this bans a second recollection of one. The failure
+    is invisible at authoring time by construction — a specification never runs, so
+    nothing contradicts it until a session has been spent on it.
 ---
 
 ## 5. Limits
@@ -1332,7 +1404,7 @@ cite them, so an invariant is rewritten in place and never renumbered.
 **Bench triggers.** Editing `verify_against_live` → run `bench/verify_bench.py`
 (offline, ~20 s, must give 0 failures). Editing `scoreCandidate`, `window_stats`,
 `window_vol` or `volume_expansion` → run `bench/backtest_bench.py --selftest`.
-Any production edit → the full `bench.yml` gate, 12 steps.
+Any production edit → the full `bench.yml` gate, 13 steps.
 
 ---
 
@@ -1412,7 +1484,7 @@ monthly audit stops rediscovering them.
 | `NaN% от входа` at `E ≤ 0` in «ГРАНИЦЫ СДЕЛКИ» | pre-existing, unreachable live | any TZ touching that block. `Math.abs(liqSel / E - 1)` at `E = 0` is `0/0`; entry price is never zero on a live board, so it buys a diff and no safety |
 | Raw Cyrillic literal at `bench/prot_bench.js:177` | pre-existing, bench-only | any TZ editing that bench. It violates the ES5/escape rule the frontend keeps, in a file no browser loads |
 | `prot_bench.js` optional baseline suite | repaired in TZ-11 — neither side stripped, unconditional identity run inside the default suite, comparison counter with a zero-comparison guard | nothing; inv. 45 is satisfied by the gate itself |
-| Hosted gate evidence per TZ | watched | an Executor session cannot start GitHub Actions, so its 12-step table is a LOCAL measurement with the workflow's own step list. The hosted `Bench gate` fires on `pull_request` and on push to `claude/**` and `main` regardless, so the evidence exists; the audit reads it rather than taking the report's word |
+| Hosted gate evidence per TZ | watched | an Executor session cannot start GitHub Actions, so its 13-step table is a LOCAL measurement with the workflow's own step list. The hosted `Bench gate` fires on `pull_request` and on push to `claude/**` and `main` regardless, so the evidence exists; the audit reads it rather than taking the report's word |
 | `bench.yml` Node 20 pin | watched | GitHub already forces the actions onto Node 24 with a warning. Act when a step fails or the whole gate can be re-run as the validation |
 | `CryptoTZ/TZ-03-report-delivery.md` | never executed; declared dead by TZ-04 and retained as evidence, so no report exists by design | nothing — a specification without a report is never resurrected (contract §13) |
 | Analyst engine transport | **closed by TZ-17**: no network path; the payload is a file in the tree, the gate exits non-zero on stale, short or corrupt input, step 13 holds it | nothing. Re-opened only by a fresh egress measurement (§11) |
@@ -1426,6 +1498,11 @@ monthly audit stops rediscovering them.
 | ETF flow figures have no reachable primary lane | **closed, deliberately** | a named machine-readable endpoint from an issuer or a listing venue, arriving as a TZ. Three probe rounds from the VPS found none: issuer pages 403/429, Bitwise 200 alone is not the dominant fund, Cboe and Fidelity answered 404 on guessed paths, an NYSE quote page carries price and not creation/redemption. A figure is therefore not published and a direction is not published; press-sourced readings still inform the run internally (methodology §6). **A run never re-probes this** — rediscovering a closed lane every day is the failure this repository exists to prevent |
 | Producer clock drift is unmeasured | watched | the floor refuses a payload more than 120 s ahead and nothing tracks approach. `age_sec` is signed and already recorded in the day log, so drift becomes visible before it becomes a refusal |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
+
+| `index.html:799` restates the registry schema | open, unowned | any TZ that opens `index.html`. The comment lists seven fields and the schema now has eight. **The repair is deletion, not synchronisation** — replaced by a pointer to `bench/catalyst_bench.js`, or the schema keeps living in three files (inv. 20) |
+| `main.yml` has no `paths` allow-list | open, measured live | TZ-23. The TZ-21 merge started `Crypto Update` #1492 on a change to `catalysts.json` and a bench file — thirty CoinGecko calls for a commit touching nothing the bot reads. Harmless in that direction; the failure that matters is the reverse, a filter so narrow the bot stops and `coeffs.json` ages silently (inv. 52, inv. 53) |
+| `tokenomist.ai`, `cryptorank.io` egress unmeasured | open | TZ-22. §6a of `ANALYST-INSTRUCTIONS.md` admits an aggregator as a discovery source for the vesting and backing sweeps; §11 lists the measured lanes and neither host is on it. A mandatory sweep whose host is unreachable fails every run |
+| Executor has no GitHub API access | **closed, deliberately** | nothing. `gh` is absent and no PAT exists; the deploy key `crypto-auto-vps` carries git write and that is the whole of the Executor's reach. A fine-grained PAT cannot separate «push a branch» from «merge to main» — both need `Contents: write` — and the hosted-gate reading it would automate is already performed by the actor who opens the pull-request page to merge. The gap is closed in the CONTRACT instead: CI evidence left the Executor's acceptance criteria and became an audit step (contract §9) |
 
 **Standing decisions.** No new coins beyond 28 · weights are never tuned · the
 directional layer is closed at the current evidence level: the machine owns risk,
@@ -1463,7 +1540,9 @@ rather than inherited (inv. 52).** The sandbox proxy is gone and the picture is 
 by host class, not uniformly better: `federalreserve.gov` open · `bls.gov` and
 `defillama.com` serve their APIs and refuse the rendered page with 403 · `farside.co.uk`
 answers a managed bot challenge · ETF issuer product pages refuse the VPS — BlackRock and
-ARK 403, Grayscale 429, Bitwise 200. **A 403 on a page whose API answers is not a closed
+ARK 403, Grayscale 429, Bitwise 200. **`tokenomist.ai` and `cryptorank.io` are NOT
+measured and may not be assumed open or closed in either direction (TZ-22).**
+**A 403 on a page whose API answers is not a closed
 lane**, which is why the methodology names the machine-readable endpoint as the primary
 artifact. Price delivery is unchanged regardless: `analyst/live.json` reaches the engine
 through the Boss's Shortcut and the working tree, and no measurement of this machine
@@ -1495,8 +1574,8 @@ top-level `n` is a JSON string, and `jq '.p|tonumber'` accepts `"Infinity"` and
 failing it*: `NaN > 0` and `NaN <= 0` are both false. The validator uses
 `float()` with `math.isfinite(x) and x > 0`, which rejects all four.
 
-**The gate is wired into `bench.yml` as step 13** (inv. 37) — `--selftest`, 12
-known-answer cases, 35 assertions, offline. That step, not a fingerprint entry, is why
+**The gate is wired into `bench.yml` as step 13** (inv. 37) — `--selftest`, 14
+known-answer cases, 40 assertions, offline (12 failing × 3 + 2 passing × 2). That step, not a fingerprint entry, is why
 `live-gate.sh` is trustworthy after the session that wrote it ended; adding the script
 to the `## 0` table would put a hash in every TZ header for a file whose behaviour is
 already under a control.
