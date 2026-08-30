@@ -14,7 +14,7 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-30-a.** Baseline: TZ-19 merged into `main`; implementation
+**Revision 2026-08-30-b.** Baseline: TZ-19 merged into `main`; implementation
 commit `cc8bade`, report `CryptoReports/TZ-19-gate-script-under-gate-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
@@ -25,13 +25,13 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-30-a.**` |
+| revision | `**Revision 2026-08-30-b.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `53. **A control is not wired until the trigger that reaches it has been measured.**` |
+| newest invariant | `54. **A record cannot contain the outcome of the action that stores it.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -1262,6 +1262,16 @@ cite them, so an invariant is rewritten in place and never renumbered.
     price and is the right direction to fail in: a narrowed list must be extended whenever
     the writing set grows, and a forgotten entry costs runner minutes loudly instead of
     costing a control silently.
+54. **A record cannot contain the outcome of the action that stores it.**
+    The analyst's day log is written, then committed, then pushed, so every sentence it
+    carries about its own commit or push is a forecast of a step that has not run — and
+    the first one written was wrong in the dangerous direction, declaring a push that had
+    in fact succeeded to have failed. A reader of an immutable record cannot tell a
+    forecast from a measurement inside it, and the record's whole value is that the
+    distinction never has to be made. The remedy is not more care in wording: it is that
+    the outcome belongs to the NEXT record, where it is history. This is inv. 38's
+    immutability read forwards — a file that may not be corrected must not contain the
+    class of statement most likely to need correcting.
 ---
 
 ## 5. Limits
@@ -1413,6 +1423,7 @@ monthly audit stops rediscovering them.
 | `analyst/live.json` producer emits a stray newline | **open, Boss-side — the last blocker** | the payload carries a raw LF inside `"LITUSDT\n"`, so the file is not valid JSON and the gate refuses it at check 1. A trailing newline in the Shortcut's symbol list, split on spaces. A Shortcut fix, not a TZ; until it lands the engine is complete and has no usable input |
 | First live analysis run | not yet performed | the payload parsing. Nothing in the repository blocks it |
 | CANON Part I amputation | prepared, held | one verified analysis run. Removing the Architect's engine before its replacement has produced a correct answer leaves no fallback |
+| ETF flow figures have no reachable primary lane | **closed, deliberately** | a named machine-readable endpoint from an issuer or a listing venue, arriving as a TZ. Three probe rounds from the VPS found none: issuer pages 403/429, Bitwise 200 alone is not the dominant fund, Cboe and Fidelity answered 404 on guessed paths, an NYSE quote page carries price and not creation/redemption. A figure is therefore not published and a direction is not published; press-sourced readings still inform the run internally (methodology §6). **A run never re-probes this** — rediscovering a closed lane every day is the failure this repository exists to prevent |
 | Producer clock drift is unmeasured | watched | the floor refuses a payload more than 120 s ahead and nothing tracks approach. `age_sec` is signed and already recorded in the day log, so drift becomes visible before it becomes a refusal |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
 
