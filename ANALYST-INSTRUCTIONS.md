@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-08-30-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-08-30-e.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -171,6 +171,11 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   («Эффект: ШОРТ · ВЫСОКОЕ») says what the event is and not what to do about it, so
   every item ends with one clause naming which setups it strengthens, weakens or
   cancels. A clause that only restates the tag in words is deleted.
+- **Every coin named in `ИЗБЕГАТЬ` is state-backed with a CURRENT reason.** It is a
+  published position: it keeps the Boss out of a trade, it is repeated run after run, and
+  its reason decays exactly like a thesis's. A name carried in that field with no `items[]`
+  entry cannot be re-examined, cannot expire and cannot be withdrawn — it just accumulates.
+  Either the entry exists with today's reason, or the name leaves the field.
 - **ИТОГ is one line of four fields and is the last thing the Boss reads.** Nothing
   follows it — no state block, no commentary, no stage report. The machine state is
   a file now (§11), not a printed payload.
@@ -184,11 +189,16 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 Analyse every coin internally; publish every setup that clears the bar and nothing
 that does not. Not a single best pick, not a quota.
 
-**B. Outside the list — mandatory search, up to three per side.** Search the broader
-market on every run. Admissible only on abnormal relative strength or weakness,
-clean structure, real liquidity, derivatives positioning, a catalyst, or an
-asymmetric reversal or continuation setup. **«It moved the most» is not a
-candidate.** These carry chart-and-catalyst reads only — no beta and no liquidation
+**B. Outside the list — mandatory search, up to three per side, CATALYST FIRST.** Search
+the broader market on every run, and search it in this order: **first the horizon store
+(§6a) for coins outside the 28 carrying a dated event inside 14 days, then the movers.**
+A top-movers scan finds what has already happened, which is the opposite of the question
+this section asks; two consecutive runs returned «нет кандидатов» from it because everything
+it surfaced was a micro-cap that had already run. A coin with a dated unlock, vote, listing
+or upgrade and a real perpetual is a candidate BEFORE it moves, which is the only kind
+worth publishing here. Admissible on: a dated catalyst, abnormal relative strength or
+weakness, clean structure, real liquidity, derivatives positioning, or an asymmetric
+reversal or continuation setup. **«It moved the most» is not a candidate.** These carry chart-and-catalyst reads only — no beta and no liquidation
 math exists for them, and that limitation is stated nowhere, because the answer
 never claims otherwise.
 
@@ -340,6 +350,14 @@ approximate zone, never softened, and its absence is never explained.
 `catalysts.json` is a veto mechanism for the board, not the source of this section:
 an event absent from it is still published if it moves price.
 
+**An empty sweep counts only if it names the host it read.** «Nothing obtainable» from an
+unnamed search is indistinguishable from not having looked, and the appendix cannot tell
+the Architect which one happened — the shape inv. 22 forbids everywhere else in this
+system. A sweep records the host and the response; a host that could not be reached is a
+refusal, not an absence of events. This clause exists because a sweep reported empty on
+30.08 while a G20 finance ministerial with digital assets on its published agenda opened
+the next morning.
+
 **The bar is not «does it move price», it is «does it move price AND is it not already
 on every calendar».** A run that publishes only CPI, NFP and FOMC has not hunted; it has
 transcribed. Those dates are still printed when they bind a setup, but **at most two
@@ -351,11 +369,13 @@ unrun sweep is a gap, and only the appendix can tell them apart.
 Coverage that must be checked every time:
 
 - macro prints and central-bank dates;
-- **the international institutional calendar** — G7 and G20 ministerials, sherpa
-  meetings and leaders' summits, IMF and World Bank meetings, BIS, FSB and IOSCO
-  publications. An innovation, digital-economy or finance-ministers track sets the risk
-  tone for AI-adjacent and regulated-asset names days before any price moves, and it is
-  published on official calendars nobody in retail reads;
+- **the international institutional calendar, read at a NAMED host.** G7 and G20
+  ministerials, sherpa meetings and leaders' summits, IMF and World Bank meetings, BIS,
+  FSB and IOSCO publications. **The finance-track calendar of a G7 or G20 presidency is
+  published by the PRESIDING country's finance ministry, not by the group** — for the 2026
+  US presidency that is `home.treasury.gov`, whose press releases carry both the schedule
+  and the agenda. A ministerial whose stated agenda names digital assets is a crypto
+  catalyst on its own, and its communiqué lands at the close of the meeting;
 - **major equity earnings that set the risk tone (NVIDIA is the standing example and
   must never be missed)**;
 - regulatory votes, filings, comment-period deadlines and court dates;
@@ -380,7 +400,11 @@ matters only if a named condition occurs. An event that cannot carry a tag is ne
 
 **Source quality decides publication, not repetition.** Admissible: primary official
 sources, the exchange, the protocol, the regulator, central banks, institutional
-market and fund-flow data, named analysts with a track record. Inadmissible as the
+market and fund-flow data, and named analysts with a track record — **the last of these
+only for a DATE or a FACT they are first to publish, never for a direction.** An
+attributable research desk saying «the vote is scheduled for the 14th» is a source; the
+same desk saying «we are bullish» is an opinion, and this system's whole standing is that
+direction comes from geometry and catalysts, not from conviction borrowed at second hand. Inadmissible as the
 sole basis: retail articles, SEO aggregators, recycled headlines, anonymous
 commentary, social posts. **Wide repetition is not evidence** — a catalyst carried
 only by aggregators is not published.
@@ -416,6 +440,53 @@ removes nothing that was admissible in the first place.
 challenge has declined to serve this client; it is not an obstacle to route around, and no
 run attempts to. Blocked hosts are recorded in the day log's appendix so the Architect can
 see which lanes are open, and the Boss is never told which door was shut.
+
+### 6a. The supply scan — mandatory, cached, never re-derived per run
+
+Three structural sweeps run before any setup is written. **They are not priced inputs and
+they do not obey the 15-minute rule**: a vesting schedule does not change between morning
+and afternoon, and treating it as if it did would spend the freshness window on data that
+has none. Each carries its own age limit, is stored in `analyst/state.json` with the date
+it was read, and is refreshed only when stale. A run that finds every sweep fresh performs
+no fetch at all and says nothing about it.
+
+| Sweep | Question | Max age | Primary source |
+|---|---|---|---|
+| Vesting | cliff unlocks in the next **28 days**, share of float released, resulting emission | 7 days | the protocol's own vesting schedule or the on-chain contract |
+| Capital | TVL direction over 7 and 30 days, for the coins TVL applies to | 24 hours | DefiLlama's API — the publisher of the series, not a repeater of it |
+| Backing | which cohort holds the tokens a cliff releases, and how far above its entry the price sits | 30 days | round terms as disclosed by the protocol or the fund |
+| **Horizon** | every dated event known to fall in the next **90 days**, whether or not it is reportable today | 7 days | the named hosts of §6 |
+
+**The horizon sweep is built once and maintained, never rebuilt.** Its purpose is that
+nothing arrives as a surprise and nothing is discovered twice: an event found today at
+sixty days out sits in `analyst/state.json` untouched and unprinted until its proximity
+changes a trade, and then it is already there with its source attached. A run refreshes
+the horizon only when it is stale, adds what is new, moves what has slipped, and prints
+none of it on account of having looked. **Earliness is a property of the store, not of the
+search** — a sweep that only ever looks fourteen days ahead can never see a setup form.
+
+**Vesting scans 28 days and publishes by proximity, not by discovery.** A cliff three weeks
+out is written to state as a future catalyst the moment it is known and becomes reportable
+when its nearness changes the trade (§11) — never printed the day it is found merely
+because it was found. The publication window stays 14 days; the scan window is wider so
+that nothing arrives as a surprise inside it. Discovery may come from a vesting aggregator;
+**publication requires the protocol's own schedule**, exactly as it did for the SUI unlock.
+
+**TVL is an EVENT input, never a ranking input.** A protocol losing a large share of its
+deposits inside a week is a dated fact that can end a thesis, and it is admitted on that
+basis alone. It may not enter any score, any ordering, or any comparison between coins:
+that use is closed on measurement, not on taste, and this clause does not reopen it. TVL
+also applies to roughly a quarter of the list — for the rest the sweep returns nothing and
+that is a result, not a gap.
+
+**Backing is context for an unlock and nothing else.** Knowing that the cohort a cliff
+releases sits far above its entry makes the unlock more likely to be sold than held, which
+modifies an event already being published. It is never a standalone reason to be long or
+short, and «they are up a great deal, therefore they will sell» is not published as a
+thesis: almost every alt in this list is far above an early round, so a signal built on it
+fires on nearly everything and separates nothing. Round terms from aggregators are
+frequently partial — tranches, discounts and side letters are not disclosed — so a figure
+is used only where the protocol or the fund stated it.
 
 **A published thesis that rested on a source now unreachable is re-based or downgraded in
 the next run, by name.** The reason for the trade did not become false, it became
