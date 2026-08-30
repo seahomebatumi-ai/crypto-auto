@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-08-29-d.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-08-30-b.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -384,6 +384,43 @@ market and fund-flow data, named analysts with a track record. Inadmissible as t
 sole basis: retail articles, SEO aggregators, recycled headlines, anonymous
 commentary, social posts. **Wide repetition is not evidence** — a catalyst carried
 only by aggregators is not published.
+
+**An API is the primary source, not a lesser version of the web page.** Where a host
+serves both and refuses one, the machine-readable endpoint is preferred and is not a
+degradation: it is the same publisher's own number without the rendering layer.
+
+**ETF flows — the primary set is the issuers and their listing venues, never a flow
+tracker.** The publishers of record are the funds' own daily disclosures of shares
+outstanding and net assets — **the machine-readable holdings endpoint, not the rendered
+product page**, per the clause above — and the exchanges the funds list on, which publish
+creation and redemption data as a listing function. A flow tracker aggregates those
+numbers and is corroboration at best; it may never be the sole basis, and its absence
+removes nothing that was admissible in the first place.
+
+- **A flow FIGURE is published only from a primary disclosure.** «−$202M on 28.08» is a
+  number with a publisher, and if no publisher can be reached the figure does not appear
+  in any form, rounded, approximate or attributed.
+- **A flow DIRECTION may be published on the dominant fund plus one other agreeing**,
+  because a risk-tone catalyst needs the turn, not the total. Two funds disagreeing is not
+  a direction and is not published.
+- Neither obtainable → the item is not published and its absence is not explained (§1).
+- **Not publishable is not the same as not knowable.** A flow reading carried only by
+  independent financial press remains admissible INTERNALLY: it may inform the regime
+  call, hold a setup at `ЖДАТЬ`, or keep a coin off the list, because §1 already puts the
+  machinery inside the answer rather than on it. What it may never do is appear as a
+  catalyst, carry a figure, or be named as the reason for a level. The source rule governs
+  what is PUBLISHED; it was never a rule about what may be thought, and reading it as one
+  would make an unreachable host into an instruction to be less informed.
+
+**Bot protection is a refusal and is respected as one.** A host answering with a managed
+challenge has declined to serve this client; it is not an obstacle to route around, and no
+run attempts to. Blocked hosts are recorded in the day log's appendix so the Architect can
+see which lanes are open, and the Boss is never told which door was shut.
+
+**A published thesis that rested on a source now unreachable is re-based or downgraded in
+the next run, by name.** The reason for the trade did not become false, it became
+unverifiable, and carrying it silently prints yesterday's conviction at today's confidence
+(§11).
 
 **The analyst never writes `catalysts.json`.** That registry vetoes the board's
 verdict, its `confirmed` flag is the compensating control for an externalised file
