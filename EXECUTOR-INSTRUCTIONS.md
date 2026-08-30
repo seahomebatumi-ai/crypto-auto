@@ -1,6 +1,6 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 14.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 15.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
@@ -27,6 +27,15 @@ violated anyway, in the section that always carries that sentence — a clause a
 must remember is not a control. And CI evidence left the Executor's acceptance criteria
 for the audit: two consecutive TZs were PARTIAL for a runner result the session had no
 credential to read, while the actor merging the pull request sees it on the page.
+**v15 makes the template's branch clauses conditional, because v14's own repair did not
+generalise.** TZ-22 authorised one written file and no branch, and three clauses written
+for a branch-and-pull-request change had no referent: §8's `NOT IN EFFECT UNTIL MERGED`,
+§10's `## Commit` and `## Pull Request`, and §10's rule that `## Final Repository State`
+describes the branch. The report resolved all three correctly and resolved them by
+JUDGEMENT — which is the thing inv. 54 says is not a control, in the same file v14
+hardened for exactly that reason. §8 now names the two TZ classes once, §10's sections
+read off the class instead of being reasoned about, and a hash rule separates a commit
+already pushed from the report's own.
 Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
@@ -206,6 +215,8 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
 8. Run the specified validation, in full (§9).
 9. Commit the implementation, push the branch, open a pull request — and if the
    environment refuses to open one, follow the fallback in §8 rather than stopping.
+   **On a report-only TZ (§8) this step is empty:** there is no implementation and no
+   branch, and step 10 is the whole of the writing.
 10. Write `CryptoReports/TZ-NN-<short-name>-report.md` in the §10 format and commit
     it **directly to `main`** (§8) — not to the branch.
 11. Post the closing message to the Boss in Russian (§11), and stop.
@@ -443,9 +454,21 @@ TZs and reports.
   you give the Boss resolves the moment he opens it. One report, one path, one copy:
   never also in the implementation branch, never a second copy under another name
   such as `LATEST-REPORT.md`.
-- Your report states the pull-request URL (or the fallback above), the CI
-  conclusion, and the sentence **"NOT IN EFFECT UNTIL MERGED"** under
-  `## Final Repository State`.
+- **A TZ is one of exactly two classes, and the report names its class in
+  `## Scope Executed` before any clause reads off it.** A **branch TZ** authorises at
+  least one written file outside `CryptoReports/**`, so it opens a branch and a pull
+  request. A **report-only TZ** authorises exactly one written file — its own report — on
+  the `CryptoReports/**` direct-push path. The class is READ OFF the TZ's `## Scope`, not
+  chosen: if the scope names a file outside `CryptoReports/**`, the TZ is a branch TZ.
+  Every clause in this contract that speaks of a branch, a pull request or a merge is
+  **silent** on a report-only TZ rather than deviated from, and its silence is never
+  reported as a deviation.
+- On a **branch TZ**, your report states the pull-request URL (or the fallback above),
+  the CI conclusion, and the sentence **"NOT IN EFFECT UNTIL MERGED"** under
+  `## Final Repository State`. On a **report-only TZ** none of the three has a referent
+  and none is written: nothing awaits a merge, so the sentence would assert a state that
+  does not exist — which is the class of statement inv. 54 exists to keep out of an
+  immutable record.
 - Before starting, check whether the previous TZ's branch was merged. If it was not,
   say so at the top of your report — building on an unmerged base produces work
   that is complete and live nowhere.
@@ -523,8 +546,8 @@ this section is role 1.
 ## Deviations
 ## Pre-existing Issues
 ## Remaining Risks
-## Commit
-## Pull Request             ← URL, or branch + compare URL if none exists (§8)
+## Commit                   ← messages and contents; a hash only for a commit already pushed
+## Pull Request             ← URL, or branch + compare URL if none exists (§8); on a report-only TZ, the fixed line below
 ## CI Execution             ← which workflows ran on a runner, conclusion; or none, and why
 ## Final Repository State
 ## Fingerprints             ← see below
@@ -547,13 +570,26 @@ Rules:
   output is not verification.
 - State caveats plainly: a local replay of CI semantics is not a runner execution —
   say which one you did (§9).
-- **`## Final Repository State` describes the BRANCH and says nothing about `main`.** The
-  branch was pushed before this report was written and is therefore measured; the report's
-  own commit and push have NOT happened yet, so any sentence about them is a forecast
-  inside an immutable record (inv. 54). "`main` carries this report" is that sentence and
-  is banned in every form. The next record states that it landed, where it is history.
-  This clause exists because the prohibition was named in a TZ and violated anyway: it is
-  enforced by the template, not by care.
+- **`## Commit` carries messages and contents, never an outcome.** A commit hash appears
+  there only for a commit that was already made and pushed when the section was written —
+  on a branch TZ that is the implementation commit, and it is a measurement. **The
+  report's own commit never satisfies that**, in either class, and never carries a hash, a
+  conclusion or a push result: the section states the message it is authorised to carry,
+  and stops (inv. 54).
+- **On a report-only TZ, `## Pull Request` carries one fixed line and no argument:**
+  `None — report-only TZ; direct push on the CryptoReports/** path (§8).` The section is
+  never omitted and never reasoned about. An absent section cannot be told from a
+  forgotten one, and a section arguing its way to emptiness is the author's judgement
+  standing where the template should be.
+- **`## Final Repository State` describes what the session leaves behind and says nothing
+  about `main`.** On a branch TZ that is the BRANCH, pushed before this report was written
+  and therefore measured; on a report-only TZ it is the checkout the fingerprints were
+  taken against, named by commit. In both classes the report's own commit and push have
+  NOT happened yet, so any sentence about them is a forecast inside an immutable record
+  (inv. 54). "`main` carries this report" is that sentence and is banned in every form.
+  The next record states that it landed, where it is history. This clause exists because
+  the prohibition was named in a TZ and violated anyway: it is enforced by the template,
+  not by care.
 - Your chat reply is a convenience. The committed Markdown report is the record, and
   it is **immutable once committed** (§13): a re-run produces
   `TZ-NN-<name>-report-2.md`; never overwrite.
