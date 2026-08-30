@@ -488,6 +488,18 @@ fires on nearly everything and separates nothing. Round terms from aggregators a
 frequently partial — tranches, discounts and side letters are not disclosed — so a figure
 is used only where the protocol or the fund stated it.
 
+**Two aggregators are measured and CLOSED, and a run never re-probes them.** `tokenomist.ai`
+and `cryptorank.io` both answer this machine, and the first admits agents operating under a
+Claude name by `robots.txt`. Neither serves the sweep's DATA in its rendered HTML (TZ-24): an
+unlock-events page carries a boolean stating whether a schedule exists and carries no schedule,
+and a fund's rounds page carries dated round records whose element schema holds no amount, no
+valuation and no investor key. Both sites load those figures client-side from a credentialed API
+this repository has no key for, so neither is a discovery source without a headless browser and a
+credential — and neither is named above. Rediscovering a closed lane every day is the failure
+this repository exists to prevent. **The sweeps lose nothing:** their sources were always the
+protocol's own schedule and the protocol's or the fund's own disclosure, and an aggregator was
+only ever a convenience on the way to them.
+
 **A published thesis that rested on a source now unreachable is re-based or downgraded in
 the next run, by name.** The reason for the trade did not become false, it became
 unverifiable, and carrying it silently prints yesterday's conviction at today's confidence
