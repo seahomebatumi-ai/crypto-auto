@@ -14,7 +14,7 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-29-c.** Baseline: TZ-19 merged into `main`; implementation
+**Revision 2026-08-30-a.** Baseline: TZ-19 merged into `main`; implementation
 commit `cc8bade`, report `CryptoReports/TZ-19-gate-script-under-gate-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
@@ -25,7 +25,7 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-29-c.**` |
+| revision | `**Revision 2026-08-30-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -1441,12 +1441,22 @@ rule written here and in the methodology would eventually be written two ways.
 | `analyst/log/YYYY-MM-DD.md` | role 2 | **permanent, immutable** |
 | `analyst/live-gate.sh` | role 1, under a TZ | live |
 
-**The engine performs no network fetch, and that is a measurement rather than a
-preference (TZ-16).** From an Executor session every market host is refused at
+**The engine performs no network fetch for PRICES, and that is a measurement rather than
+a preference (TZ-16).** Measured in the cloud sandbox, every market host was refused at
 CONNECT — `fapi.binance.com`, CoinGecko, `gist.githubusercontent.com`, and
-`data-api.binance.vision` **which inv. 24 permits from a runner**. The runner's egress
-and a session's egress are different networks and neither may be assumed from the
-other. The one surviving route to the payload was scraping a rendered Gist HTML page;
+`data-api.binance.vision` **which inv. 24 permits from a runner**. The runner's egress and
+a session's egress are different networks and neither may be assumed from the other.
+
+**Since 2026-08-30 the engine runs on a Vultr VPS, and the egress was re-measured there
+rather than inherited (inv. 52).** The sandbox proxy is gone and the picture is different
+by host class, not uniformly better: `federalreserve.gov` open · `bls.gov` and
+`defillama.com` serve their APIs and refuse the rendered page with 403 · `farside.co.uk`
+answers a managed bot challenge · ETF issuer product pages refuse the VPS — BlackRock and
+ARK 403, Grayscale 429, Bitwise 200. **A 403 on a page whose API answers is not a closed
+lane**, which is why the methodology names the machine-readable endpoint as the primary
+artifact. Price delivery is unchanged regardless: `analyst/live.json` reaches the engine
+through the Boss's Shortcut and the working tree, and no measurement of this machine
+reopens that. The one surviving route to the payload was scraping a rendered Gist HTML page;
 it was refused as a transport, because a presentation detail with no compatibility
 promise fails by returning something rather than by erroring, and a price behind a
 stop may not depend on that. The Shortcut's collection is unchanged — same calls, same
