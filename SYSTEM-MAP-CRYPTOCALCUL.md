@@ -14,18 +14,21 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-30-d.** Baseline: TZ-21 merged into `main`; implementation
+**Revision 2026-08-30-e.** Baseline: TZ-21 merged into `main`; implementation
 commit `8069341`, merge commit `edd650c`, report
 `CryptoReports/TZ-21-catalyst-registry-scope-and-basis-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
 
-**`-d` is a documentation revision and the baseline deliberately did not move.**
+**`-d` and `-e` are documentation revisions and the baseline deliberately did not move.**
 TZ-22 measured a network and wrote one report; no production file, no bench, no
 workflow and no constant changed, so the file table, the gate and the check count
-below are `-c`'s unaltered. The revision moves anyway, because §10 and §11 now record
-a measurement that `-c` denied having, and a TZ cut against the denial must BLOCK
-rather than proceed on it (inv. 50).
+below are `-c`'s unaltered. `-d` moved because §10 and §11 now record a measurement that
+`-c` denied having, and a TZ cut against the denial must BLOCK rather than proceed on it
+(inv. 50). `-e` moved because §10 named a TZ number for a repair that is not a TZ:
+`EXECUTOR-INSTRUCTIONS.md` is Architect-owned and arrives by Boss upload, so it became
+contract **v15** instead, and a row pointing at a TZ that will never exist would have
+failed the audit's own set-difference check between `CryptoTZ/` and `CryptoReports/`.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -33,7 +36,7 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-30-d.**` |
+| revision | `**Revision 2026-08-30-e.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -1509,9 +1512,9 @@ monthly audit stops rediscovering them.
 | `index.html:799` restates the registry schema | open, unowned | any TZ that opens `index.html`. The comment lists seven fields and the schema now has eight. **The repair is deletion, not synchronisation** — replaced by a pointer to `bench/catalyst_bench.js`, or the schema keeps living in three files (inv. 20) |
 | `main.yml` has no `paths` allow-list | open, measured live | TZ-23. The TZ-21 merge started `Crypto Update` #1492 on a change to `catalysts.json` and a bench file — thirty CoinGecko calls for a commit touching nothing the bot reads. Harmless in that direction; the failure that matters is the reverse, a filter so narrow the bot stops and `coeffs.json` ages silently (inv. 52, inv. 53) |
 | `tokenomist.ai`, `cryptorank.io` egress | **measured by TZ-22 — both open at the network layer** | nothing on egress. The reading is a point in time behind Cloudflare and is replaced by a later reading, never argued with (inv. 52). What remains is not an egress question and carries its own row |
-| §6a names no discovery host, and two questions gate naming one | open | TZ-25. `tokenomist.ai/robots.txt` carries an unquoted directive group naming Anthropic agents — a permission fact, not a network fact — and both rendered pages are JS-hydrated, so extraction without a headless browser is unmeasured. §6a admits «a vesting aggregator» for the vesting and backing sweeps and names none; naming one on a reachability reading alone would admit a lane on the strength of the one question TZ-22 did answer. Note in the host's favour: `cryptorank.io/robots.txt` `Disallow: /*?*` is followed by an explicit `Allow: /funds/*/rounds?filterKey`, which is the backing sweep's own path |
+| §6a names no discovery host, and two questions gate naming one | open | TZ-24. `tokenomist.ai/robots.txt` carries an unquoted directive group naming Anthropic agents — a permission fact, not a network fact — and both rendered pages are JS-hydrated, so extraction without a headless browser is unmeasured. §6a admits «a vesting aggregator» for the vesting and backing sweeps and names none; naming one on a reachability reading alone would admit a lane on the strength of the one question TZ-22 did answer. Note in the host's favour: `cryptorank.io/robots.txt` `Disallow: /*?*` is followed by an explicit `Allow: /funds/*/rounds?filterKey`, which is the backing sweep's own path |
 | A reachability control that fails only at DNS | open, Architect-side | any future egress TZ. TZ-22's negative control was a `.invalid` host, so the instrument is proven able to return `unreachable` for a name that does not resolve and NOT for a CONNECT that is refused — which is exactly what the old sandbox produced (§11) and the reading a future measurement most needs to distinguish. A routable address with a closed port belongs beside the `.invalid` control, never instead of it. The TZ was mine and so is the defect |
-| Report template lets inv. 54 rest on the author's care | open | TZ-24. TZ-22 kept the rule by reasoning twice: its `## Final Repository State` declined the forecast, and its Deviation 1 dropped §8's `NOT IN EFFECT UNTIL MERGED` because a report-only TZ opens no branch. Two template lines with no referent, both resolved by judgement — which is the thing inv. 54 says is not a control. `## Commit` and `## Pull Request` become conditional on a branch existing, and no line survives that a report-only TZ must argue its way out of |
+| Report template lets inv. 54 rest on the author's care | **closed by contract v15** | nothing. **Not a TZ, and the row that said so was wrong:** `EXECUTOR-INSTRUCTIONS.md` is Architect-owned and arrives by Boss upload (contract §2), so the Executor may never write it (contract §7.14) and a TZ asking it to would be defective. The repair is an Architect edit forced by TZ-22, in the standing of v13 and v14. §8 now names the two TZ classes once and every branch clause is silent on a report-only TZ instead of deviated from; §10's `## Commit` and `## Pull Request` read off the class; a hash appears only for a commit already pushed. **A bench over `CryptoReports/**` was considered and is impossible**: a report is pushed direct to `main` on a path both workflows carry in `paths-ignore` as `'**.md'`, so such a control could never fire — the template is the only place this rule can live |
 | Executor has no GitHub API access | **closed, deliberately** | nothing. `gh` is absent and no PAT exists; the deploy key `crypto-auto-vps` carries git write and that is the whole of the Executor's reach. A fine-grained PAT cannot separate «push a branch» from «merge to main» — both need `Contents: write` — and the hosted-gate reading it would automate is already performed by the actor who opens the pull-request page to merge. The gap is closed in the CONTRACT instead: CI evidence left the Executor's acceptance criteria and became an audit step (contract §9) |
 
 **Standing decisions.** No new coins beyond 28 · weights are never tuned · the
