@@ -27,6 +27,36 @@
 //     requiring an opinion about the OUTCOME does not belong in the registry at
 //     all: that is how the ZEC entry acquired a direction it could not support.
 //   * `src` must support the date in `d`, not merely the existence of the event.
+//   * The registry carries COIN-SCOPED events only (TZ-21 §2 rule 1). A
+//     market-wide event — a macro release, a central-bank decision, an index
+//     rebalance — never enters the file. Market-wide risk is already measured,
+//     by marketRegime in §3.12 Layer 0, and a per-coin veto is the wrong
+//     instrument for it: a `dir:'both'` macro entry would close both sides on
+//     all 28 coins for fifteen days out of roughly forty-five. A `"*"` key is
+//     therefore not a missing feature but permanently out of scope, and the
+//     `items key "<sym>" is in tokens[]` assertion that refuses it is correct
+//     rather than a limitation to work around.
+//   * The registry carries RESOLVING events only (TZ-21 §2 rule 2). An event
+//     qualifies when something the market prices becomes KNOWN or IRREVERSIBLE
+//     on `d`: an unlock releases supply, a governance vote concludes, a listing
+//     goes live, a court or an agency issues a decision. An administrative
+//     milestone on the path to such an event does NOT qualify — a
+//     comment-period deadline, a filing date, a hearing being scheduled.
+//     Nothing resolves on that date, so a veto would spend fifteen days of both
+//     sides on a non-event.
+//   * A `disputed` entry must carry its own argument, in `basis` (TZ-21 §2
+//     rule 3). Map §3.15 deletes rather than demotes an entry NO host confirms,
+//     because such an entry keeps printing an argument built on a date nobody
+//     confirms; that stays true. It does not cover a second case: the primary
+//     publishes the MECHANISM and not the CALENDAR. There a derived date is
+//     supported by the rule it is derived from ONLY WHEN THE DERIVATION IS
+//     WRITTEN INTO `basis` — an underived date and an undocumented derivation
+//     are indistinguishable to the next reader. So the classes split: no
+//     primary publishes the event at all -> delete the entry; the primary
+//     publishes the mechanism but not the date -> `conf:'disputed'` is
+//     permitted and `basis` is MANDATORY; the primary publishes the date ->
+//     `conf:'confirmed'` per inv. 39. `basis` is inside cat.hash (§3.13), so
+//     the argument sits next to every journaled verdict.
 'use strict';
 const fs   = require('fs');
 const path = require('path');
@@ -165,6 +195,22 @@ const KEYS = ['d', 'dir', 'kind', 't', 'conf', 'src', 'added'];
 const DIRS = ['long', 'short', 'both'];
 const KINDS = ['unlock', 'protocol', 'listing', 'macro'];
 const CONFS = ['confirmed', 'disputed'];
+// TZ-21 §3.A. `basis` records the derivation an entry stands on when the primary
+// publishes the MECHANISM and not the CALENDAR (§2 rule 3). It is deliberately
+// NOT in KEYS: a key listed there is demanded of every entry, and a `confirmed`
+// entry whose primary published the date argues nothing beyond `src`. So the key
+// set below admits it and the five assertions after it carry the whole rule —
+// mandatory at `conf:'disputed'`, constrained wherever it appears.
+//
+// ASCII because the file is ASCII (§3.15) and `basis` is prose the next EDITOR
+// reads, not a string the board prints: `t` is the escaped one. A `\uXXXX`
+// escape parses to a non-ASCII character, so the test is on the PARSED value and
+// not on the file's bytes, which the byte scan covers separately.
+const BASIS_MAX = 300;
+function isAscii(s) {
+    for (let i = 0; i < s.length; i++) if (s.charCodeAt(i) > 127) return false;
+    return true;
+}
 
 console.log('=== 1. Schema of catalysts.json ===');
 let entries = 0;
@@ -176,7 +222,9 @@ Object.keys(CAT.items).forEach(function (sym) {
     list.forEach(function (e, i) {
         entries++;
         const tag = sym + '[' + i + '] ';
-        deq(tag + 'exact key set', Object.keys(e).slice().sort(), KEYS.slice().sort());
+        deq(tag + 'exact key set besides the optional basis',
+            Object.keys(e).filter(function (k) { return k !== 'basis'; }).sort(),
+            KEYS.slice().sort());
         ok(tag + 'd is YYYY-MM-DD', /^\d{4}-\d{2}-\d{2}$/.test(e.d));
         ok(tag + 'd parses', isFinite(Date.parse(e.d + 'T00:00:00Z')));
         ok(tag + 'added is YYYY-MM-DD', /^\d{4}-\d{2}-\d{2}$/.test(e.added));
@@ -185,6 +233,18 @@ Object.keys(CAT.items).forEach(function (sym) {
         ok(tag + 'conf in enum', CONFS.indexOf(e.conf) >= 0);
         ok(tag + 'src is an array', Array.isArray(e.src));
         ok(tag + 't is a non-empty string', typeof e.t === 'string' && e.t.length > 0);
+        // Five unconditional checks, so the count is the same whether or not the
+        // entry carries the field: a guard that skips its assertions on absent
+        // data verifies nothing on exactly the entry that omitted it (inv. 22).
+        const hasBasis = Object.prototype.hasOwnProperty.call(e, 'basis');
+        const basisStr = hasBasis && typeof e.basis === 'string';
+        ok(tag + 'basis is present at conf disputed', e.conf !== 'disputed' || hasBasis);
+        ok(tag + 'basis is a string when present', !hasBasis || basisStr);
+        ok(tag + 'basis is non-empty after trim when present',
+           !hasBasis || (basisStr && e.basis.trim().length > 0));
+        ok(tag + 'basis is ASCII-only when present', !hasBasis || (basisStr && isAscii(e.basis)));
+        ok(tag + 'basis is at most ' + BASIS_MAX + ' chars when present',
+           !hasBasis || (basisStr && e.basis.length <= BASIS_MAX));
         const key = sym + '|' + e.d + '|' + e.t;
         ok(tag + 'no duplicate (sym, d, t)', !seenTriple[key]);
         seenTriple[key] = true;
