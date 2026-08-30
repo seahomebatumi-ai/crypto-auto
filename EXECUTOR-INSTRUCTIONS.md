@@ -1,6 +1,6 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 13.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 14.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
@@ -17,7 +17,17 @@ would have made a correctly built engine publish no levels, every run, and look 
 producer's fault. **v13 forbids the day log from reporting its own commit and push**: the
 log is written at step 7 and pushed at step 8, so any sentence it carries about that push
 is a prediction, and the first one written was wrong in the direction that matters — it
-declared a successful push failed. Every clause below that did not name a role in v8 governs the
+declared a successful push failed. **v14 makes three changes, all forced by TZ-20 and
+TZ-21.** Hard floor item 9 no longer rests on reachability: inv. 44 was rewritten after a
+VPS session reached four market hosts the old measurement said were refused, so the test
+is now whether a fetch can be REPRODUCED, and measuring the session's own environment
+became an explicitly permitted act. The report template gained a standing clause in
+`## Final Repository State`, because v13's prohibition was named in TZ-21's own text and
+violated anyway, in the section that always carries that sentence — a clause an author
+must remember is not a control. And CI evidence left the Executor's acceptance criteria
+for the audit: two consecutive TZs were PARTIAL for a runner result the session had no
+credential to read, while the actor merging the pull request sees it on the page.
+Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
 floor, the same repository rules and the same evidence standard.
@@ -333,12 +343,24 @@ TZs and reports.
 8. **Never modify `.github/workflows/backtest_bench.yml`** unless the TZ names it.
 9. **Binance production hosts return HTTP 451 from GitHub Actions** (inv. 24). Only
    `data.binance.vision` and `data-api.binance.vision` work from a runner; new CI
-   code calling `api.binance.com` will fail — report instead of retrying. **An
-   implementation session reaches no market host at all** (inv. 44): a stage that
-   needs external data exists only as a workflow step, and an implementation TZ that
-   asks for an in-session fetch is BLOCKED before it starts.
-   **Scope: this clause binds role 1.** Inv. 44 is a measurement of an implementation
-   session's egress, not a property of the network, and role 2 exists precisely to
+   code calling `api.binance.com` will fail — report instead of retrying. **A session
+   fetch may not stand behind a product fact** (inv. 44): a stage that needs an external
+   FACT — a price, a date, a figure, an event — exists only as a workflow step, and an
+   implementation TZ asking for such a fetch in-session is BLOCKED before it starts. The
+   reason is REPRODUCIBILITY, not reach: a runner fetch is recorded and repeatable by
+   anyone holding the repository, a session fetch is neither, because the session ends and
+   the market moves.
+   **Reachability is not the test and is never assumed in either direction.** Hosts a
+   session could not reach in one measurement answered 200 in the next; a rule resting on
+   a measurement falls with it (inv. 52).
+   **Measuring the session's own environment is a DIFFERENT act and is permitted** —
+   egress, tool availability, host reachability — provided the command is recorded beside
+   its result, because there the artifact IS the measurement and re-running the command is
+   the reproduction. Such a probe produces no product fact and may be re-run at will. It
+   is still bounded by item 2 and by `ANALYST-INSTRUCTIONS.md` §6: a managed challenge or
+   a refusal is the reading, never an obstacle to route around, and no evasion technique
+   appears in any command.
+   **Scope: the product-fact ban binds role 1.** Role 2 exists precisely to
    fetch live market data. An analysis run therefore attempts its fetches and treats
    the result as a measurement: reachable is used, refused is a fact about the machine
    this session runs on, recorded in the day log, never retried in a loop and never
@@ -456,13 +478,21 @@ TZs and reports.
 - **A local run is not a runner run, and the difference is reported, not glossed.** Say
   which workflows executed on GitHub, with their conclusion, and which did not, with
   the reason. "All benches green" is an incomplete sentence unless it names where.
-  The hosted `Bench gate` fires on `pull_request` and on push to `main` and
-  `claude/**`, so a branch pushed under `claude/**` has runner evidence even with no
-  pull request open (§8) — read the run and report its id and conclusion rather than
-  assuming either way.
-- **If no workflow executed at all, the report's `## Status` is PARTIAL**, however
-  complete the implementation is: the work is finished, the proof is not. Make the
-  gap impossible to miss; the Architect decides what to do about it.
+- **A report never claims a runner result its session could not read, and is not PARTIAL
+  for the omission.** Where GitHub API access exists, read the run and report its id and
+  conclusion rather than assuming either way. Where it does not — no `gh`, no token —
+  state only what IS established: that the branch was pushed, and that the changed paths
+  clear the workflow's filters. Do **not** write "the gate is expected to have fired":
+  that is a forecast inside an immutable record (inv. 54), and a forecast a reader cannot
+  tell from a measurement is worse than a stated gap.
+  **The hosted gate is read by the AUDIT, not by you.** It is evidence about the work,
+  and the actor who opens the pull-request page to merge is already looking at it. The
+  measurement belongs to whoever can make it. Two consecutive TZs were PARTIAL on this
+  while being substantively complete, which taught nothing and cost a round trip each.
+- **`## Status` is PARTIAL when the WORK is incomplete, not when its CI proof is
+  unreadable.** If no workflow executed at all — the paths were filtered out, the push
+  failed, the branch never reached the remote — that IS a gap in the work: say so, make it
+  impossible to miss, and let the Architect decide.
 
 ---
 
@@ -517,6 +547,13 @@ Rules:
   output is not verification.
 - State caveats plainly: a local replay of CI semantics is not a runner execution —
   say which one you did (§9).
+- **`## Final Repository State` describes the BRANCH and says nothing about `main`.** The
+  branch was pushed before this report was written and is therefore measured; the report's
+  own commit and push have NOT happened yet, so any sentence about them is a forecast
+  inside an immutable record (inv. 54). "`main` carries this report" is that sentence and
+  is banned in every form. The next record states that it landed, where it is history.
+  This clause exists because the prohibition was named in a TZ and violated anyway: it is
+  enforced by the template, not by care.
 - Your chat reply is a convenience. The committed Markdown report is the record, and
   it is **immutable once committed** (§13): a re-run produces
   `TZ-NN-<name>-report-2.md`; never overwrite.
