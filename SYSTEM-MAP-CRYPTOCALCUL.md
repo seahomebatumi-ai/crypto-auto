@@ -14,11 +14,18 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-30-c.** Baseline: TZ-21 merged into `main`; implementation
+**Revision 2026-08-30-d.** Baseline: TZ-21 merged into `main`; implementation
 commit `8069341`, merge commit `edd650c`, report
 `CryptoReports/TZ-21-catalyst-registry-scope-and-basis-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
+
+**`-d` is a documentation revision and the baseline deliberately did not move.**
+TZ-22 measured a network and wrote one report; no production file, no bench, no
+workflow and no constant changed, so the file table, the gate and the check count
+below are `-c`'s unaltered. The revision moves anyway, because §10 and §11 now record
+a measurement that `-c` denied having, and a TZ cut against the denial must BLOCK
+rather than proceed on it (inv. 50).
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -26,7 +33,7 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-30-c.**` |
+| revision | `**Revision 2026-08-30-d.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -1501,7 +1508,10 @@ monthly audit stops rediscovering them.
 
 | `index.html:799` restates the registry schema | open, unowned | any TZ that opens `index.html`. The comment lists seven fields and the schema now has eight. **The repair is deletion, not synchronisation** — replaced by a pointer to `bench/catalyst_bench.js`, or the schema keeps living in three files (inv. 20) |
 | `main.yml` has no `paths` allow-list | open, measured live | TZ-23. The TZ-21 merge started `Crypto Update` #1492 on a change to `catalysts.json` and a bench file — thirty CoinGecko calls for a commit touching nothing the bot reads. Harmless in that direction; the failure that matters is the reverse, a filter so narrow the bot stops and `coeffs.json` ages silently (inv. 52, inv. 53) |
-| `tokenomist.ai`, `cryptorank.io` egress unmeasured | open | TZ-22. §6a of `ANALYST-INSTRUCTIONS.md` admits an aggregator as a discovery source for the vesting and backing sweeps; §11 lists the measured lanes and neither host is on it. A mandatory sweep whose host is unreachable fails every run |
+| `tokenomist.ai`, `cryptorank.io` egress | **measured by TZ-22 — both open at the network layer** | nothing on egress. The reading is a point in time behind Cloudflare and is replaced by a later reading, never argued with (inv. 52). What remains is not an egress question and carries its own row |
+| §6a names no discovery host, and two questions gate naming one | open | TZ-25. `tokenomist.ai/robots.txt` carries an unquoted directive group naming Anthropic agents — a permission fact, not a network fact — and both rendered pages are JS-hydrated, so extraction without a headless browser is unmeasured. §6a admits «a vesting aggregator» for the vesting and backing sweeps and names none; naming one on a reachability reading alone would admit a lane on the strength of the one question TZ-22 did answer. Note in the host's favour: `cryptorank.io/robots.txt` `Disallow: /*?*` is followed by an explicit `Allow: /funds/*/rounds?filterKey`, which is the backing sweep's own path |
+| A reachability control that fails only at DNS | open, Architect-side | any future egress TZ. TZ-22's negative control was a `.invalid` host, so the instrument is proven able to return `unreachable` for a name that does not resolve and NOT for a CONNECT that is refused — which is exactly what the old sandbox produced (§11) and the reading a future measurement most needs to distinguish. A routable address with a closed port belongs beside the `.invalid` control, never instead of it. The TZ was mine and so is the defect |
+| Report template lets inv. 54 rest on the author's care | open | TZ-24. TZ-22 kept the rule by reasoning twice: its `## Final Repository State` declined the forecast, and its Deviation 1 dropped §8's `NOT IN EFFECT UNTIL MERGED` because a report-only TZ opens no branch. Two template lines with no referent, both resolved by judgement — which is the thing inv. 54 says is not a control. `## Commit` and `## Pull Request` become conditional on a branch existing, and no line survives that a report-only TZ must argue its way out of |
 | Executor has no GitHub API access | **closed, deliberately** | nothing. `gh` is absent and no PAT exists; the deploy key `crypto-auto-vps` carries git write and that is the whole of the Executor's reach. A fine-grained PAT cannot separate «push a branch» from «merge to main» — both need `Contents: write` — and the hosted-gate reading it would automate is already performed by the actor who opens the pull-request page to merge. The gap is closed in the CONTRACT instead: CI evidence left the Executor's acceptance criteria and became an audit step (contract §9) |
 
 **Standing decisions.** No new coins beyond 28 · weights are never tuned · the
@@ -1540,11 +1550,28 @@ rather than inherited (inv. 52).** The sandbox proxy is gone and the picture is 
 by host class, not uniformly better: `federalreserve.gov` open · `bls.gov` and
 `defillama.com` serve their APIs and refuse the rendered page with 403 · `farside.co.uk`
 answers a managed bot challenge · ETF issuer product pages refuse the VPS — BlackRock and
-ARK 403, Grayscale 429, Bitwise 200. **`tokenomist.ai` and `cryptorank.io` are NOT
-measured and may not be assumed open or closed in either direction (TZ-22).**
-**A 403 on a page whose API answers is not a closed
+ARK 403, Grayscale 429, Bitwise 200. **A 403 on a page whose API answers is not a closed
 lane**, which is why the methodology names the machine-readable endpoint as the primary
-artifact. Price delivery is unchanged regardless: `analyst/live.json` reaches the engine
+artifact.
+
+**`tokenomist.ai` and `cryptorank.io` were measured by TZ-22 and both answer this
+machine.** Apex and `www` resolve to Cloudflare, TLS completes against a valid
+certificate, the rendered page returns 200 carrying its own product title and none of
+the four managed-challenge markers, and `robots.txt` serves. Their DATA APIs are
+credentialed and this repository holds no key: `api.tokenomist.ai/v4/token/list` answers
+401 `x-api-key not found`, and `api.cryptorank.io` declares `X-Api-Key` as its only
+security scheme across 76 paths, with `/v3/documentation-json` and `/v3/ping` as the
+keyless exceptions — `/v3/ping` returns a server clock and no data. **An open lane is
+neither an extractable figure nor a permission, and TZ-22 measured only the lane.** Both
+pages are JS-hydrated applications, so whether a figure can be read out of the served
+HTML without executing JavaScript is untested; and `tokenomist.ai/robots.txt` carries a
+directive group naming `ClaudeBot`, `Claude-SearchBot` and `anthropic-ai` whose contents
+that run did not quote. The run's own client was `curl/8.5.0`, which the `*` group admits,
+so the measurement is clean — but a methodology naming the host would be admitting it for
+an agent the host addresses by name. **Neither host is named in `ANALYST-INSTRUCTIONS.md`
+§6a until both questions are closed** (§10).
+
+Price delivery is unchanged regardless: `analyst/live.json` reaches the engine
 through the Boss's Shortcut and the working tree, and no measurement of this machine
 reopens that. The one surviving route to the payload was scraping a rendered Gist HTML page;
 it was refused as a transport, because a presentation detail with no compatibility
