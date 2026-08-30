@@ -1,6 +1,6 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 12.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 13.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
@@ -14,7 +14,10 @@ required one-line message collided with a ban declared to have no exception (§7
 around. **v12 repairs §4b step 2**: fetching without updating the working tree left the
 analyst reading a payload it could see was superseded on the remote — the one defect that
 would have made a correctly built engine publish no levels, every run, and look like the
-producer's fault. Every clause below that did not name a role in v8 governs the
+producer's fault. **v13 forbids the day log from reporting its own commit and push**: the
+log is written at step 7 and pushed at step 8, so any sentence it carries about that push
+is a prediction, and the first one written was wrong in the direction that matters — it
+declared a successful push failed. Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
 floor, the same repository rules and the same evidence standard.
@@ -231,6 +234,13 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
 8. Commit `analyst/**` directly to `main` (§8), one commit, message `analyst: <date>`.
 9. Send the answer. It is the whole message: no closing line, no report path, no
    status, no stage report (§11).
+
+**The day log makes no statement about its own commit or push.** It is written at step 7
+and pushed at step 8, so any such sentence is a forecast of a step that has not run, and a
+forecast recorded as a measurement is the one thing an immutable record must never carry.
+A push outcome that matters is reported in the NEXT run's appendix, where it is history.
+The general form: **a record cannot contain the outcome of the action that stores it**
+(inv. 54).
 
 **If the run cannot complete, it says so in one line and stops.** A partial market
 answer is worse than none: the Boss cannot tell which half was measured. The two
