@@ -14,13 +14,13 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-30-e.** Baseline: TZ-21 merged into `main`; implementation
+**Revision 2026-08-30-f.** Baseline: TZ-21 merged into `main`; implementation
 commit `8069341`, merge commit `edd650c`, report
 `CryptoReports/TZ-21-catalyst-registry-scope-and-basis-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
 
-**`-d` and `-e` are documentation revisions and the baseline deliberately did not move.**
+**`-d`, `-e` and `-f` are documentation revisions and the baseline deliberately did not move.**
 TZ-22 measured a network and wrote one report; no production file, no bench, no
 workflow and no constant changed, so the file table, the gate and the check count
 below are `-c`'s unaltered. `-d` moved because §10 and §11 now record a measurement that
@@ -29,6 +29,8 @@ below are `-c`'s unaltered. `-d` moved because §10 and §11 now record a measur
 `EXECUTOR-INSTRUCTIONS.md` is Architect-owned and arrives by Boss upload, so it became
 contract **v15** instead, and a row pointing at a TZ that will never exist would have
 failed the audit's own set-difference check between `CryptoTZ/` and `CryptoReports/`.
+`-f` moved because TZ-24 closed the §6a discovery question in the negative, and §10 and §11
+carried it as open.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -36,7 +38,7 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-30-e.**` |
+| revision | `**Revision 2026-08-30-f.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -1512,8 +1514,8 @@ monthly audit stops rediscovering them.
 | `index.html:799` restates the registry schema | open, unowned | any TZ that opens `index.html`. The comment lists seven fields and the schema now has eight. **The repair is deletion, not synchronisation** — replaced by a pointer to `bench/catalyst_bench.js`, or the schema keeps living in three files (inv. 20) |
 | `main.yml` has no `paths` allow-list | open, measured live | TZ-23. The TZ-21 merge started `Crypto Update` #1492 on a change to `catalysts.json` and a bench file — thirty CoinGecko calls for a commit touching nothing the bot reads. Harmless in that direction; the failure that matters is the reverse, a filter so narrow the bot stops and `coeffs.json` ages silently (inv. 52, inv. 53) |
 | `tokenomist.ai`, `cryptorank.io` egress | **measured by TZ-22 — both open at the network layer** | nothing on egress. The reading is a point in time behind Cloudflare and is replaced by a later reading, never argued with (inv. 52). What remains is not an egress question and carries its own row |
-| §6a names no discovery host, and two questions gate naming one | open | TZ-24. `tokenomist.ai/robots.txt` carries an unquoted directive group naming Anthropic agents — a permission fact, not a network fact — and both rendered pages are JS-hydrated, so extraction without a headless browser is unmeasured. §6a admits «a vesting aggregator» for the vesting and backing sweeps and names none; naming one on a reachability reading alone would admit a lane on the strength of the one question TZ-22 did answer. Note in the host's favour: `cryptorank.io/robots.txt` `Disallow: /*?*` is followed by an explicit `Allow: /funds/*/rounds?filterKey`, which is the backing sweep's own path |
-| A reachability control that fails only at DNS | open, Architect-side | any future egress TZ. TZ-22's negative control was a `.invalid` host, so the instrument is proven able to return `unreachable` for a name that does not resolve and NOT for a CONNECT that is refused — which is exactly what the old sandbox produced (§11) and the reading a future measurement most needs to distinguish. A routable address with a closed port belongs beside the `.invalid` control, never instead of it. The TZ was mine and so is the defect |
+| §6a discovery host | **closed by TZ-24 — both hosts measured, both refused on the data question** | nothing, and a run never re-probes them. Permission was answered — `tokenomist.ai/robots.txt` grants `Allow: /` to a group naming `ClaudeBot`, `Claude-SearchBot`, `anthropic-ai` and `Claude-User`; `cryptorank.io` names no agent beyond `*`. **Extractability was answered and it is what closes the lane:** the unlock-events page serves the boolean `isUnlockScheduleEmpty` and no schedule, nine schedule key names return zero across 617 540 bytes, and a fund's rounds page serves dated round records whose element schema carries no amount, valuation or investor key. Both load those figures client-side from a credentialed API. §6a now records the closure so no future run spends a fetch rediscovering it |
+| A reachability control that fails only at DNS | **partly closed by TZ-24; one layer still unproven** | any future egress TZ. TZ-24 added `192.0.2.1` (RFC 5737) beside the `.invalid` host and the exit codes differ — 6 at resolution, 28 at connection — so the instrument is now known to distinguish the two layers. **The residual is mine and is the reading that matters most:** TEST-NET-1 is blackholed, so control 3 times out (28) rather than being refused (7), and a REFUSED connect is the old cloud sandbox's exact signature. A third control returning exit 7 — a loopback port that actively rejects is enough, since the claim is about the instrument and not about egress — belongs beside the other two |
 | Report template lets inv. 54 rest on the author's care | **closed by contract v15** | nothing. **Not a TZ, and the row that said so was wrong:** `EXECUTOR-INSTRUCTIONS.md` is Architect-owned and arrives by Boss upload (contract §2), so the Executor may never write it (contract §7.14) and a TZ asking it to would be defective. The repair is an Architect edit forced by TZ-22, in the standing of v13 and v14. §8 now names the two TZ classes once and every branch clause is silent on a report-only TZ instead of deviated from; §10's `## Commit` and `## Pull Request` read off the class; a hash appears only for a commit already pushed. **A bench over `CryptoReports/**` was considered and is impossible**: a report is pushed direct to `main` on a path both workflows carry in `paths-ignore` as `'**.md'`, so such a control could never fire — the template is the only place this rule can live |
 | Executor has no GitHub API access | **closed, deliberately** | nothing. `gh` is absent and no PAT exists; the deploy key `crypto-auto-vps` carries git write and that is the whole of the Executor's reach. A fine-grained PAT cannot separate «push a branch» from «merge to main» — both need `Contents: write` — and the hosted-gate reading it would automate is already performed by the actor who opens the pull-request page to merge. The gap is closed in the CONTRACT instead: CI evidence left the Executor's acceptance criteria and became an audit step (contract §9) |
 
@@ -1571,8 +1573,21 @@ HTML without executing JavaScript is untested; and `tokenomist.ai/robots.txt` ca
 directive group naming `ClaudeBot`, `Claude-SearchBot` and `anthropic-ai` whose contents
 that run did not quote. The run's own client was `curl/8.5.0`, which the `*` group admits,
 so the measurement is clean — but a methodology naming the host would be admitting it for
-an agent the host addresses by name. **Neither host is named in `ANALYST-INSTRUCTIONS.md`
-§6a until both questions are closed** (§10).
+an agent the host addresses by name.
+
+**TZ-24 closed both questions, and the answer is no.** Permission: `tokenomist.ai` grants
+`Allow: /` to a group naming `ClaudeBot`, `Claude-SearchBot`, `anthropic-ai` and `Claude-User`;
+`cryptorank.io` names no agent beyond `*`. Extractability: both pages DO carry a
+machine-locatable payload without JavaScript — an RSC flight stream of 352 138 B and a
+`__NEXT_DATA__` block of 43 757 B — **and neither payload contains the data a sweep needs.** The
+unlock-events page serves the boolean `isUnlockScheduleEmpty` and no tranche array, and nine
+schedule key names return zero occurrences across the whole document; a fund's rounds page serves
+dated round records whose element schema has no amount, valuation or investor key. The figures
+arrive client-side from the credentialed API that answered 401. **A lane can be open, permitted
+and parseable and still be closed**, and that is why the two verdicts were kept apart: a single
+`usable` label would have named both hosts in §6a and every sweep would have located a payload,
+found nothing in it, and reported an empty result indistinguishable from a quiet market.
+`ANALYST-INSTRUCTIONS.md` §6a records the closure so no run re-probes them.
 
 Price delivery is unchanged regardless: `analyst/live.json` reaches the engine
 through the Boss's Shortcut and the working tree, and no measurement of this machine
