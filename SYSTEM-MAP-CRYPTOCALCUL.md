@@ -14,7 +14,7 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-31-a.** Baseline: TZ-23 merged into `main`; implementation
+**Revision 2026-09-01-a.** Baseline: TZ-23 merged into `main`; implementation
 commit `5fc2da5`, report
 `CryptoReports/TZ-23-main-workflow-paths-allowlist-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
@@ -27,7 +27,12 @@ gate holds at thirteen steps and 1 250 739 checks, verified term by term against
 own totals. The three `2026-08-30` letters were documentation revisions on the TZ-21
 baseline: `-d` recorded TZ-22's measurement where `-c` denied having one, `-e` corrected a
 §10 row naming a TZ number for a repair that became contract **v15**, and `-f` recorded
-TZ-24 closing the §6a discovery question in the negative.
+TZ-24 closing the §6a discovery question in the negative. **`2026-09-01-a` is a documentation
+revision on the same TZ-23 baseline:** no file this block fingerprints moved, the gate holds
+at thirteen steps and 1 250 739 checks, and what changed is the analytical engine's own
+governing text — `ANALYST-INSTRUCTIONS.md` to revision `2026-09-01-b` and
+`EXECUTOR-INSTRUCTIONS.md` to **v16**, neither of which this table has ever fingerprinted
+because neither is a production file.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -35,7 +40,7 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-31-a.**` |
+| revision | `**Revision 2026-09-01-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -1539,7 +1544,11 @@ until someone re-runs the command.
 | `live-gate.sh` sits under `bench.yml`'s `analyst/**` ignore | **closed by TZ-19** | nothing. Proven on the runner: a push carrying only the script now starts the gate |
 | `bench.yml`'s analyst ignore must grow with the written set | watched | any TZ or methodology change that adds a file the analyst writes. A forgotten entry burns a gate per run — loud, not silent (inv. 53) |
 | `analyst/live.json` producer emits a stray newline | **closed — measured 31.08.2026T10:03:40Z on a live payload** | nothing. The Shortcut no longer emits the raw LF inside the symbol list: a payload of `n:29` parses, `n == len(c)`, every `p`/`h`/`l` casts to a finite positive, no symbol carries whitespace, no duplicate. **The row above it was stale for days and nobody re-measured it** — the Architect read a recorded blocker as current state and reported the engine unusable when it was not. That is inv. 52 applied to this map's own rows: a row resting on a measurement falls with it, and a blocker is re-measured before it is repeated |
-| First live analysis run | **unblocked; awaiting the first run** | nothing in the repository and nothing Boss-side. The gate's freshness window is `−120 … +900` s, so LIVE SNAP is run immediately before the analyst trigger rather than at some earlier point in the day; a payload older than fifteen minutes is refused with exit 3 and that refusal is correct, not a defect |
+| First live analysis run | **ran 31.08.2026; two runs, both measured** | nothing. The gate's freshness window is `−120 … +900` s and is a GATE budget, not a RUN budget: the 14:29Z run passed the gate three times and still published no level, because methodology §5 measured price age at the moment of SENDING and its only other exit — re-pull — is unreachable when the payload is written by the Boss's Shortcut. The 20:32Z run, under revision `2026-09-01-a`, froze levels at gate step 4 before the catalyst search and published two setups from the same architecture and the same window. **The constant never moved; the object it governed was wrong** |
+| A rule moved between environments is re-derived, not copied | **closed by `ANALYST-INSTRUCTIONS.md` 2026-09-01-a** | nothing. The 15-minute price age was written where the Boss pasted the payload into chat, so «re-pull before sending, or the coin leaves the answer» had two live exits; moving the reader into the repository closed the first and left the sentence untouched, and the file's own provenance table certified the clause carried «byte-equivalent in substance». Byte-equivalence WAS the defect. Appendix A now records that a provenance table asserting a clause unchanged is asserting the environment did not matter |
+| A cache keyed by a stage's NAME hides a widening of its CONTENT | **closed by `ANALYST-INSTRUCTIONS.md` §6a, and it paid on the first run** | nothing. Each stored sweep now records the contract MD5 it was read under and is stale when that differs, whatever its age. The motivating case and the first catch are the same one: the international-institutional lane and its named host were added on 30.08, the 31.08 morning run found `horizon` two days inside a seven-day limit and never opened the host, and the evening run — forced to re-sweep by the MD5 rule — found a G20 finance ministerial in session with digital assets on its published agenda. Without the rule that event stayed invisible for six more days |
+| The engine reads `fr` but not `oi` or `mark` | open | the next run. Every row of `analyst/live.json` carries funding, open interest and mark beside the price, so positioning is a read of a file already open and costs nothing. Methodology §5 step 6 has mandated it since `2026-09-01-a`; two runs have printed funding and neither has read the column beside it. Not a defect in the payload and not a missing source — an unexecuted clause, which is the class §7's checklist exists to convert into a check |
+| `home.treasury.gov` refuses this machine | **measured 31.08.2026T20:32Z — timeout on direct fetch** | any egress change. The G20 finance-track text was read from a documentary archive carrying the same release verbatim, and `ANALYST-INSTRUCTIONS.md` §6 now names that class: an archive of a primary's own words is admissible for a DATE and a FACT while the primary is unreachable, for nothing else, and the primary is re-attempted every run. Re-measure before citing this row as current (inv. 56) |
 | CANON Part I amputation | prepared, held | one verified analysis run. Removing the Architect's engine before its replacement has produced a correct answer leaves no fallback |
 | ETF flow figures have no reachable primary lane | **closed, deliberately** — the three probe rounds behind it are **measured, date unrecorded** | a named machine-readable endpoint from an issuer or a listing venue, arriving as a TZ. Three probe rounds from the VPS found none: issuer pages 403/429, Bitwise 200 alone is not the dominant fund, Cboe and Fidelity answered 404 on guessed paths, an NYSE quote page carries price and not creation/redemption. A figure is therefore not published and a direction is not published; press-sourced readings still inform the run internally (methodology §6). **A run never re-probes this** — rediscovering a closed lane every day is the failure this repository exists to prevent |
 | Producer clock drift is unmeasured | watched | the floor refuses a payload more than 120 s ahead and nothing tracks approach. `age_sec` is signed and already recorded in the day log, so drift becomes visible before it becomes a refusal |
@@ -1566,7 +1575,7 @@ sizing, honesty and geometry, the human owns direction via catalysts and REVIEW.
 
 **The Claude Code Executor carries two roles.** Role 1 implements an approved TZ;
 role 2 is the operational market-analysis engine. One process, one contract
-(`EXECUTOR-INSTRUCTIONS.md`), two triggers, never both in one turn. The methodology —
+(`EXECUTOR-INSTRUCTIONS.md`), two roles, never both in one turn. The methodology —
 what is analysed, what is published, in what shape, under what data discipline — is
 `ANALYST-INSTRUCTIONS.md`, which stands to role 2 exactly as this map stands to role 1:
 binding text the Executor reads and never writes.
@@ -1640,6 +1649,26 @@ its own tree and the transport leaves the design instead of being hardened.
 side in stderr. The floor exists because the producer is a phone and the reader is not:
 a one-sided ceiling passes every payload stamped in the future, which is the failure the
 check exists to prevent arriving through the check itself (inv. 51).
+
+**That window is a GATE budget and was never a RUN budget, and the two were conflated
+until 31.08.** The gate reads a file once; a run reads state, freezes geometry, hunts
+catalysts, sweeps, composes, writes state and log, commits, and sends. Methodology §5
+measured price age at the moment of SENDING, so a run doing the second job honestly
+arrived at composition with the ceiling spent — and its only other exit, re-pulling the
+price, does not exist for an engine whose payload is written by the Boss's Shortcut.
+Since `ANALYST-INSTRUCTIONS.md` revision `2026-09-01-a` the stage order is binding and
+levels are FROZEN at gate step 4, before any search: the anchoring price is fixed with
+them, every later stage is subtractive, and an aged freeze demotes `СЕЙЧАС` to `ЖДАТЬ`
+instead of deleting the level. **Nothing about the constant changed.** Depth of search
+and existence of levels no longer compete for one fifteen-minute budget, which is why
+two runs from one trigger returned different-shaped answers on the same day.
+
+**The Boss's production trigger is a third spelling, not a third mode.** `ANALYZE
+TODAY'S CRYPTO MARKET AND DETERMINE THE STRATEGY FOR ENTERING ALTCOINS ON BINANCE
+FUTURES.` selects role 2 and runs methodology §2's skeleton identically to `Анализ
+крипторынка`. It lives in `EXECUTOR-INSTRUCTIONS.md` §4 and in the methodology's §0, and
+the pair moves together: §4 is the only place a role is selected, so a string present in
+one file and absent from the other is an unrecognised trigger that stops the run.
 
 **`analyst/live-gate.sh` is the blocking gate and returns an exit code** (inv. 29),
 one distinct class per failure: unreadable or unparseable 2 · stale 3 · `n ≠ len(c)` 4
