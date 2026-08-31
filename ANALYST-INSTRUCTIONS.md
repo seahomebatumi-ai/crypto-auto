@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-08-30-e.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -51,8 +51,18 @@ window, and the enumeration and this file would disagree within a week.
 
 | Trigger | Produces |
 |---|---|
-| `Анализ крипторынка` — or `Analyze today's crypto market.` | the full cycle above, printed as §2's skeleton in full |
+| `ANALYZE TODAY'S CRYPTO MARKET AND DETERMINE THE STRATEGY FOR ENTERING ALTCOINS ON BINANCE FUTURES.` | the full cycle above, printed as §2's skeleton in full |
+| `Анализ крипторынка` — or `Analyze today's crypto market.` | identical — the same cycle, a shorter spelling |
 | `REVIEW` | §9 only |
+
+**The three full-cycle strings are one trigger, not three modes.** The long form names
+the objective the cycle has always had; it adds no stage, removes none, and changes no
+section. A trigger that could alter the workflow by being worded differently would be a
+second methodology written in the chat window, which is the shape this table exists to
+prevent — so the Executor matches any of the three and runs §2's skeleton in full,
+identically. The long form is the Boss's production trigger and is the one that must
+never fail to be recognised; the two short forms are retained because they are already
+in `EXECUTOR-INSTRUCTIONS.md` §4 and in months of day logs.
 
 Nothing else starts a run. A market question asked in prose is answered by running the
 full cycle, never by answering the prose: a partial answer assembled to fit the question
@@ -85,7 +95,8 @@ statistic in place of a trade.
 - «Системных данных нет», «доска недоступна», or any statement about what the
   analyst could not read — **with exactly one exception, worded once and never
   extended.** Absent data changes the decision or it is not mentioned; when it
-  removes the levels, the answer prints this sentence and no other:
+  removes the levels, **or when an aged freeze demotes every `СЕЙЧАС` to `ЖДАТЬ`
+  (§5)**, the answer prints this sentence and no other:
 
   > **«Нужен свежий снимок — запусти LIVE SNAP.»**
 
@@ -161,7 +172,10 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 **Section rules.**
 
 - `Время анализа` is one line, produced by the §5 gate, and is the only thing ever
-  written about data availability.
+  written about data availability. **It prints the moment the prices were FROZEN (§5),
+  not the moment the answer was sent** — that is the moment every level in the answer
+  belongs to, and printing any other would attach the levels to a price they were never
+  computed against.
 - **ЛУЧШИЕ СДЕЛКИ СЕЙЧАС** carries only trades that clear the quality bar right now.
   None clear it → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** plus one short sentence of
   reason, then the strategy table carries the pending triggers.
@@ -173,6 +187,18 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 - **ТОП-3 ВНЕ СПИСКА is mandatory to search and never mandatory to fill.** One
   genuine candidate beats three manufactured ones; zero genuine candidates prints
   «Нет достойных кандидатов.» in one line.
+- **A mandatory search resolves to exactly THREE states, and the third is printed.**
+  `ТОП-3 ВНЕ СПИСКА` (both sides) and `СОЗРЕВАЕТ ≤14 ДНЕЙ` each end in one of:
+  candidates printed · **«Нет достойных кандидатов.»** — the search ran and returned
+  nothing · **«Поиск не завершён.»** — the stage did not complete this run. Those two
+  sentences are fixed strings: no reason follows either, no host is named, no apology is
+  offered. **An omitted section is not a permitted fourth state for these two headings**
+  — everywhere else in §2 an empty section disappears, and that is why the omission had
+  to be given a word here: a mandatory search that vanishes reads exactly like a search
+  that found nothing, and the Boss acts on the difference. §6's rule that an empty sweep
+  is a measurement and an unrun sweep is a gap has always been true internally; this is
+  the same distinction reaching the person who trades on it. These lines are section
+  values, not an account of the system, and §1's ban is untouched by them.
 - **СОЗРЕВАЕТ ≤14 ДНЕЙ carries what is not tradable yet and covers both universes.**
   Maximum three items printed. An item is admissible only if it names BOTH the thing
   that must happen — a dated event or an exact price — AND the level structure it
@@ -199,6 +225,14 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 - **ИТОГ is one line of four fields and is the last thing the Boss reads.** Nothing
   follows it — no state block, no commentary, no stage report. The machine state is
   a file now (§11), not a printed payload.
+- **The `ЖДАТЬ` field of `ИТОГ` carries the activating price beside every name**, in
+  the form `AAVE 122–124`. The Статус-cell rule above binds the strategy table; a bare
+  name list in `ИТОГ` is the same banned form arriving through the one field the rule
+  did not cover, and it arrives exactly when the table is absent — which is exactly when
+  the Boss has nothing else to read. A name with no price and no date leaves the field
+  rather than being printed without one. **`ИЗБЕГАТЬ` is the one field that carries no
+  price**: it is a prohibition, and its backing is the `items[]` entry §2 already
+  requires, not a level.
 
 ---
 
@@ -269,8 +303,8 @@ published until every step has passed.** The Boss sees the result as a correct
 header line and correct prices, never as a description of the checking.
 
 ```
-1 ВРЕМЯ  →  2 ЦЕНЫ BINANCE FUTURES  →  3 СОСТОЯНИЕ  →  4 КАТАЛИЗАТОРЫ
-        →  5 СИГНАЛЫ И ПОТОКИ  →  6 СТРАТЕГИЯ
+1 ВРЕМЯ  →  2 ЦЕНЫ BINANCE FUTURES  →  3 СОСТОЯНИЕ  →  4 ГЕОМЕТРИЯ (заморозка уровней)
+        →  5 КАТАЛИЗАТОРЫ  →  6 СИГНАЛЫ И ПОТОКИ  →  7 СТРАТЕГИЯ
 ```
 
 A later step may not be answered from an earlier run. Fresh time and a fresh BTC
@@ -333,24 +367,72 @@ lifecycle is applied to every item before the answer is composed. A run that can
 read or parse the state file stops and says so in one line: analysing without state
 silently restarts the memory chain and reports known events as discoveries.
 
-**4 · Catalysts.** Primary source only — protocol, exchange, foundation, regulator.
+**4 · Geometry — the freeze.** Every candidate that survives the state read gets its
+entry zone, invalidation and first target computed HERE, from the gate-fresh payload and
+the 24-hour structural file, and the anchoring price is recorded with them. This is the
+only stage that consumes the fifteen-minute budget, and it runs before a single search.
+A run that reaches this stage with a green gate has its levels for the rest of the run
+whatever else happens; a run that reaches it with a red gate has none and cannot acquire
+them later. Nothing after this step re-prices anything.
+
+**5 · Catalysts.** Primary source only — protocol, exchange, foundation, regulator.
 Repetition across aggregators is not confirmation and the same host twice is one
-host (map inv. 39). Each event is placed relative to the analysis moment (§2).
+host (map inv. 39). Each event is placed relative to the analysis moment (§2). This
+stage and every stage after it is subtractive on the frozen set (step 4).
 
-**5 · Signals, flows, positioning.** Funding, open interest, liquidation structure,
+**6 · Signals, flows, positioning.** Funding, open interest, liquidation structure,
 ETF flows, dominance: current at the analysis moment or absent from the answer.
+**Funding, open interest and mark price arrive INSIDE the payload** — every row of
+`analyst/live.json` carries `fr`, `oi` and `mark` beside the price — so positioning is a
+read of a file already open, not a fetch, and it costs nothing. Open interest rising
+into a falling price is distribution and open interest falling with it is
+capitulation; the two produce different `ЖДАТЬ` triggers on the same chart, and a run
+that prints funding while ignoring the `oi` column beside it has left half of the
+positioning read on the table. Mark against last is the basis and is read the same way.
 
-**Ages, measured from the moment the answer is SENT, not from when work began.**
+**Ages, and the moment each is measured from.**
 
-| Field | Maximum age | Source |
-|---|---|---|
-| Price behind any entry / stop / target | **15 minutes** | `analyst/live.json` |
-| 24 h high / low, volume, funding, open interest | 1 hour | Binance Futures |
-| Structure — 90d/30d extremes, β, R², volatility | 24 hours | Gist `coeffs.json` / journal |
-| Catalyst dates, filings, votes, listings, unlocks | current | primary source only |
+| Field | Maximum age | Measured at | Source |
+|---|---|---|---|
+| Price anchoring a FROZEN entry / stop / target | **15 minutes** | **the freeze (step 4)** | `analyst/live.json` |
+| Any claim about the price NOW — `СЕЙЧАС`, «цена в зоне», R:R read off the market | **15 minutes** | **the moment of sending** | `analyst/live.json` |
+| 24 h high / low, volume, funding, open interest, mark | 1 hour | reading | `analyst/live.json` |
+| Structure — 90d/30d extremes, β, R², volatility | 24 hours | reading | journal / Gist `coeffs.json` |
+| Catalyst dates, filings, votes, listings, unlocks | current | — | primary source only |
 
-If the run took long enough for a price to age past 15 minutes, it is re-pulled
-before sending or the coin leaves the answer.
+**The two price rows are the whole rule and they are deliberately different objects.**
+A level is a day-scale structure valid ≥ 24 h (§4), computed from a 24-hour structural
+file and anchored ONCE to a gate-fresh price; a hundred seconds does not move it. A
+statement that price is in the zone *right now* is a claim about this minute and expires
+exactly as written. Charging both to one clock read at the moment of sending makes the
+run's own duration a defect in its data.
+
+**The engine cannot re-pull a price, and the rule may not assume it can.** `analyst/
+live.json` is written by the Boss's Shortcut and by nothing in this engine (step 2), so
+«re-pulled before sending, or the coin leaves the answer» offered two exits of which
+only one was ever reachable, and it deleted whole answers through the other. Measured
+2026-08-31: the gate passed at 165 s, the catalyst stage consumed the window, composition
+began with 121 s of the ceiling left, and seven fully computed setups were destroyed over
+a hundred seconds on a level whose own structural input was 21 hours old. The ceiling is
+not the defect; the object it was applied to was.
+
+**Freeze, then hunt — the stage order is binding.** Levels are computed at step 4,
+immediately after the state read and BEFORE any catalyst search, and the price they were
+computed against is fixed with them. Nothing later in the run may move a level. A
+catalyst arriving at step 5 may REMOVE a setup, downgrade it, or hold it at `ЖДАТЬ` —
+all subtractive acts needing no price — and may never re-price one, because by then the
+frozen payload is the only price this run will ever have. Ordering the run this way costs
+nothing and removes permanently the competition between depth of search and existence of
+levels: before this clause, a run that hunted properly arrived at composition with no
+budget left, so thoroughness and actionability were paid for out of the same fifteen
+minutes and every run resolved the trade-off differently. That is the whole of why two
+runs from one trigger returned different-shaped answers.
+
+**If the frozen block ages past 15 minutes before the answer is sent:** every `СЕЙЧАС`
+becomes `ЖДАТЬ` carrying its own activating price, the header prints the FREEZE moment
+(§2), and the answer prints the one sentence of §1. **The levels survive; only the claim
+about right now does not.** A run whose freeze itself failed the gate publishes no level
+at all — that case is unchanged and is below.
 
 **Two independent live sources within 2%** — for outside-list coins only. One source
 is a claim, not a price. Above 2% divergence neither is used: resolve with a third
@@ -463,12 +545,30 @@ see which lanes are open, and the Boss is never told which door was shut.
 
 ### 6a. The supply scan — mandatory, cached, never re-derived per run
 
-Three structural sweeps run before any setup is written. **They are not priced inputs and
-they do not obey the 15-minute rule**: a vesting schedule does not change between morning
-and afternoon, and treating it as if it did would spend the freshness window on data that
-has none. Each carries its own age limit, is stored in `analyst/state.json` with the date
-it was read, and is refreshed only when stale. A run that finds every sweep fresh performs
-no fetch at all and says nothing about it.
+Four structural sweeps run after the freeze (§5 step 4) and before any setup is
+published. **They are not priced inputs and they do not obey the 15-minute rule**: a
+vesting schedule does not change between morning and afternoon, and treating it as if it
+did would spend the freshness window on data that has none. Each carries its own age
+limit, is stored in `analyst/state.json` with the date it was read, and is refreshed only
+when stale. A run that finds every sweep fresh performs no fetch at all and says nothing
+about it.
+
+**A sweep is also stale when the rule that defines it has changed.** Each stored sweep
+records the MD5 of `ANALYST-INSTRUCTIONS.md` it was read under — the run already computes
+that hash for the day log (§12) — and a sweep whose recorded MD5 differs from this run's
+is stale whatever its age. Without this clause an age cache is keyed to the sweep's NAME
+while its CONTENT is defined here, so widening a lane leaves every cached copy satisfying
+freshness while covering less than the contract now requires. **That failure has already
+happened once and it is the reason this clause exists:** the international-institutional
+lane below, and the named host in it, were added on 30.08; the run of 31.08 read this file,
+found `horizon` two days inside its seven-day limit, and never opened the host the new
+clause names.
+
+**The horizon sweep is stored PER LANE, not as one blob.** Each lane of the §6 coverage
+list carries its own read date, its own host and its own result inside
+`state.sweeps.horizon`. One date over a bundle of lanes lets a lane that was never opened
+inherit the freshness of one that was, and the store then reports a coverage it does not
+have — the same shape map inv. 48 names for a bench green on invented input.
 
 | Sweep | Question | Max age | Primary source |
 |---|---|---|---|
@@ -551,6 +651,23 @@ Not published, not summarised, not referenced. Any failure downgrades the setup 
 10. Nothing from the banned list in §1 survived into the answer.
 11. Every item that changed status is reflected in `analyst/state.json` before the
     answer is sent, and the day log is written.
+12. **Every name in `ИЗБЕГАТЬ` has an `items[]` entry carrying today's reason** (§2).
+    No entry → the name leaves the field. This is checked per name, not per run.
+13. **Every name in the `ЖДАТЬ` field of `ИТОГ` carries its activating price** (§2).
+    No price and no date → the name leaves the field.
+14. **Each of the three mandatory searches — `ТОП-3` long, `ТОП-3` short,
+    `СОЗРЕВАЕТ` — resolved to one of its three printable states** (§2). None of them
+    is silently absent.
+15. **Every lane of the §6 coverage list is fresh under §6a**, including its recorded
+    contract MD5. A stale lane is refreshed or the run states which lane it is short
+    of, in the appendix, by name.
+
+**Items 12–15 exist because the rules they check already existed and nothing checked
+them.** Each was violated by a run that had read this file correctly: `ИЗБЕГАТЬ` carried
+a name with no entry, `ИТОГ` carried `ЖДАТЬ` names with no prices, two mandatory searches
+vanished without a word, and the named institutional host was never opened. A rule stated
+in §2 and enforced nowhere is a description of the methodology, not the methodology — the
+distinction this checklist exists to remove.
 
 ---
 
@@ -801,3 +918,16 @@ list, the two-source rule, the 15-minute price age, the `ЖДАТЬ`-needs-a-pri
 the mandatory outside-list search, the `СОЗРЕВАЕТ` admissibility test, the impact
 tags, the aggregator ban and the declared-position rule are byte-equivalent in
 substance to their CANON originals.
+
+**Deviation 2 broke one of those rules by moving it unchanged, and revision
+2026-09-01-a repairs it.** The 15-minute price age was written for an environment where
+the Boss pasted the payload into the chat, so «re-pull before sending, or drop the coin»
+offered two live exits. Moving the reader into the repository removed the first exit
+without touching the sentence, and the claim above that the rule was carried «byte-
+equivalent in substance» is exactly wrong: byte-equivalence was the defect. The rule kept
+its wording and lost half its meaning, and on 31.08 it deleted seven computed setups
+through the exit that remained. **The general lesson belongs beside the table: a rule
+moved into a new environment is re-derived there, not copied**, and a provenance table
+that certifies a clause unchanged is asserting the environment did not matter — which is
+the one thing the deviation itself proves false. Where a clause survives a move, the
+audit surface must record WHY it still holds, not only that it is the same text.
