@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-b.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -184,6 +184,17 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   must be avoided appears in `ИТОГ` under ИЗБЕГАТЬ with no row.
 - **Статус** is `СЕЙЧАС` or `ЖДАТЬ`. `ЖДАТЬ` requires the exact activating price in
   the Вход cell — «ЖДАТЬ» alone is a violation.
+- **`СЕЙЧАС` asserts that the FROZEN price sits inside the published zone, and the
+  assertion is checked against the number, not against the sense of it.** Outside the
+  zone by any margin — above the top for a long, below the bottom for a short — the row
+  is `ЖДАТЬ` carrying the edge of the zone as its activating price, or the zone is
+  re-cut at the freeze and the new one is published. A carried-over zone the price has
+  just left prints `СЕЙЧАС` beside a price that cannot fill it, and the Boss reads a
+  limit order that will never trigger as a trade he is in. **The R:R must also be
+  recomputed at the frozen price whenever the zone is republished**, since the same
+  drift that empties a zone erodes the ratio that justified it: a setup re-entering the
+  answer at a materially worse R:R than the one it was published on is re-argued or
+  dropped, never reprinted on yesterday's number.
 - **ТОП-3 ВНЕ СПИСКА is mandatory to search and never mandatory to fill.** One
   genuine candidate beats three manufactured ones; zero genuine candidates prints
   «Нет достойных кандидатов.» in one line.
@@ -222,9 +233,20 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   its reason decays exactly like a thesis's. A name carried in that field with no `items[]`
   entry cannot be re-examined, cannot expire and cannot be withdrawn — it just accumulates.
   Either the entry exists with today's reason, or the name leaves the field.
+- **A name LEAVING `ИЗБЕГАТЬ` is a withdrawal and is spoken by name, in the same first
+  line as every other withdrawal (§11).** The field is a published prohibition, so
+  deleting a name from it tells the Boss the coin is tradable again — the loudest
+  possible statement, made by omission. The rule above is what removes a name that has
+  lost its backing, and without this clause that repair produces the silent reversal
+  §11 exists to forbid: the name simply is not there, and the reader cannot tell a
+  lifted prohibition from a forgotten one. Two exits, both spoken: the entry is written
+  with today's reason and the name stays, or the name goes and the answer says so.
 - **ИТОГ is one line of four fields and is the last thing the Boss reads.** Nothing
   follows it — no state block, no commentary, no stage report. The machine state is
-  a file now (§11), not a printed payload.
+  a file now (§11), not a printed payload. **All four fields are printed on every run;
+  an empty one reads `нет`.** A dropped field is indistinguishable from a forgotten one,
+  and this is the line the Boss acts on — «ЖДАТЬ: нет» is one word and says something,
+  while a missing `ЖДАТЬ:` says nothing twice.
 - **The `ЖДАТЬ` field of `ИТОГ` carries the activating price beside every name**, in
   the form `AAVE 122–124`. The Статус-cell rule above binds the strategy table; a bare
   name list in `ИТОГ` is the same banned form arriving through the one field the rule
@@ -515,6 +537,20 @@ only by aggregators is not published.
 serves both and refuses one, the machine-readable endpoint is preferred and is not a
 degradation: it is the same publisher's own number without the rendering layer.
 
+**An ARCHIVE that reproduces a primary's own text is admissible for a DATE and a FACT
+when the primary itself is unreachable, and for nothing else.** A documentary archive
+carrying a ministry's press release verbatim is not an aggregator writing about it: the
+words are the publisher's, only the host is not. It is admitted for what the publisher
+stated — the date, the venue, the agenda line — never for a figure the archive computed,
+never for a direction, and never once the primary answers again. The run names the
+archive AND the primary it stands in for, re-attempts the primary on the next run, and a
+thesis still resting on the archive after the primary returns is re-based (§6a). Without
+this clause an unreachable publisher forces a choice between two wrongs — publishing
+against the source rule, or dropping a real event because its host timed out — and the
+second is what silence looks like from the outside. Measured 2026-08-31: `home.treasury.gov`
+timed out on the G20 finance-track announcement and the text was read from a university
+archive of the same release; the event was real, material and inside 24 hours.
+
 **ETF flows — the primary set is the issuers and their listing venues, never a flow
 tracker.** The publishers of record are the funds' own daily disclosures of shares
 outstanding and net assets — **the machine-readable holdings endpoint, not the rendered
@@ -661,13 +697,22 @@ Not published, not summarised, not referenced. Any failure downgrades the setup 
 15. **Every lane of the §6 coverage list is fresh under §6a**, including its recorded
     contract MD5. A stale lane is refreshed or the run states which lane it is short
     of, in the appendix, by name.
+16. **Every `СЕЙЧАС` row has the frozen price inside its published zone** (§2), and
+    every republished zone carries an R:R recomputed at that price.
+17. **Every name that LEFT `ИЗБЕГАТЬ` since the last run is named in the answer** (§2).
+    A prohibition is not lifted by omission.
+18. **`ИТОГ` carries all four fields**, empty ones reading `нет` (§2).
 
-**Items 12–15 exist because the rules they check already existed and nothing checked
+**Items 12–18 exist because the rules they check already existed and nothing checked
 them.** Each was violated by a run that had read this file correctly: `ИЗБЕГАТЬ` carried
-a name with no entry, `ИТОГ` carried `ЖДАТЬ` names with no prices, two mandatory searches
-vanished without a word, and the named institutional host was never opened. A rule stated
-in §2 and enforced nowhere is a description of the methodology, not the methodology — the
-distinction this checklist exists to remove.
+a name with no entry and later dropped one without a word, `ИТОГ` printed three fields
+where the skeleton has four, a `СЕЙЧАС` row was published at a price a cent above its own
+zone, two mandatory searches vanished without a word, and the named institutional host was
+never opened. A rule stated in §2 and enforced nowhere is a description of the
+methodology, not the methodology — the distinction this checklist exists to remove. **The
+list grows by measurement and never by anticipation:** an item is added the first time a
+correctly-read rule is broken in a real run, which is why every entry above names a
+failure that happened rather than one that might.
 
 ---
 
@@ -684,6 +729,17 @@ distinction this checklist exists to remove.
 
 REVIEW verbs are never mixed with ЛОНГ / ШОРТ: «Сокращать» is a book action, «ШОРТ»
 is a new trade.
+
+**`ВЫСОКАЯ` has a definition, because it sat on the most-read line of the answer with
+no rule behind it.** It requires all four: the frozen price inside the zone (§2) · R:R
+at or above 2.5 measured at that price · a stop at a named structural level, not a
+round number (§7 item 5) · **and no `ВЫСОКОЕ` catalyst resolving inside the holding
+window.** Any one missing → `СРЕДНЯЯ`. The fourth condition is the one that was doing
+nothing: a coin published `ВЫСОКАЯ` while a `ВЫСОКОЕ` event lands before the trade
+can work says two contradictory things about the same risk, one in the catalyst
+section and one on the line the Boss reads first. Confidence describes the setup's
+own quality and never the analyst's feeling about it; there is no third word, and a
+setup that would need one is not published.
 
 ---
 
