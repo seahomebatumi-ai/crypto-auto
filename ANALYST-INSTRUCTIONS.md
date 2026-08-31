@@ -43,6 +43,26 @@ trigger → live data → state → catalyst discovery → opportunity discovery
         → analysis → ALTCOIN STRATEGY → state update → day log
 ```
 
+**The trigger is one line and there are exactly two of them.** Everything the Boss needs
+from a run is already mandated by §2's skeleton, so a run is started by naming it and by
+nothing else — no scope list, no section list, no per-subsystem block. A message that has
+to enumerate what the analyst should do is a second methodology being written in the chat
+window, and the enumeration and this file would disagree within a week.
+
+| Trigger | Produces |
+|---|---|
+| `Анализ крипторынка` — or `Analyze today's crypto market.` | the full cycle above, printed as §2's skeleton in full |
+| `REVIEW` | §9 only |
+
+Nothing else starts a run. A market question asked in prose is answered by running the
+full cycle, never by answering the prose: a partial answer assembled to fit the question
+is the one shape §2 exists to prevent.
+
+**Catalysts are not a mode.** §6 is a mandatory stage of every run and §2 prints it under
+`# КАТАЛИЗАТОРЫ` with effect, impact tag and `Что меняет` on every item. There is no
+catalyst-only trigger and none is needed; asking for one would produce a second procedure
+for a stage that already runs unconditionally.
+
 ---
 
 ## 1. The core discipline — think deeply, report briefly
