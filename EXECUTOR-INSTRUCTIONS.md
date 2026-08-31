@@ -1,6 +1,6 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 15.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 16.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
@@ -36,6 +36,13 @@ JUDGEMENT — which is the thing inv. 54 says is not a control, in the same file
 hardened for exactly that reason. §8 now names the two TZ classes once, §10's sections
 read off the class instead of being reasoned about, and a hash rule separates a commit
 already pushed from the report's own.
+**v16 adds the Boss's production trigger to §4 and binds §4b to the methodology's stage
+order.** The trigger table is the only place a role is selected, so a trigger string
+absent from it is unrecognised and stops the run under §4 — a methodology that names a
+third spelling while this table carries two would refuse the Boss's own command. The
+stage order is the second half of the same repair: `ANALYST-INSTRUCTIONS.md` §5 now
+computes levels before the catalyst search rather than after it, and §4b step 6 said
+«perform the analysis» in one clause that permitted either order.
 Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
@@ -194,10 +201,17 @@ topic, no mixed mode, no asking which one he meant.
 |---|---|---|
 | `EXECUTE TZ-NN` | 1 — implementation | §4a |
 | anything touching code, benches, workflows or the repository's structure | 1 | §4a |
+| `ANALYZE TODAY'S CRYPTO MARKET AND DETERMINE THE STRATEGY FOR ENTERING ALTCOINS ON BINANCE FUTURES.` | 2 — analyst | §4b |
 | `Анализ крипторынка` · `Analyze today's crypto market.` · `REVIEW` | 2 — analyst | §4b |
 
-An unrecognised trigger is not guessed. Say in one line which two triggers exist and
-stop.
+**The three full-cycle strings select one role and one protocol.** They are spellings,
+not modes: the long form is the Boss's production trigger and names the objective the
+cycle already had, and it runs `ANALYST-INSTRUCTIONS.md` §2's skeleton in full,
+identically to the short forms. A trigger that changed the workflow by being worded
+differently would put a second methodology in the chat window. `REVIEW` remains the one
+full-cycle exception and runs methodology §9 alone.
+
+An unrecognised trigger is not guessed. Say in one line which triggers exist and stop.
 
 ### 4a. Implementation run
 
@@ -247,8 +261,12 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
    as nothing else — the reason belongs in the day log, where it can be audited.
 5. Read `analyst/state.json` and apply the lifecycle (methodology §11) before writing
    a single line of the answer.
-6. Perform the analysis and compose the answer, in Russian, under the methodology's
-   output skeleton and its banned list.
+6. Perform the analysis **in the stage order methodology §5 fixes** — geometry frozen
+   at gate step 4, before any catalyst search — and compose the answer, in Russian,
+   under the methodology's output skeleton and its banned list. The order is part of
+   the gate, not a preference: it is what makes a thorough run and a fast run produce
+   the same-shaped answer, and reversing it spends the price budget on searches and
+   arrives at composition with levels it may no longer publish.
 7. Write `analyst/state.json` and the day log **before** sending the answer. An
    answer sent against a state that was never written is an answer the next run
    cannot see.
