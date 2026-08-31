@@ -14,23 +14,20 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-08-30-f.** Baseline: TZ-21 merged into `main`; implementation
-commit `8069341`, merge commit `edd650c`, report
-`CryptoReports/TZ-21-catalyst-registry-scope-and-basis-report.md`. **The
+**Revision 2026-08-31-a.** Baseline: TZ-23 merged into `main`; implementation
+commit `5fc2da5`, report
+`CryptoReports/TZ-23-main-workflow-paths-allowlist-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
 
-**`-d`, `-e` and `-f` are documentation revisions and the baseline deliberately did not move.**
-TZ-22 measured a network and wrote one report; no production file, no bench, no
-workflow and no constant changed, so the file table, the gate and the check count
-below are `-c`'s unaltered. `-d` moved because §10 and §11 now record a measurement that
-`-c` denied having, and a TZ cut against the denial must BLOCK rather than proceed on it
-(inv. 50). `-e` moved because §10 named a TZ number for a repair that is not a TZ:
-`EXECUTOR-INSTRUCTIONS.md` is Architect-owned and arrives by Boss upload, so it became
-contract **v15** instead, and a row pointing at a TZ that will never exist would have
-failed the audit's own set-difference check between `CryptoTZ/` and `CryptoReports/`.
-`-f` moved because TZ-24 closed the §6a discovery question in the negative, and §10 and §11
-carried it as open.
+**The baseline moved and the file table did not, which is the correct pair here.** TZ-23
+edited `.github/workflows/main.yml` — a workflow, not a file this block fingerprints — so
+`index.html`, `main.py`, `catalysts.json` and the calibration record are unaltered and the
+gate holds at thirteen steps and 1 250 739 checks, verified term by term against the map's
+own totals. The three `2026-08-30` letters were documentation revisions on the TZ-21
+baseline: `-d` recorded TZ-22's measurement where `-c` denied having one, `-e` corrected a
+§10 row naming a TZ number for a repair that became contract **v15**, and `-f` recorded
+TZ-24 closing the §6a discovery question in the negative.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -38,13 +35,13 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-08-30-f.**` |
+| revision | `**Revision 2026-08-31-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `55. **A specification is checked against the text it must obey, never against memory of it.**` |
+| newest invariant | `56. **A recorded state is not a current state unless it carries the date it was measured.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -1312,8 +1309,10 @@ cite them, so an invariant is rewritten in place and never renumbered.
     pattern disagree, the pattern is replaced by one that reads the same under both —
     `'**.md'` over `'**/*.md'` — because closing an ambiguity is a real gain even when
     the behaviour does not move. A `paths-ignore` list with no `paths` allow-list
-    beside it still fires on every path nobody thought to name, which remains the
-    shape in `main.yml` and is a separate, open matter.
+    beside it still fires on every path nobody thought to name; that was `main.yml`'s
+    shape until TZ-23 replaced it with an allow-list of two literal paths, and the
+    literals are deliberate — a glob is a hypothesis about a third party's matcher,
+    two exact strings compare equal or they do not.
 53. **A control is not wired until the trigger that reaches it has been measured.**
     Inv. 37 says a bench outside the gate is not a control; this says a bench inside the
     gate is not one either while the trigger excludes the commits that would exercise it.
@@ -1356,6 +1355,22 @@ cite them, so an invariant is rewritten in place and never renumbered.
     second implementation of a rule; this bans a second recollection of one. The failure
     is invisible at authoring time by construction — a specification never runs, so
     nothing contradicts it until a session has been spent on it.
+56. **A recorded state is not a current state unless it carries the date it was measured.**
+    §10 is this system's own register of what is true, and a row in it is read as a fact
+    about today. A row whose State rests on a MEASUREMENT — a host's answer, a machine's
+    ceiling, a producer's output, a third party's behaviour — therefore carries the date
+    and, where it exists, the time of that reading, inside the State cell. **A State with
+    no date is a DECISION and may be read as standing; a State with a date is a READING
+    and expires.** Before a dated row is repeated as current state it is re-measured, and
+    the cost of re-measuring is exactly one command in every case that has arisen.
+    Inv. 52 says a rule resting on a measurement falls with it; that was written about
+    somebody else's matcher, and this says the same thing about this map's own rows. The
+    failure it names has happened: the row recording a malformed `analyst/live.json` was
+    written when it was true, was never re-measured, and was reported to the Boss as an
+    active blocker while a valid payload sat one command away. **Nothing in a flat table
+    distinguishes a fact from a fossil**, and the reader who is most likely to be misled
+    is the author, because a row he wrote reads like a thing he knows.
+
 ---
 
 ## 5. Limits
@@ -1480,6 +1495,25 @@ Each item states its trigger. Nothing here is scheduled work; an item is picked 
 only when its trigger fires. Items with trigger «nothing» are recorded so that the
 monthly audit stops rediscovering them.
 
+**The State column carries a CLOSED vocabulary, and a measured state carries its date
+(inv. 56).**
+
+| State | Means | Dated |
+|---|---|---|
+| `open` | live work, nobody has done it | no |
+| `watched` | known, deliberately not acted on | only if it rests on a reading |
+| `closed by TZ-NN` / `closed by contract vNN` | done and in `main` | no — the TZ number is the date |
+| `closed, deliberately` | decided not to do, permanently | no |
+| `declared dead` | built or specified, will never land, retained as evidence | no |
+| `withdrawn` | the claim behind it was false | no |
+| `measured DD.MM.YYYY[Thh:mmZ]` | a reading of a host, machine or producer | **yes, always** |
+| `not built, gated` | waits on a named external condition | no |
+
+**A `measured` row is re-measured before it is cited as current state**, and the reading
+that replaces it replaces the date with it. A row carrying `measured` with no date, or a
+reading whose date was never recorded, says so in the cell and is treated as unverified
+until someone re-runs the command.
+
 | Item | State | Trigger to act |
 |---|---|---|
 | Wide research universe (n = 120) | not built, gated | a named tier-1 hypothesis with external effect size ≥ 0.030 IC on a liquid cross-section at 7–14d (§3.10c) |
@@ -1496,26 +1530,29 @@ monthly audit stops rediscovering them.
 | `NaN% от входа` at `E ≤ 0` in «ГРАНИЦЫ СДЕЛКИ» | pre-existing, unreachable live | any TZ touching that block. `Math.abs(liqSel / E - 1)` at `E = 0` is `0/0`; entry price is never zero on a live board, so it buys a diff and no safety |
 | Raw Cyrillic literal at `bench/prot_bench.js:177` | pre-existing, bench-only | any TZ editing that bench. It violates the ES5/escape rule the frontend keeps, in a file no browser loads |
 | `prot_bench.js` optional baseline suite | repaired in TZ-11 — neither side stripped, unconditional identity run inside the default suite, comparison counter with a zero-comparison guard | nothing; inv. 45 is satisfied by the gate itself |
-| Hosted gate evidence per TZ | watched | an Executor session cannot start GitHub Actions, so its 13-step table is a LOCAL measurement with the workflow's own step list. The hosted `Bench gate` fires on `pull_request` and on push to `claude/**` and `main` regardless, so the evidence exists; the audit reads it rather than taking the report's word |
-| `bench.yml` Node 20 pin | watched | GitHub already forces the actions onto Node 24 with a warning. Act when a step fails or the whole gate can be re-run as the validation |
+| Hosted gate evidence per TZ | watched — structural, not a reading | an Executor session cannot start GitHub Actions, so its 13-step table is a LOCAL measurement with the workflow's own step list. The hosted `Bench gate` fires on `pull_request` and on push to `claude/**` and `main` regardless, so the evidence exists; the audit reads it rather than taking the report's word |
+| `bench.yml` Node 20 pin | watched — **measured, date unrecorded; re-measure before citing** | GitHub already forces the actions onto Node 24 with a warning. Act when a step fails or the whole gate can be re-run as the validation |
 | `CryptoTZ/TZ-03-report-delivery.md` | never executed; declared dead by TZ-04 and retained as evidence, so no report exists by design | nothing — a specification without a report is never resurrected (contract §13) |
 | Analyst engine transport | **closed by TZ-17**: no network path; the payload is a file in the tree, the gate exits non-zero on stale, short or corrupt input, step 13 holds it | nothing. Re-opened only by a fresh egress measurement (§11) |
 | `live-gate.sh` check 3 is one-sided | **closed by TZ-18** | nothing. Window is `−120 … +900` s, both sides named in stderr, both constants single-site |
 | `'**/*.md'` root-level claim | **withdrawn by TZ-18** | nothing. The claim was false: runner history shows three root-Markdown pushes and no bot run. `'**.md'` was adopted anyway, for the ambiguity, not for a repair (inv. 52) |
 | `live-gate.sh` sits under `bench.yml`'s `analyst/**` ignore | **closed by TZ-19** | nothing. Proven on the runner: a push carrying only the script now starts the gate |
 | `bench.yml`'s analyst ignore must grow with the written set | watched | any TZ or methodology change that adds a file the analyst writes. A forgotten entry burns a gate per run — loud, not silent (inv. 53) |
-| `analyst/live.json` producer emits a stray newline | **open, Boss-side — the last blocker** | the payload carries a raw LF inside `"LITUSDT\n"`, so the file is not valid JSON and the gate refuses it at check 1. A trailing newline in the Shortcut's symbol list, split on spaces. A Shortcut fix, not a TZ; until it lands the engine is complete and has no usable input |
-| First live analysis run | not yet performed | the payload parsing. Nothing in the repository blocks it |
+| `analyst/live.json` producer emits a stray newline | **closed — measured 31.08.2026T10:03:40Z on a live payload** | nothing. The Shortcut no longer emits the raw LF inside the symbol list: a payload of `n:29` parses, `n == len(c)`, every `p`/`h`/`l` casts to a finite positive, no symbol carries whitespace, no duplicate. **The row above it was stale for days and nobody re-measured it** — the Architect read a recorded blocker as current state and reported the engine unusable when it was not. That is inv. 52 applied to this map's own rows: a row resting on a measurement falls with it, and a blocker is re-measured before it is repeated |
+| First live analysis run | **unblocked; awaiting the first run** | nothing in the repository and nothing Boss-side. The gate's freshness window is `−120 … +900` s, so LIVE SNAP is run immediately before the analyst trigger rather than at some earlier point in the day; a payload older than fifteen minutes is refused with exit 3 and that refusal is correct, not a defect |
 | CANON Part I amputation | prepared, held | one verified analysis run. Removing the Architect's engine before its replacement has produced a correct answer leaves no fallback |
-| ETF flow figures have no reachable primary lane | **closed, deliberately** | a named machine-readable endpoint from an issuer or a listing venue, arriving as a TZ. Three probe rounds from the VPS found none: issuer pages 403/429, Bitwise 200 alone is not the dominant fund, Cboe and Fidelity answered 404 on guessed paths, an NYSE quote page carries price and not creation/redemption. A figure is therefore not published and a direction is not published; press-sourced readings still inform the run internally (methodology §6). **A run never re-probes this** — rediscovering a closed lane every day is the failure this repository exists to prevent |
+| ETF flow figures have no reachable primary lane | **closed, deliberately** — the three probe rounds behind it are **measured, date unrecorded** | a named machine-readable endpoint from an issuer or a listing venue, arriving as a TZ. Three probe rounds from the VPS found none: issuer pages 403/429, Bitwise 200 alone is not the dominant fund, Cboe and Fidelity answered 404 on guessed paths, an NYSE quote page carries price and not creation/redemption. A figure is therefore not published and a direction is not published; press-sourced readings still inform the run internally (methodology §6). **A run never re-probes this** — rediscovering a closed lane every day is the failure this repository exists to prevent |
 | Producer clock drift is unmeasured | watched | the floor refuses a payload more than 120 s ahead and nothing tracks approach. `age_sec` is signed and already recorded in the day log, so drift becomes visible before it becomes a refusal |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
 
 | `index.html:799` restates the registry schema | open, unowned | any TZ that opens `index.html`. The comment lists seven fields and the schema now has eight. **The repair is deletion, not synchronisation** — replaced by a pointer to `bench/catalyst_bench.js`, or the schema keeps living in three files (inv. 20) |
-| `main.yml` has no `paths` allow-list | open, measured live | TZ-23. The TZ-21 merge started `Crypto Update` #1492 on a change to `catalysts.json` and a bench file — thirty CoinGecko calls for a commit touching nothing the bot reads. Harmless in that direction; the failure that matters is the reverse, a filter so narrow the bot stops and `coeffs.json` ages silently (inv. 52, inv. 53) |
-| `tokenomist.ai`, `cryptorank.io` egress | **measured by TZ-22 — both open at the network layer** | nothing on egress. The reading is a point in time behind Cloudflare and is replaced by a later reading, never argued with (inv. 52). What remains is not an egress question and carries its own row |
-| §6a discovery host | **closed by TZ-24 — both hosts measured, both refused on the data question** | nothing, and a run never re-probes them. Permission was answered — `tokenomist.ai/robots.txt` grants `Allow: /` to a group naming `ClaudeBot`, `Claude-SearchBot`, `anthropic-ai` and `Claude-User`; `cryptorank.io` names no agent beyond `*`. **Extractability was answered and it is what closes the lane:** the unlock-events page serves the boolean `isUnlockScheduleEmpty` and no schedule, nine schedule key names return zero across 617 540 bytes, and a fund's rounds page serves dated round records whose element schema carries no amount, valuation or investor key. Both load those figures client-side from a credentialed API. §6a now records the closure so no future run spends a fetch rediscovering it |
-| A reachability control that fails only at DNS | **partly closed by TZ-24; one layer still unproven** | any future egress TZ. TZ-24 added `192.0.2.1` (RFC 5737) beside the `.invalid` host and the exit codes differ — 6 at resolution, 28 at connection — so the instrument is now known to distinguish the two layers. **The residual is mine and is the reading that matters most:** TEST-NET-1 is blackholed, so control 3 times out (28) rather than being refused (7), and a REFUSED connect is the old cloud sandbox's exact signature. A third control returning exit 7 — a loopback port that actively rejects is enough, since the claim is about the instrument and not about egress — belongs beside the other two |
+| `main.yml` `paths` allow-list | **closed by TZ-23, merged** | nothing on the filter. The residual is a coupling, not a defect: the list must grow the first time `main.py` reads a repository file, no bench can enforce it (§11), and today's derivation is nil so the list is as small as it can be. A second reading arrives free — `journal/**` used to qualify to start the bot and was stopped only by `[skip ci]` in every journal commit subject, so a message convention was the whole control; the allow-list removes that dependency |
+| `claude/tz-20-catalyst-registry-content` was never merged | **declared dead — do not merge** | nothing. `federalregister.gov` is absent from `PRIMARY` on `main` (measured), while TZ-20's immutable report describes adding it. Merging now would reintroduce a PRIMARY host for regulatory and macro events — **the exact class §3.15 closed permanently** — and would roll `catalysts.json`'s ENA entry back to the version TZ-21 superseded. The branch is retained as evidence in the standing of `CryptoTZ/TZ-03-report-delivery.md`. If TZ-20's four `QCASES` boundary cases are wanted, they arrive in their own TZ on their own merits, never as a side effect of a merge |
+| Nothing verifies that an accepted TZ's branch reached `main` | open, unowned | the next TZ touching the audit procedure. TZ-20 sat unmerged across four subsequent TZs and a monthly audit without being noticed, because §13's rule reads «executed ⇔ a report exists in `CryptoReports/`» and a report exists for work that never landed. **The gate count masked it rather than exposing it:** step 8 agreed at 23 062 the whole time, and the agreement was evidence that nothing on `main` ever reflected TZ-20, not evidence that it had. The check is one command — `git merge-base --is-ancestor <branch> origin/main` per open branch — and it belongs in the audit, not in a bench |
+| The Executor's VPS cannot run gate step 5 under `bench.yml`'s own command | watched — **measured 31.08.2026**, TZ-23's session | nothing. `direction_bench.py --control` exhausts V8's default old-space on a 955 MB single-CPU host; reproduced on a pristine `origin/main` tree and cleared by `NODE_OPTIONS=--max-old-space-size=2600`, so it is a ceiling and not a defect. `ubuntu-latest` has no such ceiling. Recorded so a future session does not read the OOM as a product failure and does not edit a bench to make it pass |
+| `tokenomist.ai`, `cryptorank.io` egress | **measured 30.08.2026T18:07Z (TZ-22) — both open at the network layer** | nothing on egress. The reading is a point in time behind Cloudflare and is replaced by a later reading, never argued with (inv. 52). What remains is not an egress question and carries its own row |
+| §6a discovery host | **closed by TZ-24; the readings behind it measured 30.08.2026T20:42Z — both hosts refused on the data question** | nothing, and a run never re-probes them. Permission was answered — `tokenomist.ai/robots.txt` grants `Allow: /` to a group naming `ClaudeBot`, `Claude-SearchBot`, `anthropic-ai` and `Claude-User`; `cryptorank.io` names no agent beyond `*`. **Extractability was answered and it is what closes the lane:** the unlock-events page serves the boolean `isUnlockScheduleEmpty` and no schedule, nine schedule key names return zero across 617 540 bytes, and a fund's rounds page serves dated round records whose element schema carries no amount, valuation or investor key. Both load those figures client-side from a credentialed API. §6a now records the closure so no future run spends a fetch rediscovering it |
+| A reachability control that fails only at DNS | **partly closed by TZ-24, measured 30.08.2026T20:42Z; one layer still unproven** | any future egress TZ. TZ-24 added `192.0.2.1` (RFC 5737) beside the `.invalid` host and the exit codes differ — 6 at resolution, 28 at connection — so the instrument is now known to distinguish the two layers. **The residual is mine and is the reading that matters most:** TEST-NET-1 is blackholed, so control 3 times out (28) rather than being refused (7), and a REFUSED connect is the old cloud sandbox's exact signature. A third control returning exit 7 — a loopback port that actively rejects is enough, since the claim is about the instrument and not about egress — belongs beside the other two |
 | Report template lets inv. 54 rest on the author's care | **closed by contract v15** | nothing. **Not a TZ, and the row that said so was wrong:** `EXECUTOR-INSTRUCTIONS.md` is Architect-owned and arrives by Boss upload (contract §2), so the Executor may never write it (contract §7.14) and a TZ asking it to would be defective. The repair is an Architect edit forced by TZ-22, in the standing of v13 and v14. §8 now names the two TZ classes once and every branch clause is silent on a report-only TZ instead of deviated from; §10's `## Commit` and `## Pull Request` read off the class; a hash appears only for a commit already pushed. **A bench over `CryptoReports/**` was considered and is impossible**: a report is pushed direct to `main` on a path both workflows carry in `paths-ignore` as `'**.md'`, so such a control could never fire — the template is the only place this rule can live |
 | Executor has no GitHub API access | **closed, deliberately** | nothing. `gh` is absent and no PAT exists; the deploy key `crypto-auto-vps` carries git write and that is the whole of the Executor's reach. A fine-grained PAT cannot separate «push a branch» from «merge to main» — both need `Contents: write` — and the hosted-gate reading it would automate is already performed by the actor who opens the pull-request page to merge. The gap is closed in the CONTRACT instead: CI evidence left the Executor's acceptance criteria and became an audit step (contract §9) |
 
@@ -1642,8 +1679,22 @@ filter and a bench read, i.e. a second list of three paths — rejected as worse
 coupling it removes (inv. 20). The failure is loud and costs runner minutes, which is the
 direction to fail in.
 
-`main.yml` still has no `paths` allow-list, only `paths-ignore`, so every path nobody named
-fires it (inv. 52).
+**Since TZ-23 `main.yml` filters `push` with a `paths` allow-list and no `paths-ignore`.**
+The two cannot coexist on one event, so adopting the list DELETED the exclusions rather
+than joining them — an allow-list needs none, because everything unnamed is already out.
+The list is two literal paths, `main.py` and `.github/workflows/main.yml`, derived from
+`main.py`'s source at execution time and never typed: the bot opens no file, imports no
+repository module and reaches CoinGecko and the Gist over HTTP only, so `catalysts.json`,
+`journal/**` and every future unnamed path now start nothing. `workflow_dispatch` is
+unfiltered, so the phone's 17 daily runs sit outside this filter entirely and no list
+written here can stop them — that is the whole safety argument and it is checked, not
+assumed. **The coupling now runs the other way and into the worse direction:** the list
+must GROW the first time the bot learns to read a repository file, and a forgotten entry
+withholds a run quietly while `coeffs.json` ages, where inv. 53's forgotten entry only
+burned runner minutes loudly. No bench can hold it — a control over a trigger would have
+to observe the trigger, and `main.yml`'s `push` filter is unreachable from any `claude/**`
+push — so the coupling is carried by the Russian comment beside the list and nowhere
+else.
 
 **Two states are permanent and different.** `analyst/state.json` is the working set —
 one copy, replaced every run, carrying only what is currently true. `analyst/log/**`
