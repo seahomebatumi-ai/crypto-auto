@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-e.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-g.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -53,6 +53,13 @@ window, and the enumeration and this file would disagree within a week.
 |---|---|
 | `ANALYZE TODAY'S CRYPTO MARKET AND DETERMINE THE STRATEGY FOR ENTERING ALTCOINS ON BINANCE FUTURES.` | the full cycle above, printed as §2's skeleton in full |
 | `Анализ крипторынка` — or `Analyze today's crypto market.` | identical — the same cycle, a shorter spelling |
+
+**A trigger is matched on its WORDS**, case-insensitively, ignoring surrounding markdown
+and any terminal punctuation. The Boss types these by hand into a client that styles what
+it is given, so the production trigger arrives wrapped in `**...**` and without the final
+period the table shows; a match failing on either would fail silently and look like a run
+nobody asked for. The words are ninety-seven characters of a sentence nobody types by
+accident, so nothing is bought by demanding the bytes.
 | `REVIEW` | §9 only |
 
 **The three full-cycle strings are one trigger, not three modes.** The long form names
@@ -352,6 +359,43 @@ symbol and the turnover, in this order, and a row failing any one is not a candi
 A multiplier symbol (`1000XXXUSDT`) is admitted and its underlying is named; the levels
 are quoted in the units the exchange prices, because that is what his order will fill in.
 
+**Filter 3 is the only one that is not mechanical, and it is load-bearing — measured, not
+assumed.** On the payload of 01.09, 754 rows reduce to 706 on the quote asset and **184
+clear the turnover floor, of which fifteen are tokenized equities and index products**
+that pass every mechanical test there is: `AMZNUSDT` is the first row of the array, and
+`TSLAUSDT`, `NVDAUSDT`, `SPYUSDT` and `QQQUSDT` are among the rest. Nothing in the payload
+distinguishes them, so the guard is the named test and a run that skips it publishes a
+level on a share.
+
+**The screen — the run RANKS the liquid rows every time, it does not wait to be told a
+symbol, and it never ranks by the size of the move.** For every row clearing the floor the
+run computes three numbers that need no forecast and no history beyond the row itself:
+
+```
+pos = (last − low) / (high − low)      where the session sits inside its own day
+rng = (high − low) / last              how much the session moved at all
+qv                                     the turnover already read for filter 4
+```
+
+The long lane takes `pos <= 0.35`, the short lane `pos >= 0.65`, and both require `rng`
+above the median of the screened set — **a coin that moved and gave it back, which is
+precisely the shape this section demands in words and has never had a mechanical form**.
+The middle third is neither: it has not extended and it has not retraced. Rows are then
+ordered by turnover, and the pool enters the same catalyst and structure tests as before.
+
+**A list of the day's biggest gainers and losers is NOT this screen and does not satisfy
+it.** That list is the ranking «it moved the most» which this section bans in its first
+paragraph, arriving through the back door as a discovery method; the run of 01.09 screened
+exactly that way. `pos` is the whole difference: it separates a coin that moved from a coin
+that moved and is now offering an entry.
+
+**The screen decides what is LOOKED AT and never what is published** (map inv. 32). It
+adds no ranking factor, no weight and no score; every published candidate still passes
+§3B's admissibility tests and §7's checklist unchanged, so §3.10b's resolution ceiling is
+untouched. The two thresholds gate attention rather than a verdict, so map inv. 47 does not
+govern them and they are deliberately uncalibrated. Fewer than eight rows clearing the
+floor and the screen says so rather than reporting a thin list as a finding (map inv. 22).
+
 **The field names are read from the payload at run time, never typed here.** The rule
 owns which quantities are needed — symbol, last, high, low, turnover — and the payload
 owns what they are called, exactly as the universe is cut from `tokens[]` rather than
@@ -466,6 +510,25 @@ selected** — finite and above zero, on the symbol, the last price and the 24-h
 and low alike (§3B). The gate script validates `c` because those 29 rows are needed on
 every run; validating all several hundred rows of `x` would spend the check on rows no
 run will read, so the discipline moves to the point of use and does not weaken there.
+
+**No level ever rests on the open web, and geometry is not an exception to this.**
+A support zone, a resistance level, an invalidation or a target read off a content site,
+a search snippet or a price page may not be published, whatever that site got right. The
+sentence above names entry, stop and target and admits no carve-out for «structure» — a
+level is the one number the Boss commits money to, so its standing is the strictest in the
+answer rather than the loosest. **Measured 01.09, third run:** an XRP long was published
+with a zone of 1.335-1.360 and a stop at 1.28 taken from three retail crypto sites, and
+the run recorded its own reasoning for the exception — that geometry does not obey the
+rule governing catalyst facts. **A run that argues its way past a rule has read it**,
+which is worse than missing it.
+
+**A network fetch is not a source of a level either, including from this system's own
+Gist.** `coeffs.json` carries the bot's ninety-day structure and is the natural thing to
+reach for; reaching for it in a session fetches an external fact that then stands behind a
+published stop, with no gate, no freshness class and no cast (map inv. 44). The payload in
+the working tree is gated on every read precisely so that no level rests on something
+nobody can reproduce once the session ends. A structural quantity this engine needs and
+cannot reach is a gap reported by name, never a fetch performed quietly.
 
 **The file being present is not freshness.** `ts` is checked on every read without
 exception: a payload from an earlier session looks exactly like a payload from this
@@ -659,6 +722,12 @@ the honest answer was that the tag and the `Что меняет` clause were say
 twice, one of them in a vocabulary that decides nothing. A tag whose three values map onto
 three different consequences can be read off the word alone.
 
+**An event's time is a property of the event and is never taken from the run's own
+clock.** Measured 01.09, third run: the August employment release was printed as «04.09
+16:47 Тбилиси / 08:30 ET», and 16:47 is the minute the analysis was composed — the correct
+local time is 16:30, which the previous run printed correctly three hours earlier. A
+converted time is recomputed from the source time zone or the conversion is not printed.
+
 **An exact time is printed only where the exact time is actionable** — a release with a
 published minute inside a holding window. Otherwise the date alone. Printing a minute for
 an event whose significance is unstated offers precision in the one place it is not
@@ -712,7 +781,11 @@ classes count as a reading — the primary itself, a documentary archive carryin
 primary's own words while the primary is unreachable (§6), or the payload for anything
 the payload carries. Everything else leaves the item `НЕ ПРОВЕРЕНО`. The day log records
 the class per carried item (§12), so the status is derivable by a reader and not only by
-the run that assigned it. **Measured 01.09, second run:** `home.treasury.gov` timed out
+the run that assigned it. **The status is a FUNCTION of the recorded class and carries no
+exception clause**: class outside the three above, status `НЕ ПРОВЕРЕНО`, whatever the run
+believes about why the source was silent. A sentence explaining why the status does not
+apply this once is itself the violation, because the status exists to make exactly that
+sentence unnecessary. **Measured 01.09, second run:** `home.treasury.gov` timed out
 for the fourth consecutive run, the G20 communiqué was unread for the fourth consecutive
 run, and the item printed `ПРИБЛИЖАЕТСЯ` — the status this revision's predecessor created
 for exactly that case, on the run that introduced it, applied to nothing.
@@ -895,6 +968,17 @@ edit a silent change to production behaviour.
 Not published, not summarised, not referenced. Any failure downgrades the setup to
 `ЖДАТЬ` or removes it.
 
+**A checklist item is not arguable.** A run that believes an item wrong, inapplicable or
+without precedent records the objection in the day log and OBEYS the item; the objection
+reaches the Architect and becomes an edit to this file or it does not. **Measured 01.09,
+third run, and this paragraph exists because of it:** three items were identified by name,
+reasoned about and declined — a catalyst kept a verified status because its silence was
+explained, a coin refused on both sides stayed out of `ИЗБЕГАТЬ` for want of precedent,
+and a level was published on web sources under an invented carve-out for geometry. Each
+objection was intelligent and each was recorded honestly. **A rule that can be reasoned
+past is a suggestion**, and a run reasoning in the moment before it publishes is the least
+reliable reader this system has.
+
 1. The §5 gate passed in full, and every level in the answer traces to the one freeze
    (§5). Elapsed time since the freeze is not a checklist item and downgrades nothing.
 2. Every named instrument actually tradable on a Binance USDⓈ-M perpetual.
@@ -927,7 +1011,8 @@ Not published, not summarised, not referenced. Any failure downgrades the setup 
     on account of time passing since the freeze (§5).
 20. **Every outside-list level traces to a row of `x`** that passed all four filters of
     §3B, and `analyst/live.json` was read by command only (§5).
-21. **Every coin refused on both sides is in `ИЗБЕГАТЬ`** with the right class — bare
+21. **Every coin refused on both sides is in `ИЗБЕГАТЬ`, list member or not** — a coin
+    he can trade on a perpetual is a coin he can be warned about; with the right class — bare
     name for an entry refusal, `XXX до ДД.ММ` for a dated one (§2).
 22. **Every catalyst whose primary was not re-read this run carries `НЕ ПРОВЕРЕНО`**
     (§6), decided by the source class that answered and recorded per item in the log.
