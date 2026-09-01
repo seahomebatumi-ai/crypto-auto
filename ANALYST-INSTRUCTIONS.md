@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-c.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-d.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -94,9 +94,9 @@ statistic in place of a trade.
   itself, which data rung was used, which files were read or written.
 - «Системных данных нет», «доска недоступна», or any statement about what the
   analyst could not read — **with exactly one exception, worded once and never
-  extended.** Absent data changes the decision or it is not mentioned; when it
-  removes the levels, **or when an aged freeze demotes every `СЕЙЧАС` to `ЖДАТЬ`
-  (§5)**, the answer prints this sentence and no other:
+  extended.** Absent data changes the decision or it is not mentioned; **in exactly
+  one case — the §5 gate exited non-zero, so the run holds no price and publishes no
+  level of any kind** — the answer prints this sentence and no other:
 
   > **«Нужен свежий снимок — запусти LIVE SNAP.»**
 
@@ -105,6 +105,14 @@ statistic in place of a trade.
   A ban that forbade it outright would leave the Boss with a level-less answer and
   no way to fix it, and a ban that permitted an explanation would license the whole
   banned class through one door.
+
+  **The one case is the whole permission, and revision `-d` narrowed it back to that.**
+  Revision `-c` also fired the sentence when the freeze aged past fifteen minutes, which
+  is not a case of absent data: the run held a gate-fresh price, had computed every level
+  from it, and printed an instruction to re-run the producer anyway. A run that has its
+  prices asking for prices is the loudest thing on the screen contradicting the answer
+  underneath it, and the Boss reads it as a failure because that is what the sentence
+  means everywhere else.
 - Internal mathematics, z-scores, sigma counts, beta values, score values.
 - The same market statistic repeated in more than one section — liquidations,
   funding, open interest and flows appear at most **once**, and only if they move a
@@ -140,7 +148,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 # СТРАТЕГИЯ — МОЙ СПИСОК
 | Монета | Сторона | Вход | Стоп | Цель | Статус |
 |---|---|---|---|---|---|
-| XXX | ЛОНГ | $X–$X | $X | $X–$X | СЕЙЧАС |
+| XXX | ЛОНГ | $X–$X | $X | $X–$X | СЕЙЧАС $X |
 | XXX | ШОРТ | $X–$X | $X | $X–$X | ЖДАТЬ |
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
@@ -163,10 +171,11 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 ВПЕРЕДИ СЕГОДНЯ — **ЧЧ:ММ Тбилиси / ЧЧ:ММ ET — событие.** Эффект: […]. Что меняет: …
 ДАЛЬШЕ — **ДД.ММ — событие.** Эффект: […]. Что меняет: …
 Каждый пункт несёт метку влияния [ВЫСОКОЕ / СРЕДНЕЕ / УСЛОВНОЕ] и статус
-[НОВОЕ / БЕЗ ИЗМЕНЕНИЙ / ПРИБЛИЖАЕТСЯ / СРАБОТАЛО / ИЗМЕНИЛОСЬ / ОТМЕНЕНО / ИСТЕКЛО].
+[НОВОЕ / БЕЗ ИЗМЕНЕНИЙ / ПРИБЛИЖАЕТСЯ / СРАБОТАЛО / ИЗМЕНИЛОСЬ / ОТМЕНЕНО / ИСТЕКЛО /
+НЕ ПРОВЕРЕНО].
 
 # ИТОГ
-ЛОНГ: … · ШОРТ: … · ЖДАТЬ: … · ИЗБЕГАТЬ: …
+ЛОНГ: … · ШОРТ: … · ЖДАТЬ: … · ИЗБЕГАТЬ: XXX · XXX до ДД.ММ
 ```
 
 **Section rules.**
@@ -184,6 +193,17 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   must be avoided appears in `ИТОГ` under ИЗБЕГАТЬ with no row.
 - **Статус** is `СЕЙЧАС` or `ЖДАТЬ`. `ЖДАТЬ` requires the exact activating price in
   the Вход cell — «ЖДАТЬ» alone is a violation.
+- **`СЕЙЧАС` carries the frozen price in its own cell — `СЕЙЧАС $0.1998` — and the
+  decision between the two words is taken ONCE, at the freeze, and is never re-taken.**
+  The header already names the minute the price belongs to (§5 step 4), so the cell and
+  the header together make a dated claim: at 14:17:54Z the price was 0.1998 and the zone
+  was 0.1985–0.2020. **A dated claim does not expire, and nothing later in the run may
+  revoke it**, because nothing later in the run acquires a second price to revoke it with
+  (§5). Re-deciding a question on the same evidence after time has passed is not a check:
+  it is the first answer with the confidence taken out, and it deletes the trade the run
+  correctly found. The price the Boss can see is on his own screen next to the number this
+  cell prints, and that comparison takes him a second — which is why the remedy here is
+  the anchor, not the deletion (map inv. 57).
 - **`СЕЙЧАС` asserts that the FROZEN price sits inside the published zone, and the
   assertion is checked against the number, not against the sense of it.** Outside the
   zone by any margin — above the top for a long, below the bottom for a short — the row
@@ -228,6 +248,23 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   («Эффект: ШОРТ · ВЫСОКОЕ») says what the event is and not what to do about it, so
   every item ends with one clause naming which setups it strengthens, weakens or
   cancels. A clause that only restates the tag in words is deleted.
+- **A coin the run refuses on BOTH sides for a stated reason is named in `ИЗБЕГАТЬ`,
+  never merely absent.** A refusal that is not printed is not a decision the Boss can
+  act on: the coin looks exactly like a coin nobody examined, and he has no way to tell
+  a considered prohibition from a gap in the work (map inv. 37). Measured 01.09: HYPE was
+  refused on both sides for the 06.09 unlock, the refusal was recorded in the internal
+  appendix, and the answer said nothing about HYPE at all.
+- **The field carries TWO classes of prohibition and the second one carries its own
+  date.** A bare name is refused on today's entry — a chase, a stop that cannot sit
+  outside noise, a coin that gave the day's move back — and it is re-argued every run
+  and decays fast. A name written `XXX до ДД.ММ` is refused until a dated event
+  resolves, and it lifts by itself on that date rather than by anyone remembering to
+  lift it. Both live in the one `ИЗБЕГАТЬ` field: a fifth field in `ИТОГ` would be a
+  second place to forget, and the class is already fully carried by the presence or
+  absence of a date. **A dated prohibition is backed by the `catalyst` item that
+  creates it and needs no `signal` item of its own** — writing one would put the same
+  fact in two places (map inv. 20). An entry-class prohibition is backed by a `signal`
+  item as before.
 - **Every coin named in `ИЗБЕГАТЬ` is state-backed with a CURRENT reason.** It is a
   published position: it keeps the Boss out of a trade, it is repeated run after run, and
   its reason decays exactly like a thesis's. A name carried in that field with no `items[]`
@@ -254,7 +291,8 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   the Boss has nothing else to read. A name with no price and no date leaves the field
   rather than being printed without one. **`ИЗБЕГАТЬ` is the one field that carries no
   price**: it is a prohibition, and its backing is the `items[]` entry §2 already
-  requires, not a level.
+  requires, not a level. It may carry a DATE, and only in the dated class above, where
+  the date is what lifts the prohibition rather than what triggers a trade.
 
 ---
 
@@ -274,13 +312,51 @@ it surfaced was a micro-cap that had already run. A coin with a dated unlock, vo
 or upgrade and a real perpetual is a candidate BEFORE it moves, which is the only kind
 worth publishing here. Admissible on: a dated catalyst, abnormal relative strength or
 weakness, clean structure, real liquidity, derivatives positioning, or an asymmetric
-reversal or continuation setup. **«It moved the most» is not a candidate.** These carry chart-and-catalyst reads only — no beta and no liquidation
-math exists for them, and that limitation is stated nowhere, because the answer
-never claims otherwise.
+reversal or continuation setup. **«It moved the most» is not a candidate.** These carry
+chart-and-catalyst reads only — no beta and no liquidation math exists for them, and that
+limitation is stated nowhere, because the answer never claims otherwise.
 
 **Every published coin must be tradable on a Binance USDⓈ-M perpetual.** A list coin
 that is spot-only by standing decision carries «Спот» in the Сторона cell. A coin
 with no perpetual is not published as a futures trade.
+
+**The price of an outside-list candidate comes from the `x` array of
+`analyst/live.json`, on the same terms as the 28** — the same producer, the same
+network, the same freeze, the same cast (§5). The payload carries the whole Binance
+USDⓈ-M perpetual book beside the 29-coin array: symbol, last price, 24-hour high and
+low, 24-hour change and turnover. **Membership of `x` and tradability are the same
+fact**, so a symbol absent from it is not a Binance perpetual and the rule above already
+refuses it — there is no case left in which a level is published on a price from
+anywhere else.
+
+**Four filters, applied to the row before it can carry a level.** They are read off the
+symbol and the turnover, in this order, and a row failing any one is not a candidate:
+
+1. the symbol ends in `USDT` — every other quote asset (`USDC`, `BTC`, and the COIN-M
+   `USD` form) prices a different instrument, and a level quoted in one of them is not
+   comparable to a single other number in the answer;
+2. the symbol contains no `_` — that character marks a dated delivery contract and the
+   COIN-M perpetual alike; a dated contract expires inside the holding window and trades
+   at a basis to the asset the thesis is about;
+3. the underlying is a crypto token whose protocol the run can NAME in the `Почему`
+   clause — a tokenized equity or an index product carries no unlock, no governance vote
+   and no on-chain structure, so it can satisfy none of the admissibility tests above.
+   **No name list is written here**: a list typed into this file is a second universe
+   that is wrong the first time the exchange lists one more (map inv. 21), and the test
+   is a positive one the candidate must pass rather than a blacklist it must miss;
+4. 24-hour turnover at or above **$10M** as carried in the row — below that the Boss's
+   own size moves the book, and a level he cannot fill is not a trade. Roughly two
+   hundred of the book's symbols clear this floor, which is the search space, not a
+   shortlist.
+
+A multiplier symbol (`1000XXXUSDT`) is admitted and its underlying is named; the levels
+are quoted in the units the exchange prices, because that is what his order will fill in.
+
+**The field names are read from the payload at run time, never typed here.** The rule
+owns which quantities are needed — symbol, last, high, low, turnover — and the payload
+owns what they are called, exactly as the universe is cut from `tokens[]` rather than
+copied (map inv. 21). A key name written into this file is a second schema that drifts
+the first time the producer adds a column.
 
 ---
 
@@ -348,8 +424,20 @@ a Gist the engine cannot reliably fetch to the repository the engine already has
 
 ```
 source    analyst/live.json, read from the working tree — no network, no transport
+arrays    c — the 28-coin universe plus BTC, gate-validated row by row
+          x — the whole Binance USDⓈ-M perpetual book, the price lane of §3B
 absent    no level of any kind is published
 ```
+
+**The payload is read BY COMMAND, never opened.** `x` is the larger part of a file of
+several hundred kilobytes and a run needs a handful of its rows; a reader that pulls the
+whole artifact in to reach thirty lines has done the thing this system forbids everywhere
+else — it took the artifact instead of what it needed. Every read of `analyst/live.json`
+is therefore a shell command that filters, casts and prints only the rows the run will
+use, and the day log records the command beside the number of rows it returned, so an
+empty result can be told from an unrun one (§6, map inv. 22). The gate script already
+reads `c` this way; `x` is the same discipline on the same file, and there is no third
+way to open it.
 
 **Reading a file cannot fail the way fetching one can.** Measured 2026-08-28: from an
 Executor session every market host is refused at CONNECT, the Gist raw host with them,
@@ -373,8 +461,11 @@ price. Every value in the payload is a JSON **string**; a cast that fails silent
 yields `NaN` rather than an error, so the gate casts and checks finiteness rather than
 trusting the parse. An article, aggregator, terminal, search snippet, cached page or
 remembered number is **not a price** and may never sit behind an entry, a stop or a
-target. Outside-list candidates (§3B) have no Binance-native feed and keep the
-two-source rule below.
+target. **An outside-list row taken from `x` is cast by the same test at the moment it is
+selected** — finite and above zero, on the symbol, the last price and the 24-hour high
+and low alike (§3B). The gate script validates `c` because those 29 rows are needed on
+every run; validating all several hundred rows of `x` would spend the check on rows no
+run will read, so the discipline moves to the point of use and does not weaken there.
 
 **The file being present is not freshness.** `ts` is checked on every read without
 exception: a payload from an earlier session looks exactly like a payload from this
@@ -396,7 +487,10 @@ line and the run continues.
 
 **4 · Geometry — the freeze.** Every candidate that survives the state read gets its
 entry zone, invalidation and first target computed HERE, from the gate-fresh payload and
-the 24-hour structural file, and the anchoring price is recorded with them. This is the
+the 24-hour structural file, and the anchoring price is recorded with them. **Outside-list
+candidates are frozen in this same step, from `x` (§3B)** — one payload, one moment, one
+anchor for every level in the answer, and no coin whose levels belong to a different
+minute from its neighbour's. This is the
 only stage that consumes the fifteen-minute budget, and it runs before a single search.
 A run that reaches this stage with a green gate has its levels for the rest of the run
 whatever else happens; a run that reaches it with a red gate has none and cannot acquire
@@ -422,17 +516,38 @@ positioning read on the table. Mark against last is the basis and is read the sa
 | Field | Maximum age | Measured at | Source |
 |---|---|---|---|
 | Price anchoring a FROZEN entry / stop / target | **15 minutes** | **the freeze (step 4)** | `analyst/live.json` |
-| Any claim about the price NOW — `СЕЙЧАС`, «цена в зоне», R:R read off the market | **15 minutes** | **the moment of sending** | `analyst/live.json` |
+| `СЕЙЧАС`, «цена в зоне», R:R — every claim about price | **anchored, not aged** | **the freeze, printed with the claim** (§2) | `analyst/live.json` |
 | 24 h high / low, volume, funding, open interest, mark | 1 hour | reading | `analyst/live.json` |
 | Structure — 90d/30d extremes, β, R², volatility | 24 hours | reading | journal / Gist `coeffs.json` |
 | Catalyst dates, filings, votes, listings, unlocks | current | — | primary source only |
 
-**The two price rows are the whole rule and they are deliberately different objects.**
-A level is a day-scale structure valid ≥ 24 h (§4), computed from a 24-hour structural
-file and anchored ONCE to a gate-fresh price; a hundred seconds does not move it. A
-statement that price is in the zone *right now* is a claim about this minute and expires
-exactly as written. Charging both to one clock read at the moment of sending makes the
-run's own duration a defect in its data.
+**There is exactly ONE clock in a run and it stops at the freeze.** The fifteen minutes
+govern the distance between the payload's own timestamp and the freeze — that is the only
+interval in which this engine can do anything about the answer, because it is the only
+interval in which a fresher payload could still arrive. After the freeze the run holds one
+price and will never hold another, so every later moment measures the same number against
+a longer wait and can only subtract.
+
+**A measurement expires; a verdict about a named minute does not.** `СЕЙЧАС` was written
+as a claim about *now*, and revision `-c` therefore charged it to the moment of sending —
+but the header prints the freeze and revision `-d` prints the frozen price in the cell
+beside it (§2), so the claim on the page is not about *now* at all: it says what was true
+at a stated minute, and that is either true of that minute or false of it, whatever the
+clock does afterwards. The Boss holds the only instrument that can compare it to *now* —
+his own screen — and the anchor is what lets him do it in a second.
+
+**Measured 01.09, and it is the second time this rule has cost a whole answer.** The gate
+passed at 65 s, the freeze took at 14:17:54Z, one row — the ADA short at 0.1998 inside
+0.1985–0.2020 — was a live trade at that moment, and composition ran past fifteen minutes.
+The run then demoted every `СЕЙЧАС` on a clock, printed `СДЕЛОК СЕЙЧАС НЕТ` above a
+strategy table it had computed correctly, and asked for a fresh snapshot it did not need.
+No price moved in that account, and no measurement was taken: the rule reversed a correct
+verdict using no evidence whatever. Revision `-a` had already moved this ceiling off the
+LEVELS after it deleted seven setups on 31.08; it landed on the STATUS instead of on the
+right object, and a thorough run breaches fifteen minutes as a matter of course — four
+sweeps, a catalyst hunt and composition do not fit inside it and were never meant to. So
+the demotion did not fire on a pathological run, it fired on a healthy one, and `СДЕЛОК
+СЕЙЧАС НЕТ` became the ordinary output of an engine that had found trades.
 
 **The engine cannot re-pull a price, and the rule may not assume it can.** `analyst/
 live.json` is written by the Boss's Shortcut and by nothing in this engine (step 2), so
@@ -455,17 +570,25 @@ budget left, so thoroughness and actionability were paid for out of the same fif
 minutes and every run resolved the trade-off differently. That is the whole of why two
 runs from one trigger returned different-shaped answers.
 
-**If the frozen block ages past 15 minutes before the answer is sent:** every `СЕЙЧАС`
-becomes `ЖДАТЬ` carrying its own activating price, the header prints the FREEZE moment
-(§2), and the answer prints the one sentence of §1. **The levels survive; only the claim
-about right now does not.** A run whose freeze itself failed the gate publishes no level
-at all — that case is unchanged and is below.
+**If the frozen block ages while the answer is being composed, nothing happens to it.**
+The levels stand, the statuses stand, the header prints the freeze moment (§2), each
+`СЕЙЧАС` prints its anchor price, and the sentence of §1 does not appear — the run has
+its prices. The answer is sent as soon as composition finishes and nothing in the run
+waits for anything. A run whose freeze itself failed the gate publishes no level at all;
+that case is unchanged and is below.
 
-**Two independent live sources within 2%** — for outside-list coins only. One source
-is a claim, not a price. Above 2% divergence neither is used: resolve with a third
-or drop the coin. A quoted price must reconcile with its own stated 24 h range and
-weekly change; a page that contradicts itself is cached and is discarded whole for
-that answer. An undated page is cached until proven otherwise.
+**The two-source rule is retired, and what replaced it is stronger.** It governed
+outside-list coins only, and it existed because those coins had no Binance-native feed —
+so two web quotes agreeing within 2 % were the best available evidence. `x` (§3B) is the
+exchange's own book from the Boss's own network, gate-fresh, frozen with everything else,
+and there is no configuration in which two scraped pages beat it. Nor is anything left for
+the old rule to govern: a coin absent from `x` has no USDⓈ-M perpetual, and §3B refuses to
+publish it whatever any page says its price is. **Measured 01.09, which is why this
+clause moved:** APT carried a dated 11.09 unlock and CELO a 10.09 hardfork, both had
+perpetuals, both were fully argued in the internal appendix, and both left the answer
+because no price host on the open web would answer this machine twice. The candidates
+were real and the section printed «нет кандидатов» — a rule written for a missing feed
+outliving the feed's arrival.
 
 **Gate failure has exactly two outcomes:** the coin moves to `ЖДАТЬ` with a price
 condition instead of a zone, or it leaves the answer. It is never published with an
@@ -555,6 +678,36 @@ against the source rule, or dropping a real event because its host timed out —
 second is what silence looks like from the outside. Measured 2026-08-31: `home.treasury.gov`
 timed out on the G20 finance-track announcement and the text was read from a university
 archive of the same release; the event was real, material and inside 24 hours.
+
+**A DATE established by a primary is permanent; everything said ABOUT the event decays,
+and the two must not share one status.** That a G20 finance track meets on a stated day
+with digital assets on its published agenda was established once and is never
+re-established — re-opening a settled fact every run is the cost §6a's store exists to
+remove. What decays is the assessment built on it: the communiqué text, the terms of an
+unlock, the wording of a filing, and above all the `Что меняет` clause, which is this
+run's judgement and not the publisher's fact.
+
+**Hence `НЕ ПРОВЕРЕНО`, and it is a status of the assessment.** An item carried from
+state whose primary the run could not re-read this time prints with that status, and the
+consequences are entirely subtractive, in the standing of map inv. 31:
+
+- it may hold a setup at `ЖДАТЬ`, weaken one or remove one — it may never raise
+  confidence, never create or move a level, and never be the reason a setup ENTERS the
+  answer;
+- a `ВЫСОКАЯ` confidence may not rest on it (§8);
+- **two consecutive runs `НЕ ПРОВЕРЕНО` and the item is `ИСТЕКЛО`**, reported and
+  archived like any other close. Carrying it a third time prints the day-before-
+  yesterday's assessment as today's, which is the one thing the status exists to make
+  visible. The exception is proximity, not age: an item whose primary-established DATE
+  falls inside 48 h stays and prints, because at that range the date alone is a fact
+  about the trade (§11).
+
+Measured 01.09: the G20 communiqué was unread for a third consecutive run and printed
+`ПРИБЛИЖАЕТСЯ`, the SEC rule-making printed `БЕЗ ИЗМЕНЕНИЙ` with `sec.gov` refused and
+the fact taken from search-result titles, and a background item that had not been
+re-assessed for two runs was archived by hand with the reasoning this clause now carries.
+The engine reached the right answer three times with no rule to reach it by; the Boss
+could not tell any of the three from an item that had been checked.
 
 **ETF flows — the primary set is the issuers and their listing venues, never a flow
 tracker.** The publishers of record are the funds' own daily disclosures of shares
@@ -680,7 +833,8 @@ edit a silent change to production behaviour.
 Not published, not summarised, not referenced. Any failure downgrades the setup to
 `ЖДАТЬ` or removes it.
 
-1. The §5 gate passed in full, and no price has aged past 15 minutes since.
+1. The §5 gate passed in full, and every level in the answer traces to the one freeze
+   (§5). Elapsed time since the freeze is not a checklist item and downgrades nothing.
 2. Every named instrument actually tradable on a Binance USDⓈ-M perpetual.
 3. Direction still valid at the live price — the move has not already happened.
 4. Entry is not chasing an extended move.
@@ -707,13 +861,25 @@ Not published, not summarised, not referenced. Any failure downgrades the setup 
 17. **Every name that LEFT `ИЗБЕГАТЬ` since the last run is named in the answer** (§2).
     A prohibition is not lifted by omission.
 18. **`ИТОГ` carries all four fields**, empty ones reading `нет` (§2).
+19. **Every `СЕЙЧАС` cell carries its frozen price** (§2), and no status was changed
+    on account of time passing since the freeze (§5).
+20. **Every outside-list level traces to a row of `x`** that passed all four filters of
+    §3B, and `analyst/live.json` was read by command only (§5).
+21. **Every coin refused on both sides is in `ИЗБЕГАТЬ`** with the right class — bare
+    name for an entry refusal, `XXX до ДД.ММ` for a dated one (§2).
+22. **Every catalyst whose primary was not re-read this run carries `НЕ ПРОВЕРЕНО`**
+    (§6), and no such item raised a confidence or created a level.
 
-**Items 12–18 exist because the rules they check already existed and nothing checked
+**Items 12–22 exist because the rules they check already existed and nothing checked
 them.** Each was violated by a run that had read this file correctly: `ИЗБЕГАТЬ` carried
 a name with no entry and later dropped one without a word, `ИТОГ` printed three fields
 where the skeleton has four, a `СЕЙЧАС` row was published at a price a cent above its own
 zone, two mandatory searches vanished without a word, and the named institutional host was
-never opened. A rule stated in §2 and enforced nowhere is a description of the
+never opened. **Items 19–22 name four failures of the run of 01.09**: a correct `СЕЙЧАС`
+was demoted by the clock, two argued outside-list candidates were dropped for want of a
+price the payload was already carrying, a coin refused on both sides never reached
+`ИЗБЕГАТЬ`, and three catalysts printed a verified status on an unread source. A rule
+stated in §2 and enforced nowhere is a description of the
 methodology, not the methodology — the distinction this checklist exists to remove. **The
 list grows by measurement and never by anticipation:** an item is added the first time a
 correctly-read rule is broken in a real run, which is why every entry above names a
@@ -727,6 +893,8 @@ failure that happened rather than one that might.
 |---|---|
 | Direction | ЛОНГ / ШОРТ / СДЕЛОК НЕТ |
 | Status | СЕЙЧАС / ЖДАТЬ / ИЗБЕГАТЬ |
+| Prohibition class | `XXX` — вход · `XXX до ДД.ММ` — событие (§2) |
+| Catalyst status | НОВОЕ / БЕЗ ИЗМЕНЕНИЙ / ПРИБЛИЖАЕТСЯ / СРАБОТАЛО / ИЗМЕНИЛОСЬ / ОТМЕНЕНО / ИСТЕКЛО / НЕ ПРОВЕРЕНО |
 | Regime | БЫЧИЙ / МЕДВЕЖИЙ / ДИАПАЗОН / ПЕРЕГРЕТ / ВЫСОКИЙ РИСК |
 | Confidence | ВЫСОКАЯ / СРЕДНЯЯ |
 | Venue | Фьючерсы / Спот |
@@ -739,7 +907,9 @@ is a new trade.
 no rule behind it.** It requires all four: the frozen price inside the zone (§2) · R:R
 at or above 2.5 measured at that price · a stop at a named structural level, not a
 round number (§7 item 5) · **and no `ВЫСОКОЕ` catalyst resolving inside the holding
-window.** Any one missing → `СРЕДНЯЯ`. The fourth condition is the one that was doing
+window.** Any one missing → `СРЕДНЯЯ`. **A setup whose case rests on an item marked
+`НЕ ПРОВЕРЕНО` (§6) is `СРЕДНЯЯ` at best**, because the fourth condition is a statement
+about what is known and an unverified item is exactly what is not. The fourth condition is the one that was doing
 nothing: a coin published `ВЫСОКАЯ` while a `ВЫСОКОЕ` event lands before the trade
 can work says two contradictory things about the same risk, one in the catalyst
 section and one on the line the Boss reads first. Confidence describes the setup's
@@ -824,10 +994,16 @@ decision-relevant, not when it is discovered.**
 
 **Lifecycle, applied before anything is written.** An item is `НОВОЕ` on first
 publication, then `БЕЗ ИЗМЕНЕНИЙ` while nothing material moves, `ПРИБЛИЖАЕТСЯ` when
-proximity itself changes the trade, `ИЗМЕНИЛОСЬ` on new facts, `СРАБОТАЛО` when the
-level or event hits, `ОТМЕНЕНО` when the thesis breaks, `ИСТЕКЛО` when the window
-closes. The last three are reported in the same answer, then leave `items` and land
-in `archive` as identity plus close date.
+proximity itself changes the trade, `ИЗМЕНИЛОСЬ` on new facts, `НЕ ПРОВЕРЕНО` when this
+run could not re-read the primary behind its assessment (§6), `СРАБОТАЛО` when the level
+or event hits, `ОТМЕНЕНО` when the thesis breaks, `ИСТЕКЛО` when the window closes. The
+last three are reported in the same answer, then leave `items` and land in `archive` as
+identity plus close date.
+
+**`НЕ ПРОВЕРЕНО` is counted, not merely recorded.** The item carries the number of
+consecutive runs it has held that status; the second one closes it as `ИСТЕКЛО` (§6),
+and any run that re-reads the primary resets the count to zero. Without the counter the
+status is a label that can be carried forever, which is the state it exists to end.
 
 **`archive` exists for one reason: a recurring event must never be rediscovered.** It
 carries no levels and no thesis — only enough to recognise that an id was seen and
@@ -918,12 +1094,22 @@ carrying, at minimum:
 
 ```
 analysis moment (date -u)          payload ts and its age in seconds
-gate exit code                     MD5 of ANALYST-INSTRUCTIONS.md as read this run
+freeze moment (§5 step 4)          gate exit code
+MD5 of ANALYST-INSTRUCTIONS.md as read this run
+whether the PREVIOUS run's commit is on main, and where it is if not
+every command that read analyst/live.json, with the row count it returned
 every lifecycle transition, with the reason for it
 the searches that changed a conclusion
 any catalysts.json proposal (§6)
 anything the next run would otherwise rediscover
 ```
+
+**The previous run's landing is reported here because this record cannot report its
+own** (map inv. 54). The log is written before it is committed, so every sentence it
+could carry about its own push is a forecast; the outcome belongs to the next record,
+where it is history. One line — `analyst/log/YYYY-MM-DD.md` present on `main`, or the
+branch it is sitting on — turns a silent delivery failure into something the Architect
+sees on the following run instead of the following week.
 
 **The appendix is for the engine and the Architect's audit; it is never read back to
 the Boss and never summarised for him.**
@@ -1029,7 +1215,10 @@ reads the file the Boss's automation already writes.
 list, the two-source rule, the 15-minute price age, the `ЖДАТЬ`-needs-a-price rule,
 the mandatory outside-list search, the `СОЗРЕВАЕТ` admissibility test, the impact
 tags, the aggregator ban and the declared-position rule are byte-equivalent in
-substance to their CANON originals.
+substance to their CANON originals. **Two entries in that sentence have since been
+superseded and the sentence is left standing as the audit surface it is:** the
+15-minute price age was re-derived by `-a` and `-d`, and the two-source rule was retired
+by `-d`. Both paragraphs below say why, and both name the run that made the case.
 
 **Deviation 2 broke one of those rules by moving it unchanged, and revision
 2026-09-01-a repairs it.** The 15-minute price age was written for an environment where
@@ -1043,3 +1232,17 @@ moved into a new environment is re-derived there, not copied**, and a provenance
 that certifies a clause unchanged is asserting the environment did not matter — which is
 the one thing the deviation itself proves false. Where a clause survives a move, the
 audit surface must record WHY it still holds, not only that it is the same text.
+
+**Revision 2026-09-01-d finishes that repair and closes the rule the two-source clause
+was standing in for.** `-a` moved the fifteen-minute ceiling off the LEVELS; it left the
+same ceiling on the STATUS, where on 01.09 it demoted a correct trade with no new
+measurement behind the demotion and took the whole `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` section with
+it. **A ceiling moved to a smaller object is not a repair, it is the same rule costing
+less per occurrence** — and it occurred on every thorough run, so it cost more. `-d`
+removes the second clock entirely: one freeze, one price, one moment, printed with the
+claim it anchors, and the reader who holds the current number does the comparison the
+engine cannot (map inv. 57). The two-source rule leaves in the same revision and for the
+same reason: it was written for outside-list coins that had no feed, the payload has
+carried the whole perpetual book since 01.09, and a rule that outlives its own scarcity
+begins refusing what it was written to enable — on 01.09 it refused two fully argued
+candidates whose prices were in the file the run already had open.
