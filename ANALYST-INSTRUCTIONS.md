@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-g.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-02-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -530,6 +530,16 @@ the working tree is gated on every read precisely so that no level rests on some
 nobody can reproduce once the session ends. A structural quantity this engine needs and
 cannot reach is a gap reported by name, never a fetch performed quietly.
 
+**The tree is brought current BEFORE the gate runs, and a red gate is read only after
+that.** `git fetch` and fast-forward, then gate. **A red gate is not a stale payload until
+the TREE has been proven current**, because the gate reads a file out of the working tree
+and a tree behind `origin/main` presents a payload the producer replaced hours ago — the
+identical exit code, the identical stderr, and a fresh payload sitting on `main` the whole
+time. **Measured 01.09, fourth run:** exit 3 at an age of 3189 s, fast-forward, exit 0 at
+172 s, nothing about the payload having changed. Asking the Boss to run `LIVE SNAP`
+against a stale tree makes him perform a routing action to repair the engine's own
+bookkeeping, and it is the one request §1's sentence must never become.
+
 **The file being present is not freshness.** `ts` is checked on every read without
 exception: a payload from an earlier session looks exactly like a payload from this
 one, and the timestamp is the only evidence that distinguishes them.
@@ -558,6 +568,10 @@ only stage that consumes the fifteen-minute budget, and it runs before a single 
 A run that reaches this stage with a green gate has its levels for the rest of the run
 whatever else happens; a run that reaches it with a red gate has none and cannot acquire
 them later. Nothing after this step re-prices anything.
+
+**The screen runs BEFORE the catalyst hunt, not after it.** It produces the names worth
+asking about, so hunting first spends searches choosing what to search for. The stage order
+is otherwise unchanged and the freeze still precedes both.
 
 **5 · Catalysts.** Primary source only — protocol, exchange, foundation, regulator.
 Repetition across aggregators is not confirmation and the same host twice is one
@@ -1155,9 +1169,22 @@ or event hits, `ОТМЕНЕНО` when the thesis breaks, `ИСТЕКЛО` when 
 last three are reported in the same answer, then leave `items` and land in `archive` as
 identity plus close date.
 
+**The counter applies to an ASSESSMENT and never to a DATE.** §6 separates the two: a
+date established by a primary is permanent and is never re-established, while everything
+said about the event decays. The expiry rule inherits that split exactly — **a settled DATE
+cannot expire for want of a re-read**, because nothing about it is being re-asserted, and
+an item reduced to «this happens on the 11th» carries no assessment to decay. It is carried
+as a dated fact, appears in the collapsed line, and is closed only by its date passing.
+The counter runs on items whose `Что меняет` clause is doing work — holding a side,
+capping a confidence, keeping a coin in `ИЗБЕГАТЬ` — because that clause is this run's
+judgement and is exactly what goes stale. **Measured 01.09, fourth run:** twelve items
+stood at `unver 1` after a run in which `bls.gov` returned 403 and two hosts timed out,
+and the next run would have archived the September employment report, the CPI release and
+the FOMC meeting — three calendar dates that no host's mood can move.
+
 **`НЕ ПРОВЕРЕНО` is counted, not merely recorded, and the count is a FIELD.** The item
 carries `unver` — an integer, absent or zero meaning verified — holding the number of
-consecutive runs it has held that status; the second one closes it as `ИСТЕКЛО` (§6),
+consecutive runs its ASSESSMENT has gone unrefreshed; the second one closes it as `ИСТЕКЛО` (§6),
 and any run that re-reads the primary resets the count to zero. Without the counter the
 status is a label that can be carried forever, which is the state it exists to end.
 
