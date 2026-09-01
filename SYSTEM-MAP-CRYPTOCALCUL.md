@@ -14,7 +14,7 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-01-a.** Baseline: TZ-23 merged into `main`; implementation
+**Revision 2026-09-01-b.** Baseline: TZ-23 merged into `main`; implementation
 commit `5fc2da5`, report
 `CryptoReports/TZ-23-main-workflow-paths-allowlist-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
@@ -30,7 +30,7 @@ baseline: `-d` recorded TZ-22's measurement where `-c` denied having one, `-e` c
 TZ-24 closing the §6a discovery question in the negative. **`2026-09-01-a` is a documentation
 revision on the same TZ-23 baseline:** no file this block fingerprints moved, the gate holds
 at thirteen steps and 1 250 739 checks, and what changed is the analytical engine's own
-governing text — `ANALYST-INSTRUCTIONS.md` to revision `2026-09-01-b` and
+governing text — `ANALYST-INSTRUCTIONS.md` to revision `2026-09-01-c` and
 `EXECUTOR-INSTRUCTIONS.md` to **v16**, neither of which this table has ever fingerprinted
 because neither is a production file.
 
@@ -40,7 +40,7 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-01-a.**` |
+| revision | `**Revision 2026-09-01-b.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -1542,7 +1542,7 @@ until someone re-runs the command.
 | `live-gate.sh` check 3 is one-sided | **closed by TZ-18** | nothing. Window is `−120 … +900` s, both sides named in stderr, both constants single-site |
 | `'**/*.md'` root-level claim | **withdrawn by TZ-18** | nothing. The claim was false: runner history shows three root-Markdown pushes and no bot run. `'**.md'` was adopted anyway, for the ambiguity, not for a repair (inv. 52) |
 | `live-gate.sh` sits under `bench.yml`'s `analyst/**` ignore | **closed by TZ-19** | nothing. Proven on the runner: a push carrying only the script now starts the gate |
-| `bench.yml`'s analyst ignore must grow with the written set | watched | any TZ or methodology change that adds a file the analyst writes. A forgotten entry burns a gate per run — loud, not silent (inv. 53) |
+| `bench.yml`'s analyst ignore must grow with the written set | watched | any TZ or methodology change that adds a file the analyst writes. A forgotten entry burns a gate per run — loud, not silent (inv. 53). **`analyst/owner.json` is now the first file in that tree the analyst does NOT write and still qualifies:** it is pushed by the Boss, so every upload fires the full thirteen-step gate. Deliberately not fixed alone — the file changes rarely and the cost is runner minutes, which is inv. 53's correct direction to fail in; the line is added by the next TZ that opens `bench.yml` for another reason |
 | `analyst/live.json` producer emits a stray newline | **closed — measured 31.08.2026T10:03:40Z on a live payload** | nothing. The Shortcut no longer emits the raw LF inside the symbol list: a payload of `n:29` parses, `n == len(c)`, every `p`/`h`/`l` casts to a finite positive, no symbol carries whitespace, no duplicate. **The row above it was stale for days and nobody re-measured it** — the Architect read a recorded blocker as current state and reported the engine unusable when it was not. That is inv. 52 applied to this map's own rows: a row resting on a measurement falls with it, and a blocker is re-measured before it is repeated |
 | First live analysis run | **ran 31.08.2026; two runs, both measured** | nothing. The gate's freshness window is `−120 … +900` s and is a GATE budget, not a RUN budget: the 14:29Z run passed the gate three times and still published no level, because methodology §5 measured price age at the moment of SENDING and its only other exit — re-pull — is unreachable when the payload is written by the Boss's Shortcut. The 20:32Z run, under revision `2026-09-01-a`, froze levels at gate step 4 before the catalyst search and published two setups from the same architecture and the same window. **The constant never moved; the object it governed was wrong** |
 | A rule moved between environments is re-derived, not copied | **closed by `ANALYST-INSTRUCTIONS.md` 2026-09-01-a** | nothing. The 15-minute price age was written where the Boss pasted the payload into chat, so «re-pull before sending, or the coin leaves the answer» had two live exits; moving the reader into the repository closed the first and left the sentence untouched, and the file's own provenance table certified the clause carried «byte-equivalent in substance». Byte-equivalence WAS the defect. Appendix A now records that a provenance table asserting a clause unchanged is asserting the environment did not matter |
@@ -1586,6 +1586,7 @@ rule written here and in the methodology would eventually be written two ways.
 | Path | Written by | Retention |
 |---|---|---|
 | `analyst/live.json` | the Boss's iOS Shortcut | one copy, replaced |
+| `analyst/owner.json` | Architect → Boss upload | one copy, replaced |
 | `analyst/state.json` | role 2 | one copy, replaced |
 | `analyst/log/YYYY-MM-DD.md` | role 2 | **permanent, immutable** |
 | `analyst/live-gate.sh` | role 1, under a TZ | live |
@@ -1724,6 +1725,21 @@ burned runner minutes loudly. No bench can hold it — a control over a trigger 
 to observe the trigger, and `main.yml`'s `push` filter is unreachable from any `claude/**`
 push — so the coupling is carried by the Russian comment beside the list and nowhere
 else.
+
+**`analyst/owner.json` is the owner's channel into the engine, and it exists because the
+Boss does not talk to the engine.** He addresses the Architect; the role table forbids
+making him relay a technical fact between the two systems. Methodology §11 nevertheless
+declared a position «on «вошёл в SOL ЛОНГ»» — a clause inherited from the chat-era engine,
+where such a sentence could actually be said. **With no channel, the relay was the only
+route the information had, and the Architect took it**, telling the Boss to inform the
+engine himself. A rule with no mechanism behind it is broken by whoever needs the
+information to move. The file is written by the Architect, uploaded by the Boss on the
+single existing channel, read at gate step 3 and never written by the engine (§13): an
+input a system can edit has stopped being an input. Its two arrays have opposite
+standing — `positions` are the owner's own facts and are taken as given, `vectors` are
+hypotheses with no authority at all, resolved against a primary or reported unresolved,
+because an owner's assertion is not a source (inv. 39) and the place that rule must hold
+hardest is the place it is least comfortable.
 
 **Two states are permanent and different.** `analyst/state.json` is the working set —
 one copy, replaced every run, carrying only what is currently true. `analyst/log/**`
