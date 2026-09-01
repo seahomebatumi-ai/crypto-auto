@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-d.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-e.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -646,9 +646,23 @@ instead of the state file.
 Each item: date · the event in one sentence a non-specialist understands · the
 effect as ЛОНГ / ШОРТ / ЖДАТЬ / НЕТ ВЛИЯНИЯ · the impact tag. Nothing else.
 
-**Impact tag, one per catalyst.** `ВЫСОКОЕ` — moves BTC risk appetite or volatility
-by itself · `СРЕДНЕЕ` — meaningful but not directional on its own · `УСЛОВНОЕ` —
-matters only if a named condition occurs. An event that cannot carry a tag is news.
+**Impact tag, one per catalyst, and it names the CONSEQUENCE for this book — never the
+importance of the event in the world.** `ВЫСОКОЕ` — can close a side or force an exit
+before the target is reached · `СРЕДНЕЕ` — caps confidence at `СРЕДНЯЯ` and moves no
+level · `УСЛОВНОЕ` — matters only if a named condition occurs, and the condition is
+printed. An event that cannot carry a tag is news.
+
+**The tag is defined this way because the old one was not readable.** «Moves BTC risk
+appetite» is a statement about the world, and the Boss cannot act on it: he asked what
+`ВЫСОКОЕ` on a G20 meeting was supposed to mean for him after five runs of seeing it, and
+the honest answer was that the tag and the `Что меняет` clause were saying the same thing
+twice, one of them in a vocabulary that decides nothing. A tag whose three values map onto
+three different consequences can be read off the word alone.
+
+**An exact time is printed only where the exact time is actionable** — a release with a
+published minute inside a holding window. Otherwise the date alone. Printing a minute for
+an event whose significance is unstated offers precision in the one place it is not
+wanted, five runs running.
 
 **Source quality decides publication, not repetition.** Admissible: primary official
 sources, the exchange, the protocol, the regulator, central banks, institutional
@@ -690,6 +704,18 @@ run's judgement and not the publisher's fact.
 **Hence `НЕ ПРОВЕРЕНО`, and it is a status of the assessment.** An item carried from
 state whose primary the run could not re-read this time prints with that status, and the
 consequences are entirely subtractive, in the standing of map inv. 31:
+
+**The trigger is the SOURCE CLASS that answered this run, per item, and nothing else.**
+The status is not a judgement about how much effort was spent: an attempt that timed out
+is not a reading, and a search result restating the item is not one either. Exactly three
+classes count as a reading — the primary itself, a documentary archive carrying the
+primary's own words while the primary is unreachable (§6), or the payload for anything
+the payload carries. Everything else leaves the item `НЕ ПРОВЕРЕНО`. The day log records
+the class per carried item (§12), so the status is derivable by a reader and not only by
+the run that assigned it. **Measured 01.09, second run:** `home.treasury.gov` timed out
+for the fourth consecutive run, the G20 communiqué was unread for the fourth consecutive
+run, and the item printed `ПРИБЛИЖАЕТСЯ` — the status this revision's predecessor created
+for exactly that case, on the run that introduced it, applied to nothing.
 
 - it may hold a setup at `ЖДАТЬ`, weaken one or remove one — it may never raise
   confidence, never create or move a level, and never be the reason a setup ENTERS the
@@ -747,10 +773,18 @@ limit, is stored in `analyst/state.json` with the date it was read, and is refre
 when stale. A run that finds every sweep fresh performs no fetch at all and says nothing
 about it.
 
-**A sweep is also stale when the rule that defines it has changed.** Each stored sweep
-records the MD5 of `ANALYST-INSTRUCTIONS.md` it was read under — the run already computes
-that hash for the day log (§12) — and a sweep whose recorded MD5 differs from this run's
-is stale whatever its age. Without this clause an age cache is keyed to the sweep's NAME
+**A sweep is also stale when the rule that defines it has changed — and the rule that
+defines it is §6 and this section, not this whole file.** Each stored sweep records the
+MD5 of the §6 + §6a text it was read under, and a sweep whose recorded MD5 differs from
+this run's is stale whatever its age. **The hash is taken over the defining sections
+because a hash over the file makes every edit anywhere invalidate every lane at once**:
+revision `-d` changed §2, §3B, §5 and §7 and touched no lane definition and no host, and
+the run of 01.09 was nonetheless required to re-sweep all of them, could not, and left
+five horizon lanes named-but-unvisited. A staleness rule that fires on unrelated edits is
+paid on every revision and is ignored on the run that cannot afford it, which is the state
+a control must never reach. Keying it to the defining text keeps the failure this clause
+exists for — a widened lane or a new host is an edit to §6 or §6a by construction, and
+cannot arrive without moving the hash. Without this clause an age cache is keyed to the sweep's NAME
 while its CONTENT is defined here, so widening a lane leaves every cached copy satisfying
 freshness while covering less than the contract now requires. **That failure has already
 happened once and it is the reason this clause exists:** the international-institutional
@@ -814,6 +848,34 @@ this repository exists to prevent. **The sweeps lose nothing:** their sources we
 protocol's own schedule and the protocol's or the fund's own disclosure, and an aggregator was
 only ever a convenience on the way to them.
 
+**With both discovery hosts closed, `backing` stops being a SWEEP and becomes a per-item
+lookup.** A sweep scans for what is not yet known and needs a host that lists many
+protocols; the primaries above answer only about a protocol already named. So there is
+nothing left to scan, and a run reporting «не выполнена» about it every day is reporting
+the absence of a host rather than the absence of work — which it did for five consecutive
+runs, each time correctly and each time uselessly. The obligation is unchanged in
+substance and moves to where it can be discharged: **when an unlock is published, its
+backing is looked up once against the protocol's or the fund's own disclosure, and the
+result is recorded on that item.** A lookup that finds nothing says so on the item. The
+`backing` entry leaves the sweep list, and a run that names it as an outstanding sweep is
+reporting a lane that no longer exists.
+
+**An item that cannot resolve before a stated date is not re-searched before it.** Every
+carried item may hold a next-attempt date, and while that date is ahead the run performs
+no search for it, prints it in the collapsed line, and spends nothing. The date is set
+from the event itself and never from a guess: a communiqué is not published before its
+meeting closes, a vote does not resolve before it closes, a figure is not released before
+its release time. **Measured 01.09: the G20 communiqué was searched on five consecutive
+runs and could not have existed on four of them**, so the searches were spent on an answer
+whose earliest possible arrival was known from the start, and the Boss read the same block
+five times. Two costs, one cause. When the date arrives the item is searched again on the
+first run past it, and a second failure past that date is what `НЕ ПРОВЕРЕНО` is for (§6).
+
+**A carried item printed at FULL length must carry something new this run** — a new fact,
+a changed status, a changed `Что меняет` clause. Otherwise it appears only in the
+collapsed line of §2. The section is a list of what changed, and an unchanged item printed
+in full is repetition wearing the shape of news.
+
 **A published thesis that rested on a source now unreachable is re-based or downgraded in
 the next run, by name.** The reason for the trade did not become false, it became
 unverifiable, and carrying it silently prints yesterday's conviction at today's confidence
@@ -868,14 +930,22 @@ Not published, not summarised, not referenced. Any failure downgrades the setup 
 21. **Every coin refused on both sides is in `ИЗБЕГАТЬ`** with the right class — bare
     name for an entry refusal, `XXX до ДД.ММ` for a dated one (§2).
 22. **Every catalyst whose primary was not re-read this run carries `НЕ ПРОВЕРЕНО`**
-    (§6), and no such item raised a confidence or created a level.
+    (§6), decided by the source class that answered and recorded per item in the log.
+23. **Every published setup carries the positioning read** — funding, open interest and
+    mark are in the payload row beside the price, and §5 step 6 has required them since
+    revision `2026-09-01-a`. Four consecutive runs printed funding or nothing and none
+    read the two columns beside it: a clause with no checklist item is a clause that
+    never runs.
+24. **Every dated item in `items` appears in the answer**, in full or in the collapsed
+    line (§2). A tracked event the Boss cannot see is one the next run will call
+    unchanged.
 
-**Items 12–22 exist because the rules they check already existed and nothing checked
+**Items 12–24 exist because the rules they check already existed and nothing checked
 them.** Each was violated by a run that had read this file correctly: `ИЗБЕГАТЬ` carried
 a name with no entry and later dropped one without a word, `ИТОГ` printed three fields
 where the skeleton has four, a `СЕЙЧАС` row was published at a price a cent above its own
 zone, two mandatory searches vanished without a word, and the named institutional host was
-never opened. **Items 19–22 name four failures of the run of 01.09**: a correct `СЕЙЧАС`
+never opened. **Items 19–24 name six failures of the two runs of 01.09**: a correct `СЕЙЧАС`
 was demoted by the clock, two argued outside-list candidates were dropped for want of a
 price the payload was already carrying, a coin refused on both sides never reached
 `ИЗБЕГАТЬ`, and three catalysts printed a verified status on an unread source. A rule
@@ -1000,7 +1070,8 @@ or event hits, `ОТМЕНЕНО` when the thesis breaks, `ИСТЕКЛО` when 
 last three are reported in the same answer, then leave `items` and land in `archive` as
 identity plus close date.
 
-**`НЕ ПРОВЕРЕНО` is counted, not merely recorded.** The item carries the number of
+**`НЕ ПРОВЕРЕНО` is counted, not merely recorded, and the count is a FIELD.** The item
+carries `unver` — an integer, absent or zero meaning verified — holding the number of
 consecutive runs it has held that status; the second one closes it as `ИСТЕКЛО` (§6),
 and any run that re-reads the primary resets the count to zero. Without the counter the
 status is a label that can be carried forever, which is the state it exists to end.
@@ -1027,6 +1098,16 @@ on the state file being readable at the start of the run**: an engine that canno
 it published yesterday cannot withdraw it, and will reverse silently every time. A run
 that finds the seed state where a written state was expected records that in the appendix
 as a broken chain, not as a first run.
+
+**Every dated item in `items` reaches the answer, and compression is the only thing
+that may shrink it.** A catalyst tracked in state and absent from the answer is invisible
+to the Boss while the engine holds it against his positions, and the next run will print
+it as `БЕЗ ИЗМЕНЕНИЙ` — unchanged from a state he was never shown. Measured 01.09, second
+run: state carried fourteen dated catalysts, the answer printed five, and the nine silent
+ones included a `NEW` item the run had opened that day and two events inside the holding
+window of published setups. The remedy is not a longer section: unchanged items collapse
+into one line naming symbol and date, and the line must EXIST. An item too unimportant to
+occupy four words of a collapsed line is too unimportant to carry in `items`.
 
 **Repetition is compressed, not banned.** Unchanged items collapse into one line; a
 known catalyst is never presented as a discovery. **A `ВЫСОКОЕ` catalyst inside 48 h
@@ -1098,6 +1179,7 @@ freeze moment (§5 step 4)          gate exit code
 MD5 of ANALYST-INSTRUCTIONS.md as read this run
 whether the PREVIOUS run's commit is on main, and where it is if not
 every command that read analyst/live.json, with the row count it returned
+the source class that answered per carried catalyst: primary / archive / none
 every lifecycle transition, with the reason for it
 the searches that changed a conclusion
 any catalysts.json proposal (§6)
