@@ -14,7 +14,7 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-01-b.** Baseline: TZ-23 merged into `main`; implementation
+**Revision 2026-09-01-c.** Baseline: TZ-23 merged into `main`; implementation
 commit `5fc2da5`, report
 `CryptoReports/TZ-23-main-workflow-paths-allowlist-report.md`. **The
 baseline names the implementation commit, not the merge commit** — a merge commit
@@ -32,7 +32,12 @@ revision on the same TZ-23 baseline:** no file this block fingerprints moved, th
 at thirteen steps and 1 250 739 checks, and what changed is the analytical engine's own
 governing text — `ANALYST-INSTRUCTIONS.md` to revision `2026-09-01-c` and
 `EXECUTOR-INSTRUCTIONS.md` to **v16**, neither of which this table has ever fingerprinted
-because neither is a production file.
+because neither is a production file. **`2026-09-01-c` is a third such revision on that
+same baseline:** no file this block fingerprints moved, the gate holds at thirteen steps
+and 1 250 739 checks, and what changed is again governing text — `ANALYST-INSTRUCTIONS.md`
+to `2026-09-01-d` and `EXECUTOR-INSTRUCTIONS.md` to **v17**, both forced by the first
+production analysis run to reach the Boss (§10, §11) — plus invariant 57, which that run
+produced.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -40,13 +45,13 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-01-b.**` |
+| revision | `**Revision 2026-09-01-c.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `56. **A recorded state is not a current state unless it carries the date it was measured.**` |
+| newest invariant | `57. **A verdict computed from a frozen measurement is dated, not timed, and no clock revokes it.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -1375,6 +1380,25 @@ cite them, so an invariant is rewritten in place and never renumbered.
     active blocker while a valid payload sat one command away. **Nothing in a flat table
     distinguishes a fact from a fossil**, and the reader who is most likely to be misled
     is the author, because a row he wrote reads like a thing he knows.
+57. **A verdict computed from a frozen measurement is dated, not timed, and no clock revokes it.**
+    Where a process cannot take a SECOND measurement, re-deciding a question after time
+    has passed uses the same evidence and can only lose: the second answer is not a
+    check, it is the first answer with the confidence removed. A measurement expires; a
+    verdict about a named minute does not — it is true of that minute or false of it,
+    and the clock says nothing either way. **The remedy for an ageing verdict is
+    disclosure, never deletion:** the moment is printed, the anchoring number is printed
+    beside the claim, and the reader who can see the current number resolves it in a
+    second. Where no reader can, the claim is not published at all — but that is a fact
+    about who is reading, never about the clock. The analytical engine produced this
+    twice in two days. `ANALYST-INSTRUCTIONS.md` revision `2026-09-01-a` moved a
+    fifteen-minute ceiling off the LEVELS after it deleted seven computed setups, and
+    left the same ceiling on the STATUS; on 01.09 that demoted the one live trade the run
+    had correctly found, printed «сделок нет» above a table it had computed correctly,
+    and asked the Boss for a fresh snapshot it did not need. **A ceiling moved to a
+    smaller object is not a repair — it is the same rule costing less per occurrence**,
+    and this one occurred on every thorough run, so it cost more. Inv. 56 says a recorded
+    state expires; this says a recorded VERDICT does not, and confusing the two throws
+    away work that was right.
 
 ---
 
@@ -1544,10 +1568,14 @@ until someone re-runs the command.
 | `live-gate.sh` sits under `bench.yml`'s `analyst/**` ignore | **closed by TZ-19** | nothing. Proven on the runner: a push carrying only the script now starts the gate |
 | `bench.yml`'s analyst ignore must grow with the written set | watched | any TZ or methodology change that adds a file the analyst writes. A forgotten entry burns a gate per run — loud, not silent (inv. 53). **`analyst/owner.json` is now the first file in that tree the analyst does NOT write and still qualifies:** it is pushed by the Boss, so every upload fires the full thirteen-step gate. Deliberately not fixed alone — the file changes rarely and the cost is runner minutes, which is inv. 53's correct direction to fail in; the line is added by the next TZ that opens `bench.yml` for another reason |
 | `analyst/live.json` producer emits a stray newline | **closed — measured 31.08.2026T10:03:40Z on a live payload** | nothing. The Shortcut no longer emits the raw LF inside the symbol list: a payload of `n:29` parses, `n == len(c)`, every `p`/`h`/`l` casts to a finite positive, no symbol carries whitespace, no duplicate. **The row above it was stale for days and nobody re-measured it** — the Architect read a recorded blocker as current state and reported the engine unusable when it was not. That is inv. 52 applied to this map's own rows: a row resting on a measurement falls with it, and a blocker is re-measured before it is repeated |
-| First live analysis run | **ran 31.08.2026; two runs, both measured** | nothing. The gate's freshness window is `−120 … +900` s and is a GATE budget, not a RUN budget: the 14:29Z run passed the gate three times and still published no level, because methodology §5 measured price age at the moment of SENDING and its only other exit — re-pull — is unreachable when the payload is written by the Boss's Shortcut. The 20:32Z run, under revision `2026-09-01-a`, froze levels at gate step 4 before the catalyst search and published two setups from the same architecture and the same window. **The constant never moved; the object it governed was wrong** |
+| First live analysis runs | **31.08 two runs, 01.09 one run, all measured** | nothing. The gate's freshness window is `−120 … +900` s and is a GATE budget, not a RUN budget. The 14:29Z run of 31.08 passed the gate three times and published no level; the 20:32Z run froze levels at gate step 4 and published two setups. **The 01.09 run proved the repair incomplete rather than wrong:** the freeze held every level, and the same window then demoted every status, so the answer carried a correct strategy table under «СДЕЛОК СЕЙЧАС НЕТ». The constant has still never moved; the object it governed was wrong twice, each time smaller than the last (inv. 57) |
 | A rule moved between environments is re-derived, not copied | **closed by `ANALYST-INSTRUCTIONS.md` 2026-09-01-a** | nothing. The 15-minute price age was written where the Boss pasted the payload into chat, so «re-pull before sending, or the coin leaves the answer» had two live exits; moving the reader into the repository closed the first and left the sentence untouched, and the file's own provenance table certified the clause carried «byte-equivalent in substance». Byte-equivalence WAS the defect. Appendix A now records that a provenance table asserting a clause unchanged is asserting the environment did not matter |
 | A cache keyed by a stage's NAME hides a widening of its CONTENT | **closed by `ANALYST-INSTRUCTIONS.md` §6a, and it paid on the first run** | nothing. Each stored sweep now records the contract MD5 it was read under and is stale when that differs, whatever its age. The motivating case and the first catch are the same one: the international-institutional lane and its named host were added on 30.08, the 31.08 morning run found `horizon` two days inside a seven-day limit and never opened the host, and the evening run — forced to re-sweep by the MD5 rule — found a G20 finance ministerial in session with digital assets on its published agenda. Without the rule that event stayed invisible for six more days |
-| The engine reads `fr` but not `oi` or `mark` | open | the next run. Every row of `analyst/live.json` carries funding, open interest and mark beside the price, so positioning is a read of a file already open and costs nothing. Methodology §5 step 6 has mandated it since `2026-09-01-a`; two runs have printed funding and neither has read the column beside it. Not a defect in the payload and not a missing source — an unexecuted clause, which is the class §7's checklist exists to convert into a check |
+| The engine reads `fr` but not `oi` or `mark` | open | the next run. Every row of `analyst/live.json` carries funding, open interest and mark beside the price, so positioning is a read of a file already open and costs nothing. Methodology §5 step 6 has mandated it since `2026-09-01-a`; **three runs have now printed funding and none has read the column beside it.** Not a defect in the payload and not a missing source — an unexecuted clause, which is the class §7's checklist exists to convert into a check |
+| The freeze aged out the STATUS after `-a` moved it off the LEVELS | **closed by `ANALYST-INSTRUCTIONS.md` 2026-09-01-d; inv. 57** | nothing. There is one clock in a run and it stops at the freeze: the `СЕЙЧАС`/`ЖДАТЬ` split is decided once, against the frozen price, and prints that price in its own cell. **The measurement behind the demotion never existed** — the engine cannot re-pull, so every later moment compared the same number against a longer wait. Measured 01.09: gate green at 65 s, ADA short at 0.1998 inside 0.1985–0.2020, composition past fifteen minutes, and the section printed «СДЕЛОК СЕЙЧАС НЕТ» over a correct table |
+| Outside-list candidates had no price lane | **closed by `ANALYST-INSTRUCTIONS.md` 2026-09-01-d** | nothing. §3B now prices them from the payload's `x` array — the exchange's own book from the Boss's own network, frozen with everything else — and the two-source web rule is retired: membership of `x` and tradability on a USDⓈ-M perpetual are the same fact, so nothing is left for the old rule to govern. Measured 01.09: APT (unlock 11.09) and CELO (hardfork 10.09) were fully argued and dropped for want of two web quotes, while both prices sat in the file the run had open |
+| An analysis run's direct push has no failure branch | **closed by contract v17** | nothing. `git pull --rebase` and push again; a second rejection is one reported line and the answer is still sent. Four clauses said `analyst/**` goes straight to `main` and none said what happens when that push is REJECTED — which is ordinary, because the Shortcut writes `analyst/live.json` to `main` while the run composes. With no branch defined the run fell into §8's pull-request fallback, written for role 1 and carrying no role qualifier, and the engine's own state waited on a human merge. §8 now opens by putting role 2 outside every branch clause in it |
+| `analyst/live.json` growth in git history | watched | ~280 KB per LIVE SNAP, several snapshots a day — hundreds of MB a year, in the one file that is replaced in place and therefore keeps every version as a distinct blob. Act if the clone becomes unwieldy. **The answer is archival, never a smaller snapshot:** the payload's width is what made §3B's price lane possible, and trimming it to save history would spend a capability to buy disk. Same standing as `journal/**` growth, and recorded here so the monthly audit stops rediscovering it |
 | `home.treasury.gov` refuses this machine | **measured 31.08.2026T20:32Z — timeout on direct fetch** | any egress change. The G20 finance-track text was read from a documentary archive carrying the same release verbatim, and `ANALYST-INSTRUCTIONS.md` §6 now names that class: an archive of a primary's own words is admissible for a DATE and a FACT while the primary is unreachable, for nothing else, and the primary is re-attempted every run. Re-measure before citing this row as current (inv. 56) |
 | CANON Part I amputation | prepared, held | one verified analysis run. Removing the Architect's engine before its replacement has produced a correct answer leaves no fallback |
 | ETF flow figures have no reachable primary lane | **closed, deliberately** — the three probe rounds behind it are **measured, date unrecorded** | a named machine-readable endpoint from an issuer or a listing venue, arriving as a TZ. Three probe rounds from the VPS found none: issuer pages 403/429, Bitwise 200 alone is not the dominant fund, Cboe and Fidelity answered 404 on guessed paths, an NYSE quote page carries price and not creation/redemption. A figure is therefore not published and a direction is not published; press-sourced readings still inform the run internally (methodology §6). **A run never re-probes this** — rediscovering a closed lane every day is the failure this repository exists to prevent |
@@ -1557,6 +1585,8 @@ until someone re-runs the command.
 | `index.html:799` restates the registry schema | open, unowned | any TZ that opens `index.html`. The comment lists seven fields and the schema now has eight. **The repair is deletion, not synchronisation** — replaced by a pointer to `bench/catalyst_bench.js`, or the schema keeps living in three files (inv. 20) |
 | `main.yml` `paths` allow-list | **closed by TZ-23, merged** | nothing on the filter. The residual is a coupling, not a defect: the list must grow the first time `main.py` reads a repository file, no bench can enforce it (§11), and today's derivation is nil so the list is as small as it can be. A second reading arrives free — `journal/**` used to qualify to start the bot and was stopped only by `[skip ci]` in every journal commit subject, so a message convention was the whole control; the allow-list removes that dependency |
 | `claude/tz-20-catalyst-registry-content` was never merged | **declared dead — do not merge** | nothing. `federalregister.gov` is absent from `PRIMARY` on `main` (measured), while TZ-20's immutable report describes adding it. Merging now would reintroduce a PRIMARY host for regulatory and macro events — **the exact class §3.15 closed permanently** — and would roll `catalysts.json`'s ENA entry back to the version TZ-21 superseded. The branch is retained as evidence in the standing of `CryptoTZ/TZ-03-report-delivery.md`. If TZ-20's four `QCASES` boundary cases are wanted, they arrive in their own TZ on their own merits, never as a side effect of a merge |
+| A coin refused on both sides never reached the Boss | **closed by `ANALYST-INSTRUCTIONS.md` 2026-09-01-d** | nothing. `ИЗБЕГАТЬ` now carries two classes — a bare name for an entry refusal, `XXX до ДД.ММ` for one that lifts on a dated event — and a coin refused on both sides is named rather than absent. Measured 01.09: HYPE was barred for the 06.09 unlock, the reasoning was in the internal appendix, and the answer said nothing about HYPE at all. A refusal that is not printed is indistinguishable from a coin nobody examined (inv. 37) |
+| A carried catalyst printed a verified status on an unread source | **closed by `ANALYST-INSTRUCTIONS.md` 2026-09-01-d** | nothing. Status `НЕ ПРОВЕРЕНО`, purely subtractive in the standing of inv. 31, counted per item and closing as `ИСТЕКЛО` on the second consecutive run. **A DATE established by a primary is permanent and is never re-established; the ASSESSMENT built on it decays** — the distinction the engine reached by hand three times on 01.09 with no rule to reach it by |
 | Nothing verifies that an accepted TZ's branch reached `main` | open, unowned | the next TZ touching the audit procedure. TZ-20 sat unmerged across four subsequent TZs and a monthly audit without being noticed, because §13's rule reads «executed ⇔ a report exists in `CryptoReports/`» and a report exists for work that never landed. **The gate count masked it rather than exposing it:** step 8 agreed at 23 062 the whole time, and the agreement was evidence that nothing on `main` ever reflected TZ-20, not evidence that it had. The check is one command — `git merge-base --is-ancestor <branch> origin/main` per open branch — and it belongs in the audit, not in a bench |
 | The Executor's VPS cannot run gate step 5 under `bench.yml`'s own command | watched — **measured 31.08.2026**, TZ-23's session | nothing. `direction_bench.py --control` exhausts V8's default old-space on a 955 MB single-CPU host; reproduced on a pristine `origin/main` tree and cleared by `NODE_OPTIONS=--max-old-space-size=2600`, so it is a ceiling and not a defect. `ubuntu-latest` has no such ceiling. Recorded so a future session does not read the OOM as a product failure and does not edit a bench to make it pass |
 | `tokenomist.ai`, `cryptorank.io` egress | **measured 30.08.2026T18:07Z (TZ-22) — both open at the network layer** | nothing on egress. The reading is a point in time behind Cloudflare and is replaced by a later reading, never argued with (inv. 52). What remains is not an egress question and carries its own row |
@@ -1645,6 +1675,22 @@ stop may not depend on that. The Shortcut's collection is unchanged — same cal
 network, same payload — and only the destination moved, so the engine reads a file in
 its own tree and the transport leaves the design instead of being hardened.
 
+**Since 01.09 the payload carries two arrays, and the second one closed the outside-list
+lane the aggregators could not.** `c` is the 28-coin universe plus BTC, validated row by
+row at the gate; `x` is the whole Binance USDⓈ-M perpetual book — 754 rows carrying
+symbol, last, 24-hour high and low, change and turnover. **Membership of `x` and
+tradability on a perpetual are the same fact**, so `ANALYST-INSTRUCTIONS.md` §3B now
+prices an outside-list candidate from it and the two-source web rule is retired: nothing
+is left for that rule to govern, because a coin absent from `x` was never publishable.
+The lane is filtered on the symbol and the turnover — USDT quote, no `_` (dated and
+COIN-M contracts), a nameable crypto underlying, and $10M of 24-hour turnover — and no
+name list is written into the methodology, because a typed list is a second universe
+(inv. 21). **The payload is read by command and never opened**: it is several hundred
+kilobytes, a run needs a handful of rows, and a reader that pulls the whole artifact in
+to reach thirty lines has taken the artifact instead of what it needed. The width is not
+free — each snapshot is a new ~280 KB blob in git history, which §10 carries as an
+archival question and never as a reason to narrow the payload.
+
 **The freshness window is two-sided:** `LIVE_SKEW_SEC = 120` s below, `LIVE_MAX_AGE_SEC
 = 900` s above, one declaration site each, both breaches sharing exit 3 and naming their
 side in stderr. The floor exists because the producer is a phone and the reader is not:
@@ -1660,9 +1706,15 @@ price, does not exist for an engine whose payload is written by the Boss's Short
 Since `ANALYST-INSTRUCTIONS.md` revision `2026-09-01-a` the stage order is binding and
 levels are FROZEN at gate step 4, before any search: the anchoring price is fixed with
 them, every later stage is subtractive, and an aged freeze demotes `СЕЙЧАС` to `ЖДАТЬ`
-instead of deleting the level. **Nothing about the constant changed.** Depth of search
-and existence of levels no longer compete for one fifteen-minute budget, which is why
-two runs from one trigger returned different-shaped answers on the same day.
+instead of deleting the level. **Revision `2026-09-01-d` removed that demotion too, and
+the reason is inv. 57.** The demotion rested on no measurement: the engine cannot re-pull,
+so a later moment compares the same number against a longer wait and can only subtract.
+The `СЕЙЧАС`/`ЖДАТЬ` split is now decided once, at the freeze, and the row prints the
+frozen price beside the zone — a dated claim the Boss checks against his own screen in a
+second. **Nothing about the constant changed, in either revision.** What changed twice is
+the object it was applied to, and the second correction is what made the first one hold:
+after `-a` a thorough run still emptied its own best-trades section, because four sweeps,
+a catalyst hunt and composition do not fit in fifteen minutes and were never meant to.
 
 **The Boss's production trigger is a third spelling, not a third mode.** `ANALYZE
 TODAY'S CRYPTO MARKET AND DETERMINE THE STRATEGY FOR ENTERING ALTCOINS ON BINANCE
