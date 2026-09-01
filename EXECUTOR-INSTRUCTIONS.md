@@ -1,6 +1,6 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 16.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 17.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
@@ -43,6 +43,18 @@ third spelling while this table carries two would refuse the Boss's own command.
 stage order is the second half of the same repair: `ANALYST-INSTRUCTIONS.md` §5 now
 computes levels before the catalyst search rather than after it, and §4b step 6 said
 «perform the analysis» in one clause that permitted either order.
+**v17 gives the analysis run's direct push a failure branch and takes role 2 out of §8's
+branch clauses.** On 01.09 an analysis run finished correctly and its state and day log
+reached the Boss as a branch and a compare URL he had to merge by hand, so the engine's
+own record was invisible to the next run until a human acted. Four clauses already said
+`analyst/**` goes straight to `main` and none of them said what happens when that push is
+REJECTED — and a rejection is ordinary here, because the Boss's Shortcut writes
+`analyst/live.json` to `main` while the run is composing. With no branch defined, the run
+fell through to §8's pull-request fallback, which was written for role 1 and carries no
+role qualifier. §4b step 8 now names the rebase-and-retry, §8 opens by putting role 2
+outside every branch clause in the section, and the same section's claim about
+`main.yml`'s `paths-ignore` is corrected: TZ-23 replaced that filter with a two-path
+allow-list, so nothing unnamed can start the bot at all.
 Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
@@ -271,6 +283,17 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
    answer sent against a state that was never written is an answer the next run
    cannot see.
 8. Commit `analyst/**` directly to `main` (§8), one commit, message `analyst: <date>`.
+   **If the push is rejected, rebase and push again — never open a branch.** A rejection
+   means `main` moved while you were composing, and the writer is almost always the
+   Boss's Shortcut putting a newer `analyst/live.json` there. You wrote
+   `analyst/state.json` and one dated log file that did not exist before, so
+   `git pull --rebase` cannot conflict with that payload; rebase, confirm the tree is
+   clean, push again. **A second rejection is reported in one line and the answer is
+   still sent** — the market answer is the Boss's, the commit is the engine's bookkeeping,
+   and holding the first hostage to the second helps nobody. What you never do is fall
+   through to §8's pull-request fallback: that clause is role 1's, and a state file
+   waiting behind a human merge is invisible to the next run, which then reads a stale
+   state and reports known items as discoveries.
 9. Send the answer. It is the whole message: no closing line, no report path, no
    status, no stage report (§11).
 
@@ -446,11 +469,23 @@ TZs and reports.
 
 ## 8. GitHub rules
 
+**Scope, before the first imperative: this section is role 1's.** An analysis run opens
+no branch and no pull request (§1), writes only `analyst/**`, and pushes it straight to
+`main` under §4b step 8, including when the first push is rejected. Every clause below
+that names a branch, a pull request, a merge or a compare URL is **silent** on an
+analysis run, exactly as it is silent on a report-only TZ — and its silence is never a
+deviation and never a fallback to be discovered by a run that met an unqualified
+imperative first. This paragraph is first because on 01.09 a correct analysis run read
+the section top-down, met «Work on a branch. Push the branch. Open a pull request.» with
+no qualifier attached, and delivered the engine's own state behind a pull request the
+Boss had to merge by hand.
+
 - Work on a branch. Push the branch. Open a pull request. **You never merge.**
   Merging deploys the live calculator, is the Boss's decision, and happens only after
   the Architect's audit returns ПРИНЯТО.
 - **If you cannot open a pull request, the fallback is defined — never stop, never
-  ask.** Some sessions forbid opening one without an explicit instruction; that is
+  ask. This is a role 1 clause and an analysis run never reaches it** (scope above;
+  §4b step 8). Some sessions forbid opening one without an explicit instruction; that is
   not a blocker and not a question for the Boss. Push the branch and put, both under
   `## Pull Request` and in the closing message: the exact branch name, the compare
   URL `https://github.com/seahomebatumi-ai/crypto-auto/compare/main...<branch>`, and
@@ -465,9 +500,14 @@ TZs and reports.
   the same two reasons and must stay safe: Pages serves `index.html`, so nothing in
   either tree can reach the live calculator, and neither tree can start the bot.
   **That second half is a claim about `main.yml`'s trigger filter, and it is verified
-  before the first analyst commit, not assumed** — `**/*.md` covers a report, but
-  `analyst/state.json` is not Markdown, so `analyst/**` belongs in `paths-ignore`
-  explicitly. If either fact ever stops holding, report it instead of pushing.
+  before the first analyst commit, not assumed.** Since TZ-23 that filter is a `paths`
+  ALLOW-LIST of two literal paths — `main.py` and `.github/workflows/main.yml` — and the
+  two cannot coexist with a `paths-ignore` on one event, so adopting it deleted the
+  exclusions rather than joining them. Under an allow-list neither `analyst/**` nor
+  `CryptoReports/**` needs an entry anywhere: everything unnamed is already out, and the
+  guarantee is now structural instead of enumerated. Read the workflow and confirm the
+  list is still an allow-list before the first push of a session; if either fact ever
+  stops holding, report it instead of pushing.
 - The report exists on `main` **before** you post your closing message, so the path
   you give the Boss resolves the moment he opens it. One report, one path, one copy:
   never also in the implementation branch, never a second copy under another name
