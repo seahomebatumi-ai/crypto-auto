@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-01-c.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -384,10 +384,15 @@ No payload, or a payload past its age limit → the regime, the catalysts, `СО
 and `ИТОГ` are still produced, without levels, and the answer prints the one sentence
 of §1 and nothing further.
 
-**3 · State.** `analyst/state.json` is read before anything is written, and the §11
-lifecycle is applied to every item before the answer is composed. A run that cannot
+**3 · State and owner.** `analyst/state.json` is read before anything is written, and the
+§11 lifecycle is applied to every item before the answer is composed. A run that cannot
 read or parse the state file stops and says so in one line: analysing without state
 silently restarts the memory chain and reports known events as discoveries.
+**`analyst/owner.json` is read in the same step** (§11): its `positions` become
+`type:"position"` items before candidacy is decided — a coin the Boss already holds must
+never be offered to him as a new entry — and its `vectors` enter the catalyst stage as
+questions. Its absence is normal and silent; an unparseable copy is stated in the first
+line and the run continues.
 
 **4 · Geometry — the freeze.** Every candidate that survives the state read gets its
 entry zone, invalidation and first target computed HERE, from the gate-fresh payload and
@@ -798,6 +803,12 @@ overwrites the empty seed.
 `type ∈ catalyst | thesis | sozrevaet | position | signal`. `d` is the event or
 trigger date. Fields not applicable to a type are omitted, never nulled.
 
+**`position` items are the one type this engine does not originate.** They are created
+from `analyst/owner.json` and archived when the symbol leaves it (§11 below); every other
+type is discovered, argued and closed by the run itself. Writing a position from anything
+else — a chat line, an inference from price action, a guess that a printed setup was
+taken — invents a holding the Boss does not have and then manages it.
+
 **Contents, compact, decision-relevant only:** upcoming catalysts with date, time and
 impact tag · active ЛОНГ / ШОРТ theses with entry, invalidation and target · maturing
 `СОЗРЕВАЕТ` theses with their trigger and level structure · signals already reported ·
@@ -847,11 +858,48 @@ is printed whether or not anything about it changed** — proximity alone is a f
 about the trade at that range, and the alternative is an event landing tomorrow that
 was last mentioned a week ago because nothing moved in between.
 
-**A declared position stops being a candidate.** On «вошёл в SOL ЛОНГ» the coin is
-written to state as `type:"position"` and is thereafter analysed as a holding —
-thesis intact or not, invalidation, target, whether to hold, reduce, close or
-reverse. It is not offered as a new entry again unless the plan calls for a second
-tranche.
+**A declared position stops being a candidate.** The coin is carried in state as
+`type:"position"` and is thereafter analysed as a holding — thesis intact or not,
+invalidation, target, whether to hold, reduce, close or reverse. It is not offered as
+a new entry again unless the plan calls for a second tranche.
+
+**Positions and owner vectors arrive in `analyst/owner.json`, never in conversation.**
+The earlier form of this clause said the coin was declared «on «вошёл в SOL ЛОНГ»» and
+assumed a conversation that does not happen: the Boss addresses the Architect, not this
+engine, and making him carry a technical fact between the two systems is the one thing
+the role table forbids outright. The clause was written for a chat-era engine and moved
+here unchanged — the same defect Appendix A records for the price age, arriving a second
+time. **A rule with no mechanism behind it is broken by whoever needs the information to
+move**, and it was, in the Architect's own answer.
+
+```
+analyst/owner.json — written by the Architect, uploaded by the Boss, read here, never written here
+
+{ "v":1, "k":"owner", "updated":"YYYY-MM-DD",
+  "positions":[ { "sym", "side":"long|short", "e", "opened", "note" } ],
+  "vectors":[   { "id", "sym"|null, "claim", "raised" } ] }
+```
+
+**The two arrays have opposite standing and must not be treated alike.**
+
+- **A `positions` entry is a FACT and is taken as given.** It is the owner's own trading
+  reality, the one class the Architect may request and the one class this engine may not
+  second-guess. It is written to state as `type:"position"` on the first run that sees
+  it, and archived on the first run that does not — a symbol leaving the array is a
+  closed trade, and the run says so in the first line like any other lifecycle change.
+- **A `vectors` entry is a HYPOTHESIS and carries no authority whatever.** It enters §6
+  as a question, not as evidence, and is resolved exactly like any other claim: confirmed
+  against a primary source and published with that source named, refuted and archived, or
+  still open with the host that was read named beside it. **A vector never reaches the
+  answer on the owner's word** — an owner's assertion is not a source (map inv. 39), and
+  the one place that rule must hold hardest is the one place it is least comfortable. An
+  unresolved vector persists and is reported again next run, so it cannot die by being
+  forgotten.
+
+Missing file → no positions, no vectors, and nothing is said: an owner who holds nothing
+and has raised nothing is the normal state. Present but unparseable → the run continues
+and says so in the first line, because the Boss's holdings being invisible for one run is
+material to him and silent degradation here offers him a coin he already owns.
 
 ---
 
@@ -902,6 +950,14 @@ verdict and its `confirmed` flag is the compensating control for an externalised
 (map inv. 39); an analysis run able to edit it would turn one file write into a
 silent change to production behaviour. A discovered event that deserves an entry is a
 line in the day log; the Architect turns it into a TZ or does not.
+
+**The analyst never writes `analyst/owner.json` either, and the reason is the same
+shape.** It is the owner's own declaration, carried into the tree by the Architect (§11);
+an engine able to edit it could close a position the Boss still holds, or write itself a
+vector and then confirm it. Both files are external inputs whose authority comes from
+being written elsewhere, and an input a system can edit has stopped being an input. What
+the run may say about it goes in the day log and in the first line of the answer —
+a position seen, a position gone, a vector resolved — never in the file.
 
 ---
 
