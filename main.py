@@ -57,7 +57,19 @@ TOKENS = {
     # детектор расхождения источников (инв. 11) поймал разные активы.
     # CG id не подтверждён по API: если бот даст NO DATA — найти точный id
     # через api.coingecko.com/api/v3/search?query=lighter и заменить строку.
-    'LIT': 'lighter'
+    'LIT': 'lighter',
+    # Added 2026-09-02 (TZ-25) by owner decision: the universe moves 28 -> 30.
+    # Both are declared Binance-Futures-only inside this system — `fut:true` in
+    # the frontend's tokens[] (map §3.14, inv. 41) — so the SPOT universe stays
+    # at 25 and every measure calibrated on it is untouched.
+    # The two CoinGecko ids are declared by the Architect and are validated on a
+    # runner, never in an implementation session (inv. 44). The arbiter is
+    # debug.json after the first bot run: `error: null` and `matched_90d > 120`
+    # on both. If either returns error, the corrected id arrives as its own
+    # one-line change — it is never guessed here.
+    # Running total: 30 alts + BTC = 31 market_chart + 1 /coins/markets (ranks)
+    # = 32 calls per run (~16.3k/month at 17 dispatches/day, keyless tier).
+    'MORPHO': 'morpho', 'ARB': 'arbitrum'
 }
 
 # ============================================================

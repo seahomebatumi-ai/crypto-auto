@@ -399,13 +399,15 @@ function vrow(r, fut, name) {
     // negative, and the bench fixtures of TZ-10 have exactly that shape.
     eq('a row with no t is still counted', want.n, 8);
 }
-// C1.5 — the exclusion is not a length trick: 25 spot + 3 fut, the live shape.
+// C1.5 — the exclusion is not a length trick: 25 spot + 5 fut, the live shape.
+// The fut list tracks tokens[]: TZ-25 added MORPHO and ARB as declared
+// futures-only, so the universe is 30 and the counted spot list is still 25.
 {
     const rows = [];
     for (let i = 0; i < 25; i++) rows.push(vrow(0.5 + i * 0.1, false, 'S' + i));
-    ['XMR', 'LIT', 'HYPE'].forEach(function (nm) { rows.push(vrow(20, true, nm)); });
+    ['XMR', 'LIT', 'HYPE', 'MORPHO', 'ARB'].forEach(function (nm) { rows.push(vrow(20, true, nm)); });
     const r = P.listExhaustion(rows);
-    eq('live shape: 28 rows, 25 counted', r.n, 25);
+    eq('live shape: 30 rows, 25 counted', r.n, 25);
     near('live shape: median is the 13th spot value', r.median, 0.5 + 12 * 0.1, 1e-12);
 }
 console.log('  compared: ' + N.venue);

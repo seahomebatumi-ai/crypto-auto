@@ -311,7 +311,7 @@ def run_walk(series, cdb, scorer, horizon_d=7, step_d=7, warm_d=90,
 def metrics(dates, key="long", sgn=1.0, topn=3, level=95.0):
     """sgn = +1 лонг (хотим рост), −1 шорт (хотим падение).
     Цель — ИЗБЫТОЧНАЯ доходность к среднему по списку: счёт решает задачу
-    «какую из 28 взять», а не «куда пойдёт рынок»."""
+    «какую из 30 взять», а не «куда пойдёт рынок»."""
     mkey = "mae_long" if sgn > 0 else "mae_short"
     ic, top, base_low, base_r7, rnd, rndtop, ncoins = [], [], [], [], [], [], []
     rng = np.random.default_rng(11)

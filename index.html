@@ -777,7 +777,14 @@ var tokens = [
     // (HTTP 400 роняет ВЕСЬ спот-тикер на 1.2 МБ — инвариант 5).
     {name:'ZEC',    s:'ZECUSDT'},   {name:'UNI',    s:'UNIUSDT'},
     {name:'XMR',    s:'XMRUSDT', fut:true},
-    {name:'LIT',    s:'LITUSDT', fut:true}
+    {name:'LIT',    s:'LITUSDT', fut:true},
+    // MORPHO / ARB — added 2026-09-02 (TZ-25) by owner decision, universe
+    // 28 -> 30. Both join the block above: the venue is DECLARED futures-only,
+    // it is not an observation about what a host answers (map §3.14, inv. 41).
+    // They therefore never enter the spot ?symbols= request, and listExhaustion
+    // skips them ahead of every other test — the spot universe stays at 25.
+    {name:'MORPHO', s:'MORPHOUSDT', fut:true},
+    {name:'ARB',    s:'ARBUSDT', fut:true}
 ];
 
 // ── Катализаторы (§3.12, слой 3) ───────────────────────────────────────────
@@ -3337,8 +3344,8 @@ function update() {
     var badgeColor  = currentStress === 'panic' ? 'var(--accent)' : 'var(--red)';
     var html = '';
     // Режим — единственный факт, объясняющий целую колонку красных ✕. Раньше
-    // он считался на каждой карточке и не печатался нигде: Босс видел 28
-    // запретов без причины. Один раз наверху вместо 28 раз внутри.
+    // он считался на каждой карточке и не печатался нигде: Босс видел 30
+    // запретов без причины. Один раз наверху вместо 30 раз внутри.
     // Unconditional, unlike the regime banner: a layer that is off has to say so
     // whichever side is selected, and it is an operational warning, not a
     // candidate (same standing as the degraded rows, inv. 36 / 40).
@@ -3466,7 +3473,7 @@ function update() {
         // Остаток к BTC (§10 п.1) — витринная строка карточки.
         // Показывается ТОЛЬКО результат и его размер в сигмах остатка.
         // Разложение (r7, btc.r7, использованная бета) сознательно НЕ выводится:
-        //   1) btc.r7 одинаков для всех 28 карточек — это шум, а не информация;
+        //   1) btc.r7 одинаков для всех 30 карточек — это шум, а не информация;
         //   2) частичные слагаемые рядом со строкой «90d: b=…» провоцировали бы
         //      сверку с ЧУЖОЙ бетой (та выбрана по слайдеру, эта — по факту)
         //      и давали бы расхождение на ровном месте.
