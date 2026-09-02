@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-02-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-02-c.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -62,23 +62,18 @@ nobody asked for. The words are ninety-seven characters of a sentence nobody typ
 accident, so nothing is bought by demanding the bytes.
 | `REVIEW` | §9 only |
 
-**The three full-cycle strings are one trigger, not three modes.** The long form names
-the objective the cycle has always had; it adds no stage, removes none, and changes no
-section. A trigger that could alter the workflow by being worded differently would be a
-second methodology written in the chat window, which is the shape this table exists to
-prevent — so the Executor matches any of the three and runs §2's skeleton in full,
-identically. The long form is the Boss's production trigger and is the one that must
-never fail to be recognised; the two short forms are retained because they are already
-in `EXECUTOR-INSTRUCTIONS.md` §4 and in months of day logs.
+**The three full-cycle strings are one trigger, not three modes.** The Executor matches
+any of the three and runs §2's skeleton in full, identically; the long form is the Boss's
+production trigger and the two short forms are retained because they are already in
+`EXECUTOR-INSTRUCTIONS.md` §4 and in months of day logs.
 
 Nothing else starts a run. A market question asked in prose is answered by running the
 full cycle, never by answering the prose: a partial answer assembled to fit the question
 is the one shape §2 exists to prevent.
 
 **Catalysts are not a mode.** §6 is a mandatory stage of every run and §2 prints it under
-`# КАТАЛИЗАТОРЫ` with effect, impact tag and `Что меняет` on every item. There is no
-catalyst-only trigger and none is needed; asking for one would produce a second procedure
-for a stage that already runs unconditionally.
+`# КАТАЛИЗАТОРЫ` on every item; there is no catalyst-only trigger and asking for one
+would produce a second procedure for a stage that already runs unconditionally.
 
 ---
 
@@ -113,13 +108,9 @@ statistic in place of a trade.
   no way to fix it, and a ban that permitted an explanation would license the whole
   banned class through one door.
 
-  **The one case is the whole permission, and revision `-d` narrowed it back to that.**
-  Revision `-c` also fired the sentence when the freeze aged past fifteen minutes, which
-  is not a case of absent data: the run held a gate-fresh price, had computed every level
-  from it, and printed an instruction to re-run the producer anyway. A run that has its
-  prices asking for prices is the loudest thing on the screen contradicting the answer
-  underneath it, and the Boss reads it as a failure because that is what the sentence
-  means everywhere else.
+  **The one case is the whole permission.** A run that has its prices asking for prices
+  is the loudest thing on the screen contradicting the answer underneath it, and the Boss
+  reads it as a failure because that is what the sentence means everywhere else.
 - Internal mathematics, z-scores, sigma counts, beta values, score values.
 - The same market statistic repeated in more than one section — liquidations,
   funding, open interest and flows appear at most **once**, and only if they move a
@@ -168,6 +159,9 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 **МОНЕТА — ЛОНГ** — тезис одним предложением.
 Что должно случиться: [ДД.ММ событие / цена $X] · зона $X–$X · инвалидация $X · цель $X.
 
+# ПОЗИЦИИ
+**МОНЕТА — ЛОНГ** — [Держать / Сокращать / Закрыть / Развернуть] · инвалидация $X · цель $X.
+
 # BTC
 Критический уровень $X · выше $X — за лонги · ниже $X — за шорты.
 Действие: одна строка о том, что это значит для альт-экспозиции.
@@ -177,6 +171,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 ИДЁТ СЕЙЧАС — **событие.** Что отменяет сетап: … Эффект: […]. Что меняет: …
 ВПЕРЕДИ СЕГОДНЯ — **ЧЧ:ММ Тбилиси / ЧЧ:ММ ET — событие.** Эффект: […]. Что меняет: …
 ДАЛЬШЕ — **ДД.ММ — событие.** Эффект: […]. Что меняет: …
+ЗАКРЫТО — **событие / тезис — статус.** · … — строка строится из разницы `items` (§11)
 Каждый пункт несёт метку влияния [ВЫСОКОЕ / СРЕДНЕЕ / УСЛОВНОЕ] и статус
 [НОВОЕ / БЕЗ ИЗМЕНЕНИЙ / ПРИБЛИЖАЕТСЯ / СРАБОТАЛО / ИЗМЕНИЛОСЬ / ОТМЕНЕНО / ИСТЕКЛО /
 НЕ ПРОВЕРЕНО].
@@ -244,6 +239,25 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   news and does not appear**; nothing here is ever a verdict, and a `СЕЙЧАС` or
   `ЖДАТЬ` setup belongs in the strategy table instead, never in both. Zero
   qualifying items → the section is omitted, like any other.
+- **`# ПОЗИЦИИ` prints every open holding `analyst/owner.json` declares, one line
+  each, and it is omitted only when the owner holds nothing.** §11 has always required a
+  declared position to be analysed as a holding — thesis intact or not, invalidation,
+  target, hold, reduce, close or reverse — and until this section existed that analysis
+  was performed on every run and written to `analyst/state.json`, where the owner of the
+  position never saw it. Measured 02.09: MORPHO was frozen at 2.4905, found sitting on
+  its own 24-hour low with the structural support holding, and the answer said nothing
+  about it on a day the same run labelled ВЫСОКИЙ РИСК. Where no entry price is
+  declared the line manages against structure and says so; where one is declared it
+  carries R from it. A holding is not a candidate (§11) and never appears in the strategy
+  table.
+- **`ЗАКРЫТО` is COMPUTED, not recalled.** The line is the difference between `items`
+  as read at gate step 3 and `items` as written at step 7: every id that left carries the
+  status it closed on. It is built from that diff before composition begins, never from
+  the run's memory of what it decided. Two consecutive runs archived closures in silence
+  — four on 02.09 morning, two more that afternoon, the second time with a checklist item
+  already telling the run to speak them — because a run was asked at the end to remember
+  what it had decided in the middle. A list produced from an artifact cannot forget
+  (map inv. 58).
 - **BTC gets four lines maximum.** It sets the environment for altcoin exposure and
   is not itself the product.
 - **КАТАЛИЗАТОРЫ: 3–5 items, each tied to an action and placed relative to the
@@ -290,23 +304,19 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   aggregators carry cannot be published as a catalyst item and may not arrive in `ИТОГ`
   through the one field that was never asked where its date came from. The prohibition
   itself survives the demotion intact: the coin stays in `ИЗБЕГАТЬ` on its `signal` item
-  and is re-argued every run, which is what an unverified date deserves. **Measured
-  02.09:** `ARB до 23.09` was published on a date the run's own state records as carried
-  by five aggregators with no primary, and `HYPE до 06.09` and `APT до 11.09` on vesting
-  schedules never opened at the protocol.
+  and is re-argued every run, which is what an unverified date deserves. Measured 02.09: three dated prohibitions
+  rested on aggregator dates with no primary; under `dclass` all three now print bare.
 - **Every coin named in `ИЗБЕГАТЬ` is state-backed with a CURRENT reason.** It is a
   published position: it keeps the Boss out of a trade, it is repeated run after run, and
   its reason decays exactly like a thesis's. A name carried in that field with no `items[]`
   entry cannot be re-examined, cannot expire and cannot be withdrawn — it just accumulates.
   Either the entry exists with today's reason, or the name leaves the field.
 - **A name LEAVING `ИЗБЕГАТЬ` is a withdrawal and is spoken by name, in the same first
-  line as every other withdrawal (§11).** The field is a published prohibition, so
-  deleting a name from it tells the Boss the coin is tradable again — the loudest
-  possible statement, made by omission. The rule above is what removes a name that has
-  lost its backing, and without this clause that repair produces the silent reversal
-  §11 exists to forbid: the name simply is not there, and the reader cannot tell a
-  lifted prohibition from a forgotten one. Two exits, both spoken: the entry is written
-  with today's reason and the name stays, or the name goes and the answer says so.
+  line as every other withdrawal (§11).** The field is a published prohibition, so deleting
+  a name from it tells the Boss the coin is tradable again — the loudest possible statement,
+  made by omission. Two exits, both spoken: the entry is rewritten with today's reason and
+  the name stays, or the name goes and the answer says so. A silent deletion leaves the
+  reader unable to tell a lifted prohibition from a forgotten one.
 - **ИТОГ is one line of four fields and is the last thing the Boss reads.** Nothing
   follows it — no state block, no commentary, no stage report. The machine state is
   a file now (§11), not a printed payload. **All four fields are printed on every run;
@@ -406,10 +416,10 @@ The middle third is neither: it has not extended and it has not retraced. Rows a
 ordered by turnover, and the pool enters the same catalyst and structure tests as before.
 
 **A list of the day's biggest gainers and losers is NOT this screen and does not satisfy
-it.** That list is the ranking «it moved the most» which this section bans in its first
-paragraph, arriving through the back door as a discovery method; the run of 01.09 screened
-exactly that way. `pos` is the whole difference: it separates a coin that moved from a coin
-that moved and is now offering an entry.
+it** — that ranking is «it moved the most» arriving as a discovery method, which the first
+paragraph of this section bans, and the run of 01.09 screened exactly that way. `pos` is
+the whole difference: it separates a coin that moved from a coin that moved and is now
+offering an entry.
 
 **The screen decides what is LOOKED AT and never what is published** (map inv. 32). It
 adds no ranking factor, no weight and no score; every published candidate still passes
@@ -503,7 +513,10 @@ is therefore a shell command that filters, casts and prints only the rows the ru
 use, and the day log records the command beside the number of rows it returned, so an
 empty result can be told from an unrun one (§6, map inv. 22). The gate script already
 reads `c` this way; `x` is the same discipline on the same file, and there is no third
-way to open it.
+way to open it. **The 24-hour structural file is read the same way and for the same
+reason**: a day of the journal is tens of kilobytes of whole production objects written
+unrounded, and a run needs a few fields on a few coins. The discipline is about what a
+reader takes, never about which file it is taken from.
 
 **Reading a file cannot fail the way fetching one can.** Measured 2026-08-28: from an
 Executor session every market host is refused at CONNECT, the Gist raw host with them,
@@ -554,13 +567,12 @@ cannot reach is a gap reported by name, never a fetch performed quietly.
 
 **The tree is brought current BEFORE the gate runs, and a red gate is read only after
 that.** `git fetch` and fast-forward, then gate. **A red gate is not a stale payload until
-the TREE has been proven current**, because the gate reads a file out of the working tree
-and a tree behind `origin/main` presents a payload the producer replaced hours ago — the
-identical exit code, the identical stderr, and a fresh payload sitting on `main` the whole
-time. **Measured 01.09, fourth run:** exit 3 at an age of 3189 s, fast-forward, exit 0 at
-172 s, nothing about the payload having changed. Asking the Boss to run `LIVE SNAP`
-against a stale tree makes him perform a routing action to repair the engine's own
-bookkeeping, and it is the one request §1's sentence must never become.
+the TREE has been proven current**: the gate reads a file out of the working tree, and a
+tree behind `origin/main` presents a payload the producer replaced hours ago — identical
+exit code, identical stderr, fresh payload sitting on `main` the whole time. Measured
+01.09: exit 3 at 3189 s, fast-forward, exit 0 at 172 s, nothing about the payload having
+changed. Asking the Boss to run `LIVE SNAP` against a stale tree makes him repair the
+engine's own bookkeeping, and that is the one request §1's sentence must never become.
 
 **The file being present is not freshness.** `ts` is checked on every read without
 exception: a payload from an earlier session looks exactly like a payload from this
@@ -610,6 +622,16 @@ capitulation; the two produce different `ЖДАТЬ` triggers on the same chart,
 that prints funding while ignoring the `oi` column beside it has left half of the
 positioning read on the table. Mark against last is the basis and is read the same way.
 
+**Open interest needs a previous reading before it has a direction, so the reading is
+kept.** Every item carrying a symbol stores `oi_prev` — the open interest read by the run
+that last looked, with the date of that reading — and this run compares today's `oi`
+against it. Without it the column is a level with nothing to compare against, and
+«rising into a falling price» cannot be said at all: measured 02.09, both published setups
+had `fr` and `oi` read from the payload and neither could be given a direction, because no
+prior figure existed anywhere on disk. One number per item per run closes it, and the
+comparison it enables is the difference between distribution and capitulation on the same
+chart.
+
 **Ages, and the moment each is measured from.**
 
 | Field | Maximum age | Measured at | Source |
@@ -635,27 +657,20 @@ at a stated minute, and that is either true of that minute or false of it, whate
 clock does afterwards. The Boss holds the only instrument that can compare it to *now* —
 his own screen — and the anchor is what lets him do it in a second.
 
-**Measured 01.09, and it is the second time this rule has cost a whole answer.** The gate
-passed at 65 s, the freeze took at 14:17:54Z, one row — the ADA short at 0.1998 inside
-0.1985–0.2020 — was a live trade at that moment, and composition ran past fifteen minutes.
-The run then demoted every `СЕЙЧАС` on a clock, printed `СДЕЛОК СЕЙЧАС НЕТ` above a
-strategy table it had computed correctly, and asked for a fresh snapshot it did not need.
-No price moved in that account, and no measurement was taken: the rule reversed a correct
-verdict using no evidence whatever. Revision `-a` had already moved this ceiling off the
-LEVELS after it deleted seven setups on 31.08; it landed on the STATUS instead of on the
-right object, and a thorough run breaches fifteen minutes as a matter of course — four
-sweeps, a catalyst hunt and composition do not fit inside it and were never meant to. So
-the demotion did not fire on a pathological run, it fired on a healthy one, and `СДЕЛОК
-СЕЙЧАС НЕТ` became the ordinary output of an engine that had found trades.
+**Measured 01.09, and it was the second time this rule cost a whole answer.** The gate
+passed at 65 s, the freeze took at 14:17:54Z, the ADA short at 0.1998 sat inside its own
+published zone — and composition ran past fifteen minutes, so the run demoted every
+`СЕЙЧАС` on a clock, printed `СДЕЛОК СЕЙЧАС НЕТ` over a table it had computed
+correctly, and asked for a snapshot it did not need. No price moved in that account and
+no measurement was taken. A thorough run breaches fifteen minutes as a matter of course,
+so the demotion fired on healthy runs, which is how `СДЕЛОК СЕЙЧАС НЕТ` became the
+ordinary output of an engine that had found trades.
 
 **The engine cannot re-pull a price, and the rule may not assume it can.** `analyst/
 live.json` is written by the Boss's Shortcut and by nothing in this engine (step 2), so
-«re-pulled before sending, or the coin leaves the answer» offered two exits of which
-only one was ever reachable, and it deleted whole answers through the other. Measured
-2026-08-31: the gate passed at 165 s, the catalyst stage consumed the window, composition
-began with 121 s of the ceiling left, and seven fully computed setups were destroyed over
-a hundred seconds on a level whose own structural input was 21 hours old. The ceiling is
-not the defect; the object it was applied to was.
+«re-pulled before sending, or the coin leaves the answer» offered two exits of which only
+one was ever reachable, and on 31.08 it destroyed seven fully computed setups through the
+other. The ceiling is not the defect; the object it was applied to was.
 
 **Freeze, then hunt — the stage order is binding.** Levels are computed at step 4,
 immediately after the state read and BEFORE any catalyst search, and the price they were
@@ -676,18 +691,11 @@ its prices. The answer is sent as soon as composition finishes and nothing in th
 waits for anything. A run whose freeze itself failed the gate publishes no level at all;
 that case is unchanged and is below.
 
-**The two-source rule is retired, and what replaced it is stronger.** It governed
-outside-list coins only, and it existed because those coins had no Binance-native feed —
-so two web quotes agreeing within 2 % were the best available evidence. `x` (§3B) is the
-exchange's own book from the Boss's own network, gate-fresh, frozen with everything else,
-and there is no configuration in which two scraped pages beat it. Nor is anything left for
-the old rule to govern: a coin absent from `x` has no USDⓈ-M perpetual, and §3B refuses to
-publish it whatever any page says its price is. **Measured 01.09, which is why this
-clause moved:** APT carried a dated 11.09 unlock and CELO a 10.09 hardfork, both had
-perpetuals, both were fully argued in the internal appendix, and both left the answer
-because no price host on the open web would answer this machine twice. The candidates
-were real and the section printed «нет кандидатов» — a rule written for a missing feed
-outliving the feed's arrival.
+**The two-source rule is retired and §3B carries what replaced it.** It existed because
+outside-list coins had no Binance-native feed; `x` is the exchange's own book from the
+Boss's own network, gate-fresh and frozen with everything else, and a coin absent from it
+has no perpetual to trade. Measured 01.09: the retired rule refused two fully argued
+candidates whose prices sat in the file the run already had open.
 
 **Gate failure has exactly two outcomes:** the coin moves to `ЖДАТЬ` with a price
 condition instead of a zone, or it leaves the answer. It is never published with an
@@ -716,6 +724,30 @@ standard macro prints may occupy the section**, and every run must either carry 
 one dated event that is not on the retail macro calendar or state in the internal
 appendix which sweeps were run and returned nothing. An empty sweep is a measurement; an
 unrun sweep is a gap, and only the appendix can tell them apart.
+
+**Three classes decide what may occupy the section, and the class is read off the event
+rather than judged.** The cap above says how many of one kind may appear; this says which
+kind an item is, so that «important» and «noise» stop being a matter of taste.
+
+| Class | What it is | Admission |
+|---|---|---|
+| A — asset-specific | an unlock, vote, upgrade, listing, delisting, court or regulator decision NAMING a coin | published whenever dated and sourced; no cap |
+| B — scheduled macro print | a release every calendar already carries: employment, inflation, a central-bank meeting | **at most two, and only in the collapsed line unless the event lands inside 48 h** |
+| C — world event | a shock nobody scheduled: conflict, an exchange failure, a chain halt | published only when its market reaction is VISIBLE IN THE FROZEN PAYLOAD |
+
+**Class C carries the noise test, and the test costs nothing because the run already holds
+the data.** A world event is a catalyst here when the payload frozen at §5 step 4 shows the
+reaction — a level broken, a coin moving several times its own daily range, funding or open
+interest turning — and the item names that reaction in its `Реакция рынка` clause. An event
+with no reading in the payload is news: it may inform the regime internally («not publishable
+is not the same as not knowable» below) and it does not occupy a line. This is the standing
+of the map's geometry layer — an assertion about what has already happened, needing no
+forecast — and it adds no ranking factor.
+
+**Class B is where a run stops hunting without noticing.** Three scheduled prints occupied
+three of five printed items on 02.09, each at full length, each carrying nothing new, on a
+day whose actual driver was a class C event the same run had found and published correctly.
+The cap existed and had no mechanical form; «collapsed line beyond 48 h» is that form.
 
 Coverage that must be checked every time:
 
@@ -752,11 +784,8 @@ level · `УСЛОВНОЕ` — matters only if a named condition occurs, and th
 printed. An event that cannot carry a tag is news.
 
 **The tag is defined this way because the old one was not readable.** «Moves BTC risk
-appetite» is a statement about the world, and the Boss cannot act on it: he asked what
-`ВЫСОКОЕ` on a G20 meeting was supposed to mean for him after five runs of seeing it, and
-the honest answer was that the tag and the `Что меняет` clause were saying the same thing
-twice, one of them in a vocabulary that decides nothing. A tag whose three values map onto
-three different consequences can be read off the word alone.
+appetite» is a statement about the world and the Boss cannot act on it; a tag whose three
+values map onto three different consequences can be read off the word alone.
 
 **An event's time is a property of the event and is never taken from the run's own
 clock.** Measured 01.09, third run: the August employment release was printed as «04.09
@@ -783,6 +812,20 @@ only by aggregators is not published.
 **An API is the primary source, not a lesser version of the web page.** Where a host
 serves both and refuses one, the machine-readable endpoint is preferred and is not a
 degradation: it is the same publisher's own number without the rendering layer.
+
+**A token's own contract state is the protocol's publication and outranks the protocol's
+website.** A vesting schedule, a cliff date, a supply figure or a treasury balance read
+from the token contract — directly, or through a block explorer's machine-readable
+endpoint returning that contract's state — is `dclass:'primary'`: it is not a report about
+the protocol, it is the protocol. **This lane exists because the DATE class this engine
+publishes most often is the one it can source least often.** Five carried unlock items
+stood at `dclass:'none'` on 02.09; both aggregator discovery hosts are closed (§6a); and
+the two protocol sites attempted that run answered with an empty client-rendered page and
+with HTTP 429. Nothing in that chain is repairable by searching harder — the schedule is
+on-chain and the websites are renderings of it. **A host for this lane is established by a
+TZ measurement and never by assumption** (map inv. 44, inv. 52): until one is measured and
+named here, the class stays unserved, its dates stay `none`, and the coins it covers are
+carried in `ИЗБЕГАТЬ` bare.
 
 **An ARCHIVE that reproduces a primary's own text is admissible for a DATE and a FACT
 when the primary itself is unreachable, and for nothing else.** A documentary archive
@@ -819,7 +862,12 @@ the payload carries. Everything else leaves the item `НЕ ПРОВЕРЕНО`. 
 the class per carried item (§12), so the status is derivable by a reader and not only by
 the run that assigned it. **The status is a FUNCTION of the recorded class and carries no
 exception clause**: class outside the three above, status `НЕ ПРОВЕРЕНО`, whatever the run
-believes about why the source was silent. A sentence explaining why the status does not
+believes about why the source was silent. **`dclass` exempts an item from CLOSING and never
+from the STATUS word**, and the two were conflated on the first run that had the field:
+four calendar items printed `БЕЗ ИЗМЕНЕНИЙ` while state carried `unver` 2, 2, 2 and 1 on
+them and no primary had answered for any of the four that run. A permanent date and a stale
+assessment live on the same item without contradiction — the date keeps it alive, the status
+says the judgement built on it was not refreshed — and an item holds both at once. A sentence explaining why the status does not
 apply this once is itself the violation, because the status exists to make exactly that
 sentence unnecessary. **Measured 01.09, second run:** `home.treasury.gov` timed out
 for the fourth consecutive run, the G20 communiqué was unread for the fourth consecutive
@@ -885,21 +933,17 @@ about it.
 **A sweep is also stale when the rule that defines it has changed — and the rule that
 defines it is §6 and this section, not this whole file.** Each stored sweep records the
 MD5 of the §6 + §6a text it was read under, and a sweep whose recorded MD5 differs from
-this run's is stale whatever its age. **The hash is taken over the defining sections
+this run's is stale whatever its age. **The hash covers the defining sections only,
 because a hash over the file makes every edit anywhere invalidate every lane at once**:
-revision `-d` changed §2, §3B, §5 and §7 and touched no lane definition and no host, and
-the run of 01.09 was nonetheless required to re-sweep all of them, could not, and left
-five horizon lanes named-but-unvisited. A staleness rule that fires on unrelated edits is
-paid on every revision and is ignored on the run that cannot afford it, which is the state
-a control must never reach. Keying it to the defining text keeps the failure this clause
-exists for — a widened lane or a new host is an edit to §6 or §6a by construction, and
-cannot arrive without moving the hash. Without this clause an age cache is keyed to the sweep's NAME
-while its CONTENT is defined here, so widening a lane leaves every cached copy satisfying
-freshness while covering less than the contract now requires. **That failure has already
-happened once and it is the reason this clause exists:** the international-institutional
-lane below, and the named host in it, were added on 30.08; the run of 31.08 read this file,
-found `horizon` two days inside its seven-day limit, and never opened the host the new
-clause names.
+revision `-d` touched no lane definition and no host, and the run of 01.09 was nonetheless
+required to re-sweep all eight, could not, and left five lanes named-but-unvisited. A
+staleness rule that fires on unrelated edits is paid on every revision and ignored on the
+run that cannot afford it, which is the state a control must never reach. Keying it to the
+defining text keeps the failure this clause exists for: a widened lane or a new host is an
+edit to §6 or §6a by construction and cannot arrive without moving the hash. **That failure
+has already happened once** — the international-institutional lane and its named host were
+added on 30.08, and the run of 31.08 found `horizon` two days inside its seven-day limit
+and never opened the host the new clause names.
 
 **The hash is a COMMAND, not a description, and the command is written here so that two
 runs cannot compute two different numbers:**
@@ -910,20 +954,25 @@ sed -n '/^## 6\./,/^## 7\./p' ANALYST-INSTRUCTIONS.md | md5sum
 
 That span opens at §6's own heading and stops at §7's, so §6 and §6a are inside it and
 nothing else is; the stored value is that digest and the field is named `sec6_md5` to make
-a whole-file hash impossible to write into it by habit. **Measured 02.09:** the run stored
-the MD5 of the entire file in every lane and in `sweeps_md5_current`, so one revision that
-touched §2, §5, §7 and §11 marked all eight horizon lanes stale at once — the exact
-outcome the paragraph above forbids, arriving through the paragraph itself. Four lanes
-then went unopened and the shortfall was written into `analyst/state.json` rather than
-into the day log. **A rule that names an object without naming how to compute it has
-named nothing:** the previous wording said «the MD5 of the §6 + §6a text» and was obeyed
-in good faith by a run that had no way to know where that text began.
+a whole-file hash impossible to write into it by habit. **A rule that names an object
+without naming how to compute it has named nothing:** the previous wording said «the MD5
+of the §6 + §6a text», was obeyed in good faith by a run with no way to know where that
+text began, and cost four unopened lanes on 02.09.
 
 **The horizon sweep is stored PER LANE, not as one blob.** Each lane of the §6 coverage
 list carries its own read date, its own host and its own result inside
 `state.sweeps.horizon`. One date over a bundle of lanes lets a lane that was never opened
 inherit the freshness of one that was, and the store then reports a coverage it does not
 have — the same shape map inv. 48 names for a bench green on invented input.
+
+**A lane's `sec6_md5` records the text the lane was ACTUALLY READ UNDER, so a run that does
+not open a lane does not touch its hash.** Writing this run's digest into a lane last read
+under an older revision does not refresh the lane: it deletes the only evidence that the
+lane is stale, permanently and silently, and every later run sees a full set of fresh lanes
+it never had. **Measured 02.09, second run:** four lanes unopened since 31.08 and 01.09
+received the current digest during a field migration, and the control that exists to catch
+exactly that was disarmed by the migration meant to strengthen it. A lane is refreshed by
+being read; a hash is written only by the read that produced it.
 
 | Sweep | Question | Max age | Primary source |
 |---|---|---|---|
@@ -997,6 +1046,17 @@ runs and could not have existed on four of them**, so the searches were spent on
 whose earliest possible arrival was known from the start, and the Boss read the same block
 five times. Two costs, one cause. When the date arrives the item is searched again on the
 first run past it, and a second failure past that date is what `НЕ ПРОВЕРЕНО` is for (§6).
+
+**A HOST that refuses carries a next-attempt date exactly as an unresolvable event does.**
+The clause above was written for a fact that cannot exist yet; the identical waste arrives
+through a publisher that will not answer this machine — `home.treasury.gov` timed out on
+seven consecutive runs and was attempted on all seven, and `bls.gov` has returned 403 for
+longer than that. A host that refuses on three consecutive runs is given a next-attempt
+date two days out, recorded on the lane beside the response it gave; until then the lane
+is declared unserved in the appendix, its items publish no figure and no date, and no
+search is spent on it. **The budget freed is spent on class A** (§6), which is where this
+engine's own coins are, and that is the whole point of the rule: a refusal costs one line
+of bookkeeping instead of one search per run forever.
 
 **A carried item printed at FULL length must carry something new this run** — a new fact,
 a changed status, a changed `Что меняет` clause. Otherwise it appears only in the
@@ -1089,32 +1149,32 @@ reliable reader this system has.
     item (§2), collapsed line included. The answer and `analyst/state.json` are written
     in the same run and may not disagree about the same event.
 28. **No item stands at `unver` 2 or higher in `items`** unless §11's DATE exemption
-    applies by its recorded `dclass`, or its date falls inside 48 h (§6). The counter
-    closing an item is not a judgement call and produces no sentence explaining itself.
+    applies by its recorded `dclass`, or its date falls inside 48 h (§6), or the item
+    received its FIRST `dclass` on this run under §11's one-run grace. The counter closing
+    an item is not a judgement call and produces no sentence explaining itself. The grace
+    clause is named here because §11 granted it and this item did not carry it, so a run
+    obeying §11 correctly failed a checklist item that was right about everything except
+    the transition.
+29. **Every open position in `analyst/owner.json` has a line in `# ПОЗИЦИИ`** (§2),
+    carrying an action word and an invalidation. Analysis of a holding that reaches only
+    the state file has not been delivered.
+30. **The `ЗАКРЫТО` line was built from the diff of `items`**, before against after
+    (§2), and every id that left `items` this run appears in it.
+31. **Every owner vector is reported with a named host or a named source** (§11).
+    «Not acted on» is not one of its three states.
+32. **No lane's `sec6_md5` was written by a run that did not read the lane** (§6a), and
+    every lane not read this run is named in the appendix with its previous read date.
 
-**Items 12–24 exist because the rules they check already existed and nothing checked
-them.** Each was violated by a run that had read this file correctly: `ИЗБЕГАТЬ` carried
-a name with no entry and later dropped one without a word, `ИТОГ` printed three fields
-where the skeleton has four, a `СЕЙЧАС` row was published at a price a cent above its own
-zone, two mandatory searches vanished without a word, and the named institutional host was
-never opened. **Items 19–24 name six failures of the two runs of 01.09**: a correct `СЕЙЧАС`
-was demoted by the clock, two argued outside-list candidates were dropped for want of a
-price the payload was already carrying, a coin refused on both sides never reached
-`ИЗБЕГАТЬ`, and three catalysts printed a verified status on an unread source. **Items
-25-28 name four failures of the run of 02.09**, which was the most disciplined run this
-engine has produced and broke all four anyway: four items closed as `ИСТЕКЛО` and none of
-the four was mentioned to the Boss, two coins moved from a published long into `ИЗБЕГАТЬ`
-with the first line speaking only the withdrawal, the outside-list screen ran on movers
-alone while two dated events sat in the store, and the catalyst section printed «Без
-изменений» over six items state held as `НЕ ПРОВЕРЕНО`. **Three of the four are the same
-defect wearing three shapes** — the run decided something correctly and did not say it —
-which is why all three are checked against an artifact and not against the run's memory
-of its own answer. A rule
-stated in §2 and enforced nowhere is a description of the
-methodology, not the methodology — the distinction this checklist exists to remove. **The
-list grows by measurement and never by anticipation:** an item is added the first time a
-correctly-read rule is broken in a real run, which is why every entry above names a
-failure that happened rather than one that might.
+**Every item on this list names a failure that happened, and the list grows only that
+way.** Items 12–18 were added after rules already written here were broken by runs that
+had read the file correctly; 19–24 name six failures of the two runs of 01.09; 25–28 name
+four of the run of 02.09, which was the most disciplined run this engine had produced and
+broke all four anyway; 29–32 name four of the run that followed it. **Three of 25–28 and
+three of 29–32 are the same defect wearing six shapes** — the run decided something
+correctly and did not say it — which is why every one of them is checked against an
+artifact and never against the run's memory of its own answer. A rule stated in §2 and
+enforced nowhere is a description of the methodology, not the methodology, and that
+distinction is the whole reason this list exists.
 
 ---
 
@@ -1197,7 +1257,7 @@ overwrites the empty seed.
 ```json
 { "v":1, "k":"state", "d":"YYYY-MM-DD", "ts":"ISO-8601Z",
   "items":[ { "id","type","sym","status","d","dclass","impact","note",
-              "entry","inv","tgt","trigger","first_seen","last_seen" } ],
+              "entry","inv","tgt","trigger","oi_prev","first_seen","last_seen" } ],
   "archive":[ { "id","sym","d","closed","status" } ] }
 ```
 
@@ -1268,17 +1328,11 @@ the FOMC meeting — three calendar dates that no host's mood can move.
 **«Settled» is not a judgement the run makes, it is a `dclass` of `primary` or `archive`
 recorded on the item.** The exemption applies to those two values and to nothing else; at
 `none` the counter runs and closes at two, whatever the event's shape and however
-predictable it looks. **Measured 02.09, and this is the whole reason the field exists:**
-two unlock items stood at `unver 2` with their vesting schedules never once read from the
-protocol, and the run declined to close them on the reasoning that a recurring linear
-emission is a calendar fact like an FOMC date. The reasoning is not stupid — it is simply
-not checkable, and the alternative to a checkable test is that every run re-decides which
-of its aggregator dates feel official. **The run's stated cost was also not real:** it
-kept the two items because closing them «would have silently lifted a prohibition», and
-both coins carried their own `signal` item, so both names would have stayed in `ИЗБЕГАТЬ`
-and only the class would have changed. A rule was broken to buy something that was
-already owned, which is what deciding in the moment before publication looks like from
-the outside.
+predictable it looks. **Measured 02.09:** two unlock items stood at `unver 2`
+with their vesting schedules never once read from the protocol, and the run declined to
+close them on the reasoning that a recurring linear emission is a calendar fact like an
+FOMC date — not stupid, simply not checkable, and the alternative to a checkable test is
+that every run re-decides which of its aggregator dates feel official.
 
 **The remedy for a `none` date is to read the primary, and it is one lookup.** An unlock
 whose schedule the protocol publishes is `primary` the first time anyone opens it, and
@@ -1316,15 +1370,15 @@ it published yesterday cannot withdraw it, and will reverse silently every time.
 that finds the seed state where a written state was expected records that in the appendix
 as a broken chain, not as a first run.
 
-**Every dated item in `items` reaches the answer, and compression is the only thing
-that may shrink it.** A catalyst tracked in state and absent from the answer is invisible
-to the Boss while the engine holds it against his positions, and the next run will print
-it as `БЕЗ ИЗМЕНЕНИЙ` — unchanged from a state he was never shown. Measured 01.09, second
-run: state carried fourteen dated catalysts, the answer printed five, and the nine silent
-ones included a `NEW` item the run had opened that day and two events inside the holding
-window of published setups. The remedy is not a longer section: unchanged items collapse
-into one line naming symbol and date, and the line must EXIST. An item too unimportant to
-occupy four words of a collapsed line is too unimportant to carry in `items`.
+**Every dated item in `items` reaches the answer, and compression is the only thing that
+may shrink it.** A catalyst tracked in state and absent from the answer is invisible to the
+Boss while the engine holds it against his positions, and the next run prints it as
+`БЕЗ ИЗМЕНЕНИЙ` — unchanged from a state he was never shown. Measured 01.09: state carried
+fourteen dated catalysts and the answer printed five, and the nine silent ones included an
+item opened that day and two events inside the holding window of published setups. The
+remedy is not a longer section — unchanged items collapse into one line naming symbol and
+date, and the line must EXIST. An item too unimportant for four words of a collapsed line
+is too unimportant to carry in `items`.
 
 **Repetition is compressed, not banned.** Unchanged items collapse into one line; a
 known catalyst is never presented as a discovery. **A `ВЫСОКОЕ` catalyst inside 48 h
@@ -1368,7 +1422,12 @@ analyst/owner.json — written by the Architect, uploaded by the Boss, read here
   answer on the owner's word** — an owner's assertion is not a source (map inv. 39), and
   the one place that rule must hold hardest is the one place it is least comfortable. An
   unresolved vector persists and is reported again next run, so it cannot die by being
-  forgotten.
+  forgotten. **«Still open» is a state with a named host inside it, or the vector was not
+  worked on this run and the log says that instead.** A vector carried as «not acted on»
+  is «nothing found» with no measurement behind it, which §6 refuses everywhere else, and
+  carried that way it becomes a question the owner asked that quietly stops being asked.
+  Measured 02.09: both vectors were carried a fourth consecutive run as unresolved, neither
+  naming a host, and no search that run touched either claim.
 
 Missing file → no positions, no vectors, and nothing is said: an owner who holds nothing
 and has raised nothing is the normal state. Present but unparseable → the run continues
@@ -1396,7 +1455,10 @@ freeze moment (§5 step 4)          gate exit code
 MD5 of ANALYST-INSTRUCTIONS.md as read this run
 whether the PREVIOUS run's commit is on main, and where it is if not
 every command that read analyst/live.json, with the row count it returned
-the source class that answered per carried catalyst: primary / archive / none
+the source class that answered per carried catalyst: primary / archive / none,
+  and per item: the host, what it answered, the field taken from it
+every lane NOT read this run, with its previous read date and its stored sec6_md5
+the oi reading stored per item and the previous one it was compared against
 every lifecycle transition, with the reason for it
 the searches that changed a conclusion
 any catalysts.json proposal (§6)
@@ -1429,12 +1491,8 @@ commits, and what it may never touch are `EXECUTOR-INSTRUCTIONS.md` §2, §7 ite
 and §8. They are not restated here, because a boundary written in two places is a
 boundary that will eventually be written two ways.
 
-One consequence belongs to the method and is stated here for that reason: **the
-analyst never writes `catalysts.json`** (§6). That registry vetoes the board's
-verdict and its `confirmed` flag is the compensating control for an externalised file
-(map inv. 39); an analysis run able to edit it would turn one file write into a
-silent change to production behaviour. A discovered event that deserves an entry is a
-line in the day log; the Architect turns it into a TZ or does not.
+One consequence belongs to the method and is stated here for that reason: **the analyst
+never writes `catalysts.json`**, for the reasons §6a gives and does not repeat here.
 
 **The analyst never writes `analyst/owner.json` either, and the reason is the same
 shape.** It is the owner's own declaration, carried into the tree by the Architect (§11);
@@ -1470,27 +1528,10 @@ price blocks the levels, never the verdict.**
 
 ## Appendix A — provenance and the four deviations
 
-Every clause above is CANON Part I / Part III as of revision 2026-08-28-c, moved
-without change of meaning. This table is the audit surface for «no rule was silently
-lost, weakened or duplicated».
-
-| Here | CANON origin |
-|---|---|
-| §0 | ROLE; PART I preamble |
-| §1 | PART I §1 |
-| §2 | PART I §2 |
-| §3 | PART I §3 |
-| §4 | PART I §4 |
-| §5 | PART I §5 |
-| §6 | PART I §6 |
-| §7 | PART I §7 |
-| §8 | PART I §8 |
-| §9 | PART I §9 |
-| §10 | PART I §10 |
-| §11 | PART I §11 |
-| §12 | new — see deviation 3 |
-| §13 | pointer only — the boundary lives in the contract |
-| §14 | PART III «Decision authority», «Execution silence», «Format» |
+Every clause above began as CANON Part I / Part III of revision 2026-08-28-c, moved
+without change of meaning; the section-by-section mapping that audited that move is
+discharged and lives in git. What the move produced that is NOT discharged is the four
+deviations below, and Deviation 2 is the one this file keeps re-learning.
 
 **Three deviations, each forced by the change of execution environment.**
 
@@ -1532,39 +1573,32 @@ that certifies a clause unchanged is asserting the environment did not matter �
 the one thing the deviation itself proves false. Where a clause survives a move, the
 audit surface must record WHY it still holds, not only that it is the same text.
 
-**Revision 2026-09-01-d finishes that repair and closes the rule the two-source clause
-was standing in for.** `-a` moved the fifteen-minute ceiling off the LEVELS; it left the
-same ceiling on the STATUS, where on 01.09 it demoted a correct trade with no new
-measurement behind the demotion and took the whole `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` section with
-it. **A ceiling moved to a smaller object is not a repair, it is the same rule costing
-less per occurrence** — and it occurred on every thorough run, so it cost more. `-d`
-removes the second clock entirely: one freeze, one price, one moment, printed with the
-claim it anchors, and the reader who holds the current number does the comparison the
-engine cannot (map inv. 57). The two-source rule leaves in the same revision and for the
-same reason: it was written for outside-list coins that had no feed, the payload has
-carried the whole perpetual book since 01.09, and a rule that outlives its own scarcity
-begins refusing what it was written to enable — on 01.09 it refused two fully argued
-candidates whose prices were in the file the run already had open.
+**Revision 2026-09-01-d finishes that repair**, and both halves are argued where they
+live — the second clock in §5, the two-source rule in §3B. **A ceiling moved to a smaller
+object is not a repair, it is the same rule costing less per occurrence**, and a rule that
+outlives its own scarcity begins refusing what it was written to enable.
 
 **Revision 2026-09-02-b closes four failures of the run of 02.09, and all four share one
-mechanism: a rule that named an object without naming how to compute it.** «A settled
-DATE» named no test, so the run tested it by judgement and protected two aggregator dates.
-«The MD5 of the §6 + §6a text» named no span, so the run hashed the whole file and marked
-eight lanes stale with one revision. «Reported in the same answer» named no artifact to
-check against, so four closures were archived in silence. Each clause was read correctly
-and obeyed in good faith, and each produced the outcome it was written to prevent — which
-is the same shape Deviation 2 records above, arriving now not through a change of
-environment but through a change of reader. **A specification is executed by someone who
-was not in the room when it was written**, and every clause that resolves only in the
-room is a clause that will resolve differently outside it.
+mechanism: a rule that named an object without naming how to compute it.** The remedy is
+deliberately dull — name the field (`dclass`), name the command, name the artifact the
+check compares — and **nothing in it is a new rule**: all four already existed here and
+were already correct. What arrives is the means to obey them without deciding anything in
+the moment before publication, which §7's opening paragraph identifies as the least
+reliable minute this engine has. **A specification is executed by someone who was not in
+the room when it was written**, and a clause that resolves only in the room will resolve
+differently outside it.
 
-The remedy in all four cases is the same and is deliberately dull: name the field
-(`dclass`), name the command (`sed -n '/^## 6\./,/^## 7\./p'`), name the artifact the
-check compares (the diff of `items`, the state file, the horizon store). **Nothing here is
-a new rule** — every one of the four already existed in this file and was already correct.
-What arrives is the means to obey them without deciding anything in the moment before
-publication, which §7's opening paragraph identifies as the least reliable minute this
-engine has.
+**Revision 2026-09-02-c is the same mechanism applied to what the run SAYS and to where its
+facts come from.** Three repairs make an output a function of an artifact rather than of
+recall — `# ПОЗИЦИИ` from `owner.json`, `ЗАКРЫТО` from the diff of `items`, `oi_prev`
+from the previous run — because on 02.09 the engine analysed the owner's only holding, closed
+two carried items and read positioning on both published setups, and the Boss saw none of the
+three. Three more repair the SOURCE side: a class table that separates an asset-specific event
+from a calendar print mechanically, the token contract admitted as the protocol's own
+publication, and a refusing host put on a next-attempt date instead of a search per run
+forever. The last, `sec6_md5` written only by the read that produced it, is the one that
+matters most and is invisible: a migration that meant to strengthen the staleness control
+disarmed it on four lanes, and nothing anywhere would have reported that.
 
 **One finding of the same audit is deliberately NOT repaired here, because it is not this
 file's.** The run executed from a harness worktree branch rather than from `main`, which
