@@ -1,6 +1,6 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 17.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 18.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
@@ -55,6 +55,17 @@ role qualifier. §4b step 8 now names the rebase-and-retry, §8 opens by putting
 outside every branch clause in the section, and the same section's claim about
 `main.yml`'s `paths-ignore` is corrected: TZ-23 replaced that filter with a two-path
 allow-list, so nothing unnamed can start the bot at all.
+**v18 re-derives §4b step 2 for a checkout that is not `main`, and puts the push
+destination into the push command.** The audit of 02.09 found an analysis run executing
+inside a harness worktree whose branch has no upstream. It brought the tree to
+`origin/main` by ff-only merge, which is exactly right, and then had to argue in its own
+log against a clause reading «an analysis run never starts from a branch» — written when
+the only environment was a plain clone. The clause named a checkout where it meant a tree,
+and a rule a correct run must explain itself out of is a rule a wrong run will explain
+itself out of too. Step 2 now states the two facts it was always about, and step 8 pushes
+with an explicit refspec, so where the commit lands no longer depends on where the run is
+standing — which matters precisely because inv. 54 forbids the day log from reporting its
+own push, and that run's landing place could not be established from its record at all.
 Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
@@ -262,8 +273,18 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
    PREVIOUS payload, fails the freshness gate on a snapshot that is actually fresh at the
    remote, and publishes no levels for a reason that is invisible from the answer. A
    non-fast-forward result means someone else wrote to `main` mid-run: stop and report it
-   in one line rather than merging — an analysis run resolves no divergence. An analysis
-   run never starts from a branch and never starts from a stale tree.
+   in one line rather than merging — an analysis run resolves no divergence.
+   **The requirement is the TREE; «on `main`» was a proxy for it and v18 states the thing
+   itself.** Two facts, one command each: the working tree is byte-identical to
+   `origin/main` before the gate runs, and it reached that state without a merge commit.
+   `git pull --ff-only` where the branch has an upstream, `git merge --ff-only
+   origin/main` where it has none, `git status --porcelain` empty in both. **A stale tree
+   is forbidden as it always was; a checkout that is not literally `main` is not
+   forbidden, provided those two facts hold and step 8 names its own destination.**
+   Measured 02.09: the run executed inside a harness worktree with no upstream configured,
+   met the requirement by ff-only merge, recorded that it had — and was right, against a
+   clause written when the only environment was a plain clone. A rule a correct run must
+   explain itself out of is a rule a wrong run will explain itself out of too.
 3. Fix the analysis moment: `date -u`, once, as the first external fact. Every age in
    the run is measured against it (methodology §5 step 1).
 4. **Run the live-data gate.** It is executable and it returns an exit code; a
@@ -282,7 +303,15 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
 7. Write `analyst/state.json` and the day log **before** sending the answer. An
    answer sent against a state that was never written is an answer the next run
    cannot see.
-8. Commit `analyst/**` directly to `main` (§8), one commit, message `analyst: <date>`.
+8. Commit `analyst/**` directly to `main` (§8), one commit, message `analyst: <date>`,
+   and push it with the destination inside the command: **`git push origin HEAD:main`**.
+   The refspec is mandatory and is not a matter of style — it makes the landing place a
+   property of the command instead of a property of the checkout, which is what allows
+   step 2 to stop caring which branch you stand on. A bare `git push` resolves against the
+   current branch's upstream, which on a worktree branch is absent or points elsewhere,
+   and inv. 54 forbids the day log from reporting its own push — so a push whose target
+   depends on the checkout lands somewhere nobody can name until the next run reads a
+   stale state and reports known items as discoveries.
    **If the push is rejected, rebase and push again — never open a branch.** A rejection
    means `main` moved while you were composing, and the writer is almost always the
    Boss's Shortcut putting a newer `analyst/live.json` there. You wrote
