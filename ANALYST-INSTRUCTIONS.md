@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-02-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-02-b.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; the analyst never edits this file, and a change to it is a
@@ -251,6 +251,17 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   Same-day items carry a clock time, later items a date. An event with no stated
   effect on ЛОНГ / ШОРТ / ЖДАТЬ is not a catalyst, it is news; an event with no time
   is not published at all.
+- **The impact tag and the status are both mandatory on every item, and the collapsed
+  line carries the status of every item in it.** The skeleton above has printed both
+  since the section existed, and the collapsed line is not an exception to it: an item
+  compressed to four words is still a published item, and the status is the one word in
+  it that changes what the Boss does. Where a run has no primary reading this run, that
+  word is `НЕ ПРОВЕРЕНО` and the line reads «НЕ ПРОВЕРЕНО: CPI 11.09 · ZEC 14.09 …»
+  beside whatever «Без изменений» still holds. **Measured 02.09:** not one printed item
+  carried a status, the item under `ИДЁТ СЕЙЧАС` carried no impact tag either, and the
+  collapsed line printed «Без изменений» over six items the same run had written to state
+  as `НЕ ПРОВЕРЕНО`. The answer and the state said opposite things about the same six
+  events on the same morning, and only one of them was on the Boss's screen.
 - **`Что меняет` names coins or a field of `ИТОГ`, never a mood.** A tag alone
   («Эффект: ШОРТ · ВЫСОКОЕ») says what the event is and not what to do about it, so
   every item ends with one clause naming which setups it strengthens, weakens or
@@ -272,6 +283,17 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   creates it and needs no `signal` item of its own** — writing one would put the same
   fact in two places (map inv. 20). An entry-class prohibition is backed by a `signal`
   item as before.
+- **A dated prohibition requires a dated class: the backing item's `dclass` is `primary`
+  or `archive`, or the name is printed bare** (§11). `XXX до ДД.ММ` tells the Boss two
+  things — do not enter, and this lifts on the 23rd — and the second is a published date,
+  which is catalyst content and answers to §6's source rule like any other. A date only
+  aggregators carry cannot be published as a catalyst item and may not arrive in `ИТОГ`
+  through the one field that was never asked where its date came from. The prohibition
+  itself survives the demotion intact: the coin stays in `ИЗБЕГАТЬ` on its `signal` item
+  and is re-argued every run, which is what an unverified date deserves. **Measured
+  02.09:** `ARB до 23.09` was published on a date the run's own state records as carried
+  by five aggregators with no primary, and `HYPE до 06.09` and `APT до 11.09` on vesting
+  schedules never opened at the protocol.
 - **Every coin named in `ИЗБЕГАТЬ` is state-backed with a CURRENT reason.** It is a
   published position: it keeps the Boss out of a trade, it is repeated run after run, and
   its reason decays exactly like a thesis's. A name carried in that field with no `items[]`
@@ -879,6 +901,24 @@ lane below, and the named host in it, were added on 30.08; the run of 31.08 read
 found `horizon` two days inside its seven-day limit, and never opened the host the new
 clause names.
 
+**The hash is a COMMAND, not a description, and the command is written here so that two
+runs cannot compute two different numbers:**
+
+```
+sed -n '/^## 6\./,/^## 7\./p' ANALYST-INSTRUCTIONS.md | md5sum
+```
+
+That span opens at §6's own heading and stops at §7's, so §6 and §6a are inside it and
+nothing else is; the stored value is that digest and the field is named `sec6_md5` to make
+a whole-file hash impossible to write into it by habit. **Measured 02.09:** the run stored
+the MD5 of the entire file in every lane and in `sweeps_md5_current`, so one revision that
+touched §2, §5, §7 and §11 marked all eight horizon lanes stale at once — the exact
+outcome the paragraph above forbids, arriving through the paragraph itself. Four lanes
+then went unopened and the shortfall was written into `analyst/state.json` rather than
+into the day log. **A rule that names an object without naming how to compute it has
+named nothing:** the previous wording said «the MD5 of the §6 + §6a text» and was obeyed
+in good faith by a run that had no way to know where that text began.
+
 **The horizon sweep is stored PER LANE, not as one blob.** Each lane of the §6 coverage
 list carries its own read date, its own host and its own result inside
 `state.sweeps.horizon`. One date over a bundle of lanes lets a lane that was never opened
@@ -1038,6 +1078,19 @@ reliable reader this system has.
 24. **Every dated item in `items` appears in the answer**, in full or in the collapsed
     line (§2). A tracked event the Boss cannot see is one the next run will call
     unchanged.
+25. **Every lifecycle change this run made is spoken in the answer** (§11) — a closure
+    named in its own section before it goes to `archive`, and a coin moving INTO
+    `ИЗБЕГАТЬ` named in the first line beside the withdrawal that produced it. Checked
+    against the diff of `items`, not against recollection of what was written.
+26. **The §3B screen read the horizon store before the movers** (§3B), and every
+    outside-list name in it carrying a dated event inside 14 days was tested as a
+    candidate or refused by name in the appendix.
+27. **Every catalyst status printed in the answer is the status state holds** for that
+    item (§2), collapsed line included. The answer and `analyst/state.json` are written
+    in the same run and may not disagree about the same event.
+28. **No item stands at `unver` 2 or higher in `items`** unless §11's DATE exemption
+    applies by its recorded `dclass`, or its date falls inside 48 h (§6). The counter
+    closing an item is not a judgement call and produces no sentence explaining itself.
 
 **Items 12–24 exist because the rules they check already existed and nothing checked
 them.** Each was violated by a run that had read this file correctly: `ИЗБЕГАТЬ` carried
@@ -1047,7 +1100,16 @@ zone, two mandatory searches vanished without a word, and the named institutiona
 never opened. **Items 19–24 name six failures of the two runs of 01.09**: a correct `СЕЙЧАС`
 was demoted by the clock, two argued outside-list candidates were dropped for want of a
 price the payload was already carrying, a coin refused on both sides never reached
-`ИЗБЕГАТЬ`, and three catalysts printed a verified status on an unread source. A rule
+`ИЗБЕГАТЬ`, and three catalysts printed a verified status on an unread source. **Items
+25-28 name four failures of the run of 02.09**, which was the most disciplined run this
+engine has produced and broke all four anyway: four items closed as `ИСТЕКЛО` and none of
+the four was mentioned to the Boss, two coins moved from a published long into `ИЗБЕГАТЬ`
+with the first line speaking only the withdrawal, the outside-list screen ran on movers
+alone while two dated events sat in the store, and the catalyst section printed «Без
+изменений» over six items state held as `НЕ ПРОВЕРЕНО`. **Three of the four are the same
+defect wearing three shapes** — the run decided something correctly and did not say it —
+which is why all three are checked against an artifact and not against the run's memory
+of its own answer. A rule
 stated in §2 and enforced nowhere is a description of the
 methodology, not the methodology — the distinction this checklist exists to remove. **The
 list grows by measurement and never by anticipation:** an item is added the first time a
@@ -1134,13 +1196,34 @@ overwrites the empty seed.
 
 ```json
 { "v":1, "k":"state", "d":"YYYY-MM-DD", "ts":"ISO-8601Z",
-  "items":[ { "id","type","sym","status","d","impact","note",
+  "items":[ { "id","type","sym","status","d","dclass","impact","note",
               "entry","inv","tgt","trigger","first_seen","last_seen" } ],
   "archive":[ { "id","sym","d","closed","status" } ] }
 ```
 
 `type ∈ catalyst | thesis | sozrevaet | position | signal`. `d` is the event or
 trigger date. Fields not applicable to a type are omitted, never nulled.
+
+**`dclass` records WHO ESTABLISHED THE DATE, and it is the one field two separate rules
+read.** `dclass ∈ primary | archive | none` — the class of the source that first put this
+event on this date, in the vocabulary §6 already uses for a reading: the publisher itself,
+a documentary archive of the publisher's own words, or neither. It is a property of the
+DATE and not of this run: once a primary has established a date the field is `primary`
+permanently and no later silence lowers it, exactly as §6 says the date itself is never
+re-established. It is set on the item, not inferred from a note, because a rule that reads
+prose reads it differently every run.
+
+**Two consumers, one field** — the counter's DATE exemption below, and §2's dated
+prohibition class. Both asked the same question and neither had an answer to read, so the
+run of 02.09 answered it twice by judgement: it protected two unlock items whose dates
+rest on aggregators, and it published `HYPE до 06.09` and `APT до 11.09` on those same
+dates. Whichever way that call went it had to be made in the moment, which is the shape
+§7's opening paragraph names.
+
+**An item carrying no `dclass` is assigned one on the first run that reads it**, from the
+source already recorded on the item, and is not closed by the counter on that run alone.
+The grace is one run and is not a state: an item that reaches its second run under this
+revision still without a `dclass` has had one run to acquire one and is `none`.
 
 **`position` items are the one type this engine does not originate.** They are created
 from `analyst/owner.json` and archived when the symbol leaves it (§11 below); every other
@@ -1181,6 +1264,28 @@ judgement and is exactly what goes stale. **Measured 01.09, fourth run:** twelve
 stood at `unver 1` after a run in which `bls.gov` returned 403 and two hosts timed out,
 and the next run would have archived the September employment report, the CPI release and
 the FOMC meeting — three calendar dates that no host's mood can move.
+
+**«Settled» is not a judgement the run makes, it is a `dclass` of `primary` or `archive`
+recorded on the item.** The exemption applies to those two values and to nothing else; at
+`none` the counter runs and closes at two, whatever the event's shape and however
+predictable it looks. **Measured 02.09, and this is the whole reason the field exists:**
+two unlock items stood at `unver 2` with their vesting schedules never once read from the
+protocol, and the run declined to close them on the reasoning that a recurring linear
+emission is a calendar fact like an FOMC date. The reasoning is not stupid — it is simply
+not checkable, and the alternative to a checkable test is that every run re-decides which
+of its aggregator dates feel official. **The run's stated cost was also not real:** it
+kept the two items because closing them «would have silently lifted a prohibition», and
+both coins carried their own `signal` item, so both names would have stayed in `ИЗБЕГАТЬ`
+and only the class would have changed. A rule was broken to buy something that was
+already owned, which is what deciding in the moment before publication looks like from
+the outside.
+
+**The remedy for a `none` date is to read the primary, and it is one lookup.** An unlock
+whose schedule the protocol publishes is `primary` the first time anyone opens it, and
+permanently afterwards; the field therefore converts a recurring argument into a task
+that is done once per event and never again. An item that cannot reach `primary` is an
+item whose date this system has never verified, and it expiring is the correct outcome
+rather than a cost.
 
 **`НЕ ПРОВЕРЕНО` is counted, not merely recorded, and the count is a FIELD.** The item
 carries `unver` — an integer, absent or zero meaning verified — holding the number of
@@ -1440,3 +1545,30 @@ same reason: it was written for outside-list coins that had no feed, the payload
 carried the whole perpetual book since 01.09, and a rule that outlives its own scarcity
 begins refusing what it was written to enable — on 01.09 it refused two fully argued
 candidates whose prices were in the file the run already had open.
+
+**Revision 2026-09-02-b closes four failures of the run of 02.09, and all four share one
+mechanism: a rule that named an object without naming how to compute it.** «A settled
+DATE» named no test, so the run tested it by judgement and protected two aggregator dates.
+«The MD5 of the §6 + §6a text» named no span, so the run hashed the whole file and marked
+eight lanes stale with one revision. «Reported in the same answer» named no artifact to
+check against, so four closures were archived in silence. Each clause was read correctly
+and obeyed in good faith, and each produced the outcome it was written to prevent — which
+is the same shape Deviation 2 records above, arriving now not through a change of
+environment but through a change of reader. **A specification is executed by someone who
+was not in the room when it was written**, and every clause that resolves only in the
+room is a clause that will resolve differently outside it.
+
+The remedy in all four cases is the same and is deliberately dull: name the field
+(`dclass`), name the command (`sed -n '/^## 6\./,/^## 7\./p'`), name the artifact the
+check compares (the diff of `items`, the state file, the horizon store). **Nothing here is
+a new rule** — every one of the four already existed in this file and was already correct.
+What arrives is the means to obey them without deciding anything in the moment before
+publication, which §7's opening paragraph identifies as the least reliable minute this
+engine has.
+
+**One finding of the same audit is deliberately NOT repaired here, because it is not this
+file's.** The run executed from a harness worktree branch rather than from `main`, which
+`EXECUTOR-INSTRUCTIONS.md` §4b step 2 forbids in its last sentence, and its day log
+therefore cannot say where its own commit landed. That is the contract's clause and the
+contract's repair; recording it here would put a repository rule in the file that says on
+its first page that repository rules are not here.
