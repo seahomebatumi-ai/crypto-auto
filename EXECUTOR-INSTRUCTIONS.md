@@ -1,8 +1,17 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 18.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 19.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v19 opens hard-floor item 3 to an owner decision and de-enumerates item 11.** TZ-25
+carried the owner's decision to add MORPHO and ARB, and item 3 as written could only
+refuse it: a freeze with no route through it turns an owner instruction into a
+contract violation, and the block was then lifted in a chat window instead of in this
+file — which is the one place a hard floor may be lifted. Both halves of that failure
+are the Architect's: the TZ amended the map and this file was never opened. Item 11's
+enumeration of three venue-flagged assets is replaced by a pointer to `tokens[]`, so
+the set can grow without a contract edit.
 
 **What changed from v8.** One process now carries two roles: the implementation role
 it always had, and an operational **Crypto Market Analyst** role. Nothing in v8 was
@@ -410,8 +419,17 @@ TZs and reports.
 2. **Never edit a bench to make it pass.** A red bench is either a product defect or
    a stale expectation; both are findings, neither is a licence to change the
    assertion.
-3. **No new coins.** `TOKENS` (bot) and `tokens[]` (frontend) are frozen at 28
-   (inv. 2).
+3. **Universe membership changes only on an OWNER decision quoted in the TZ.**
+   `TOKENS` (bot) and `tokens[]` (frontend) are never edited on an Executor's
+   judgement, on a backtest result, or on a TZ that does not quote the owner's own
+   words authorising the change. A TZ adding or removing a coin quotes that decision
+   and states the resulting count; the map records the membership after the merge.
+   **The count itself does not live in this clause** — a number here and a number in
+   the map are two places for one fact (§1), and that is exactly how this clause failed
+   on TZ-25: it read «28», the owner had decided 30, the TZ amended the map instead of
+   this file, and the contract could only refuse. It refused correctly. The repair is
+   that an owner decision now has a route through this clause instead of a collision
+   with it.
 4. **ES5 only in `index.html`**: `var`, string concatenation. No arrow functions, no
    template literals, no `let`/`const`.
 5. **`coeffs.json` schema is additive-only.** The frontend must survive the absence
@@ -462,10 +480,13 @@ TZs and reports.
     verified rather than assumed, and a path whose filter does not hold is reported,
     not pushed.
 11. **Venue flags are declarations, not observations** (map §3.14, inv. 41).
-    `fut:true` on XMR, LIT and HYPE is fixed by the Boss. A host answering for a
-    delisted spot pair does not revoke it and is never a reason to change the flag,
-    reclassify the asset or "correct" the list; the declaration wins and the
-    disagreement is reported.
+    **The declared set is whatever carries `fut:true` in `tokens[]`; it is not
+    enumerated here.** A host answering for a delisted spot pair does not revoke a
+    flag and is never a reason to change it, reclassify the asset or "correct" the
+    list; the declaration wins and the disagreement is reported. This clause named
+    three assets by hand until v19, and the enumeration went stale the first time the
+    set changed — the same defect TZ-25 found in five other places, where a count of
+    `fut:true` assets was written down instead of computed (map inv. 58).
 12. **Never remove, skip, comment out or `continue-on-error` a bench step to make CI
     green** — editing the assertion (item 2) and deleting the assertion are the same
     act; a step that cannot pass is a finding for the report. Equally, never add a
