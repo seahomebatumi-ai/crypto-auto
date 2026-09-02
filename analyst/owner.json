@@ -1,26 +1,20 @@
 {
   "v": 1,
   "k": "owner",
-  "updated": "2026-09-01",
+  "updated": "2026-09-02",
   "positions": [
     {
       "sym": "MORPHO",
       "side": "long",
       "opened": "2026-08-31",
-      "note": "Outside the 28-list. Open and in profit per the owner. Entry price not declared, so manage against structure rather than against R from entry until an entry is named. XMR and LIT were traded and closed in profit before this file existed and are deliberately absent: a position this file has never carried has nothing to archive."
+      "note": "Open and in profit per the owner. Entry price not declared, so manage against structure rather than against R from entry until an entry is named. MORPHO is joining the permanent universe under TZ-25 as a declared futures-only asset; membership and holding are different facts and neither cancels the other - it is still a position, still not offered as a new entry, and it now carries beta, leverage and invalidation math like any other list member. It must appear in the answer's positions section on every run. XMR and LIT were traded and closed in profit before this file existed and are deliberately absent: a position this file has never carried has nothing to archive."
     }
   ],
   "vectors": [
     {
       "id": "vec-uni-whales-2026-08-31",
       "sym": "UNI",
-      "claim": "Large holders are accumulating UNI. No source, no figures. Resolve against a primary only: an on-chain flow with a named address, or an exchange or foundation report. A repeat across aggregators is not a quorum. Note that UNI already sits in AVOID for a structural reason - a high-beta name at the top of its range in risk-off - which is a statement about entry timing and does not contradict this claim; both can hold at once, and the run must not read one as refuting the other.",
-      "raised": "2026-08-31"
-    },
-    {
-      "id": "vec-morpho-universe-2026-08-31",
-      "sym": "MORPHO",
-      "claim": "Candidate for the permanent universe. Deferred until the outside-list discovery channel is repaired: the argument for admission is the engine surfacing MORPHO on its own merits across several runs, not the owner naming it. Until then it is the position above and not a member of the universe. Do not treat this vector as an instruction to include it in the 28.",
+      "claim": "Large holders are accumulating UNI. No source, no figures. Resolve against a primary only: an on-chain flow with a named address, or an exchange or foundation report. A repeat across aggregators is not a quorum. Note that UNI already sits in AVOID for a structural reason - a high-beta name at the top of its range in risk-off - which is a statement about entry timing and does not contradict this claim; both can hold at once, and the run must not read one as refuting the other. Carried unresolved since it was raised: every run reports it with the host it read, or reports that it did not work on it. 'Not acted on' is not one of its three states.",
       "raised": "2026-08-31"
     }
   ]
