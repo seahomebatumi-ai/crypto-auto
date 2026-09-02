@@ -589,7 +589,10 @@ const ALIVE    = 'futures-only: spot mirror row unexpectedly alive';
 async function section6a() {
     console.log('=== 6a. fut:true — объявленное покрытие, а не сбой ===');
     const now = Date.parse('2026-07-02T13:00:07Z');
-    ok('fut:true активов ровно три', FUT.length === 3);
+    // The number is hand-written ON PURPOSE. Derived from FUT it would read
+    // FUT.length === FUT.length and control nothing (inv. 22); this is the one
+    // site in 6a that must move when the declared venue set moves.
+    ok('fut:true активов ровно пять', FUT.length === 5);
 
     // 6a.1 Здоровый день: спот-зеркала у fut-пар нет вовсе.
     let root = track(tmp('fut1'));
@@ -638,11 +641,17 @@ async function section6a() {
     r = await journal(root, makeDay(625, { futOk: true, dead: FUT[0].s, drop: FUT[1].s }), now).snapshot({});
     eq('три формы: нет пары', whyCount(r, NO_PAIR), 1);
     eq('три формы: делистнута', whyCount(r, DELISTED), 1);
-    eq('три формы: жива', whyCount(r, ALIVE), 1);
+    // Derived, not hand-written: the fixture above kills FUT[0] and drops
+    // FUT[1], so «alive» is structurally the rest of the declared set and the
+    // note names every one of them, in tokens[] order, joined by '; '
+    // (journal/write.js — buildDay pushes t.name, snapshot joins).
+    eq('три формы: жива', whyCount(r, ALIVE), FUT.length - 2);
     eq('три формы: статус ok', r.run.status, 'ok');
     eq('три формы: skip', r.run.skip, FUT.length);
-    eq('три формы: note ровно про живую',
-       r.run.note, 'fut:true asset trading on spot: ' + FUT[2].name);
+    eq('три формы: note ровно про живых', r.run.note,
+       FUT.slice(2).map(function (t) {
+           return 'fut:true asset trading on spot: ' + t.name;
+       }).join('; '));
 
     // 6a.6 Контроль §3.3: спотовый путь не тронут. Мёртвая СПОТОВАЯ пара
     // по-прежнему жёсткий пропуск, и статус обязан упасть в partial —

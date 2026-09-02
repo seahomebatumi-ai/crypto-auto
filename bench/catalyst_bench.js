@@ -32,7 +32,7 @@
 //     rebalance — never enters the file. Market-wide risk is already measured,
 //     by marketRegime in §3.12 Layer 0, and a per-coin veto is the wrong
 //     instrument for it: a `dir:'both'` macro entry would close both sides on
-//     all 28 coins for fifteen days out of roughly forty-five. A `"*"` key is
+//     all 30 coins for fifteen days out of roughly forty-five. A `"*"` key is
 //     therefore not a missing feature but permanently out of scope, and the
 //     `items key "<sym>" is in tokens[]` assertion that refuses it is correct
 //     rather than a limitation to work around.

@@ -399,13 +399,15 @@ function vrow(r, fut, name) {
     // negative, and the bench fixtures of TZ-10 have exactly that shape.
     eq('a row with no t is still counted', want.n, 8);
 }
-// C1.5 — the exclusion is not a length trick: 25 spot + 3 fut, the live shape.
+// C1.5 — the exclusion is not a length trick: 25 spot + 5 fut, the live shape.
+// The fut list tracks tokens[]: TZ-25 added MORPHO and ARB as declared
+// futures-only, so the universe is 30 and the counted spot list is still 25.
 {
     const rows = [];
     for (let i = 0; i < 25; i++) rows.push(vrow(0.5 + i * 0.1, false, 'S' + i));
-    ['XMR', 'LIT', 'HYPE'].forEach(function (nm) { rows.push(vrow(20, true, nm)); });
+    ['XMR', 'LIT', 'HYPE', 'MORPHO', 'ARB'].forEach(function (nm) { rows.push(vrow(20, true, nm)); });
     const r = P.listExhaustion(rows);
-    eq('live shape: 28 rows, 25 counted', r.n, 25);
+    eq('live shape: 30 rows, 25 counted', r.n, 25);
     near('live shape: median is the 13th spot value', r.median, 0.5 + 12 * 0.1, 1e-12);
 }
 console.log('  compared: ' + N.venue);
@@ -1580,7 +1582,7 @@ const COVER = '25 \u0441\u043f\u043e\u0442\u043e\u0432\u044b\u043c \u043c\u043e\
 const CAPTION =
       '1,0 \u2014 \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0435\u043d\u044c: \u0443 \u0431\u0440\u043e\u0443\u043d\u043e\u0432\u0441\u043a\u043e\u0433\u043e \u0431\u043b\u0443\u0436\u0434\u0430\u043d\u0438\u044f E[\u0445\u043e\u0434\u0430] = \u03c3\u00b7\u221a(8/\u03c0), \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0435\u0434\u0438\u043d\u0438\u0446\u0430 \u0437\u0434\u0435\u0441\u044c \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d\u0430, \u0430 \u0432\u044b\u0432\u0435\u0434\u0435\u043d\u0430. '
     + '\u041f\u043e\u0440\u043e\u0433, \u0432\u044b\u0448\u0435 \u043a\u043e\u0442\u043e\u0440\u043e\u0433\u043e \u0434\u0435\u043d\u044c \u043d\u0430\u0437\u0432\u0430\u043d \u0432\u044b\u043d\u0435\u0441\u0435\u043d\u043d\u044b\u043c, \u2014 90-\u0439 \u043f\u0440\u043e\u0446\u0435\u043d\u0442\u0438\u043b\u044c \u043c\u0435\u0434\u0438\u0430\u043d\u044b \u0441\u043f\u0438\u0441\u043a\u0430 \u043f\u043e \u0442\u0440\u0451\u0445\u043b\u0435\u0442\u043d\u0435\u043c\u0443 \u0430\u0440\u0445\u0438\u0432\u0443; \u044d\u0442\u043e \u043c\u0435\u0440\u0430 \u0434\u043d\u044f, \u0430 \u043d\u0435 \u0437\u0430\u043f\u0440\u0435\u0442: \u043d\u0430 \u0441\u0447\u0451\u0442, \u043f\u043b\u0435\u0447\u043e \u0438 \u0432\u0435\u0440\u0434\u0438\u043a\u0442 \u043e\u043d\u0430 \u043d\u0435 \u0432\u043b\u0438\u044f\u0435\u0442. '
-    + '\u0421\u043f\u0438\u0441\u043e\u043a \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u043f\u043e 25 \u0441\u043f\u043e\u0442\u043e\u0432\u044b\u043c \u043c\u043e\u043d\u0435\u0442\u0430\u043c: \u0442\u0440\u0438 \u0444\u044c\u044e\u0447\u0435\u0440\u0441\u043d\u044b\u0435 \u0432 \u043c\u0435\u0440\u0443 \u043d\u0435 \u0432\u0445\u043e\u0434\u044f\u0442.';
+    + '\u0421\u043f\u0438\u0441\u043e\u043a \u0441\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u043f\u043e 25 \u0441\u043f\u043e\u0442\u043e\u0432\u044b\u043c \u043c\u043e\u043d\u0435\u0442\u0430\u043c: \u043f\u044f\u0442\u044c \u0444\u044c\u044e\u0447\u0435\u0440\u0441\u043d\u044b\u0445 \u0432 \u043c\u0435\u0440\u0443 \u043d\u0435 \u0432\u0445\u043e\u0434\u044f\u0442.';
 
 // origin/main's caption, carried so M4 can put it back. It is the defect this
 // section exists to catch: two denials of a threshold the block now has.
