@@ -14,35 +14,30 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-02-a.** Baseline: TZ-23 merged into `main`; implementation
-commit `5fc2da5`, report
-`CryptoReports/TZ-23-main-workflow-paths-allowlist-report.md`. **The
-baseline names the implementation commit, not the merge commit** — a merge commit
-carries no content, and content is what this block pins.
+**Revision 2026-09-03-a.** Baseline: TZ-25 and TZ-26 merged into `main` as one pull
+request; implementation commits `ea05962` (TZ-25) and `69bddc3` (TZ-26), reports
+`CryptoReports/TZ-25-universe-morpho-arb-report.md`,
+`CryptoReports/TZ-25-universe-morpho-arb-report-2.md` and
+`CryptoReports/TZ-26-venue-count-expectations-report.md`. **The baseline names the
+implementation commits, not the merge commit** — a merge commit carries no content, and
+content is what this block pins. The merge is `f27d5ee`; `Bench gate` #122 is green on it.
 
-**The baseline moved and the file table did not, which is the correct pair here.** TZ-23
-edited `.github/workflows/main.yml` — a workflow, not a file this block fingerprints — so
-`index.html`, `main.py`, `catalysts.json` and the calibration record are unaltered and the
-gate holds at thirteen steps and 1 250 739 checks, verified term by term against the map's
-own totals. The three `2026-08-30` letters were documentation revisions on the TZ-21
-baseline: `-d` recorded TZ-22's measurement where `-c` denied having one, `-e` corrected a
-§10 row naming a TZ number for a repair that became contract **v15**, and `-f` recorded
-TZ-24 closing the §6a discovery question in the negative. **`2026-09-01-a` is a documentation
-revision on the same TZ-23 baseline:** no file this block fingerprints moved, the gate holds
-at thirteen steps and 1 250 739 checks, and what changed is the analytical engine's own
-governing text — `ANALYST-INSTRUCTIONS.md` to revision `2026-09-01-c` and
-`EXECUTOR-INSTRUCTIONS.md` to **v16**, neither of which this table has ever fingerprinted
-because neither is a production file. **`2026-09-01-c` is a third such revision on that
-same baseline:** no file this block fingerprints moved, the gate holds at thirteen steps
-and 1 250 739 checks, and what changed is again governing text — `ANALYST-INSTRUCTIONS.md`
-to `2026-09-01-d` and `EXECUTOR-INSTRUCTIONS.md` to **v17**, both forced by the first
-production analysis run to reach the Boss (§10, §11) — plus invariant 57, which that run
-produced. **`2026-09-02-a` is a fourth such revision on that same baseline:** no file this
-block fingerprints moved, the gate holds at thirteen steps and 1 250 739 checks, and what
-changed is again governing text — `ANALYST-INSTRUCTIONS.md` to `2026-09-02-b` and
-`EXECUTOR-INSTRUCTIONS.md` to **v18**, both forced by the audit of the 02.09 analysis run
-(§10, §11) — plus invariant 58, which is the single mechanism behind all four failures
-that audit found.
+**The file table moves at this revision, and it moves because the universe did.** TZ-25 took `TOKENS` and `tokens[]` from 28 to 30 — **MORPHO** and
+**ARB**, both declared `fut:true` — and TZ-26 repaired the venue-count expectations and
+the §3.17 caption that addition falsified. `index.html` and `main.py` carry new values
+below; `catalysts.json` and the calibration record do not. The seven `2026-08-30` and
+`2026-09-0*` letters before this one were documentation revisions on the TZ-21 and TZ-23
+baselines — governing text only, `ANALYST-INSTRUCTIONS.md` through `2026-09-02-b` and
+`EXECUTOR-INSTRUCTIONS.md` through **v18**, plus invariants 57 and 58 — with no production
+file moved and the gate steady at 1 250 739 throughout.
+
+**TZ-25 was BLOCKED before it was executed, and both of its reports stand (inv. 59).**
+Hard floor item 3 of contract **v18** froze the universe at 28, and TZ-25 amended that
+freeze in its own text, which is the one move a hard floor exists to refuse; the Executor
+blocked and was right to. The freeze was then lifted by the Boss in session, so for two
+commits the code carried a 30-coin universe against a contract and a map that both said
+28. Contract **v19** (801 lines, MD5 `a6ebc2e7c2f2b74e813dfdc20400558f`, measured on
+`main` by TZ-26) closed half of that gap and this revision closes the other half.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -50,20 +45,20 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-02-a.**` |
+| revision | `**Revision 2026-09-03-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `58. **A rule that names an object without naming how to compute it has named nothing.**` |
+| newest invariant | `59. **A standing decision is amended in the floor before it is amended in the code.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
 | File | Lines | MD5 |
 |---|---:|---|
-| `index.html` | 3729 | `fdf331906bf205944b25e3635135789c` |
-| `main.py` | 506 | `1a5a5d98b2fd76010f202ee3eebaa717` |
+| `index.html` | 3736 | `dd39536d18cc1feb4839808e41e7bff4` |
+| `main.py` | 518 | `0e3ead8c300d2ee6783303c4bf2fb6b5` |
 | `catalysts.json` | 17 | `f9b2dd4a3594134b2b7b603de19075c3` |
 | `bench/exhaustion-calibration.txt` | 175 | `3b8730b254467c9df4c0a845a0f3cfb3` |
 
@@ -71,33 +66,54 @@ The calibration record is fingerprinted, unlike every other bench artifact, beca
 it is one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists and gate step 12
 compares the two on every push (inv. 46).
 
-Gate at this revision: `bench.yml`, **13 steps, 1 250 739 checks**, green on the
-hosted runner (`Bench gate` #110 on head `8069341`, #111 on merge commit `edd650c`).
-TZ-21 moved exactly one step: 8 (`catalyst_bench.js`) 23 040 -> 23 062, **+22** —
-`+2` per-symbol for `ENA`, `+10` per-entry schema, `+10` for five `basis` assertions
-across two entries, `+1` quorum, `−1` as the silent-symbol sweep falls 27 -> 26. The
-`basis` term is measured rather than inferred: the modified bench run against the
-unmodified registry reads 23 045, isolating +5 per entry. Steps 7 and 12 did not move.
-Step 13
-(`analyst/live-gate.sh --selftest`) arrived with TZ-17 at **35** and reads **40** after
-TZ-18 added two freshness cases; steps 1–12 have not moved through TZ-17, TZ-18 or
-TZ-19, which for changes writing no production file is the required result rather than a
-pleasant one. Step 13's counter is assertions and not cases — three per failing case (exit code ·
-empty stdout · exactly one stderr line) and two per passing case — so 12 × 3 + 2 × 2 = 40
-and the +5 is attributable without inspecting the script. The
-number is a sum of per-comparison counters (inv. 43), never an estimate, and every
-delta between revisions is attributed term by term. TZ-15 moved exactly one step:
-12 (`exhaustion_bench.js`) 220 534 → 220 598, **+64**, one new section `caption`
-(M1–M5); all fourteen pre-existing counters of that bench and all of steps 1–11 are
-unmoved, which for a change touching one display string, one comment and one bench
-is the required result rather than a pleasant one.
+**That record describes the universe of its OWN run and is never edited to match a later
+one.** Its header reads «25 spot of 28 declared tokens … HYPE, XMR, LIT», which was true
+of the run that produced it and is the sentence TZ-25 §4.4 and TZ-26 §2.3 both refused to
+touch. Nothing calibrated in it moved when the universe reached 30: both added coins are
+`fut:true`, the measure never counted them, and the spot basis is still 25 (§3.16).
+Rewriting the header would make the description of one sample describe a different one,
+which is inv. 46 read backwards — the constant would then agree with a record that no
+longer names the run behind it. It goes stale by design; the reader is told so here.
+
+Gate at this revision: `bench.yml`, **13 steps, 1 255 401 checks**, green on the hosted
+runner (`Bench gate` #122 on merge commit `f27d5ee`). The whole **+4 662** against the
+previous revision's 1 250 739 is TZ-25's; TZ-26 moved no counter at all.
+
+| Step | Bench | Was | Now | Δ | Attribution |
+|---:|---|---:|---:|---:|---|
+| 7 | `journal_bench.js` | 691 109 | 693 895 | **+2 786** | +2 720 declared-skip records — `x` rows 884 → 1 428, five checks each · +64 verdict content, below · +2 the declared-venue note, one assertion per `fut:true` asset, 3 → 5 |
+| 8 | `catalyst_bench.js` | 23 062 | 24 692 | **+1 630** | +1 600 authority table, 400 days × 2 new symbols × 2 sides · +2 silent-symbol sweep 26 → 28 · +28 degraded load, 7 `BAD` cases × 2 symbols × 2 |
+| 10 | `render_bench.py` | 15 925 | 16 171 | **+246** | 2 added cards × 123 scenarios, one increment per shown, scored, on-side row — which also proves both coins are scored and rendered rather than dropped |
+
+**TZ-25 predicted step 8 at +4 and was wrong by two orders of magnitude**, because it
+reused TZ-21's per-symbol term, measured for a symbol that also gained a registry entry.
+A symbol entering `tokens[]` alone drives three sweeps that scale with the symbol list.
+The published figure is the measurement and never the prediction (inv. 43), and the
+prediction is recorded here so a future TZ cites the attribution instead of it.
+
+**Steps 12 and 13 held at 220 598 and 40 across both TZs**, which is what a «must not
+move» clause is for: the day-range measure and the live-data gate see the same 25 spot
+assets they saw at 28. TZ-26 replaced three expected values and one on-screen string and
+moved nothing, because a check count counts comparisons — a section can turn red or green
+without its counter changing (inv. 43). Step 13's counter is assertions and not cases —
+three per failing case (exit code · empty stdout · exactly one stderr line) and two per
+passing case, so 12 × 3 + 2 × 2 = 40 — and step 12's `caption` section reads 64 on both
+sides of TZ-26. Older attributions in full: TZ-21 moved step 8 by +22 and TZ-15 moved
+step 12 by +64; both are in their own reports, and the rule that produced them is the
+one above.
 
 **Step 7 (`journal_bench.js`) moves with verdict CONTENT, not only with control
 volume.** It counts numeric leaves of the records it writes, and a verdict that
 returns before geometry writes no `geo` object, so a change in verdicts moves it
 without moving a single control. A fall in step 7 is attributed, never assumed
 benign, because a defect that nulls a field lowers it identically. Held at
-**691 109** through TZ-13, TZ-14 and TZ-15.
+**691 109** through TZ-13, TZ-14 and TZ-15, and moved by TZ-25 for exactly the reason
+this paragraph names: the fixture generator draws every row from ONE seeded RNG and makes
+two passes over the token list, so appending two tokens shifts the stream the second pass
+reads, and 2 349 pre-existing snapshot rows changed cost **in both directions** for a net
+**+64**. What separates that from a defect is the row-kind census, not the sign — snapshot
+rows unmoved at 6 743, skip rows 884 → 1 428, every other kind unmoved — plus a separate
+proof that the product's own output for pre-existing coins is byte-identical.
 
 ---
 
@@ -105,8 +121,8 @@ benign, because a defect that nulls a field lowers it identically. Held at
 
 ```
 iPhone Shortcut → workflow_dispatch → GitHub Actions → main.py
-   → CoinGecko /market_chart (90d hourly; BTC + 28 alts = 29 calls)
-   + CoinGecko /coins/markets (ranks, FDV = 1 call)          30 calls/run
+   → CoinGecko /market_chart (90d hourly; BTC + 30 alts = 31 calls)
+   + CoinGecko /coins/markets (ranks, FDV = 1 call)          32 calls/run
    → metrics → PATCH Gist → WebApp (GitHub Pages) on iPhone
 ```
 
@@ -122,8 +138,9 @@ iPhone Shortcut → workflow_dispatch → GitHub Actions → main.py
 | Analytical engine | `ANALYST-INSTRUCTIONS.md` + `analyst/**` | Boss-triggered, in a Claude Code session | `analyst/live.json`, `analyst/state.json`, `index.html` (`tokens[]`) | `analyst/state.json`, `analyst/log/**` |
 
 **Schedule is not cron.** The only regular trigger is the Boss's iPhone
-Shortcut: hourly from 09:00 to 01:50 local = **17 runs/day ≈ 15.3k CoinGecko
-calls/month**, plus rare `push` runs on `main.py` / `main.yml`. Cron in `main.yml`
+Shortcut: hourly from 09:00 to 01:50 local = **17 runs/day ≈ 16.3k CoinGecko
+calls/month** since the universe reached 30, plus rare `push` runs on `main.py` /
+`main.yml`. Cron in `main.yml`
 was removed deliberately (June 2026): a second scheduler is a second source of
 truth for freshness. Automation outside the repository belongs to the Boss and is
 never duplicated or switched off from inside it.
@@ -143,8 +160,8 @@ read by the frontend over plain XHR. The bot does not write it and it never
 enters the Gist. If it fails to load, the layer goes dark with a banner and the
 board keeps working (inv. 40).
 
-**Venue is declared, not observed (§3.14):** 25 coins are Binance Spot, three —
-**XMR, LIT, HYPE** — Binance Futures only.
+**Venue is declared, not observed (§3.14):** 25 coins are Binance Spot, five —
+**XMR, LIT, HYPE, MORPHO, ARB** — Binance Futures only.
 
 **Gist files**
 
@@ -158,7 +175,10 @@ board keeps working (inv. 40).
 - futures ticker `fapi/v1/ticker/24hr?symbol=` — 30 s, one request per `fut:true` token
 - funding `fapi/v1/premiumIndex` — 5 min
 
-**Universe: 28 pairs, frozen.** New coins are not added (standing decision, inv. 2).
+**Universe: 30 pairs.** Frozen at 28 from June 2026 until **03.09.2026**, when the Boss
+added MORPHO and ARB as declared futures-only assets. The freeze stands again at 30: a
+coin enters only on an owner decision, and that decision moves the contract's hard floor
+before it moves any code (inv. 2, inv. 59).
 
 ---
 
@@ -493,7 +513,7 @@ the bench automatically.
 topped up from `data-api.binance.vision`. Pair list from the frontend's `tokens[]`.
 
 **Metric.** Excess return against the list mean: the score decides «which of the
-28», not «where the market goes». IC = rank correlation of score with the future
+30», not «where the market goes». IC = rank correlation of score with the future
 per date, averaged, CI by block bootstrap; plus top-3 vs mean, worst drawdown by
 score tercile, and three controls (shuffled score, «proximity to min90 only»,
 «r7 only»).
@@ -563,12 +583,16 @@ the doubled bar.
 
 ### 3.10b Resolution ceiling — what this bench can and cannot see
 
-Detection threshold is set by universe width, and the standing «no new coins»
-decision fixes it permanently: **|IC| ≈ 0.06–0.07 for a single pre-registered
-test, ≈ 0.09 for any search.** ~40 directional cells have been measured here; all
+Detection threshold is set by universe width, and the width is a decision rather than an
+accident: **|IC| ≈ 0.06–0.07 for a single pre-registered test, ≈ 0.09 for any search.**
+Every cell below was measured at 28 coins and the list is now 30, which moves the ceiling
+by less than the third digit — the ceiling falls with the SQUARE ROOT of the cross-section,
+so escaping it needs a universe four times wider, not two coins wider (§3.10c). The
+measurements are not re-stated at 30 and are not re-run: a sample is described by the
+universe it was taken on. ~40 directional cells have been measured here; all
 lie inside the null distribution for that number of tests. Effect sizes in the
 external literature are produced on cross-sections of 84–500+ coins and locate the
-profit in small, illiquid, high-cost assets — the exact complement of a 28-coin
+profit in small, illiquid, high-cost assets — the exact complement of a 30-coin
 top-perp list.
 
 **Operative rule.** A new ranking factor is admissible ONLY on an external prior
@@ -589,12 +613,12 @@ If triggered: Binance USDⓈ-M perpetuals, target **n = 120** (150 buys only
 in order: ≥ 3 years of continuous hourly candles with no listing gap > 48 h
 (binding filter) · median 24h notional ≥ $30M · exclude wrapped duplicates,
 pegged assets and 1000X-style pairs · **delisted perps MUST be included for the
-period they traded** — today's 28-coin bench is survivorship-biased by
+period they traded** — today's 30-coin bench is survivorship-biased by
 construction. Bench-only, production untouched, no new runtime dependency.
 
 **Transfer gate is a VETO, never a confirmation.** Any factor passing on the wide
-universe is re-measured on the 28 traded coins; required: same sign, and the
-28-coin point estimate inside the wide-universe CI95. That test resolves only
+universe is re-measured on the 30 traded coins; required: same sign, and the
+30-coin point estimate inside the wide-universe CI95. That test resolves only
 |IC| ≥ 0.060, so it can KILL a factor but can never bless one.
 
 **The prize, sized honestly.** A validated IC = 0.030 factor is worth 0.57 % per
@@ -812,9 +836,9 @@ and the order is genuinely unresolvable — recorded, not guessed.
    at a 7–14 day horizon (consecutive dates share 6/7 of the forward window);
    hourly buys 24× the storage and zero independent observations. Reversed if the
    Boss starts trading intraday.
-2. **Coverage is 25 of 28 by construction** — the three `fut:true` assets have no
-   spot leg (§3.14) and Binance production hosts answer HTTP 451 from Actions
-   (inv. 24). They are attempted every run and recorded as explicit skip lines, so
+2. **Coverage is 25 of 30 by construction** — the five `fut:true` assets have no
+   spot leg in this system (§3.14) and Binance production hosts answer HTTP 451 from
+   Actions (inv. 24). They are attempted every run and recorded as explicit skip lines, so
    the gap is measured rather than assumed. The venue test short-circuits ahead of
    all five classifier branches, so a `fut:true` asset can never increment
    `hardSkip`; the reason string still records what was observed:
@@ -825,9 +849,15 @@ and the order is genuinely unresolvable — recorded, not guessed.
    | row present, dead | `futures-only: delisted spot mirror row` | no |
    | row present, **alive** | `futures-only: spot mirror row unexpectedly alive` | no |
 
-   The third case contradicts the §3.14 declaration and additionally pushes
-   `fut:true asset trading on spot: <SYM>` into `run.note`. A dead **spot** pair
-   still hard-skips and still degrades `status`.
+   The third case pushes `fut:true asset trading on spot: <SYM>` into `run.note`. A dead
+   **spot** pair still hard-skips and still degrades `status`. **Since 03.09.2026 that
+   third string is no longer necessarily a contradiction, and the map says so before the
+   note starts firing:** MORPHO and ARB were declared futures-only by the owner for this
+   system, not because Binance lacks a spot market for them, so if the mirror answers
+   alive the note names them every single run and stops distinguishing anything. The
+   note's information content is the §10 item, not this row; the classification is
+   correct either way, because the declaration decides the venue and the host never does
+   (inv. 41).
 3. **`#N` is NOT recorded.** The board's number is produced inside `update()` by
    `byScore` → strip filter → `assignRanks`, which is not callable in isolation;
    recording it would mean reimplementing it (inv. 21 forbids that). It is fully
@@ -843,17 +873,24 @@ year of daily records is ~52 independent 7-day windows.
 **Growth:** ~73 KB per day of snapshot data, plus outcome files. This is the only
 unbounded artifact in the repository and the one thing the monthly audit watches.
 
-### 3.14 Asset venue contract — 25 spot, 3 futures-only
+### 3.14 Asset venue contract — 25 spot, 5 futures-only
 
-**Boss's architectural decision, permanent.** Three of the 28 assets — **XMR, LIT
-and HYPE** — exist for this system on **Binance Futures only**. The other 25 trade
-on Binance Spot. This is a declared property of the asset inside this list, not an
-observation about what some host answered on a given morning.
+**Boss's architectural decision.** Five of the 30 assets — **XMR, LIT, HYPE, MORPHO and
+ARB** — exist for this system on **Binance Futures only**. The other 25 trade on Binance
+Spot. This is a declared property of the asset inside this list, not an observation about
+what some host answered on a given morning.
 
 ```
-fut:true   XMR · LIT · HYPE        perpetual only, no spot leg in this system
-default    the remaining 25        spot ticker + perpetual funding
+fut:true   XMR · LIT · HYPE · MORPHO · ARB     perpetual only in this system
+default    the remaining 25                    spot ticker + perpetual funding
 ```
+
+**The two sets have different reasons and the same standing.** XMR, LIT and HYPE have no
+usable spot leg. MORPHO and ARB were declared futures-only on 03.09.2026 because that is
+where the Boss trades them, and whether a spot market exists for either is not a question
+this system asks. That is the whole force of «declared, not observed»: a rule that reads
+the host would have classified the two sets differently and would have been wrong about
+both.
 
 **Consequence 1 — price source (inv. 12).** `fut:true` tokens are excluded from
 the spot `?symbols=` list and priced only from `cachedFutTickers`; the dead-market
@@ -865,22 +902,28 @@ delisted, zero-volume row. The row exists; the market does not. Classifying by
 what the host returned disagreed with the declaration and showed up as a
 permanently degraded `status`.
 
-**Consequence 3 — the bench divergence in §7 is a source property.** The backtest
-reconciles with production on 25 of 28 coins; the three that diverge by 7–9 pp on
-returns are exactly these three — the bench reads the perpetual, CoinGecko reads a
-spot index, and the basis is the difference.
+**Consequence 3 — the bench divergence in §7 is a source property.** Measured at 28
+coins, the backtest reconciled with production on 25; the three that diverged by 7–9 pp
+on returns were exactly the `fut:true` ones — the bench reads the perpetual, CoinGecko
+reads a spot index, and the basis is the difference. The prediction for MORPHO and ARB is
+the same divergence for the same reason, and it is a prediction until a run measures it.
 
-**Consequence 4 — coverage is 25/28 permanently.** Every statistical statement
-built on the journal or on the day-range measure is a statement about 25 assets.
-Closing that gap would require a second price source bought for three rows.
+**Consequence 4 — coverage is 25/30 and every added futures-only asset widens the gap.**
+Every statistical statement built on the journal or on the day-range measure is a
+statement about 25 assets, and it stayed 25 while the list grew by two. Closing the gap
+would require a second price source bought for five rows.
 
-Reversed if Binance relists XMR or LIT on spot with real volume — and since TZ-15
-that is four moves in one change, not two: `tokens[]`, this paragraph, the static
-«25 спотовым монетам» in the §3.17 caption, and the exact-string expectation section
-M pins it with. The gate stays red until all four move together, which is the safe
+A `fut:true` row is reversed by an owner decision — for XMR or LIT, a Binance relisting
+with real volume would be the occasion — and since TZ-15 that is four moves in one change,
+not two: `tokens[]`, this paragraph, the §3.17 caption, and the exact-string expectation
+section M pins it with. The gate stays red until all four move together, which is the safe
 direction — a declaration and the sentence describing it cannot drift apart quietly
-(inv. 20, 50). The count in that caption is a code site of the coverage in
-everything but syntax.
+(inv. 20, 50). **TZ-26 proved the coupling by paying it:** the caption's spot count 25 did
+not move when the list reached 30 and its futures count did, «три фьючерсные» →
+«пять фьючерсных», in `index.html` and in the section-M expectation together. Both counts
+in that caption are code sites of this contract in everything but syntax, and the futures
+one is now also hand-written in `bench/journal_bench.js` and in the calibration record's
+header (§10).
 
 ### 3.15 Catalyst registry — `catalysts.json`
 
@@ -965,7 +1008,7 @@ can be set by assertion has stopped being one (inv. 39).
 
 1. **Coin-scoped events only.** A macro release, a central-bank decision, an index
    rebalance never enters this file. Market-wide risk is measured by §3.12 Layer 0, and a
-   `dir:'both'` macro entry would close both sides on all 28 coins for fifteen days out of
+   `dir:'both'` macro entry would close both sides on all 30 coins for fifteen days out of
    roughly forty-five. A `"*"` key is therefore not a missing feature, and the
    `items key "<sym>" is in tokens[]` assertion that refuses it is correct.
 2. **Resolving events only.** An event qualifies when something the market prices becomes
@@ -1207,7 +1250,7 @@ Numbers are stable identifiers: production comments, benches, TZs and the contra
 cite them, so an invariant is rewritten in place and never renumbered.
 
 1. `coeffs.json` schema is **additive-only**; the bot's `err_result` is key-synchronous with its success result.
-2. New coins enter only through `TOKENS` (bot) + `tokens[]` (frontend); check CoinGecko id, spot pair, futures pair, quota. No spot pair but a perp → `fut:true` is mandatory. (Standing decision: no new coins.)
+2. New coins enter only through `TOKENS` (bot) + `tokens[]` (frontend); check CoinGecko id, spot pair, futures pair, quota. No spot pair but a perp → `fut:true` is mandatory, and a perp the owner intends to trade as a perp gets it too — the flag is a declaration, not a report on Binance (§3.14). **The universe is frozen between owner decisions, never against them:** it stood at 28 from June 2026 to 03.09.2026 and stands at 30 now, and a coin arrives only the way MORPHO and ARB did — an owner decision that moves the contract's hard floor first, then `TOKENS`, then `tokens[]` (inv. 59). Three further couplings are not optional: the CoinGecko id is unverified until `debug.json` shows `error: null` and `matched_90d > 120` on a runner, the payload's own symbol list must gain the coin or the analytical gate refuses every price (§11), and the per-run CoinGecko call count moves with the list (§5).
 3. `history.json` ≤ 720 points; reads must handle `truncated` via `raw_url`.
 4. `STALE_WARN 75` / `STALE_CRIT 130` min ↔ the hourly Shortcut tempo (no cron, §1); change only as a pair. **Inside the 02:00–09:00 night pause a red threshold does not by itself mean failure:** age is compared against the last SCHEDULED run at 01:50, tolerance one missed hour; two missed hours is a failure.
 5. Spot ticker `?symbols=`: HTTP 400 → the frontend sticks to the full 1.2 MB ticker until reload. Keep delisted pairs out; mark futures-native ones `fut:true`.
@@ -1246,7 +1289,7 @@ cite them, so an invariant is rewritten in place and never renumbered.
 38. **The journal is an instrument, and a record in it is immutable.** (1) The verdict is produced by EXECUTING the production script — functions are cut out of `index.html` and called by name (inv. 21). **A second implementation of any rule, threshold or formula is banned in any language and any file.** (2) A file once written is never reopened — not to append an outcome, not to fix a typo; the outcome lives in a separate file joined by key, and a re-run that finds an existing file writes `dup` and exits zero. Immutability is physical, not promised, because a record that can be rewritten stops being evidence exactly when the result is unwelcome. (3) Next to the verdict lies what can explain it: the acting catalyst set and its hash, the script fingerprint and the commit.
 39. **Only a CONFIRMED catalyst may veto.** The registry is a freely editable file and a veto changes the verdict, so the right to close a side is granted by exactly `conf === 'confirmed'` — exact, case-sensitive; a missing field, `'CONFIRMED'` or any typo is NOT a confirmation, and every refusal errs safe. Confirmation requires a **primary source** (protocol, exchange, foundation) matched by host on a dot boundary against the PRIMARY allow-list; aggregators repeating each other are not a quorum, and the allow-list changes only through a TZ. An unconfirmed entry may annotate, and only its OWN side. Inv. 31 is neither weakened nor strengthened by this.
 40. **An empty registry and an UNAVAILABLE registry are different states and must render differently.** A loader that did not get the file for any reason must leave the registry `{}`, raise `CAT_ERR` and put a banner on screen carrying the reason, while the board keeps working (inv. 9). The journal is stricter: a day whose registry could not be read is not recorded AT ALL, with a non-zero exit, in every mode — a verdict without a known catalyst set is not explainable after the fact (inv. 38(3)).
-41. **The declared venue is read BEFORE the degradation ladder.** `fut:true` is a DECLARATION (§3.14), not an observation, so a skip on such an asset is DECLARED coverage in any form it takes and never raises `hardSkip`. The reverse order already cost the `status` field: a mirror served a delisted row and a healthy system reported `partial` every day. The reason is still MEASURED in three distinct strings, and a live spot pair on a `fut:true` asset must reach `run.note` — a contradiction of the declaration may not pass quietly. The rule is wider than the journal: any future consumer of `tokens[]` asks the declaration, not the host.
+41. **The declared venue is read BEFORE the degradation ladder.** `fut:true` is a DECLARATION (§3.14), not an observation, so a skip on such an asset is DECLARED coverage in any form it takes and never raises `hardSkip`. The reverse order already cost the `status` field: a mirror served a delisted row and a healthy system reported `partial` every day. The reason is still MEASURED in three distinct strings, and a live spot pair on a `fut:true` asset must reach `run.note` — a contradiction of the declaration may not pass quietly. The rule is wider than the journal: any future consumer of `tokens[]` asks the declaration, not the host. **What the note cannot do is stay informative once the declaration stops implying an absent market:** two of the five declared assets were declared for the owner's own reason, so `run.note` may name them every run, and a line that fires daily is a label rather than an alarm. The invariant is unchanged — the note must still fire, and silence would be worse — but reading it as «something is wrong» is now the reader's error and is recorded as such in §10.
 42. **A bench must execute production with the SAME external input as production.** Three board benches ran the board with an empty `CATALYSTS` for eight days because the sandbox has no `XMLHttpRequest`: the loader failed silently and the benches reproduced a configuration that exists neither for the Boss nor on Pages. Therefore: the registry is read from the checkout by the SAME loader as production (inv. 21), injection happens AFTER `vm.runInContext` (otherwise the production line `var CATALYSTS = {}` overwrites it), and a missing or corrupt file fails the bench NON-ZERO — there is no fallback to an empty registry.
 43. **A check count must be a count.** The number a bench prints as «checks» is used as proof of control volume and as the input to inv. 22, so it must count comparisons, not be estimated as a product of unrelated quantities. The counter is incremented at the comparison site, the gate total is the sum of those counters, and any discrepancy is explained term by term. A quantity that is merely measured and printed — scenarios, rows, lists — is not a check.
 44. **A fetch may stand behind a product fact only if anyone can reproduce it; a session fetch cannot.** The earlier form of this invariant said external data is fetched on a runner and never in an implementation session, and gave reachability as the reason: an Executor session refused every market host at CONNECT. **That measurement no longer reproduces** — TZ-20 reached four hosts from the VPS and read 200 on all four — and a rule resting on a measurement falls with it (inv. 52). What survives is a rule about STANDING, not about reach. A runner fetch is recorded, repeatable by anyone holding the repository, and its inputs are named in a workflow file; a session fetch is none of those, because the session ends, the market moves, and the only trace is a sentence in a report. Therefore: **forbidden in a session** — fetching an external FACT that enters the product (a price, a date, a figure, an event) as the standing behind it; such a stage is specified as a workflow step and nothing else, and a TZ asking for it in-session is blocked before it starts. **Permitted in a session** — measuring the session's OWN ENVIRONMENT (egress, tool availability, host reachability), because the artifact IS the measurement, the command is recorded beside its result, and re-running the command is the reproduction; this class produces no product fact. TZ-10 Stage B remains the cautionary case for the first class: the instrument was correct, complete, self-tested — and returned no number. TZ-20 is the case for the second: reachability was asserted from an old measurement and was wrong.
@@ -1425,13 +1468,29 @@ cite them, so an invariant is rewritten in place and never renumbered.
     author and to the reader alike** — the author knows the object he meant, and the
     reader has an object that fits, so nothing anywhere reports a disagreement until the
     two objects produce different answers on a live run.
+59. **A standing decision is amended in the floor before it is amended in the code.**
+    «No new coins» lived in four places — contract §7 item 3 as a HARD FLOOR, this map's
+    inv. 2 and §1, and the Architect's canon — and TZ-25 amended it in its own text, which
+    is the one move a hard floor exists to refuse. The Executor blocked, correctly, and the
+    block cost a full session; the work then proceeded on a lift spoken in chat, so for two
+    commits the repository carried a 30-coin universe against a contract and a map that
+    both said 28. **The order is not ceremony, because the floor is what the NEXT TZ
+    reads:** a specification arriving in that window is checked against a clause its own
+    subject has already outlived, and nothing anywhere reports the disagreement — the
+    fingerprint gate compares a revision string and cannot see that the sentence under it
+    is retired. An owner decision that contradicts a hard floor therefore lands as a
+    contract version and a map revision FIRST, and the TZ that consumes it cites those
+    versions in its own gate. Inv. 55 bans writing a specification from a recollection of
+    a rule; this bans writing one against a rule that is already gone. The cost of doing
+    it in the wrong order is measured and it is two sessions and three disagreeing
+    documents; the cost of doing it in the right order is one upload.
 
 ---
 
 ## 5. Limits
 
 - **CoinGecko: the bot runs WITHOUT a key.** `main.yml` passes only `GIST_TOKEN`, so `api_key = None` → public access, no monthly quota, IP-rate-limited on the runner, handled by `REQUEST_GAP_SEC = 1.0` and three retries.
-- **The free Demo key must NOT be attached at the current schedule.** Demo gives 100 calls/min but caps at 10 000/month; consumption is 17 runs/day × 30 calls ≈ 15 300/month plus `push`-triggered runs. A Demo key would create a cut-off around the 19th–20th that does not exist today. Attach only together with a cut to ≤ 10 runs/day.
+- **The free Demo key must NOT be attached at the current schedule.** Demo gives 100 calls/min but caps at 10 000/month; consumption is 17 runs/day × 32 calls ≈ 16 300/month plus `push`-triggered runs, and it rose by ~1 000/month when the universe reached 30. A Demo key would create a cut-off around the 18th–19th that does not exist today. Attach only together with a cut to ≤ 9 runs/day. **The keyless quota is the real ceiling on universe width:** each added coin costs 17 calls a day, so the list has room and the limit is worth naming before it binds rather than after.
 - Binance spot ticker with `symbols`: weight 40, ~12 KB (full ticker: weight 80, ~1.2 MB).
 - Binance `fapi/ticker/24hr?symbol=`: weight 1 × number of `fut:true` tokens, every 30 s.
 - Gist API: files > 1 MB are truncated (handled through `raw_url`).
@@ -1465,7 +1524,8 @@ cite them, so an invariant is rewritten in place and never renumbered.
     on the board or the card, and inside it only through the `dayStateNote`
     sentence and only when the day is abnormal; the caption denies no mechanism
     the block has AND states the ones it does — the derived unit, the object of the
-    threshold, the inv. 27 words and the 25-coin coverage — equal to its
+    threshold, the inv. 27 words, the 25-coin spot coverage and the count of excluded
+    futures assets — equal to its
     specification character for character (inv. 50, gate section M); the `.bd-sec`
     carries no inline `style`, so the metal ring survives (§3.7).
 16. Regime symmetry (§3.12): a BTC week at `z ≥ +REG_STRESS_Z` prints «РЫНОК
@@ -1503,7 +1563,7 @@ Any production edit → the full `bench.yml` gate, 13 steps.
 - Unlocks are deliberately NOT automated.
 - Liquidation probability (§3.3) assumes normality and constant volatility. Crypto tails are fatter and volatility clustering is unmodelled → **the true probability is higher than computed**; the figure is a LOWER BOUND. Measured at 7d and typical 2σ–6σ distances the same touch formula is honest and even conservative (measured/model 0.88, CI95 covers 1 on both sides); beyond the 6σ clip the far tail confirms the prior (3.5 % measured vs 0.9 % model on the long side). **Crediting the 0.88 into the calculation is REJECTED:** the CI covers 1, the understatement is explained by clustering (so the correction would break exactly in an expansion regime), and `touchProb` does not enter leverage at all — all four ceilings are distance-based.
 - The backtest reconstructs 82.5 % of the long score and 86 % of the short: market-cap rank and Binance turnover are historically unavailable, so the quality block runs on `vol_ratio` alone, through production's own missing-field path (inv. 9). Both inputs move slowly across the list, so their contribution is close to a constant tilt.
-- Backtest vs production reconciles on 25 of 28 coins (median divergence: prices 0.06–0.12 %, `r7` 0.32 pp, `r14` 0.26 pp, `r30` 0.31 pp, `eff14` 0.02). The three that diverge are exactly the `fut:true` assets — a source identity, not an error (§3.14).
+- Backtest vs production reconciled on 25 of the 28 coins the universe held when it was measured (median divergence: prices 0.06–0.12 %, `r7` 0.32 pp, `r14` 0.26 pp, `r30` 0.31 pp, `eff14` 0.02). The three that diverged are exactly the `fut:true` assets of that list — a source identity, not an error (§3.14). MORPHO and ARB are expected to join them and have not been measured.
 
 ---
 
@@ -1608,6 +1668,10 @@ until someone re-runs the command.
 | ETF flow figures have no reachable primary lane | **closed, deliberately** — the three probe rounds behind it are **measured, date unrecorded** | a named machine-readable endpoint from an issuer or a listing venue, arriving as a TZ. Three probe rounds from the VPS found none: issuer pages 403/429, Bitwise 200 alone is not the dominant fund, Cboe and Fidelity answered 404 on guessed paths, an NYSE quote page carries price and not creation/redemption. A figure is therefore not published and a direction is not published; press-sourced readings still inform the run internally (methodology §6). **A run never re-probes this** — rediscovering a closed lane every day is the failure this repository exists to prevent |
 | Producer clock drift is unmeasured | watched | the floor refuses a payload more than 120 s ahead and nothing tracks approach. `age_sec` is signed and already recorded in the day log, so drift becomes visible before it becomes a refusal |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
+| The payload's symbol list has not grown with `tokens[]` | **open — blocking the analytical engine until the Shortcut is edited** | the Boss editing the iOS Shortcut so `analyst/live.json`'s `c` array carries MORPHO and ARB. `live-gate.sh` cuts its universe from `tokens[]` at run time and never types it (inv. 21), so a `tokens[]` symbol absent from the payload is exit class 5 and **every price level leaves the answer** while the regime, the catalysts and the verdict survive (§11). The list moved on `main` at the merge; the producer is outside the repository and no TZ can reach it. The wide `x` array is unaffected — it is the whole perpetual book and already carries both — so the failure is narrow, total and invisible until a run makes it |
+| MORPHO and ARB CoinGecko ids are unverified | open | the first `debug.json` after the bot runs on a runner. `morpho` and `arbitrum` are the Architect's declaration and were deliberately not fetched in an implementation session (inv. 44); the arbiter is `error: null` and `matched_90d > 120` on both rows. A wrong id costs one line in `TOKENS`, and the card shows NO DATA until it is fixed — loud, which is the right direction |
+| The `fut:true` count is derived in two places of five | watched | the next venue change, or any TZ opening those files. TZ-26 derived `journal_bench.js:641` and `:644` from the declared set and left `:592` a literal on purpose — derived, it would assert `FUT.length === FUT.length` and control nothing (inv. 22). The three hand-written counts left are the §3.17 caption in `index.html`, the same sentence in `exhaustion_bench.js`'s expectation, and `bench/exhaustion-calibration.txt`'s header, which is frozen by §0 and correctly stale. This is inv. 58's residue: the count is prose in the places a reader reads, and prose has no producer |
+| `run.note` names a declared futures-only asset every run | watched | the first journal run after the merge, which measures whether the spot mirrors answer alive. If they do, the note carries MORPHO and ARB permanently and stops separating «declared» from «unexpected» — the repair is a per-asset expectation in `journal/write.js`, not the removal of the note (inv. 41), and it is worth a TZ only once the note is actually constant |
 
 | `index.html:799` restates the registry schema | open, unowned | any TZ that opens `index.html`. The comment lists seven fields and the schema now has eight. **The repair is deletion, not synchronisation** — replaced by a pointer to `bench/catalyst_bench.js`, or the schema keeps living in three files (inv. 20) |
 | `main.yml` `paths` allow-list | **closed by TZ-23, merged** | nothing on the filter. The residual is a coupling, not a defect: the list must grow the first time `main.py` reads a repository file, no bench can enforce it (§11), and today's derivation is nil so the list is as small as it can be. A second reading arrives free — `journal/**` used to qualify to start the bot and was stopped only by `[skip ci]` in every journal commit subject, so a message convention was the whole control; the allow-list removes that dependency |
@@ -1624,7 +1688,9 @@ until someone re-runs the command.
 | Report template lets inv. 54 rest on the author's care | **closed by contract v15** | nothing. **Not a TZ, and the row that said so was wrong:** `EXECUTOR-INSTRUCTIONS.md` is Architect-owned and arrives by Boss upload (contract §2), so the Executor may never write it (contract §7.14) and a TZ asking it to would be defective. The repair is an Architect edit forced by TZ-22, in the standing of v13 and v14. §8 now names the two TZ classes once and every branch clause is silent on a report-only TZ instead of deviated from; §10's `## Commit` and `## Pull Request` read off the class; a hash appears only for a commit already pushed. **A bench over `CryptoReports/**` was considered and is impossible**: a report is pushed direct to `main` on a path both workflows carry in `paths-ignore` as `'**.md'`, so such a control could never fire — the template is the only place this rule can live |
 | Executor has no GitHub API access | **closed, deliberately** | nothing. `gh` is absent and no PAT exists; the deploy key `crypto-auto-vps` carries git write and that is the whole of the Executor's reach. A fine-grained PAT cannot separate «push a branch» from «merge to main» — both need `Contents: write` — and the hosted-gate reading it would automate is already performed by the actor who opens the pull-request page to merge. The gap is closed in the CONTRACT instead: CI evidence left the Executor's acceptance criteria and became an audit step (contract §9) |
 
-**Standing decisions.** No new coins beyond 28 · weights are never tuned · the
+**Standing decisions.** The universe is closed at 30 and opens only on an owner
+decision — it was 28 from June 2026 to 03.09.2026 (inv. 2, 59) · weights are never tuned ·
+the
 directional layer is closed at the current evidence level: the machine owns risk,
 sizing, honesty and geometry, the human owns direction via catalysts and REVIEW.
 
@@ -1705,8 +1771,9 @@ network, same payload — and only the destination moved, so the engine reads a 
 its own tree and the transport leaves the design instead of being hardened.
 
 **Since 01.09 the payload carries two arrays, and the second one closed the outside-list
-lane the aggregators could not.** `c` is the 28-coin universe plus BTC, validated row by
-row at the gate; `x` is the whole Binance USDⓈ-M perpetual book — 754 rows carrying
+lane the aggregators could not.** `c` is the coin universe plus BTC — 28 plus BTC when
+the Shortcut was written, 30 plus BTC once the producer is updated (§10) — validated row
+by row at the gate; `x` is the whole Binance USDⓈ-M perpetual book — 754 rows carrying
 symbol, last, 24-hour high and low, change and turnover. **Membership of `x` and
 tradability on a perpetual are the same fact**, so `ANALYST-INSTRUCTIONS.md` §3B now
 prices an outside-list candidate from it and the two-source web rule is retired: nothing
@@ -1774,7 +1841,7 @@ to the `## 0` table would put a hash in every TZ header for a file whose behavio
 already under a control.
 
 **The two workflows treat this tree differently, on purpose.** `main.yml` ignores
-`analyst/**` whole: no file here, script included, is a reason to start the bot, redraw 28
+`analyst/**` whole: no file here, script included, is a reason to start the bot, redraw 30
 coins through CoinGecko and rewrite the live Gist. Before TZ-17 it ignored none of them, so
 the engine saving its own state did exactly that, with a retry doubling the draw.
 `bench.yml` ignores only the three paths the analyst WRITES — `analyst/state.json`,
