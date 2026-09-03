@@ -14,7 +14,7 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-03-a.** Baseline: TZ-25 and TZ-26 merged into `main` as one pull
+**Revision 2026-09-03-b.** Baseline unchanged: TZ-25 and TZ-26 merged into `main` as one pull
 request; implementation commits `ea05962` (TZ-25) and `69bddc3` (TZ-26), reports
 `CryptoReports/TZ-25-universe-morpho-arb-report.md`,
 `CryptoReports/TZ-25-universe-morpho-arb-report-2.md` and
@@ -22,7 +22,13 @@ request; implementation commits `ea05962` (TZ-25) and `69bddc3` (TZ-26), reports
 implementation commits, not the merge commit** — a merge commit carries no content, and
 content is what this block pins. The merge is `f27d5ee`; `Bench gate` #122 is green on it.
 
-**The file table moves at this revision, and it moves because the universe did.** TZ-25 took `TOKENS` and `tokens[]` from 28 to 30 — **MORPHO** and
+**This letter is a documentation revision and no production file moves at this revision.**
+It closes the two §10 rows TZ-25 left open — the producer's symbol list and the two
+CoinGecko ids — on readings taken 03.09.2026 outside the repository, and repairs the §11
+sentence that described the producer as not yet updated. The file table and every gate
+figure below are `-a`'s, unchanged and re-stated rather than re-measured.
+
+**The file table moved at revision `-a`, and it moved because the universe did.** TZ-25 took `TOKENS` and `tokens[]` from 28 to 30 — **MORPHO** and
 **ARB**, both declared `fut:true` — and TZ-26 repaired the venue-count expectations and
 the §3.17 caption that addition falsified. `index.html` and `main.py` carry new values
 below; `catalysts.json` and the calibration record do not. The seven `2026-08-30` and
@@ -45,7 +51,7 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-03-a.**` |
+| revision | `**Revision 2026-09-03-b.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -1668,8 +1674,8 @@ until someone re-runs the command.
 | ETF flow figures have no reachable primary lane | **closed, deliberately** — the three probe rounds behind it are **measured, date unrecorded** | a named machine-readable endpoint from an issuer or a listing venue, arriving as a TZ. Three probe rounds from the VPS found none: issuer pages 403/429, Bitwise 200 alone is not the dominant fund, Cboe and Fidelity answered 404 on guessed paths, an NYSE quote page carries price and not creation/redemption. A figure is therefore not published and a direction is not published; press-sourced readings still inform the run internally (methodology §6). **A run never re-probes this** — rediscovering a closed lane every day is the failure this repository exists to prevent |
 | Producer clock drift is unmeasured | watched | the floor refuses a payload more than 120 s ahead and nothing tracks approach. `age_sec` is signed and already recorded in the day log, so drift becomes visible before it becomes a refusal |
 | Beta history in `history.json` | reserved | future analysis of beta stability and horizon calibration |
-| The payload's symbol list has not grown with `tokens[]` | **open — blocking the analytical engine until the Shortcut is edited** | the Boss editing the iOS Shortcut so `analyst/live.json`'s `c` array carries MORPHO and ARB. `live-gate.sh` cuts its universe from `tokens[]` at run time and never types it (inv. 21), so a `tokens[]` symbol absent from the payload is exit class 5 and **every price level leaves the answer** while the regime, the catalysts and the verdict survive (§11). The list moved on `main` at the merge; the producer is outside the repository and no TZ can reach it. The wide `x` array is unaffected — it is the whole perpetual book and already carries both — so the failure is narrow, total and invisible until a run makes it |
-| MORPHO and ARB CoinGecko ids are unverified | open | the first `debug.json` after the bot runs on a runner. `morpho` and `arbitrum` are the Architect's declaration and were deliberately not fetched in an implementation session (inv. 44); the arbiter is `error: null` and `matched_90d > 120` on both rows. A wrong id costs one line in `TOKENS`, and the card shows NO DATA until it is fixed — loud, which is the right direction |
+| The payload's symbol list against `tokens[]` | **closed — measured 03.09.2026 on `analyst/live.json`** | the next universe change, and nothing else. The `c` array carries `MORPHOUSDT` and `ARBUSDT`, so the exit class 5 this row was written about no longer fires and price levels reach the answer for all 30. **The row is closed, not deleted, because the producer is outside the repository and no TZ can reach it:** every coin added after this one reopens the same gap between the merge and the Boss editing the iOS Shortcut, and during that window `live-gate.sh` strips **every price level** from the market answer while the regime, the catalysts and the verdict survive (§11). The reading is re-measured before it is cited as current (inv. 56). The wide `x` array was never affected — it is the whole perpetual book and carried both coins throughout |
+| MORPHO and ARB CoinGecko ids | **closed — measured 03.09.2026 on `debug.json`** | nothing. The arbiter this row named answered on a runner: both rows carry `error: null` and `matched_90d 2160` against a floor of 120, with `matched_14d 337` and `returns_14d 336`, so `morpho` and `arbitrum` are confirmed by the bot's own fetch rather than by the Architect's declaration (inv. 2, inv. 44). `ranks_fetched 30` and `fdv_fetched 30` in the same file close a second question nobody had opened as a row: the single `/coins/markets` call covers the widened list, so §1's 32-calls-per-run arithmetic is now measured and not predicted |
 | The `fut:true` count is derived in two places of five | watched | the next venue change, or any TZ opening those files. TZ-26 derived `journal_bench.js:641` and `:644` from the declared set and left `:592` a literal on purpose — derived, it would assert `FUT.length === FUT.length` and control nothing (inv. 22). The three hand-written counts left are the §3.17 caption in `index.html`, the same sentence in `exhaustion_bench.js`'s expectation, and `bench/exhaustion-calibration.txt`'s header, which is frozen by §0 and correctly stale. This is inv. 58's residue: the count is prose in the places a reader reads, and prose has no producer |
 | `run.note` names a declared futures-only asset every run | watched | the first journal run after the merge, which measures whether the spot mirrors answer alive. If they do, the note carries MORPHO and ARB permanently and stops separating «declared» from «unexpected» — the repair is a per-asset expectation in `journal/write.js`, not the removal of the note (inv. 41), and it is worth a TZ only once the note is actually constant |
 
@@ -1772,7 +1778,8 @@ its own tree and the transport leaves the design instead of being hardened.
 
 **Since 01.09 the payload carries two arrays, and the second one closed the outside-list
 lane the aggregators could not.** `c` is the coin universe plus BTC — 28 plus BTC when
-the Shortcut was written, 30 plus BTC once the producer is updated (§10) — validated row
+the Shortcut was written, 30 plus BTC since 03.09.2026, when the Boss updated the producer
+(§10) — validated row
 by row at the gate; `x` is the whole Binance USDⓈ-M perpetual book — 754 rows carrying
 symbol, last, 24-hour high and low, change and turnover. **Membership of `x` and
 tradability on a perpetual are the same fact**, so `ANALYST-INSTRUCTIONS.md` §3B now
