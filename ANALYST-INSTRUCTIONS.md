@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-03-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-03-b.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -252,8 +252,11 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   that must happen — a dated event or an exact price — AND the level structure it
   would create: zone, invalidation, target. **A thesis without a date or a price is
   news and does not appear**; nothing here is ever a verdict, and a `СЕЙЧАС` or
-  `ЖДАТЬ` setup belongs in the strategy table instead, never in both. Zero
-  qualifying items → the section is omitted, like any other.
+  `ЖДАТЬ` setup belongs in the strategy table instead, never in both. **Zero
+  qualifying items → «Нет достойных кандидатов.», never omission** — this heading is one
+  of the three mandatory searches above and omission is not a permitted state for it.
+  The clause that stood here said the opposite, the two contradicted each other at zero
+  items, and the run of 03.09 had to choose between them and record the objection.
 - **`# ПОЗИЦИИ` prints every open holding `analyst/owner.json` declares, one line
   each, and it is omitted only when the owner holds nothing.** §11 has always required a
   declared position to be analysed as a holding — thesis intact or not, invalidation,
@@ -397,6 +400,18 @@ all six went stale in the same minute, and the run of that afternoon printed «�
 28-список» over a payload its own gate had just counted at 31 rows. A count is prose and
 prose has no producer (map §10): the universe is `tokens[]`, the array is `c`, and both
 are counted at run time or not at all.
+
+**Every coin of the list is PUBLISHED, or refused by a NAMED rule, per coin, in the
+appendix.** §3B has required exactly this of an outside-list candidate since it was
+written, and nothing required it of the primary universe — so the whole list could be
+closed by one sentence, «вход отказан по всему списку», with no per-coin record anywhere
+and nothing for a reader to check. **A sentence that refuses thirty coins at once is a
+regime statement, and a regime statement is not a refusal of a setup that was never
+constructed.** Measured 03.09, third run: the regime was COMPUTED `БЫЧИЙ` with the trend
+measure at more than twice its threshold, twenty-five structural rows sat in the file the
+run already had open, not one coin was given an entry level, an invalidation or an R:R,
+and the `ЖДАТЬ` field of `ИТОГ` read `нет`. Nothing in this file had been broken. The
+list had simply never been asked the question one coin at a time.
 Analyse every coin internally; publish every setup that clears the bar and nothing
 that does not. Not a single best pick, not a quota.
 
@@ -538,6 +553,27 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   and all three printed `БЕЗ ИЗМЕНЕНИЙ`. Three runs of the same three lines, each one
   further from the market than the last, is precisely what «the answer never changes»
   looks like from the reading end.
+- **In a TREND the entry is a retest, and the level is CUT rather than chosen.** The
+  clause above — «in a trending or overheated regime a mean-reversion pullback zone is
+  the default failure mode, the entry is a breakout retest or nothing» — named an object
+  and never a computation, so in every trend this engine has ever measured it published
+  the «or nothing» half and never once the first (map inv. 58). The construction:
+  `invalidationInfo` is cut from `index.html` and executed on the coin's structural row
+  (§5), exactly as `marketRegime` is and for the same reason (map inv. 21). It returns
+  the reference price broke — the 30-day extreme, with the 90-day as its own fallback —
+  the structural price beside it, and the clipped distance production puts behind every
+  stop it draws (map §3.2). **That level is the zone, and that distance is the
+  invalidation.** Neither is invented here, neither is read off a chart, and neither is a
+  second implementation of anything.
+- **The target is a level in the same structural row, and R:R at the frozen price decides
+  publication.** Where no structural level clears `RR_MIN`, the coin is refused BY NAME
+  in the appendix and does not appear — a refusal, not a silence. **The known tension is
+  production's own and is NOT resolved here:** `tradeGeometry`'s target is always the
+  90-day extremum, so a coin deep into a trend sits close to it and breaks R:R by
+  construction (map §3.12). That is an open architectural item in the map, gated on an
+  archive backtest, and this file does not act on it — a continuation target with no
+  backtest behind it is precisely what map inv. 32 forbids. What a run owes here is the
+  computation and the named refusal, never a more convenient number.
 - **Leverage is never issued unless the Boss explicitly asks.** It is then computed
   per System Map §3.2/§3.4 from a live board reading — never chosen, never
   reconstructed. Above `L_CAP` it is never issued however requested.
@@ -631,6 +667,16 @@ covers    the 25 spot assets of the list. The declared futures-only assets have 
           and is never reported as a gap — a line that fires every run about a fact
           that is true every run is a label, not an alarm
 ```
+
+**`btc` is ONE row of that file and `cd` is the other twenty-five.** A run that reads
+`btc` for the regime word and stops there has taken the environment and left the
+structure: the regime says which SIDE may be published, and the per-coin rows are what a
+side is published ON. Every coin reaching candidacy is read from its own `cd` row — the
+extremes an invalidation is cut from, the volatility that distance is clipped by, the
+returns a relative-strength read is made from — and a coin whose row is absent by
+declaration carries no structural stop and is refused on that ground, by name (map
+§3.14). **Measured 03.09, third run, on the first day this file was readable:** the run
+found it, read `btc`, produced the regime correctly, and consumed not one `cd` row.
 
 **This is a read of a file in the tree and not a fetch, and that distinction is the whole
 of why it is permitted.** The ban above is on reaching over the network for
@@ -1009,7 +1055,13 @@ for exactly that case, on the run that introduced it, applied to nothing.
   yesterday's assessment as today's, which is the one thing the status exists to make
   visible. The exception is proximity, not age: an item whose primary-established DATE
   falls inside 48 h stays and prints, because at that range the date alone is a fact
-  about the trade (§11).
+  about the trade (§11). **And at that range the word printed is `ПРИБЛИЖАЕТСЯ`, never
+  `НЕ ПРОВЕРЕНО`** — the counter keeps running in state, where it belongs, and the word
+  on the Boss's screen describes the trade rather than the bookkeeping. `НЕ ПРОВЕРЕНО`
+  beside an event landing in seventeen hours reads as doubt that the event is happening,
+  which is the one thing nobody doubts. Measured 03.09: the September employment report
+  printed that way, in the same section whose next clause explained that tomorrow's
+  number decides the week.
 
 Measured 01.09: the G20 communiqué was unread for a third consecutive run and printed
 `ПРИБЛИЖАЕТСЯ`, the SEC rule-making printed `БЕЗ ИЗМЕНЕНИЙ` with `sec.gov` refused and
@@ -1223,7 +1275,17 @@ reliable reader this system has.
    (§5). Elapsed time since the freeze is not a checklist item and downgrades nothing.
 2. Every named instrument actually tradable on a Binance USDⓈ-M perpetual.
 3. Direction still valid at the live price — the move has not already happened.
-4. Entry is not chasing an extended move.
+4. **Entry is not chasing an extended move — measured on the window the REGIME names.**
+   In `ДИАПАЗОН` the window is the day: the coin has no trend, and its own 24-hour `pos`
+   is the whole story. In `БЫЧИЙ` or `МЕДВЕЖИЙ` the window is the structural row — the
+   coin's place inside its own 30- and 90-day range, read from `cd` (§5) — because a coin
+   at the top of its DAY and the middle of its QUARTER is participating in the trend the
+   regime has just measured, not chasing it. **This does not loosen the rule: a coin
+   extended on BOTH windows is a chase and is still refused.** What it ends is a test
+   that returned the same verdict on every trending day because the day was the only
+   window this engine could see. Measured across four consecutive runs: «экстремум дня
+   уже пройден» refused the entire list every time, including on the run that measured
+   the trend at more than twice its own threshold.
 5. Stop sits at a structural level, not at a round number.
 6. Target reachable inside the holding window; R:R acceptable.
 7. No catalyst inside the window that invalidates the setup.
@@ -1307,6 +1369,17 @@ reliable reader this system has.
     around, and never mentioned to the Boss (§1).
 38. **No name stands in `ИЗБЕГАТЬ` whose only reason is the one `# РЕЖИМ` already states
     for the whole list** (§2).
+39. **The anti-chase test was measured on the window the regime names** (item 4), and
+    every coin refused as a chase inside a trend was extended on its structural row as
+    well as on its day.
+40. **In a trend, every coin that reached candidacy carries a cut entry level, an
+    invalidation from `invalidationInfo` and an R:R at the frozen price** (§4) — or a
+    refusal naming the rule that stopped it.
+41. **Every coin of the LIST was published or refused by a named rule, per coin, in the
+    appendix** (§3A). One sentence refusing the whole list is a regime statement and is
+    never a per-coin refusal.
+42. **`cd` was read for every coin that reached candidacy** (§5). A run that read only
+    `btc` took the regime and left the structure behind it.
 
 **Every item on this list names a failure that happened, and the list grows only that
 way.** Items 12–18 were added after rules already written here were broken by runs that
@@ -1317,7 +1390,13 @@ the two runs of 03.09, and five of them are one thing:** every rule here that ne
 window longer than a day named its object and never its file, so the engine measured the
 day, called it the market, and printed the same page through a week in which the market
 moved twenty per cent. The sixth is the universe count, written into this file six times
-and stale in all six on the afternoon the owner widened the list. **Three of 25–28 and
+and stale in all six on the afternoon the owner widened the list. **39–42 name four of
+the FIRST run to execute under that repair, and they are the other half of the same
+defect:** the structural file was found, the regime was computed from it correctly, three
+bad shorts were reversed on the strength of it — and the twenty-five per-coin rows beside
+the one BTC row went unread, so a measured `БЫЧИЙ` produced no long, no level and an empty
+`ЖДАТЬ` field. Naming the file was necessary and was not sufficient; a window nobody
+reads is the same as a window nobody has. **Three of 25–28 and
 three of 29–32 are the same defect wearing six shapes** — the run decided something
 correctly and did not say it — which is why every one of them is checked against an
 artifact and never against the run's memory of its own answer. A rule stated in §2 and
@@ -1763,6 +1842,21 @@ four; the fourth, the regime's consequence for the admissible side, was a rule p
 already had and this file had never cited (map inv. 30). Nothing here is new analysis,
 nothing here tunes anything, and no threshold is added: what arrives is the means to obey
 four rules that were already written, and were already right.
+
+**Revision 2026-09-03-b is the second half of `-a` and exists because the first half was
+incomplete in a way only a run could show.** `-a` named the structural file and wired the
+regime word to it; the first run under it found the file, computed `БЫЧИЙ` off the `btc`
+row with the trend measure at 1.44 against a threshold of 0.6, correctly withdrew three
+shorts that a judged `ПЕРЕГРЕТ` had licensed the evening before — and then refused all
+thirty coins with one sentence about the day's extreme, on a window the regime had just
+declared the wrong one. **Every rule the run obeyed was obeyed correctly.** The anti-chase
+test named no window, the retest entry named no computation, and nothing anywhere required
+the list to be refused one coin at a time, so a correct run with a correct regime and a
+readable structural file produced an empty `ЖДАТЬ` field. `-b` gives those three their
+computation and their record and adds nothing else: **no threshold is introduced, no
+filter is loosened, and no rule here obliges a run to publish anything.** What it obliges
+is that a refusal be constructed before it is stated. A market-wide condition may set the
+side; it may not stand in for a coin-level decision that was never taken.
 
 **One finding of the same audit is deliberately NOT repaired here, because it is not this
 file's.** The run executed from a harness worktree branch rather than from `main`, which
