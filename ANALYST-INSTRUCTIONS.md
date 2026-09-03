@@ -1,11 +1,16 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-02-c.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-03-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
-Written by the Architect; the analyst never edits this file, and a change to it is a
-TZ like any other. This file is the single operative text of the analytical
+Written by the Architect; **the analyst never edits this file, and a change to it is
+an Architect edit delivered as the COMPLETE file and uploaded by the Boss — never a
+TZ.** `EXECUTOR-INSTRUCTIONS.md` §7 item 14 forbids the Executor to write this file, so
+a TZ asking for the edit is defective and is blocked before it starts; the wording that
+stood here said the opposite and was itself the defect. A finding may FORCE such an
+edit, and the edit names the run that produced it. This file is the single operative
+text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
 
@@ -187,6 +192,16 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   not the moment the answer was sent** — that is the moment every level in the answer
   belongs to, and printing any other would attach the levels to a price they were never
   computed against.
+- **`# РЕЖИМ` names the SPREAD, and names the coins outside it.** One line carries
+  BTC's own 24-hour change against the median of `c`, and every coin sitting away from
+  the list's extreme is named. In a trend the LEVEL of the list is the same fact every
+  morning and its DISPERSION is the only thing that moves: a day on which BTC adds 4.6 %
+  and the median alt adds 8 % is a different market from one BTC leads, and both print
+  «всё растёт» without the spread. **A coin not at the extreme on a day the list is at it
+  is the only non-chasing entry that exists**, so it is named whether or not it becomes a
+  setup. Measured 03.09: four such coins were computed row by row, none reached the
+  answer, and the regime line asserted «весь список без исключения» four lines above the
+  appendix that listed the exceptions.
 - **ЛУЧШИЕ СДЕЛКИ СЕЙЧАС** carries only trades that clear the quality bar right now.
   None clear it → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** plus one short sentence of
   reason, then the strategy table carries the pending triggers.
@@ -311,6 +326,18 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   its reason decays exactly like a thesis's. A name carried in that field with no `items[]`
   entry cannot be re-examined, cannot expire and cannot be withdrawn — it just accumulates.
   Either the entry exists with today's reason, or the name leaves the field.
+- **A refusal the WHOLE LIST shares is a regime fact and is stated once, in `# РЕЖИМ`.**
+  `ИЗБЕГАТЬ` carries what is true of a coin, never what is true of the market. When one
+  sentence — «вход сейчас погоня» — is the entire reason behind a dozen names, the field
+  has stopped being a list of prohibitions and become the regime line transcribed once
+  per coin, and a field that says the same thing about half the universe says nothing
+  about any of it. The regime line states it plainly instead («вход отказан по всему
+  списку — <причина>»), and nothing is lost: §7 item 21 asks that a refusal be SPOKEN,
+  never that it be spoken in one particular field. What stays: every dated prohibition,
+  and every coin whose refusal survives the regime — its own catalyst, its own structure,
+  its own weakness. Measured 03.09: fifteen names stood in the field, the set was
+  identical to the morning run's, and thirteen of the reasons were one reason with
+  different numbers in it.
 - **A name LEAVING `ИЗБЕГАТЬ` is a withdrawal and is spoken by name, in the same first
   line as every other withdrawal (§11).** The field is a published prohibition, so deleting
   a name from it tells the Boss the coin is tradable again — the loudest possible statement,
@@ -333,18 +360,49 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   requires, not a level. It may carry a DATE, and only in the dated class above, where
   the date is what lifts the prohibition rather than what triggers a trade.
 
+**The regime WORD is produced, not judged, and it decides which side may be published at
+all.** The five words of §8 are the board's own five banner states, and the board derives
+them mechanically from BTC's weekly and fortnightly move measured in BTC's own
+volatility. The run therefore cuts `marketRegime` out of `index.html` and executes it on
+the `btc` object of the structural file (§5), exactly as the universe is cut from
+`tokens[]` and never typed (map inv. 21). No structural file → `ДИАПАЗОН` with the regime
+unknown, which is production's own degradation (map §3.12) and not a market-wide veto
+invented out of a missing read.
+
+| Регим | Board state | Side admitted |
+|---|---|---|
+| БЫЧИЙ | trend up | ЛОНГ only |
+| МЕДВЕЖИЙ | trend down | ШОРТ only |
+| ДИАПАЗОН | range | both, decided per coin |
+| ПЕРЕГРЕТ | stress, upper branch | **neither** |
+| ВЫСОКИЙ РИСК | stress, lower branch | **neither** |
+
+**The consequence is map inv. 30's and is cited here, never re-derived.** The words were
+already the board's; only the consequence was missing, and a label carried without its
+rule is worse than a label nobody borrowed. **Measured 03.09:** the answer printed
+`ПЕРЕГРЕТ`, refused every list coin on both sides as a chase, and published three
+outside-list SHORTS underneath it — an asymmetry with no basis anywhere in this file,
+resting on the observation that had just refused the other side. The word closes both
+sides or it is the wrong word.
+
 ---
 
 ## 3. Candidate selection
 
-**A. The 28-coin list — primary.** The universe is read from `tokens[]` in
+**A. The Boss's own list — primary.** The universe is read from `tokens[]` in
 `index.html` and from nowhere else; a second hard-coded list is banned (map inv. 21).
+**Its COUNT is never written in this file.** It stood at 28 from June 2026 until
+03.09.2026 and the numeral was written here six times; when the owner widened the list
+all six went stale in the same minute, and the run of that afternoon printed «весь
+28-список» over a payload its own gate had just counted at 31 rows. A count is prose and
+prose has no producer (map §10): the universe is `tokens[]`, the array is `c`, and both
+are counted at run time or not at all.
 Analyse every coin internally; publish every setup that clears the bar and nothing
 that does not. Not a single best pick, not a quota.
 
 **B. Outside the list — mandatory search, up to three per side, CATALYST FIRST.** Search
 the broader market on every run, and search it in this order: **first the horizon store
-(§6a) for coins outside the 28 carrying a dated event inside 14 days, then the movers.**
+(§6a) for coins outside `tokens[]` carrying a dated event inside 14 days, then the movers.**
 A top-movers scan finds what has already happened, which is the opposite of the question
 this section asks; two consecutive runs returned «нет кандидатов» from it because everything
 it surfaced was a micro-cap that had already run. A coin with a dated unlock, vote, listing
@@ -360,9 +418,9 @@ that is spot-only by standing decision carries «Спот» in the Сторон�
 with no perpetual is not published as a futures trade.
 
 **The price of an outside-list candidate comes from the `x` array of
-`analyst/live.json`, on the same terms as the 28** — the same producer, the same
+`analyst/live.json`, on the same terms as the list** — the same producer, the same
 network, the same freeze, the same cast (§5). The payload carries the whole Binance
-USDⓈ-M perpetual book beside the 29-coin array: symbol, last price, 24-hour high and
+USDⓈ-M perpetual book beside the `c` array: symbol, last price, 24-hour high and
 low, 24-hour change and turnover. **Membership of `x` and tradability are the same
 fact**, so a symbol absent from it is not a Binance perpetual and the rule above already
 refuses it — there is no case left in which a level is published on a price from
@@ -428,6 +486,16 @@ untouched. The two thresholds gate attention rather than a verdict, so map inv. 
 govern them and they are deliberately uncalibrated. Fewer than eight rows clearing the
 floor and the screen says so rather than reporting a thin list as a finding (map inv. 22).
 
+**A candidate the screen produced and the filters passed is PUBLISHED, or refused by a
+NAMED rule.** «Нет достойных кандидатов.» asserts that the screen returned nothing, and
+it is the one sentence in §2 whose meaning a run can quietly change by declining what it
+found. A refusal is one line in the appendix naming the rule it rests on — filter 3, an
+admissibility leg, a catalyst veto, the side the regime admits (§2) — and a refusal that
+can name none of them is not a refusal, it is a preference. **Measured 03.09:** the long
+lane produced one row clearing every filter at $116M of turnover, the run declined it
+without naming a rule, and the section printed «Нет достойных кандидатов.» on a day whose
+headline was that there were no trades at all.
+
 **The field names are read from the payload at run time, never typed here.** The rule
 owns which quantities are needed — symbol, last, high, low, turnover — and the payload
 owns what they are called, exactly as the universe is cut from `tokens[]` rather than
@@ -452,6 +520,24 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
 - **A level carried in state is re-verified against live price before reuse.** If
   price has left the zone, the recommendation is withdrawn by name in the first line
   («снимаю X — цена ушла на +N%») before anything else.
+- **A `СОЗРЕВАЕТ` zone is MEASURED against the market every run, and a zone the market
+  is walking away from is withdrawn.** The item carries `gap` — the distance from the
+  frozen price to the near edge of its own zone, divided by that coin's own 24-hour range
+  — and `gap_prev`, the same number from the run that last looked, exactly as `oi_prev`
+  carries positioning (§5). The unit is the coin's own day, so the number is comparable
+  across coins and needs no threshold. **Two consecutive runs in which `gap` widened, and
+  the item is withdrawn by name** in the same first line as every other withdrawal (§11),
+  or its zone is re-cut and republished as what it has become. No numeral is written here
+  and none is needed: the test is a comparison, and a band written as a numeral is a
+  prior about the answer wearing the shape of a control (map inv. 49). This is the
+  computation the sentence above it — «a zone that cannot realistically fill inside 7–14
+  days is not published» — has always required and never named (map inv. 58).
+  **Measured 03.09:** LINK had been maturing since 29.08 with its zone 9 % under a market
+  that rose on every one of those days, BCH's sat 14 % under and the run's own note said
+  it was «дальше от рынка, чем утром», ARB's was 12 % under on the day it was opened —
+  and all three printed `БЕЗ ИЗМЕНЕНИЙ`. Three runs of the same three lines, each one
+  further from the market than the last, is precisely what «the answer never changes»
+  looks like from the reading end.
 - **Leverage is never issued unless the Boss explicitly asks.** It is then computed
   per System Map §3.2/§3.4 from a live board reading — never chosen, never
   reconstructed. Above `L_CAP` it is never issued however requested.
@@ -500,7 +586,7 @@ a Gist the engine cannot reliably fetch to the repository the engine already has
 
 ```
 source    analyst/live.json, read from the working tree — no network, no transport
-arrays    c — the 28-coin universe plus BTC, gate-validated row by row
+arrays    c — the tokens[] universe plus BTC, gate-validated row by row
           x — the whole Binance USDⓈ-M perpetual book, the price lane of §3B
 absent    no level of any kind is published
 ```
@@ -517,6 +603,45 @@ way to open it. **The 24-hour structural file is read the same way and for the s
 reason**: a day of the journal is tens of kilobytes of whole production objects written
 unrounded, and a run needs a few fields on a few coins. The discipline is about what a
 reader takes, never about which file it is taken from.
+
+**The 24-hour structural file, NAMED.** It is `journal/data/YYYY-MM-DD.jsonl`, written
+once per date by the verdict journal, and it is the only structural source this engine
+has. Until this revision the phrase «the 24-hour structural file» stood three times in
+this section and in the ages table below and was defined in none of them — no path, no
+command, no record kind — so a run that went looking found the journal directory, saw one
+file that was not it, and reported the whole structural layer unavailable. It did that on
+every run for a week, honestly each time. **A rule that names an object without naming
+how to compute it has named nothing** (map inv. 58), and this is the largest instance
+this file has carried.
+
+```
+path      journal/data/<most recent date present>.jsonl, at most 24 h older than the
+          freeze. Older, or absent, is a GAP — named in the appendix with the command
+          and its output, never inferred and never worked around
+find      ls journal/data/ | tail -3        one command, and its output is recorded
+read      by command, filtered, exactly as analyst/live.json is read above
+records   k:"s", one per covered coin. The structural objects are the row's `cd` — the
+          bot's analysis_data row, verbatim and unrounded — and `btc`, which is
+          coeffs.btc verbatim. Schema in map §3.13, read from the record, never copied
+          into this file
+serves    90d and 30d extremes, betas and their paired R², volatility, the weekly and
+          monthly returns, and the BTC object the regime word is produced from (§2)
+covers    the 25 spot assets of the list. The declared futures-only assets have no row
+          by construction (map §3.14, inv. 41), so their absence is DECLARED coverage
+          and is never reported as a gap — a line that fires every run about a fact
+          that is true every run is a label, not an alarm
+```
+
+**This is a read of a file in the tree and not a fetch, and that distinction is the whole
+of why it is permitted.** The ban above is on reaching over the network for
+`coeffs.json`: a fetched figure stands behind a published stop with no gate, no freshness
+class, and nothing anyone can reproduce once the session ends (map inv. 44). The journal
+carries the same numbers — committed, dated, and readable by anyone holding the
+repository — and it is gated by the same 24-hour age as every other structural quantity.
+Levels still come from the payload and from nothing else; what the structural file adds
+is the window this engine has been missing. **A structural quantity this engine needs is
+a gap reported by name, and it was reported, correctly, for a week, about a file that was
+one `ls` away.**
 
 **Reading a file cannot fail the way fetching one can.** Measured 2026-08-28: from an
 Executor session every market host is refused at CONNECT, the Gist raw host with them,
@@ -594,7 +719,8 @@ line and the run continues.
 
 **4 · Geometry — the freeze.** Every candidate that survives the state read gets its
 entry zone, invalidation and first target computed HERE, from the gate-fresh payload and
-the 24-hour structural file, and the anchoring price is recorded with them. **Outside-list
+the 24-hour structural file named above, and the anchoring price is recorded with them.
+**Outside-list
 candidates are frozen in this same step, from `x` (§3B)** — one payload, one moment, one
 anchor for every level in the answer, and no coin whose levels belong to a different
 minute from its neighbour's. This is the
@@ -639,7 +765,7 @@ chart.
 | Price anchoring a FROZEN entry / stop / target | **15 minutes** | **the freeze (step 4)** | `analyst/live.json` |
 | `СЕЙЧАС`, «цена в зоне», R:R — every claim about price | **anchored, not aged** | **the freeze, printed with the claim** (§2) | `analyst/live.json` |
 | 24 h high / low, volume, funding, open interest, mark | 1 hour | reading | `analyst/live.json` |
-| Structure — 90d/30d extremes, β, R², volatility | 24 hours | reading | journal / Gist `coeffs.json` |
+| Structure — 90d/30d extremes, β, R², volatility, the BTC regime object | 24 hours | reading | `journal/data/YYYY-MM-DD.jsonl`, read from the tree (§5) |
 | Catalyst dates, filings, votes, listings, unlocks | current | — | primary source only |
 
 **There is exactly ONE clock in a run and it stops at the freeze.** The fifteen minutes
@@ -1164,12 +1290,34 @@ reliable reader this system has.
     «Not acted on» is not one of its three states.
 32. **No lane's `sec6_md5` was written by a run that did not read the lane** (§6a), and
     every lane not read this run is named in the appendix with its previous read date.
+33. **The regime word was PRODUCED by executing `marketRegime` on the structural file's
+    `btc` object** (§2), never judged, and no setup was published on a side that word
+    does not admit (map inv. 30).
+34. **Every `СОЗРЕВАЕТ` item carries `gap` and `gap_prev`** (§4), and every item whose
+    gap widened on two consecutive runs was withdrawn by name or republished on a re-cut
+    zone.
+35. **`# РЕЖИМ` carries the spread and names every coin away from the list's extreme**
+    (§2). A regime sentence asserting «весь список» is checked against the computed rows
+    and never written from the impression of them.
+36. **Every candidate that cleared all four §3B filters and its lane test was published,
+    or refused by a rule named in the appendix** (§3B). «Нет достойных кандидатов.» was
+    printed only where the screen itself produced none.
+37. **The structural file was read by command** (§5), its path and row count recorded,
+    and an absent or stale file named as a gap with the command's output — never worked
+    around, and never mentioned to the Boss (§1).
+38. **No name stands in `ИЗБЕГАТЬ` whose only reason is the one `# РЕЖИМ` already states
+    for the whole list** (§2).
 
 **Every item on this list names a failure that happened, and the list grows only that
 way.** Items 12–18 were added after rules already written here were broken by runs that
 had read the file correctly; 19–24 name six failures of the two runs of 01.09; 25–28 name
 four of the run of 02.09, which was the most disciplined run this engine had produced and
-broke all four anyway; 29–32 name four of the run that followed it. **Three of 25–28 and
+broke all four anyway; 29–32 name four of the run that followed it. **33–38 name six of
+the two runs of 03.09, and five of them are one thing:** every rule here that needed a
+window longer than a day named its object and never its file, so the engine measured the
+day, called it the market, and printed the same page through a week in which the market
+moved twenty per cent. The sixth is the universe count, written into this file six times
+and stale in all six on the afternoon the owner widened the list. **Three of 25–28 and
 three of 29–32 are the same defect wearing six shapes** — the run decided something
 correctly and did not say it — which is why every one of them is checked against an
 artifact and never against the run's memory of its own answer. A rule stated in §2 and
@@ -1231,8 +1379,8 @@ the state read and the state write.
 - A catalyst can only veto (map inv. 31), and only when confirmed (inv. 39).
 - Squeeze framing comes from the system's own measures, never from vendor
   liquidation heatmaps; funding is a cost, not a signal.
-- The 28-coin universe is frozen by standing decision; the analyst never proposes
-  additions.
+- The universe is frozen between owner decisions (map inv. 2, inv. 59); the analyst
+  never proposes additions, and never writes its size into this file.
 
 ---
 
@@ -1257,7 +1405,8 @@ overwrites the empty seed.
 ```json
 { "v":1, "k":"state", "d":"YYYY-MM-DD", "ts":"ISO-8601Z",
   "items":[ { "id","type","sym","status","d","dclass","impact","note",
-              "entry","inv","tgt","trigger","oi_prev","first_seen","last_seen" } ],
+              "entry","inv","tgt","trigger","oi_prev","gap","gap_prev",
+              "first_seen","last_seen" } ],
   "archive":[ { "id","sym","d","closed","status" } ] }
 ```
 
@@ -1599,6 +1748,21 @@ publication, and a refusing host put on a next-attempt date instead of a search 
 forever. The last, `sec6_md5` written only by the read that produced it, is the one that
 matters most and is invisible: a migration that meant to strengthen the staleness control
 disarmed it on four lanes, and nothing anywhere would have reported that.
+
+**Revision 2026-09-03-a is the same mechanism reaching the one object this engine
+measures everything against: the WINDOW.** Four rules here needed a structural window and
+each named one — «the 24-hour structural file», «a zone that cannot realistically fill
+inside 7–14 days», «BTC regime supports the setup», «abnormal relative strength» — and not
+one of the four named a file, a command or a comparison. A run obeying all four correctly
+therefore had exactly one measurable window, the payload's own twenty-four hours, and in a
+week-long rally that window says the same thing every morning: the list is at its high,
+every entry is a chase, no trades. **The engine was not repeating itself — it was
+reporting, accurately, the only thing it could see**, and the four honest gap reports in
+its appendices were the defect describing itself. Naming the file repairs three of the
+four; the fourth, the regime's consequence for the admissible side, was a rule production
+already had and this file had never cited (map inv. 30). Nothing here is new analysis,
+nothing here tunes anything, and no threshold is added: what arrives is the means to obey
+four rules that were already written, and were already right.
 
 **One finding of the same audit is deliberately NOT repaired here, because it is not this
 file's.** The run executed from a harness worktree branch rather than from `main`, which
