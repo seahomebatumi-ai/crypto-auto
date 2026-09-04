@@ -38,32 +38,57 @@ CACHE = os.path.join(HERE, "cache")
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. ВЫРЕЗКА JS: scoreCandidate и его зависимости — из HTML, без копий
 # ─────────────────────────────────────────────────────────────────────────────
-JS_FUNCS = ["has", "clamp01", "sigmaDay", "volRegime", "scoreCandidate"]
+JS_FUNCS = ["has", "clamp01", "sigmaDay", "volRegime", "qualityScore",
+            "scoreFinish", "scoreCandidate"]
 JS_VARS = ["EFF_TREND", "PACE_Z", "VOL_ABNORMAL"]
+
+# Names a bundle may read without defining them. Deliberately short: this
+# is the escape hatch of the closure check below, and every entry on it is
+# an identifier the check can no longer catch.
+JS_GLOBALS = ["Math", "JSON", "isFinite", "isNaN", "parseFloat", "parseInt",
+              "Number", "String", "Array", "Object", "Date", "RegExp",
+              "Error", "require", "process", "console", "NaN", "Infinity"]
+# `name(` forms that are not calls.
+JS_KEYWORDS = frozenset(["if", "for", "while", "switch", "catch", "return",
+                         "typeof", "function", "new", "delete", "void",
+                         "do", "else", "try", "throw", "case", "in", "of",
+                         "instanceof"])
+
+
+def _js_noise_span(s, i):
+    """If s[i] opens a JS string literal or a comment, return the index where
+    that span ends; otherwise None. THE one description in this file of how a
+    string and a comment are traversed (inv. 20): _skip_to_matching_brace steps
+    over them with it and _strip_js_noise blanks them with it, so the two can
+    never disagree about what is code and what is prose."""
+    n = len(s)
+    c = s[i]
+    if c in "'\"":
+        q = c
+        i += 1
+        while i < n and s[i] != q:
+            i += 2 if s[i] == "\\" else 1
+        return i + 1
+    if c == "/" and i + 1 < n and s[i + 1] == "/":
+        while i < n and s[i] != "\n":
+            i += 1
+        return i                        # the newline itself is code again
+    if c == "/" and i + 1 < n and s[i + 1] == "*":
+        j = s.find("*/", i + 2)
+        return n if j < 0 else j + 2    # unterminated: the rest is prose
+    return None
 
 
 def _skip_to_matching_brace(s, i):
-    """i указывает на '{'. Возвращает индекс ПОСЛЕ парной '}'.
-    Пропускает строки '..' ".." и комментарии // /* */ — иначе '}' внутри
-    строки развалила бы вырезку."""
+    """i указывает на '{'. Возвращает индекс ПОСЛЕ парной '}'."""
     depth = 0
     n = len(s)
     while i < n:
+        j = _js_noise_span(s, i)
+        if j is not None:               # a '}' inside a string or a comment
+            i = max(j, i + 1)           # would otherwise end the function
+            continue
         c = s[i]
-        if c in "'\"":
-            q = c
-            i += 1
-            while i < n and s[i] != q:
-                i += 2 if s[i] == "\\" else 1
-            i += 1
-            continue
-        if c == "/" and i + 1 < n and s[i + 1] == "/":
-            while i < n and s[i] != "\n":
-                i += 1
-            continue
-        if c == "/" and i + 1 < n and s[i + 1] == "*":
-            i = s.find("*/", i + 2) + 2
-            continue
         if c == "{":
             depth += 1
         elif c == "}":
@@ -72,6 +97,69 @@ def _skip_to_matching_brace(s, i):
                 return i + 1
         i += 1
     raise ValueError("незакрытая функция")
+
+
+def _strip_js_noise(src):
+    """Blank every string literal and comment, preserving length and newlines.
+    A static scan over the result cannot read an identifier out of prose, and
+    offsets still line up with the original text."""
+    out = list(src)
+    i, n = 0, len(src)
+    while i < n:
+        j = _js_noise_span(src, i)
+        if j is None:
+            i += 1
+            continue
+        j = min(max(j, i + 1), n)
+        for k in range(i, j):
+            if out[k] != "\n":
+                out[k] = " "
+        i = j
+    return "".join(out)
+
+
+def _js_defined(txt):
+    """The names a piece of JS text declares — function names, var names and
+    every declared parameter. DERIVED from the text, never typed: a manifest
+    typed by hand is the defect this whole check exists to catch."""
+    names = set(re.findall(r"\bfunction\s+([A-Za-z_$][\w$]*)\s*\(", txt))
+    names |= set(re.findall(r"\bvar\s+([A-Za-z_$][\w$]*)", txt))
+    for m in re.finditer(r"\bfunction\s*(?:[A-Za-z_$][\w$]*)?\s*\(([^)]*)\)",
+                         txt):
+        names |= set(p.strip() for p in m.group(1).split(",") if p.strip())
+    return names
+
+
+def _assert_js_closed(bundle_src, driver_src, label):
+    """The assembled bundle must be CLOSED UNDER REFERENCE: every identifier it
+    reads is defined in the bundle, declared in the driver, or a JS global.
+    A hand-written extraction manifest goes stale the moment production splits a
+    helper out, and the failure is silent by construction — the drivers' per-row
+    `catch` turns the ReferenceError into a column of nulls and the run dies
+    hundreds of lines away comparing None with None. This raises at build time
+    naming the identifier instead. Direction of error is safe: a declaration
+    form this scan does not recognise raises, it never passes silently.
+    Returns the number of identifier occurrences examined (inv. 22)."""
+    b = _strip_js_noise(bundle_src)
+    known = _js_defined(b) | _js_defined(_strip_js_noise(driver_src))
+    known |= set(JS_GLOBALS)
+    seen = [m.group(1) for m
+            in re.finditer(r"(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(", b)
+            if m.group(1) not in JS_KEYWORDS]                # called
+    seen += [m.group(1) for m
+             in re.finditer(r"(?<![.\w$])([A-Z][A-Z0-9_]{2,})\b", b)]  # read
+    if not seen:
+        raise RuntimeError("замкнутость %s: сверено 0 идентификаторов — "
+                           "проверка ничего не проверила (инв. 22)" % label)
+    for name in seen:
+        if name not in known:
+            raise RuntimeError(
+                "замкнутость %s: связка ссылается на %s, а определения нет ни "
+                "в ней, ни в драйвере — вырезка отстала от продакшна "
+                "(инв. 20)" % (label, name))
+    print("  замкнутость %s: сверено %d обращений, %d имён, пропущенных 0"
+          % (label, len(seen), len(set(seen))))
+    return len(seen)
 
 
 def extract_js(html_path):
@@ -88,7 +176,9 @@ def extract_js(html_path):
         if not m:
             raise ValueError("в HTML не найдена константа " + name)
         out.append("var " + name + " = " + m.group(1).strip() + ";")
-    return "\n".join(out)
+    bundle = "\n".join(out)
+    _assert_js_closed(bundle, JS_DRIVER, "_score_bridge.js")
+    return bundle
 
 
 JS_DRIVER = r"""
@@ -1244,6 +1334,7 @@ def _extract_js_set(html_path, funcs, jvars, driver, bridge_name):
         if not m:
             raise ValueError("в HTML не найдена константа " + name)
         out.append("var " + name + " = " + m.group(1).strip() + ";")
+    _assert_js_closed("\n".join(out), driver, bridge_name)
     path = os.path.join(HERE, bridge_name)
     open(path, "w", encoding="utf-8").write(
         driver.replace("__EXTRACTED__", "\n".join(out)))
@@ -1745,6 +1836,8 @@ TGT_STEP_D = 7          # a daily grid would multiply setups without multiplying
 TGT_QUORUM_N = 60       # admitted setups, per side per arm
 TGT_QUORUM_D = 20       # contributing dates, per side per arm
 TGT_BOOT = 2000         # resamples, date blocks — as stops_summary does it
+TGT_H_LADDER = [1, 4, 8, 16, 32]   # multiples of H_NOISE, registered before data
+TGT_MONO_MIN_PTS = 3               # fewest grid points a monotonicity claim needs
 
 TARGET_DRIVER = r"""
 var fs = require('fs');
@@ -1879,9 +1972,16 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
         bcd = cdb.build(btc["prices"], [], bi, bpts, [])
         if bcd is None:
             continue
-        # Exactly the object leverageDecision reads: it takes volatility off
-        # btcStats and nothing else (map §3.3).
-        btc_stats = {"volatility": bcd["volatility"]}
+        # The WHOLE BTC record, because that is what production hands these
+        # functions: the board passes botData.btc, i.e. coeffs.btc entire.
+        # leverageDecision takes volatility off it (§3.3) and marketRegime
+        # takes r7 and r14 (§3.11); a hand-built subset silences the second
+        # reader to serve the first, and the recorded regime label could then
+        # only ever be `range` or `stress`. A bench that builds its own input
+        # proves the function and not the wiring (inv. 48). CdBuilder.build
+        # computes r7/r14/r30 with the bot's own window_stats — the same call
+        # main.py makes for BTC — so the faithful object costs nothing.
+        btc_stats = bcd
         jobs, meta = [], []
         for s, i, iF, _ in row:
             t_i = series[s]["prices"][i][0]
@@ -2164,6 +2264,44 @@ def report_target(sm):
               % (r["sym"], r["dates"], r["long"], r["short"], r["cont"]))
 
 
+def _tgt_probe_rr(html):
+    """The admissible set of K_GRID, MEASURED through production's own
+    tradeGeometry and never derived in Python (inv. 21).
+
+    One probe row at the most generous point production arithmetic allows:
+    E = 1, min30 and max30 at E so invalidationInfo's dStruct clamps up to the
+    INV_FLOOR_SD floor, and volatility immediately below VOL_STOP. RR is
+    largest exactly there — rr = (exp(k·vol·sqrt(H_NOISE)) − 1) /
+    (INV_FLOOR_SD·sigmaDay(vol)) grows with vol up to that cut — so a grid
+    point whose probe rr is below RR_MIN cannot hold a setup on ANY world, and
+    a bar requiring one there tests nothing. The long side dominates the short
+    for the same k (exp(x) − 1 > 1 − exp(−x)), so one long row bounds both.
+    tradeGeometry sets rr before it pushes any veto, so a refused row still
+    reports its number. Returns [(k, rr, admittable)]."""
+    vol = _read_js_num(html, "VOL_STOP") * (1 - 1e-9)
+    H = int(_read_js_num(html, "H_NOISE"))
+    rr_min = _read_js_num(html, "RR_MIN")
+    E = 1.0
+    q = vol * math.sqrt(H)
+    br = JsBridge(html, TARGET_JS_FUNCS, TARGET_JS_VARS, TARGET_DRIVER,
+                  "_tgt_bridge.js")
+    r = br.call([{"cd": {"volatility": vol, "min30": E, "max30": E,
+                         "min_price": E, "max_price": E},
+                  "E": E, "isLong": True, "H": H,
+                  "btcStats": {"volatility": vol, "r7": 0.0, "r14": 0.0},
+                  "hi24": E, "lo24": E,
+                  "subs": {_ak(k): E * math.exp(k * q) for k in K_GRID}}])[0]
+    if r is None:
+        raise RuntimeError("зонд допустимости не прошёл через продакшн-"
+                           "геометрию: сетку не с чем сверять (инв. 22)")
+    out = []
+    for k in K_GRID:
+        g = r["subs"][_ak(k)]["g"]
+        rr = g["rr"] if g else None
+        out.append((k, rr, rr is not None and rr >= rr_min))
+    return out
+
+
 # ── 11. --lab-selftest · known-answer worlds for the four experiments ───────
 def synth_hl(mode, n_coins=16, hours=16000, seed=3, sub=6):
     """Hourly series WITH intra-hour high/low built from `sub` substeps.
@@ -2350,27 +2488,113 @@ def lab_selftest(html, bot, seeds=3):
                                     c["calib_ci"][1]),
              "ОК" if d1 else "СТОП"))
 
+    # D2 · the grid is filled where production can fill it, and Ω falls where
+    # there is enough of it to fall. The admissible set is a MEASUREMENT of
+    # production geometry (the probe), not a hand-written expectation: k = 1.0
+    # is unreachable by production arithmetic, and the five-point form this
+    # replaces therefore asserted a property no world could satisfy.
     ov = [(sA["pooled"][_ak(k)] or {}).get("omega", float("nan"))
           for k in K_GRID]
     on = [(sA["pooled"][_ak(k)] or {}).get("n", 0) for k in K_GRID]
-    d2 = (all(np.isfinite(v) for v in ov)
-          and all(ov[i] > ov[i + 1] for i in range(len(ov) - 1)))
-    print("  D2 монотонность Ω(k): %s %s"
-          % (" > ".join("%.3f" % v for v in ov), "ОК" if d2 else "СТОП"))
+    probe = _tgt_probe_rr(html)
+    # D2a — emptiness matches admissibility exactly, and the grid fills
+    # monotonically: rr and tgtSig both grow with the target distance at fixed
+    # (vol, dist), so admission at k implies admission at every larger k.
+    d2a = (all((n > 0) == adm for (_, _, adm), n in zip(probe, on))
+           and all(on[i] <= on[i + 1] for i in range(len(on) - 1)))
+    # D2b — the Ω claim is made only where there is a quorum, and only if at
+    # least TGT_MONO_MIN_PTS points carry one: two points are not a trend.
+    qi = [i for i, k in enumerate(K_GRID)
+          if (sA["pooled"][_ak(k)] or {}).get("n", 0) >= TGT_QUORUM_N]
+    oq = [ov[i] for i in qi]
+    d2b = (len(qi) >= TGT_MONO_MIN_PTS and all(np.isfinite(v) for v in oq)
+           and all(oq[i] > oq[i + 1] for i in range(len(oq) - 1)))
+    d2 = d2a and d2b
+    print("  D2 монотонность Ω(k) на точках с кворумом: %s %s"
+          % (" > ".join("%.3f" % v for v in oq) if oq else "—",
+             "ОК" if d2 else "СТОП"))
     print("     допущено на точку сетки: %s"
           % " · ".join("k=%.1f n=%d" % (k, n) for k, n in zip(K_GRID, on)))
+    print("     зонд продакшн-геометрии (пол инвалидации, vol у VOL_STOP): %s"
+          % " · ".join("k=%.1f rr %s %s"
+                       % (k, "—" if rr is None else "%.4f" % rr,
+                          "допустима" if adm else "НЕДОСТИЖИМА")
+                       for k, rr, adm in probe))
+    print("     D2a пустота совпадает с недостижимостью, заполнение не убывает:"
+          " %s · D2b точек с кворумом %d (нужно %d): %s"
+          % ("ОК" if d2a else "СТОП", len(qi), TGT_MONO_MIN_PTS,
+             "ОК" if d2b else "СТОП"))
 
-    dB = run_target(w, bot, html, btc, k_grid=[], H_override=8 * H1,
-                    verbose=False)
-    bm = target_summary(dB, html, ks=[], H=8 * H1)["pooled"]["prod"]
-    d3 = bool(bm and bm["model_odds"] and np.isfinite(bm["omega"])
-              and bm["p_none"] < 0.05
-              and abs(bm["omega"] - bm["model_odds"]) <= 0.15 * bm["model_odds"])
-    print("  D3 тождество на 8×%dч: P(никуда) %s · Ω %s против Σq/Σ(1−q) %s %s"
-          % (H1, "—" if not bm else "%.3f" % bm["p_none"],
-             "—" if not bm else "%.3f" % bm["omega"],
-             "—" if not bm or bm["model_odds"] is None
-             else "%.3f" % bm["model_odds"], "ОК" if d3 else "СТОП"))
+    # D3 · the two-barrier limit, read off a LADDER instead of one rung. The
+    # single-rung form this replaces carried two hand-written numerals, and a
+    # band deciding whether a measurement is plausible is derived from the null
+    # computed in the same run, never typed into the rule (inv. 49). Nothing
+    # below is a number about the outcome: escape must decay, the gap to the
+    # closed form must shrink, and the limit must be reached where escape has.
+    lad = []
+    for m in TGT_H_LADDER:
+        Hm = m * H1
+        dL = run_target(w, bot, html, btc, k_grid=[], H_override=Hm,
+                        verbose=False)
+        lad.append((m, target_summary(dL, html, ks=[], H=Hm)["pooled"]["prod"]))
+
+    def _gap(pm):                       # |Ω − Σq/Σ(1−q)| / (Σq/Σ(1−q))
+        if not pm or not pm["model_odds"] or pm["model_odds"] <= 0:
+            return None
+        return (abs(pm["omega"] - pm["model_odds"]) / pm["model_odds"]
+                if np.isfinite(pm["omega"]) else None)
+
+    pn = [(pm["p_none"] if pm and pm["p_none"] is not None else None)
+          for _, pm in lad]
+    gp = [_gap(pm) for _, pm in lad]
+    print("  D3 предельный переход, лестница H = m×%dч:" % H1)
+    for (m, pm), g in zip(lad, gp):
+        if not pm:
+            print("    m=%-3d H=%-5d сетапов нет" % (m, m * H1))
+            continue
+        print("    m=%-3d H=%-5d n=%-5d дат %-4d %-12s P(никуда) %.3f · "
+              "Ω %s · Σq/Σ(1−q) %s · разрыв %s"
+              % (m, m * H1, pm["n"], pm["n_dates"],
+                 "кворум" if pm["quorum"] else "НИЖЕ КВОРУМА",
+                 pm["p_none"] if pm["p_none"] is not None else float("nan"),
+                 "—" if not np.isfinite(pm["omega"]) else
+                 "%.3f [%.3f; %.3f]" % (pm["omega"], pm["omega_ci"][0],
+                                        pm["omega_ci"][1]),
+                 "—" if pm["model_odds"] is None else "%.3f" % pm["model_odds"],
+                 "—" if g is None else "%.1f%%" % (100 * g)))
+    have_pn = all(v is not None for v in pn)
+    d3a = (have_pn and all(pn[i] >= pn[i + 1] for i in range(len(pn) - 1))
+           and pn[-1] < pn[0])
+    d3b = (gp[0] is not None and gp[-1] is not None and gp[-1] < gp[0])
+    cand = [i for i, (_, pm) in enumerate(lad)
+            if pm and pm["quorum"] and gp[i] is not None]
+    istar = min(cand, key=lambda i: gp[i]) if cand else None
+    med = float(np.median([v for v in pn if v is not None])) if have_pn else None
+    if istar is None or med is None:
+        d3c = False
+    else:
+        pstar = lad[istar][1]
+        d3c = bool(pstar["omega_ci"][0] <= pstar["model_odds"]
+                   <= pstar["omega_ci"][1] and pstar["p_none"] <= med)
+    d3 = d3a and d3b and d3c
+    print("     D3a уход затухает: P(никуда) %s %s"
+          % (" → ".join("—" if v is None else "%.3f" % v for v in pn),
+             "ОК" if d3a else "СТОП"))
+    print("     D3b сближение с замкнутой формой: разрыв %s → %s %s"
+          % ("—" if gp[0] is None else "%.1f%%" % (100 * gp[0]),
+             "—" if gp[-1] is None else "%.1f%%" % (100 * gp[-1]),
+             "ОК" if d3b else "СТОП"))
+    print("     D3c предел там, где уход затух: %s %s"
+          % ("рунгов с кворумом нет" if istar is None else
+             "наименьший разрыв на m=%d · Σq/Σ(1−q) %.3f %s ДИ95 Ω "
+             "[%.3f; %.3f] · P(никуда) %.3f против медианы %.3f"
+             % (lad[istar][0], lad[istar][1]["model_odds"],
+                "внутри" if (lad[istar][1]["omega_ci"][0]
+                             <= lad[istar][1]["model_odds"]
+                             <= lad[istar][1]["omega_ci"][1]) else "ВНЕ",
+                lad[istar][1]["omega_ci"][0], lad[istar][1]["omega_ci"][1],
+                lad[istar][1]["p_none"], med),
+             "ОК" if d3c else "СТОП"))
 
     n_cmp, n_diff = 0, 0
     for d in dA:
