@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-03-c.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-04-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -154,6 +154,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 |---|---|---|---|---|---|
 | XXX | ЛОНГ | $X–$X | $X | $X–$X | СЕЙЧАС $X |
 | XXX | ШОРТ | $X–$X | $X | $X–$X | ЖДАТЬ |
+Шанс дойти за 7 дней: XXX цель XX% / стоп XX% · XXX цель XX% / стоп XX%
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
 **МОНЕТА** — вход $X–$X · стоп $X · цель $X. Почему: одно предложение.
@@ -164,6 +165,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 # СОЗРЕВАЕТ ≤14 ДНЕЙ
 **МОНЕТА — ЛОНГ** — тезис одним предложением.
 Что должно случиться: [ДД.ММ событие / цена $X] · зона $X–$X · инвалидация $X · цель $X.
+Шанс дойти до зоны за 7 дней: XX%
 
 # ПОЗИЦИИ
 **МОНЕТА — ЛОНГ** — [Держать / Сокращать / Закрыть / Развернуть] · инвалидация $X · цель $X.
@@ -206,11 +208,19 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 - **ЛУЧШИЕ СДЕЛКИ СЕЙЧАС** carries only trades that clear the quality bar right now.
   None clear it → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** plus one short sentence of
   reason, then the strategy table carries the pending triggers.
-- **The line under a published R:R carries two numbers and nothing else** — the chance
+- **The two touch probabilities go with the SETUP, not with the R:R line** — the chance
   of the target being reached inside the holding horizon and the chance of the stop being
-  reached, computed in §4. It is printed where R:R is printed and nowhere else, and a coin
-  with no structural row prints the R:R line alone, with nothing said about the absence
-  (§1, §4).
+  reached, computed in §4, printed for every published setup that has a structural row,
+  in whatever section it appears: the best-trades block, the strategy table, and the
+  `СОЗРЕВАЕТ` item, whose number is the chance of its own zone being reached. A coin
+  without a structural row prints its line as before, with nothing said about the absence
+  (§1). **Revision `-c` scoped the pair to the R:R, and R:R prints in one section that is
+  empty on most days:** measured 04.09, the run computed all six numbers, logged them, and
+  withheld every one of them because `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` read «СДЕЛОК СЕЙЧАС НЕТ» — so
+  the Boss read three `ЖДАТЬ` rows whose targets carried a 0.3–0.4 % chance of being reached
+  in a week and whose stops carried 10 % to 43 %, and the engine had every one of those
+  figures in front of it. A measurement withheld is the defect it was written to prevent,
+  arriving one section to the left.
 - **СТРАТЕГИЯ — МОЙ СПИСОК** lists only coins with a real setup. Never padded to
   look complete. A coin with no setup and no trigger does not appear; a coin that
   must be avoided appears in `ИТОГ` under ИЗБЕГАТЬ with no row.
@@ -301,6 +311,16 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   collapsed line printed «Без изменений» over six items the same run had written to state
   as `НЕ ПРОВЕРЕНО`. The answer and the state said opposite things about the same six
   events on the same morning, and only one of them was on the Boss's screen.
+- **The status word is DERIVED from the item's `unver` counter and is never chosen beside
+  it** (§11). Nothing here is a judgement: at `unver` of one or more the word is
+  `НЕ ПРОВЕРЕНО`, and `БЕЗ ИЗМЕНЕНИЙ`, `ПРИБЛИЖАЕТСЯ` and `ИЗМЕНИЛОСЬ` may be written only
+  by a run that re-read the primary this run. **Measured 04.09:** the answer printed
+  «БЕЗ ИЗМЕНЕНИЙ: CPI США 11.09 · заседание ФРС 16.09» over items standing at `unver` 5 and
+  2, the run's own appendix recorded that it had attempted no primary read at all, and
+  every one of the three items it printed in full carried its impact tag and no status word
+  whatever. Two years of vocabulary and a counter, and the one word that tells the Boss
+  whether anybody has looked was absent where it was mandatory and reassuring where it was
+  false.
 - **`Что меняет` names coins or a field of `ИТОГ`, never a mood.** A tag alone
   («Эффект: ШОРТ · ВЫСОКОЕ») says what the event is and not what to do about it, so
   every item ends with one clause naming which setups it strengthens, weakens or
@@ -331,11 +351,38 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   itself survives the demotion intact: the coin stays in `ИЗБЕГАТЬ` on its `signal` item
   and is re-argued every run, which is what an unverified date deserves. Measured 02.09: three dated prohibitions
   rested on aggregator dates with no primary; under `dclass` all three now print bare.
+- **A DATE may be published only in the class §6 admits, and a setup resting on a date
+  inherits that test.** The rule already binds the dated prohibition above; it binds the
+  catalyst item and the trade with more force, because a prohibition costs the Boss a trade
+  he might have taken and a setup costs him the trade he takes. A dated item printed in
+  `# КАТАЛИЗАТОРЫ`, and any setup whose thesis is that dated event, requires the backing
+  item's `dclass` to be `primary` or `archive` (§11); at `none` the date is carried in state
+  and internally, the item does not print, and nothing is published on it — which is exactly
+  what §6 already says about a catalyst carried only by aggregators, arriving in the section
+  that prints one. **Measured 04.09:** the sole outside-list candidate of the run was
+  published on a protocol upgrade dated from a crypto news aggregator, its own state entry
+  recorded `dclass:none`, and the same date was printed as a catalyst item beneath it. The
+  refusal is not a loss: the coin returns the moment the protocol's own publication is read,
+  and it is one lookup.
 - **Every coin named in `ИЗБЕГАТЬ` is state-backed with a CURRENT reason.** It is a
   published position: it keeps the Boss out of a trade, it is repeated run after run, and
   its reason decays exactly like a thesis's. A name carried in that field with no `items[]`
   entry cannot be re-examined, cannot expire and cannot be withdrawn — it just accumulates.
   Either the entry exists with today's reason, or the name leaves the field.
+  **«Today's» is the run's own date on the backing entry and is compared, not felt:**
+  measured 04.09, all nine names in the field rested on entries dated the previous day and
+  carried `БЕЗ ИЗМЕНЕНИЙ`, and two named coins no stage of that run had looked at.
+- **A coin the engine cannot BUILD a setup for is not a prohibition and never enters
+  `ИЗБЕГАТЬ`.** The five declared futures-only assets carry no `cd` row by construction
+  (§5, map §3.14), so no long can be cut for them and the regime closes the other side;
+  that is this engine's coverage, not a finding about the coin, and §5 already refuses to
+  report the same absence as a gap for the same reason — a line that fires every run about a
+  fact that is true every run is a label, not an alarm (map inv. 41). Printing them tells
+  the Boss to avoid the assets he trades as perpetuals because a spot journal has no row for
+  them, which is the engine's blindness published as advice. The per-coin refusal is
+  recorded in the appendix as §3A requires and reaches the Architect there; the field carries
+  prohibitions the run can argue. **Measured 04.09:** five of the nine names in `ИЗБЕГАТЬ`
+  were these, and they will be these every run for as long as the declaration stands.
 - **A refusal the WHOLE LIST shares is a regime fact and is stated once, in `# РЕЖИМ`.**
   `ИЗБЕГАТЬ` carries what is true of a coin, never what is true of the market. When one
   sentence — «вход сейчас погоня» — is the entire reason behind a dozen names, the field
@@ -613,16 +660,34 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   archive backtest, and this file does not act on it — a continuation target with no
   backtest behind it is precisely what map inv. 32 forbids. What a run owes here is the
   computation and the named refusal, never a more convenient number.
-- **Beside every published R:R stand two touch probabilities — the target's and the
-  stop's, over the holding horizon.** `touchProb` is cut from `index.html` and executed,
-  exactly as `invalidationInfo` and `marketRegime` are and for the same reason (map
+- **Every published setup carries two touch probabilities — the target's and the stop's,
+  over the holding horizon — and they are printed wherever it is printed** (§2).
+  `touchProb` is cut from `index.html` and executed, exactly as `invalidationInfo` and
+  `marketRegime` are and for the same reason (map
   inv. 21); its arguments are read from its own signature at cut time and are never typed
   here. What is supplied is the log distance from the anchor to the level, the coin's own
   volatility from `cd` (§5), and production's own seven-day horizon `H_NOISE` — the same
   window the leverage engine, the break-even block and the noise ceiling already use, so
   this number cannot disagree with one the board prints. **No constant is introduced, no
   threshold is created, and no new input is read:** the two inputs are the anchor and `cd`'s
-  volatility, and the ages table below already governs both.
+  volatility, and the ages table below already governs both. **The horizon runs from the
+  FILL and not from today:** on a waiting row the anchor is a price the market has not
+  reached, so the number answers «once filled here, what are the chances inside the week»,
+  and discounting it by the wait mixes two horizons into a figure nothing here measures.
+- **A coin refused ONLY on `RR_MIN` at its anchor is a `СОЗРЕВАЕТ` candidate, and its
+  trigger price is COMPUTED.** The refusal says the ratio fails at the entry the run cut, and
+  the same two-pass construction run at deeper entries yields the price at which that coin's
+  own R:R reaches `RR_MIN` against the same structural stop and the same target — monotone in
+  the entry, so the price exists whenever the refusal was a ratio and not a veto. **That price
+  is what must happen** (§2): the item carries it with the zone, the invalidation and the
+  target it would create, and the chance of that zone being reached inside the horizon is
+  both its printed number and its ranking key, so the three items printed are the three most
+  likely to arrive. No threshold is added and nothing here decides publication — admissibility
+  is §2's unchanged test, and the `gap` rule above is what withdraws an item. **Measured
+  04.09:** twenty-two coins were refused at the anchor, six of them between 1.31 and 1.72
+  against `RR_MIN`, and the section printed «Нет достойных кандидатов.» for the third
+  consecutive run — a sentence asserting that a search ran, printed over a table of candidates
+  the same run had computed and filed in its own appendix.
 - **The pair gates nothing, and it is printed because the ratio hides what it measures.**
   R:R is two distances; it says nothing about whether either is reachable inside the window
   the Boss holds for, and §7 item 6 has asked «target reachable inside the holding window»
@@ -644,6 +709,18 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   was. That is every outside-list candidate, which carries chart-and-catalyst reads only
   (§3B), and it costs the answer no sentence: an absence explained is the banned class of
   §1 arriving through a new door.
+- **A production function this file mandates cutting is EXTRACTED BY COMMAND, with the
+  constants it reads, and the command is recorded** (§12). Three are named — `marketRegime`
+  (§2), `invalidationInfo` and `touchProb` (here) — and each reads thresholds declared
+  elsewhere in `index.html`. A function copied into a scratch file by hand, however
+  faithfully, arrives beside constants that were TYPED, and a typed threshold is a second
+  copy of a number the system allows in exactly one place (map inv. 20, 21, 38). The
+  extraction takes the function and its constants from the source in one operation, the log
+  records the command and the span it cut, and no value of `RR_MIN`, `INV_FLOOR_SD`,
+  `INV_CAP_SD`, `TGT_SIGMA_MIN`, `ENTRY_CHASE_SD` or `H_NOISE` is hand-entered anywhere in
+  the run. **Measured 04.09:** the geometry harness was built by porting the functions
+  «verbatim» and listing five constants beside them in the log. Every number was right, and
+  nothing in the run could have reported it if one had not been.
 - **Leverage is never issued unless the Boss explicitly asks.** It is then computed
   per System Map §3.2/§3.4 from a live board reading — never chosen, never
   reconstructed. Above `L_CAP` it is never issued however requested.
@@ -1347,6 +1424,17 @@ objection was intelligent and each was recorded honestly. **A rule that can be r
 past is a suggestion**, and a run reasoning in the moment before it publishes is the least
 reliable reader this system has.
 
+**The checklist is an ARTIFACT, not a feeling.** It is run item by item against the composed
+answer and the written state, and the log carries one line per item with its verdict (§12).
+A run that records «checked informally, no miss identified» has checked nothing anyone can
+audit, and it passes every item it did not think about. **Measured 04.09:** that sentence
+stood in the log over four broken items — a positioning read nobody took, three printed
+catalyst items with no status word between them, a screen whose first mandated lane went
+unrecorded, and six probabilities computed, logged and withheld from the answer. The work
+that did happen is invisible for the same reason the work that did not is: **a checklist
+whose output is one sentence about the checklist has produced no evidence about anything**,
+which is the shape §7 exists to replace.
+
 1. The §5 gate passed in full, and every level in the answer traces to the one freeze
    (§5). Elapsed time since the freeze is not a checklist item and downgrades nothing.
 2. Every named instrument actually tradable on a Binance USDⓈ-M perpetual.
@@ -1394,12 +1482,17 @@ reliable reader this system has.
     he can trade on a perpetual is a coin he can be warned about; with the right class — bare
     name for an entry refusal, `XXX до ДД.ММ` for a dated one (§2).
 22. **Every catalyst whose primary was not re-read this run carries `НЕ ПРОВЕРЕНО`**
-    (§6), decided by the source class that answered and recorded per item in the log.
+    (§6), decided by the source class that answered and recorded per item in the log. The
+    word is DERIVED from `unver` (§11) and never written beside it, and the DATE exemption
+    stops an item closing without letting its clause keep working.
 23. **Every published setup carries the positioning read** — funding, open interest and
     mark are in the payload row beside the price, and §5 step 6 has required them since
     revision `2026-09-01-a`. Four consecutive runs printed funding or nothing and none
     read the two columns beside it: a clause with no checklist item is a clause that
-    never runs.
+    never runs. **The artifact is the log** (§12): `fr`, `oi`, `mark` and the `oi_prev`
+    each was compared against, per published setup. It reaches the ANSWER only where it
+    moves a level (§1). Measured 04.09: three setups were published, `oi_prev` was written
+    to state for all three, and no reading of any kind appears in the log or the answer.
 24. **Every dated item in `items` appears in the answer**, in full or in the collapsed
     line (§2). A tracked event the Boss cannot see is one the next run will call
     unchanged.
@@ -1461,8 +1554,19 @@ reliable reader this system has.
     and `invalidationInfo` was executed at that price rather than at the freeze. Checked
     per row against the anchor recorded in the log (§12), never against the impression
     that the numbers look consistent.
-44. **Every published R:R carries its two touch probabilities** (§4), or the coin has no
-    structural row. Neither number was used to refuse, downgrade or promote anything.
+44. **Every published setup with a structural row carries its two touch probabilities in
+    the ANSWER** (§2, §4), in whatever section it is published — not merely computed, not
+    merely logged. Neither number was used to refuse, downgrade or promote anything.
+45. **Every printed catalyst item carries BOTH its impact tag and its status word** (§2),
+    checked per printed item and not per section, collapsed line included.
+46. **Every dated catalyst printed, and every setup whose thesis rests on a dated event,
+    carries `dclass` `primary` or `archive`** (§2, §6). At `none` nothing is published on
+    the date.
+47. **Every name in `ИЗБЕГАТЬ` has a backing entry dated TODAY** (§2), and no name stands
+    there for want of a structural row.
+48. **Every `СОЗРЕВАЕТ` candidate the anchor pass produced was published or refused by a
+    named rule** (§4). «Нет достойных кандидатов.» was printed only where that pass
+    produced none.
 
 **Every item on this list names a failure that happened, and the list grows only that
 way.** Items 12–18 were added after rules already written here were broken by runs that
@@ -1484,7 +1588,10 @@ are one object error:** every level was computed at the frozen price and publish
 an entry the Boss would have filled somewhere else, which put a stop inside the noise floor
 on one coin and emptied a whole section on four others — the same mistake with opposite
 signs, invisible in both directions because each number was internally consistent with the
-price it was measured at. **Three of 25–28 and
+price it was measured at. **45–48 name four more of the same run, and the audit that found
+them is the one §7 cannot make of itself:** every one was invisible from inside, because a
+run that skips a stage skips the check on it, and three of the four were caught only by
+reading the answer against the state file beside it. **Three of 25–28 and
 three of 29–32 are the same defect wearing six shapes** — the run decided something
 correctly and did not say it — which is why every one of them is checked against an
 artifact and never against the run's memory of its own answer. A rule stated in §2 and
@@ -1664,6 +1771,25 @@ consecutive runs its ASSESSMENT has gone unrefreshed; the second one closes it a
 and any run that re-reads the primary resets the count to zero. Without the counter the
 status is a label that can be carried forever, which is the state it exists to end.
 
+**The STATUS WORD is derived from the counter, not written beside it.** `unver` of one or
+more IS `НЕ ПРОВЕРЕНО`; only a run that re-read the primary this run may write
+`БЕЗ ИЗМЕНЕНИЙ`, `ПРИБЛИЖАЕТСЯ` or `ИЗМЕНИЛОСЬ`. The two were defined in the same paragraph
+and never tied, so a run could increment the counter honestly and print the reassuring word
+one field to the left of it — measured 04.09, five items stood at `unver` 2, 3, 4 and 5
+carrying `БЕЗ ИЗМЕНЕНИЙ`, and the answer printed that word over the two of them the Boss
+could see.
+
+**The DATE exemption stops an item CLOSING; it never keeps its clause WORKING.** At `dclass`
+`primary` or `archive` the item survives its second unrefreshed run as a dated fact and
+appears in the collapsed line. What it may no longer do is the work named above — hold a
+side, cap a confidence, keep a coin in `ИЗБЕГАТЬ` — because that clause is a run's judgement
+and the counter measures exactly how long ago it was made. **Measured 04.09:**
+`cat-zec-nu7-2026-09-14` stood at `unver` 5 and was still holding ZEC out of entry on both
+sides, and `cat-us-nfp-2026-09-04` stood at `unver` 4 on the morning of the event it names,
+in a run whose appendix records no primary read at all. Neither date was ever in doubt; the
+assessment resting on it had not been looked at in five runs, which is precisely the
+distinction this section drew and then failed to enforce.
+
 **`archive` exists for one reason: a recurring event must never be rediscovered.** It
 carries no levels and no thesis — only enough to recognise that an id was seen and
 closed. Entries older than 180 days are dropped. It is not a journal and is never
@@ -1777,7 +1903,9 @@ the anchor price of every published level, and the two touch probabilities
 the source class that answered per carried catalyst: primary / archive / none,
   and per item: the host, what it answered, the field taken from it
 every lane NOT read this run, with its previous read date and its stored sec6_md5
-the oi reading stored per item and the previous one it was compared against
+the fr, oi and mark read per published setup, and the oi_prev each was compared against
+every production function cut from index.html, with the command and the span it cut
+the §7 checklist, one line per item with its verdict
 every lifecycle transition, with the reason for it
 the searches that changed a conclusion
 any catalysts.json proposal (§6)
@@ -1964,6 +2092,34 @@ the computation §7 item 6 has always required: R:R is two distances and cannot 
 either is reachable inside the week, so `touchProb` is cut from production and the two
 chances are printed beside it. **It gates nothing, by construction**, because a displayed
 number that may refuse a trade is a filter nobody calibrated.
+
+**Revision 2026-09-04-a is the audit of the first run to execute under `-c`, and its
+headline is that `-c`'s own repair was withheld from the Boss by `-c`'s own scoping.** The
+anchor rule worked and is measured: three setups cleared `RR_MIN` only at their own anchor,
+two of which did not exist at the freeze. The touch pair worked too — and it was scoped to
+«beside the published R:R», while R:R prints in one section that was empty that morning, so
+six computed numbers went into the log and none onto the screen. **A measurement that
+reaches the log and not the answer has been taken and not made**, and that is the general
+lesson: an output is scoped to the OBJECT it describes, never to the section that happened
+to carry it when the rule was written.
+
+Five more repairs come from the same run and none is new analysis. The status word is now
+derived from `unver`, because a counter and a word that disagree let five unchecked items
+print «БЕЗ ИЗМЕНЕНИЙ» and let a five-run-old assessment keep a coin out of entry. A published
+date now answers to the class §6 already demands of every other date, because the run's only
+outside-list trade rested on an aggregator's. A coin the engine cannot build a setup for
+leaves `ИЗБЕГАТЬ`, because five declared futures-only assets appearing there every run is
+coverage printed as advice. `СОЗРЕВАЕТ` gets the construction it never had, after a third
+consecutive «Нет достойных кандидатов.» printed over twenty-two computed refusals. And the
+cut is a command with its constants, because a hand-ported harness is one keystroke from the
+second implementation this system bans in every other file.
+
+**The one that makes the rest hold is the dullest.** The run recorded «checklist run against
+items 1-44 informally; no open miss identified» — a sentence that passes every item nobody
+thought about, over four items that were broken. §7 is now an artifact with a verdict per
+item in the log. A checklist that reports on itself is not a control, and it is the same
+failure as a refusal that is not printed: the work may have happened, and nothing anywhere
+shows that it did.
 
 **One finding of the same audit is deliberately NOT repaired here, because it is not this
 file's.** The run executed from a harness worktree branch rather than from `main`, which
