@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-04-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-04-b.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -154,7 +154,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 |---|---|---|---|---|---|
 | XXX | ЛОНГ | $X–$X | $X | $X–$X | СЕЙЧАС $X |
 | XXX | ШОРТ | $X–$X | $X | $X–$X | ЖДАТЬ |
-Шанс дойти за 7 дней: XXX цель XX% / стоп XX% · XXX цель XX% / стоп XX%
+Шанс дойти за 7 дней, если вход исполнился: XXX цель XX% / стоп XX% · XXX цель XX% / стоп XX%
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
 **МОНЕТА** — вход $X–$X · стоп $X · цель $X. Почему: одно предложение.
@@ -293,8 +293,28 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   already telling the run to speak them — because a run was asked at the end to remember
   what it had decided in the middle. A list produced from an artifact cannot forget
   (map inv. 58).
+- **A closure is reported in `ЗАКРЫТО` and is not ALSO printed as a forward item.**
+  `ВПЕРЕДИ` and `ДАЛЬШЕ` carry dated events that have not happened; a cancelled event has no
+  date left, and §6 does not publish an event with no time. Measured 04.09, second run: the
+  ZEC upgrade appeared twice — undated under `ДАЛЬШЕ`, and again in `ЗАКРЫТО` — in a run whose
+  own appendix had just refused, correctly and in writing, to open an undated successor item
+  for that exact reason.
 - **BTC gets four lines maximum.** It sets the environment for altcoin exposure and
   is not itself the product.
+- **Every price in `# BTC` is COMPUTED from the structural `btc` object, and its derivation
+  is recorded** (§12). This section prints the levels that decide whether the rest of the
+  answer stands — «под $77 400 снимаю все три» is the whole strategy table conditioned on one
+  number — and no rule here has ever said where they come from. Two objects are already in
+  hand and no third is needed: the 90-day extremes carried in `btc`, and the price at which
+  `marketRegime` stops returning the mode it returned this run, obtained by inverting that
+  function on the same object — the run holds today's price and the fourteen-day return, so
+  the price that brings `eff` to `EFF_TREND` is DETERMINED rather than chosen. That is the
+  level the Boss needs, because it is the price at which the side this answer publishes
+  stops being admitted. **Nothing here is read off a chart, off the web or off a round
+  number** (§5), and the inversion is the technique §4 already uses to find a `СОЗРЕВАЕТ`
+  trigger. **Measured 04.09, second run:** the appendix documented every setup level to six
+  digits across sixteen numbered sections, and the three BTC levels governing all of them
+  appeared in none of it.
 - **КАТАЛИЗАТОРЫ: 3–5 items, each tied to an action and placed relative to the
   analysis moment** — уже было сегодня / идёт сейчас / впереди сегодня / дальше.
   Same-day items carry a clock time, later items a date. An event with no stated
@@ -383,6 +403,17 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   recorded in the appendix as §3A requires and reaches the Architect there; the field carries
   prohibitions the run can argue. **Measured 04.09:** five of the nine names in `ИЗБЕГАТЬ`
   were these, and they will be these every run for as long as the declaration stands.
+- **A coin refused because the MODEL has no target left is not a prohibition either.**
+  `tradeGeometry` vetoes a setup whose 90-day extremum already sits behind price, and in a
+  trend that veto lands on the coins LEADING the list. The refusal is correct — with no
+  target there is no R:R and no setup — and it is a statement about a mean-reversion target
+  in a trending market (map §3.12), not about the coin. Printed as `ИЗБЕГАТЬ` it tells the
+  Boss to avoid the strongest names on his own list every day the trend runs, which is the
+  bullet above in its second shape: a limit of the engine published as advice. The coin
+  leaves the field and the per-coin refusal stays in the appendix (§3A); a coin that is also
+  extended is still refused by the anti-chase test, which is measured separately and reaches
+  `ИЗБЕГАТЬ` on its own. **Measured 04.09, second run:** ZEC and UNI stood in the field on
+  this veto alone, and the same run's table shows neither had failed the chase test.
 - **A refusal the WHOLE LIST shares is a regime fact and is stated once, in `# РЕЖИМ`.**
   `ИЗБЕГАТЬ` carries what is true of a coin, never what is true of the market. When one
   sentence — «вход сейчас погоня» — is the entire reason behind a dozen names, the field
@@ -697,6 +728,20 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   and a run that believes otherwise records the objection and obeys (§7). That is the
   standing production gives every printed measure (map inv. 27), and it is what keeps a
   displayed number from becoming an unmeasured filter.
+- **The pair has already done the thing it was built for, and what it found is NOT this
+  file's to repair.** On the first run that printed it, all three published setups carried a
+  target the model gives a 0.4 % chance of reaching inside the holding horizon, against stops
+  at 10 %, 32 % and 43 %; the run obeyed the clause above, published all three, and recorded
+  the objection (§7). The objection is correct and the diagnosis is production's:
+  `tradeGeometry`'s target is always the 90-day extremum, in a trend that extremum sits three
+  weekly sigmas away, and `RR_MIN` is a ratio of two distances with no horizon in it — so it
+  admits a payoff the holding window will not deliver while the loss inside that window is
+  fully live. **That is the open architectural item map §3.12 names and map §10 gates on an
+  archive backtest**, and it is now gated on a measurement rather than on a suspicion.
+  Nothing here moves in the meantime: no threshold on the pair, no ceiling on the reward's
+  sigma count, and no continuation target invented inside a methodology file (map inv. 32).
+  What has changed is that the Boss sees the number, which is the entire reason it is
+  printed.
 - **The two are never combined into a third.** They are touch events on one horizon and not
   a partition — both levels can be reached inside the same week — and the probability of the
   target being reached FIRST is a closed decision: without drift it is `b/(a+b)`, which is
@@ -1427,7 +1472,9 @@ reliable reader this system has.
 **The checklist is an ARTIFACT, not a feeling.** It is run item by item against the composed
 answer and the written state, and the log carries one line per item with its verdict (§12).
 A run that records «checked informally, no miss identified» has checked nothing anyone can
-audit, and it passes every item it did not think about. **Measured 04.09:** that sentence
+audit, and it passes every item it did not think about. **An item that does not apply to
+this run is recorded «н/п» with the reason it does not apply**, because that is a verdict
+and an absent line is not. **Measured 04.09:** that sentence
 stood in the log over four broken items — a positioning read nobody took, three printed
 catalyst items with no status word between them, a screen whose first mandated lane went
 unrecorded, and six probabilities computed, logged and withheld from the answer. The work
@@ -1451,7 +1498,12 @@ which is the shape §7 exists to replace.
    уже пройден» refused the entire list every time, including on the run that measured
    the trend at more than twice its own threshold.
 5. Stop sits at a structural level, not at a round number.
-6. Target reachable inside the holding window; R:R acceptable.
+6. **Target reachable inside the holding window; R:R acceptable** — «reachable» is
+   production's own floor on the reward's sigma count at `H_NOISE`, cut with the geometry
+   (§4), and it is the only criterion this file has for the word. **The printed touch pair
+   is not one and may not be used as one** (§4). This item carried two clauses and a
+   computation for one of them until a run passed it on the second while its own printed
+   number contradicted the first, and said so.
 7. No catalyst inside the window that invalidates the setup.
 8. BTC regime supports the setup rather than destroying it.
 9. This is genuinely among the best opportunities available today.
@@ -1494,8 +1546,10 @@ which is the shape §7 exists to replace.
     moves a level (§1). Measured 04.09: three setups were published, `oi_prev` was written
     to state for all three, and no reading of any kind appears in the log or the answer.
 24. **Every dated item in `items` appears in the answer**, in full or in the collapsed
-    line (§2). A tracked event the Boss cannot see is one the next run will call
-    unchanged.
+    line (§2) — **except an item at `dclass:none`, which §2 forbids printing at all.** A
+    tracked event the Boss cannot see is one the next run will call unchanged; a date
+    nobody has sourced is one he cannot act on. The two rules met on 04.09 and the run had
+    to choose between them with nothing here naming which governs.
 25. **Every lifecycle change this run made is spoken in the answer** (§11) — a closure
     named in its own section before it goes to `archive`, and a coin moving INTO
     `ИЗБЕГАТЬ` named in the first line beside the withdrawal that produced it. Checked
@@ -1558,7 +1612,8 @@ which is the shape §7 exists to replace.
     the ANSWER** (§2, §4), in whatever section it is published — not merely computed, not
     merely logged. Neither number was used to refuse, downgrade or promote anything.
 45. **Every printed catalyst item carries BOTH its impact tag and its status word** (§2),
-    checked per printed item and not per section, collapsed line included.
+    checked per printed item and not per section, collapsed line included, and no item
+    under `ВПЕРЕДИ` or `ДАЛЬШЕ` lacks a date or repeats a closure already in `ЗАКРЫТО`.
 46. **Every dated catalyst printed, and every setup whose thesis rests on a dated event,
     carries `dclass` `primary` or `archive`** (§2, §6). At `none` nothing is published on
     the date.
@@ -1567,6 +1622,9 @@ which is the shape §7 exists to replace.
 48. **Every `СОЗРЕВАЕТ` candidate the anchor pass produced was published or refused by a
     named rule** (§4). «Нет достойных кандидатов.» was printed only where that pass
     produced none.
+49. **Every price printed in `# BTC` was computed from the structural `btc` object and its
+    derivation is in the log** (§2, §12). A level in that section with no line in the
+    appendix is a level nobody can check, on the section the rest of the answer hangs from.
 
 **Every item on this list names a failure that happened, and the list grows only that
 way.** Items 12–18 were added after rules already written here were broken by runs that
@@ -1591,7 +1649,12 @@ signs, invisible in both directions because each number was internally consisten
 price it was measured at. **45–48 name four more of the same run, and the audit that found
 them is the one §7 cannot make of itself:** every one was invisible from inside, because a
 run that skips a stage skips the check on it, and three of the four were caught only by
-reading the answer against the state file beside it. **Three of 25–28 and
+reading the answer against the state file beside it. **49 is the first item this list has
+gained from a run that broke nothing:** the run under `-a` executed every rule correctly,
+documented sixteen sections of arithmetic, and the only numbers in its answer without a
+derivation anywhere were the three BTC levels its own strategy table was conditioned on — a
+gap no checklist could have caught, because no rule had ever named the computation. **Three
+of 25–28 and
 three of 29–32 are the same defect wearing six shapes** — the run decided something
 correctly and did not say it — which is why every one of them is checked against an
 artifact and never against the run's memory of its own answer. A rule stated in §2 and
@@ -1906,6 +1969,7 @@ every lane NOT read this run, with its previous read date and its stored sec6_md
 the fr, oi and mark read per published setup, and the oi_prev each was compared against
 every production function cut from index.html, with the command and the span it cut
 the §7 checklist, one line per item with its verdict
+the derivation of every price printed in # BTC
 every lifecycle transition, with the reason for it
 the searches that changed a conclusion
 any catalysts.json proposal (§6)
@@ -2120,6 +2184,39 @@ thought about, over four items that were broken. §7 is now an artifact with a v
 item in the log. A checklist that reports on itself is not a control, and it is the same
 failure as a refusal that is not printed: the work may have happened, and nothing anywhere
 shows that it did.
+
+**Revision 2026-09-04-b comes from the first run this engine has produced that broke no
+rule**, and three of its four repairs exist because a correct run makes visible what a
+broken one hides. The checklist ran as an artifact, forty-eight items with a verdict each;
+the geometry was cut by one `sed` and evaluated whole, constants and all; positioning was
+read for every published setup and correctly withheld from the answer for moving no level;
+`СОЗРЕВАЕТ` printed three items ranked by the chance of their own zones arriving, after a
+bisection to `RR_MIN` that the run then re-vetoed at the trigger. **What that leaves is the
+residue, and the residue is where the remaining defects live.**
+
+**The largest is not a defect in this file and is recorded here as the thing it opens.** The
+run printed the touch pair and it said that no published target is reachable inside the
+holding horizon — 0.4 % on all three — while the stops sat at 10 %, 32 % and 43 %. The run
+obeyed the no-gating clause, published all three and wrote the objection down, which is
+exactly what §7 asks of a run that believes an item wrong. The objection is right: `RR_MIN`
+has no horizon in it and the 90-day extremum is a mean-reversion target being used in a
+trend. **That is map §3.12's open item, and it is now gated on a measurement rather than on
+a suspicion** — which is what the pair was added to produce, arriving one revision after it
+was added.
+
+**Its second shape reached the `ИЗБЕГАТЬ` field and is repaired here.** A coin whose 90-day
+extremum sits behind price gets no setup, and in a trend those are the coins leading the
+list; published as a prohibition, that told the Boss to avoid the strongest names he owns a
+row for. It is the futures-only repair of `-a` in a new costume — a limit of the engine
+printed as advice — and it leaves the field on the same argument.
+
+**The third is the oldest unnamed computation in the file.** `# BTC` prints three levels
+that condition the entire strategy table, and no rule here has ever said where they come
+from; the run that documented every setup level to six digits across sixteen sections
+documented none of these. Two objects were already in hand — the extremes in `btc`, and the
+price at which `marketRegime` leaves its current mode, which inverts exactly as a
+`СОЗРЕВАЕТ` trigger does. **Nothing new is measured and nothing is fetched:** the levels
+were always computable and were being chosen instead.
 
 **One finding of the same audit is deliberately NOT repaired here, because it is not this
 file's.** The run executed from a harness worktree branch rather than from `main`, which
