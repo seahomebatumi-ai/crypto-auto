@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-03-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-03-c.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -146,6 +146,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 # ЛУЧШИЕ СДЕЛКИ СЕЙЧАС
 **1. МОНЕТА — ЛОНГ**
 Вход $X–$X · Стоп $X · Цель $X · R:R X.X · Уверенность [ВЫСОКАЯ / СРЕДНЯЯ]
+Шанс дойти за 7 дней: цель XX% · стоп XX%
 Почему: одно предложение.
 
 # СТРАТЕГИЯ — МОЙ СПИСОК
@@ -205,6 +206,11 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 - **ЛУЧШИЕ СДЕЛКИ СЕЙЧАС** carries only trades that clear the quality bar right now.
   None clear it → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** plus one short sentence of
   reason, then the strategy table carries the pending triggers.
+- **The line under a published R:R carries two numbers and nothing else** — the chance
+  of the target being reached inside the holding horizon and the chance of the stop being
+  reached, computed in §4. It is printed where R:R is printed and nowhere else, and a coin
+  with no structural row prints the R:R line alone, with nothing said about the absence
+  (§1, §4).
 - **СТРАТЕГИЯ — МОЙ СПИСОК** lists only coins with a real setup. Never padded to
   look complete. A coin with no setup and no trigger does not appear; a coin that
   must be avoided appears in `ИТОГ` under ИЗБЕГАТЬ with no row.
@@ -228,7 +234,8 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   re-cut at the freeze and the new one is published. A carried-over zone the price has
   just left prints `СЕЙЧАС` beside a price that cannot fill it, and the Boss reads a
   limit order that will never trigger as a trade he is in. **The R:R must also be
-  recomputed at the frozen price whenever the zone is republished**, since the same
+  recomputed at the anchor whenever the zone is republished** (§4 — for a `СЕЙЧАС` row
+  that anchor is the frozen price itself), since the same
   drift that empties a zone erodes the ratio that justified it: a setup re-entering the
   answer at a materially worse R:R than the one it was published on is re-argued or
   dropped, never reprinted on yesterday's number.
@@ -565,15 +572,78 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   stop it draws (map §3.2). **That level is the zone, and that distance is the
   invalidation.** Neither is invented here, neither is read off a chart, and neither is a
   second implementation of anything.
-- **The target is a level in the same structural row, and R:R at the frozen price decides
+- **Every level of a setup is computed at the price that setup is PUBLISHED at, and that
+  price is the row's own ANCHOR.** The anchor is not chosen and is not a new object: it is
+  the price the row's status already prints — the frozen price for `СЕЙЧАС`, the
+  activating price for `ЖДАТЬ` (§2), the near edge of its own zone for a `СОЗРЕВАЕТ` item,
+  which is the same price `gap` is measured to. `invalidationInfo` is executed with the
+  anchor as its entry, the stop is what that call returns, the reward is measured from the
+  anchor to the structural target, and the R:R is the ratio at the anchor. **The order is
+  two passes and is not circular:** the first call, on the structural row, returns the
+  reference the entry is cut from (the bullet above); that entry is the anchor; the second
+  call, at the anchor, returns the stop and the clipped distance behind it. A `СЕЙЧАС` row
+  needs one pass, its anchor being the frozen price the first call already used. **A level
+  computed at one price and published against another is not the same level:** production's
+  clip is a distance FROM AN ENTRY, so an entry the call never saw is an entry the floor
+  never protected. **Measured 03.09, fourth run:** the published GRAM stop sat 1.57 daily
+  sigmas from its published entry, under an `INV_FLOOR_SD` that exists to make exactly that
+  impossible — and the run had broken no rule, because this section then told it to compute
+  at the freeze.
+- **A zone has two edges and each test is taken at the edge that is worst for it.** A
+  published zone admits a fill anywhere inside itself, so the stop is cut at the edge
+  NEAREST the invalidation and the floor then holds for every fill the zone can give; the
+  ratio is read at the anchor, which on a waiting row is the first price to fill the zone
+  and the least favourable ratio in it. A single-price entry collapses the two into one and
+  nothing changes. Neither edge is invented here — one is the activating price §2 already
+  requires in the cell, the other is the far side of the same cell.
+- **The target is a level in the same structural row, and R:R at the anchor decides
   publication.** Where no structural level clears `RR_MIN`, the coin is refused BY NAME
-  in the appendix and does not appear — a refusal, not a silence. **The known tension is
+  in the appendix and does not appear — a refusal, not a silence. **The target itself does
+  not move with the entry and must not be made to:** it is a level in `cd`, and a target
+  that slid with the anchor would be the continuation target map §3.12 gates on an archive
+  backtest (map inv. 32). What moves is everything measured FROM the entry — the reward,
+  the R:R, whether the target already sits behind the price, and whether the reward clears
+  the noise floor — and all four are taken at the anchor. **A `СОЗРЕВАЕТ` item is by
+  construction a setup nobody can enter at the frozen price**, so a ratio measured there
+  tests a trade the item does not propose, and refuses it: measured 03.09, fourth run, the
+  section came out empty with four candidates computed. **The known tension is
   production's own and is NOT resolved here:** `tradeGeometry`'s target is always the
   90-day extremum, so a coin deep into a trend sits close to it and breaks R:R by
   construction (map §3.12). That is an open architectural item in the map, gated on an
   archive backtest, and this file does not act on it — a continuation target with no
   backtest behind it is precisely what map inv. 32 forbids. What a run owes here is the
   computation and the named refusal, never a more convenient number.
+- **Beside every published R:R stand two touch probabilities — the target's and the
+  stop's, over the holding horizon.** `touchProb` is cut from `index.html` and executed,
+  exactly as `invalidationInfo` and `marketRegime` are and for the same reason (map
+  inv. 21); its arguments are read from its own signature at cut time and are never typed
+  here. What is supplied is the log distance from the anchor to the level, the coin's own
+  volatility from `cd` (§5), and production's own seven-day horizon `H_NOISE` — the same
+  window the leverage engine, the break-even block and the noise ceiling already use, so
+  this number cannot disagree with one the board prints. **No constant is introduced, no
+  threshold is created, and no new input is read:** the two inputs are the anchor and `cd`'s
+  volatility, and the ages table below already governs both.
+- **The pair gates nothing, and it is printed because the ratio hides what it measures.**
+  R:R is two distances; it says nothing about whether either is reachable inside the window
+  the Boss holds for, and §7 item 6 has asked «target reachable inside the holding window»
+  since this file existed without ever naming a computation for it (map inv. 58).
+  Publication is decided by `RR_MIN` and by the checklist exactly as before: **no run may
+  refuse, downgrade or promote a setup on these two numbers**, because no rule here lets it,
+  and a run that believes otherwise records the objection and obeys (§7). That is the
+  standing production gives every printed measure (map inv. 27), and it is what keeps a
+  displayed number from becoming an unmeasured filter.
+- **The two are never combined into a third.** They are touch events on one horizon and not
+  a partition — both levels can be reached inside the same week — and the probability of the
+  target being reached FIRST is a closed decision: without drift it is `b/(a+b)`, which is
+  the R:R already on the line (map §8). A number derived from these two would be that closed
+  object arriving under a new name. **Both are LOWER bounds** (map §7): the model is
+  driftless and its tails are thinner than the market's, so the stop's number reads «at
+  least this», never «only this». The sigma count behind them stays internal, where §1 keeps
+  it; what is published is the decision it produces.
+- Where the coin has no structural row the pair is not printed and the line stands as it
+  was. That is every outside-list candidate, which carries chart-and-catalyst reads only
+  (§3B), and it costs the answer no sentence: an absence explained is the banned class of
+  §1 arriving through a new door.
 - **Leverage is never issued unless the Boss explicitly asks.** It is then computed
   per System Map §3.2/§3.4 from a live board reading — never chosen, never
   reconstructed. Above `L_CAP` it is never issued however requested.
@@ -765,11 +835,17 @@ line and the run continues.
 
 **4 · Geometry — the freeze.** Every candidate that survives the state read gets its
 entry zone, invalidation and first target computed HERE, from the gate-fresh payload and
-the 24-hour structural file named above, and the anchoring price is recorded with them.
-**Outside-list
-candidates are frozen in this same step, from `x` (§3B)** — one payload, one moment, one
-anchor for every level in the answer, and no coin whose levels belong to a different
-minute from its neighbour's. This is the
+the 24-hour structural file named above, and each row's anchoring price is recorded with
+it. **Outside-list candidates are frozen in this same step, from `x` (§3B)** — one
+payload, one moment, and
+every level in the answer belonging to that minute, with no coin whose levels belong to a
+different minute from its neighbour's. **A row's ANCHOR is an OUTPUT of this step and is
+never a later price** (§4): a `СЕЙЧАС` row is anchored to the frozen price itself, and a
+row the Boss must wait for is anchored to the entry computed for it HERE, out of these same
+frozen inputs, which is a level cut from the frozen structure and not a second price.
+**Anchoring is not re-pricing**, and the distinction is the whole of why both rules can
+stand: the minute the numbers come from never moves, while the entry they are measured at
+was never the market's current price on a row that waits. This is the
 only stage that consumes the fifteen-minute budget, and it runs before a single search.
 A run that reaches this stage with a green gate has its levels for the rest of the run
 whatever else happens; a run that reaches it with a red gate has none and cannot acquire
@@ -809,7 +885,7 @@ chart.
 | Field | Maximum age | Measured at | Source |
 |---|---|---|---|
 | Price anchoring a FROZEN entry / stop / target | **15 minutes** | **the freeze (step 4)** | `analyst/live.json` |
-| `СЕЙЧАС`, «цена в зоне», R:R — every claim about price | **anchored, not aged** | **the freeze, printed with the claim** (§2) | `analyst/live.json` |
+| `СЕЙЧАС`, «цена в зоне», R:R — every claim about price | **anchored, not aged** | **its own anchor (§4), printed with the claim** (§2) | `analyst/live.json` |
 | 24 h high / low, volume, funding, open interest, mark | 1 hour | reading | `analyst/live.json` |
 | Structure — 90d/30d extremes, β, R², volatility, the BTC regime object | 24 hours | reading | `journal/data/YYYY-MM-DD.jsonl`, read from the tree (§5) |
 | Catalyst dates, filings, votes, listings, unlocks | current | — | primary source only |
@@ -1305,7 +1381,8 @@ reliable reader this system has.
     contract MD5. A stale lane is refreshed or the run states which lane it is short
     of, in the appendix, by name.
 16. **Every `СЕЙЧАС` row has the frozen price inside its published zone** (§2), and
-    every republished zone carries an R:R recomputed at that price.
+    every republished zone carries an R:R recomputed at that price, which is the anchor
+    of a `СЕЙЧАС` row (§4).
 17. **Every name that LEFT `ИЗБЕГАТЬ` since the last run is named in the answer** (§2).
     A prohibition is not lifted by omission.
 18. **`ИТОГ` carries all four fields**, empty ones reading `нет` (§2).
@@ -1373,13 +1450,19 @@ reliable reader this system has.
     every coin refused as a chase inside a trend was extended on its structural row as
     well as on its day.
 40. **In a trend, every coin that reached candidacy carries a cut entry level, an
-    invalidation from `invalidationInfo` and an R:R at the frozen price** (§4) — or a
+    invalidation from `invalidationInfo` and an R:R at its anchor** (§4) — or a
     refusal naming the rule that stopped it.
 41. **Every coin of the LIST was published or refused by a named rule, per coin, in the
     appendix** (§3A). One sentence refusing the whole list is a regime statement and is
     never a per-coin refusal.
 42. **`cd` was read for every coin that reached candidacy** (§5). A run that read only
     `btc` took the regime and left the structure behind it.
+43. **Every published stop, target and R:R was computed at the row's own anchor** (§4),
+    and `invalidationInfo` was executed at that price rather than at the freeze. Checked
+    per row against the anchor recorded in the log (§12), never against the impression
+    that the numbers look consistent.
+44. **Every published R:R carries its two touch probabilities** (§4), or the coin has no
+    structural row. Neither number was used to refuse, downgrade or promote anything.
 
 **Every item on this list names a failure that happened, and the list grows only that
 way.** Items 12–18 were added after rules already written here were broken by runs that
@@ -1396,7 +1479,12 @@ defect:** the structural file was found, the regime was computed from it correct
 bad shorts were reversed on the strength of it — and the twenty-five per-coin rows beside
 the one BTC row went unread, so a measured `БЫЧИЙ` produced no long, no level and an empty
 `ЖДАТЬ` field. Naming the file was necessary and was not sufficient; a window nobody
-reads is the same as a window nobody has. **Three of 25–28 and
+reads is the same as a window nobody has. **43–44 name the run that followed, and both
+are one object error:** every level was computed at the frozen price and published against
+an entry the Boss would have filled somewhere else, which put a stop inside the noise floor
+on one coin and emptied a whole section on four others — the same mistake with opposite
+signs, invisible in both directions because each number was internally consistent with the
+price it was measured at. **Three of 25–28 and
 three of 29–32 are the same defect wearing six shapes** — the run decided something
 correctly and did not say it — which is why every one of them is checked against an
 artifact and never against the run's memory of its own answer. A rule stated in §2 and
@@ -1423,7 +1511,8 @@ is a new trade.
 
 **`ВЫСОКАЯ` has a definition, because it sat on the most-read line of the answer with
 no rule behind it.** It requires all four: the frozen price inside the zone (§2) · R:R
-at or above 2.5 measured at that price · a stop at a named structural level, not a
+at or above 2.5 measured at the anchor (§4), which on such a row is that same frozen
+price · a stop at a named structural level, not a
 round number (§7 item 5) · **and no `ВЫСОКОЕ` catalyst resolving inside the holding
 window.** Any one missing → `СРЕДНЯЯ`. **A setup whose case rests on an item marked
 `НЕ ПРОВЕРЕНО` (§6) is `СРЕДНЯЯ` at best**, because the fourth condition is a statement
@@ -1683,6 +1772,8 @@ freeze moment (§5 step 4)          gate exit code
 MD5 of ANALYST-INSTRUCTIONS.md as read this run
 whether the PREVIOUS run's commit is on main, and where it is if not
 every command that read analyst/live.json, with the row count it returned
+the anchor price of every published level, and the two touch probabilities
+  printed beside each R:R
 the source class that answered per carried catalyst: primary / archive / none,
   and per item: the host, what it answered, the field taken from it
 every lane NOT read this run, with its previous read date and its stored sec6_md5
@@ -1857,6 +1948,22 @@ computation and their record and adds nothing else: **no threshold is introduced
 filter is loosened, and no rule here obliges a run to publish anything.** What it obliges
 is that a refusal be constructed before it is stated. A market-wide condition may set the
 side; it may not stand in for a coin-level decision that was never taken.
+
+**Revision 2026-09-03-c is one object error with two opposite signs, and it is the same
+mechanism reaching the last quantity that had escaped it: the PRICE a level is measured
+at.** Every rule here computed geometry at the freeze, which is correct for a coin entered
+now and wrong for every coin the Boss has to wait for — and wrong in both directions at
+once. On the stop it was too loose: GRAM's published invalidation sat 1.57 daily sigmas
+from its published entry under a floor built to forbid it, because the clip had been
+measured from a price that was not the entry. On the ratio it was too tight: a maturing
+setup is by definition one nobody can enter at the frozen price, so its R:R was tested on a
+trade it does not propose, and four computed candidates left an empty section. **Neither
+half is a filter change** — `RR_MIN` and `INV_FLOOR_SD` are untouched, and what moved is
+the object they are applied to (map inv. 47's shape, one layer down). The second change is
+the computation §7 item 6 has always required: R:R is two distances and cannot say whether
+either is reachable inside the week, so `touchProb` is cut from production and the two
+chances are printed beside it. **It gates nothing, by construction**, because a displayed
+number that may refuse a trade is a filter nobody calibrated.
 
 **One finding of the same audit is deliberately NOT repaired here, because it is not this
 file's.** The run executed from a harness worktree branch rather than from `main`, which
