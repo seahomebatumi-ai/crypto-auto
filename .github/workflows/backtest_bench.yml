@@ -71,6 +71,14 @@ jobs:
           python backtest_bench.py --stops --horizon 7 --step 7 \
             --html ../index.html --bot ../main.py 2>&1 | tee stops.txt
 
+      # Горизонт и шаг режим берёт из собственных зарегистрированных величин
+      # (H_NOISE из index.html, шаг 7 суток) и флагами не перекрывается.
+      - name: Цель сделки — экстремум 90д против канала продолжения (--target)
+        run: |
+          cd bench
+          python backtest_bench.py --target \
+            --html ../index.html --bot ../main.py 2>&1 | tee target.txt
+
       - name: Фактор res7 (--res7, первичный — 7д)
         run: |
           cd bench
@@ -125,6 +133,8 @@ jobs:
             bench/fund_fetch.txt
             bench/stops.txt
             bench/stops_raw.json
+            bench/target.txt
+            bench/target_raw.json
             bench/res7.txt
             bench/funding.txt
           if-no-files-found: warn

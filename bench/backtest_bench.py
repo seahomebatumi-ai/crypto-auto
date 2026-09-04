@@ -1713,7 +1713,458 @@ def run_funding(series, fund, bot, horizon_d=7, step_d=7, verbose=True):
     return dates
 
 
-# ── 10. --lab-selftest · known-answer worlds for the three experiments ──────
+# ── 10. --target · the 90-day extremum against a continuation target ───────
+# Map §3.12 records the tension and §10 carries it as «not built, gated»:
+# tradeGeometry always aims at the 90-day extremum — a MEAN-REVERSION target —
+# while in `trend` the ranking comes from the CONTINUATION channel. This mode is
+# that measurement and nothing else; it changes no production math.
+# Both arms share ONE leverageDecision, computed on the UNTOUCHED cd, so
+# inv.dist, inv.price, moneyBelowMin and ok are literally the same numbers in
+# both: the comparison is on the reward leg alone. The continuation arm is a
+# shallow copy of cd whose extremum is replaced by E*exp(±k·vol·√H) and handed
+# to the UNMODIFIED tradeGeometry, so every veto, the chase anchor and tgtSig
+# are production's own arithmetic on a substituted target (inv. 21, 38).
+# Nothing here forecasts: the primary is a first-touch count against the odds
+# RR_MIN itself asserts.
+TARGET_JS_FUNCS = ["has", "firstNum", "normCdf", "sigmaDay", "touchProb",
+                   "fmtP", "invalidationInfo", "lStruct", "lNoise", "advBeta",
+                   "lBtcCheck", "lMoney", "volRegime", "fixHint",
+                   "leverageDecision", "marketRegime", "tradeGeometry"]
+TARGET_JS_VARS = ["LIQ_MMR", "RISK_Z", "H_NOISE", "H_REACT", "H_BTC",
+                  "INV_FLOOR_SD", "INV_CAP_SD", "MAX_MARGIN_LOSS", "RR_MIN",
+                  "TGT_SIGMA_MIN", "ENTRY_CHASE_SD", "L_MIN", "L_CAP",
+                  "VOL_ABNORMAL", "VOL_HARD", "VOL_STOP", "EFF_TREND",
+                  "REG_STRESS_Z"]
+
+# Registered before any data (inv. 23), one declaration each (inv. 20).
+K_GRID = [1.0, 1.5, 2.0, 2.5, 3.0]
+TGT_STEP_D = 7          # a daily grid would multiply setups without multiplying
+                        # independent forward windows: consecutive dates share
+                        # six sevenths of the window (§3.13) and the CI would
+                        # come out narrower than the evidence supports.
+TGT_QUORUM_N = 60       # admitted setups, per side per arm
+TGT_QUORUM_D = 20       # contributing dates, per side per arm
+TGT_BOOT = 2000         # resamples, date blocks — as stops_summary does it
+
+TARGET_DRIVER = r"""
+var fs = require('fs');
+__EXTRACTED__
+function armOut(g) {
+    if (!g) return null;
+    return { veto: g.veto, rr: g.rr, tgtSig: g.tgtSig, reward: g.reward };
+}
+var job = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+var out = [];
+for (var i = 0; i < job.length; i++) {
+    var j = job[i], r = null;
+    try {
+        // ONE decision per (date, coin, side), on the untouched cd: both arms
+        // get the same dec, so the risk leg cannot move between them. The
+        // substitution touches max_price (long) / min_price (short), which is
+        // the opposite side from the one invalidationInfo reads, so it cannot
+        // leak into the stop either.
+        var dec = leverageDecision(j.cd, j.E, j.isLong, j.btcStats);
+        var g0  = tradeGeometry(j.cd, j.E, j.isLong, dec, j.hi24, j.lo24);
+        var vol = j.cd.volatility;
+        var tgt0 = j.isLong ? j.cd.max_price : j.cd.min_price;
+        var p0 = (has(vol) && vol > 0 && has(tgt0) && tgt0 > 0 && j.E > 0)
+                 ? touchProb(vol, Math.abs(Math.log(tgt0 / j.E)), j.H) : null;
+        var subs = {};
+        for (var key in j.subs) {
+            var lvl = j.subs[key], cdk = {};
+            for (var f in j.cd) cdk[f] = j.cd[f];
+            if (j.isLong) cdk.max_price = lvl; else cdk.min_price = lvl;
+            subs[key] = {
+                g: armOut(tradeGeometry(cdk, j.E, j.isLong, dec,
+                                        j.hi24, j.lo24)),
+                p: (has(vol) && vol > 0 && lvl > 0 && j.E > 0)
+                   ? touchProb(vol, Math.abs(Math.log(lvl / j.E)), j.H) : null,
+                tgt: lvl };
+        }
+        r = { ok: dec.ok, moneyBelowMin: dec.moneyBelowMin,
+              dist: dec.inv ? dec.inv.dist : null,
+              stop: dec.inv ? dec.inv.price : null,
+              reg: marketRegime(j.btcStats).mode,
+              prod: { g: armOut(g0), p: p0, tgt: has(tgt0) ? tgt0 : null },
+              subs: subs };
+    } catch (e) { r = null; }
+    out.push(r);
+}
+fs.writeFileSync(process.argv[3], JSON.stringify(out));
+"""
+
+
+def _read_js_num(html_path, name):
+    """One number, cut from index.html at every run — never typed here."""
+    src = open(html_path, encoding="utf-8").read()
+    m = re.search(r"\nvar\s+" + name + r"\s*=\s*([0-9.eE+-]+)\s*;", src)
+    if not m:
+        raise ValueError("в HTML не найдена числовая константа " + name)
+    return float(m.group(1))
+
+
+def _sig_params(html_path, name):
+    """Declared parameter names of a production function, READ FROM THE SOURCE.
+    The mode assembles hi24/lo24 itself, so inv. 48 applies: the fields supplied
+    must be the fields the reader takes, and that is checked against the text
+    rather than remembered."""
+    src = open(html_path, encoding="utf-8").read()
+    m = re.search(r"\nfunction\s+" + name + r"\s*\(([^)]*)\)", src)
+    if not m:
+        raise ValueError("в HTML не найдена функция " + name)
+    return [p.strip() for p in m.group(1).split(",") if p.strip()]
+
+
+def _ak(k):
+    return "k%.1f" % k
+
+
+def _touch_calc(hi, lo, j0, j1, tgt, stop, is_long):
+    """First touch between the two barriers on hourly high/low, plus the plain
+    target touch used by the calibration descriptive. `tie` is RECORDED, never
+    guessed: when both barriers fall inside the same hourly candle the order is
+    unresolvable at this resolution (the journal's own vocabulary, §3.13).
+    Returns (first, tgt_touched); first ∈ {tgt, stop, tie, none}."""
+    seg_hi, seg_lo = hi[j0:j1], lo[j0:j1]
+    if is_long:
+        t_hit, s_hit = seg_hi >= tgt, seg_lo <= stop
+    else:
+        t_hit, s_hit = seg_lo <= tgt, seg_hi >= stop
+    tgt_any = bool(t_hit.any())
+    either = t_hit | s_hit
+    if not either.any():
+        return "none", tgt_any
+    k = int(np.argmax(either))
+    if t_hit[k] and s_hit[k]:
+        return "tie", tgt_any
+    return ("tgt" if t_hit[k] else "stop"), tgt_any
+
+
+def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
+               H_override=None, want_identity=False, verbose=True):
+    """Per (date, coin, side): production's own geometry on the 90-day extremum
+    against the same geometry on a continuation target, resolved by first touch
+    on the forward window. Requires 'hl' in the cache — a close-based touch
+    understates BOTH barriers, and understating the target is exactly the error
+    this measurement exists to detect."""
+    par = _sig_params(html, "tradeGeometry")
+    if par[-2:] != ["hi24", "lo24"]:
+        raise RuntimeError("tradeGeometry берёт не те поля, что собирает стенд: "
+                           "подпись %r (инв. 48)" % (par,))
+    for s in series:
+        if "hl" not in series[s]:
+            sys.exit("СТОП: в кэше %s нет high/low. Перекачать историю "
+                     "(--fetch, ключ кэша v4): касание по закрытиям занижает "
+                     "оба барьера, а занижённая цель — ровно та ошибка, ради "
+                     "которой этот замер и существует." % s)
+    ks = list(K_GRID if k_grid is None else k_grid)
+    H = int(H_override if H_override else _read_js_num(html, "H_NOISE"))
+    horizon_d = max(1, H // 24)
+    cdb = CdBuilder(bot)
+    br = JsBridge(html, TARGET_JS_FUNCS, TARGET_JS_VARS, TARGET_DRIVER,
+                  "_tgt_bridge.js")
+    px = {s: np.array([p[1] for p in series[s]["prices"]]) for s in series}
+    hlt = {s: np.array([h[0] for h in series[s]["hl"]]) for s in series}
+    hi = {s: np.array([h[1] for h in series[s]["hl"]]) for s in series}
+    lo = {s: np.array([h[2] for h in series[s]["hl"]]) for s in series}
+    pts = {s: [p[0] for p in series[s]["prices"]] for s in series}
+    vts = {s: [v[0] for v in series[s]["volumes"]] for s in series}
+    bpts = [p[0] for p in btc["prices"]]
+    bts = np.array(bpts)
+    dates = []
+    for t, row in walk_grid(series, horizon_d, TGT_STEP_D, fwd_extra_d=0):
+        bi = int(np.searchsorted(bts, t, "right")) - 1
+        if bi < 100 or abs(bts[bi] - t) > 6 * HOUR_MS:
+            continue
+        bcd = cdb.build(btc["prices"], [], bi, bpts, [])
+        if bcd is None:
+            continue
+        # Exactly the object leverageDecision reads: it takes volatility off
+        # btcStats and nothing else (map §3.3).
+        btc_stats = {"volatility": bcd["volatility"]}
+        jobs, meta = [], []
+        for s, i, iF, _ in row:
+            t_i = series[s]["prices"][i][0]
+            j0 = int(np.searchsorted(hlt[s], t_i, "right"))
+            if j0 < 24:                     # 24 hourly rows ending at i
+                continue
+            cd = cdb.build(series[s]["prices"], series[s]["volumes"], i,
+                           pts[s], vts[s])
+            if cd is None:
+                continue
+            if betawalk is not None:
+                bet = betawalk.betas(series[s]["prices"], i, pts[s])
+                if bet is not None:
+                    cd.update(bet)          # absent betas stay absent: that is
+                                            # production's own missing-field
+                                            # path and it drops the BTC ceiling
+            vol = cd["volatility"]
+            if vol is None or not (vol > 0):
+                continue
+            E = float(px[s][i])
+            hi24 = float(np.max(hi[s][j0 - 24:j0]))
+            lo24 = float(np.min(lo[s][j0 - 24:j0]))
+            q = vol * math.sqrt(H)
+            for isL in (True, False):
+                subs = {_ak(k): E * math.exp(k * q if isL else -k * q)
+                        for k in ks}
+                if want_identity:
+                    t0 = cd["max_price"] if isL else cd["min_price"]
+                    if t0 is not None and t0 > 0:
+                        subs["ident"] = float(t0)
+                jobs.append({"cd": cd, "E": E, "isLong": isL, "H": H,
+                             "btcStats": btc_stats, "hi24": hi24, "lo24": lo24,
+                             "subs": subs})
+                meta.append((s, i, iF, j0, E, isL))
+        if not meta:
+            continue
+        res = br.call(jobs)
+        obs = []
+        for (s, i, iF, j0, E, isL), r in zip(meta, res):
+            if r is None:
+                continue
+            j1 = int(np.searchsorted(hlt[s], series[s]["prices"][i][0]
+                                     + H * HOUR_MS, "right"))
+            if j1 - j0 < H - 12:            # the window must be covered
+                continue
+            pg = r["prod"]["g"]
+            o = {"sym": s, "side": "long" if isL else "short", "reg": r["reg"],
+                 "rr": pg["rr"] if pg else None,
+                 "tgtSig": pg["tgtSig"] if pg else None,
+                 "adm": bool(pg and not pg["veto"]), "arms": {}}
+            stop, dist = r["stop"], r["dist"]
+            if stop is None or dist is None or not (dist > 0) or not (stop > 0):
+                obs.append(o)
+                continue
+            b_log = abs(math.log(stop / E))
+            # Mark-to-market at H, in units of the risk leg: the only reading a
+            # setup that touched neither barrier can be given.
+            mtm = ((float(px[s][iF]) / E - 1.0) if isL
+                   else (1.0 - float(px[s][iF]) / E)) / dist
+            arms = [("prod", pg, r["prod"]["p"], r["prod"]["tgt"])]
+            arms += [(key, r["subs"][key]["g"], r["subs"][key]["p"],
+                      r["subs"][key]["tgt"]) for key in r["subs"]]
+            for key, g, p, tgt in arms:
+                # Admission = this arm's own geometry gate and nothing else:
+                # the regime and channel layers decide the SIDE, not the target.
+                if g is None or g["veto"] or tgt is None or not (tgt > 0):
+                    continue
+                first, hit = _touch_calc(hi[s], lo[s], j0, j1, tgt, stop, isL)
+                o["arms"][key] = {
+                    "first": first, "hit": hit, "p": p, "rr": g["rr"],
+                    "tgtSig": g["tgtSig"], "a": abs(math.log(tgt / E)),
+                    "b": b_log,
+                    "R": (g["rr"] if first == "tgt" else
+                          -1.0 if first == "stop" else
+                          0.0 if first == "tie" else mtm)}
+            obs.append(o)
+        if obs:
+            dates.append({"t": t, "obs": obs})
+        if verbose and len(dates) % 20 == 0 and dates:
+            print("  дат посчитано: %d" % len(dates), flush=True)
+    return dates
+
+
+def _arm_pool(dates, arm, side, level=95.0):
+    """One arm on one side (side=None pools both). The resampling unit is the
+    DATE, exactly as stops_summary does it: setups inside one week are not
+    independent, so a setup-level bootstrap would invent precision."""
+    rows = []
+    for d in dates:
+        r = [o["arms"][arm] for o in d["obs"]
+             if (side is None or o["side"] == side) and arm in o["arms"]]
+        if r:
+            rows.append(r)
+    if len(rows) < 5:
+        return None
+
+    def agg(rs):
+        f = [o for r in rs for o in r]
+        nt = sum(1 for o in f if o["first"] == "tgt")
+        ns = sum(1 for o in f if o["first"] == "stop")
+        cal = [o for o in f if o["p"] is not None and np.isfinite(o["p"])]
+        meas = (float(np.mean([1.0 if o["hit"] else 0.0 for o in cal]))
+                if cal else float("nan"))
+        mod = float(np.mean([o["p"] for o in cal])) if cal else float("nan")
+        return (len(f), nt, ns, (nt / ns) if ns else float("nan"), meas, mod)
+
+    n, nt, ns, om, meas, mod = agg(rows)
+    flat = [o for r in rows for o in r]
+    nz = sum(1 for o in flat if o["first"] == "tie")
+    nn = sum(1 for o in flat if o["first"] == "none")
+    rng = np.random.default_rng(17)
+    bo, bc = [], []
+    for _ in range(TGT_BOOT):
+        take = [rows[k] for k in rng.integers(0, len(rows), len(rows))]
+        _, _, _, o2, m2, d2 = agg(take)
+        bo.append(o2)
+        bc.append(m2 / d2 if d2 > 0 else np.nan)
+    a = (100.0 - level) / 2.0
+    ci = lambda v: (float(np.nanpercentile(v, a)),
+                    float(np.nanpercentile(v, 100 - a)))
+    # Driftless two-barrier identity: P(target first) = b/(a+b) in LOG
+    # distances. Printed beside the mean 1/RR, which uses RELATIVE ones — the
+    # gap between the two is itself worth having and costs nothing.
+    qs = [o["b"] / (o["a"] + o["b"]) for o in flat if (o["a"] + o["b"]) > 0]
+    den = sum(1.0 - q for q in qs)
+    irr = [1.0 / o["rr"] for o in flat if o["rr"]]
+    return {"n": n, "n_dates": len(rows), "n_tgt": nt, "n_stop": ns,
+            "n_tie": nz, "n_none": nn, "omega": om, "omega_ci": ci(bo),
+            "p_none": (nn / n) if n else None, "measured": meas, "model": mod,
+            "calib": (meas / mod) if mod > 0 else None, "calib_ci": ci(bc),
+            "model_odds": (sum(qs) / den) if qs and den > 0 else None,
+            "inv_rr": float(np.mean(irr)) if irr else None,
+            "R": float(np.mean([o["R"] for o in flat])) if flat else None,
+            "quorum": n >= TGT_QUORUM_N and len(rows) >= TGT_QUORUM_D}
+
+
+def target_summary(dates, html, ks=None, H=None, level=95.0):
+    """The registered primary, the descriptives and the continuation arm's
+    reading. Every verdict below is produced by the rule fixed before the data,
+    never by the number's appearance."""
+    ks = list(K_GRID if ks is None else ks)
+    out = {"bar": 1.0 / _read_js_num(html, "RR_MIN"), "ks": ks,
+           "H": int(H if H is not None else _read_js_num(html, "H_NOISE")),
+           "quorum": [TGT_QUORUM_N, TGT_QUORUM_D],
+           "arms": {}, "pooled": {}, "sides": {}}
+    for arm in ["prod"] + [_ak(k) for k in ks]:
+        out["arms"][arm] = {sd: _arm_pool(dates, arm, sd, level)
+                            for sd in ("long", "short")}
+        out["pooled"][arm] = _arm_pool(dates, arm, None, level)
+    for sd in ("long", "short"):
+        kstar = None
+        for k in ks:                        # smallest k whose CI is not
+            m = out["arms"][_ak(k)][sd]     # entirely below the bar
+            if m and m["quorum"] and m["omega_ci"][1] >= out["bar"]:
+                kstar = k
+                break
+        rows = [o for d in dates for o in d["obs"] if o["side"] == sd
+                and o["rr"] is not None and o["tgtSig"] is not None]
+        dist = lambda v: ({"n": len(v), "med": float(np.median(v)),
+                           "p10": float(np.percentile(v, 10)),
+                           "p90": float(np.percentile(v, 90))} if v else None)
+        out["sides"][sd] = {
+            "kstar": kstar, "n_geo": len(rows),
+            "spearman": spearman([o["rr"] for o in rows],
+                                 [o["tgtSig"] for o in rows]),
+            "adm": dist([o["tgtSig"] for o in rows if o["adm"]]),
+            "ref": dist([o["tgtSig"] for o in rows if not o["adm"]])}
+    syms = {}
+    for d in dates:
+        for o in d["obs"]:
+            e = syms.setdefault(o["sym"], {"d": set(), "long": 0, "short": 0,
+                                           "cont": 0})
+            e["d"].add(d["t"])
+            if "prod" in o["arms"]:
+                e[o["side"]] += 1
+            e["cont"] += sum(1 for a in o["arms"] if a not in ("prod", "ident"))
+    out["symbols"] = sorted([{"sym": s, "dates": len(v["d"]), "long": v["long"],
+                              "short": v["short"], "cont": v["cont"]}
+                             for s, v in syms.items()], key=lambda r: r["sym"])
+    return out
+
+
+def _tgt_line(m):
+    if not m:
+        return "не выносится — сетапов нет"
+    s = ("сетапов %d · дат %d · цель %d / стоп %d / ничья %d / никуда %d"
+         % (m["n"], m["n_dates"], m["n_tgt"], m["n_stop"], m["n_tie"],
+            m["n_none"]))
+    if not np.isfinite(m["omega"]):
+        return s + " · Ω не определена (стоп не выбит ни разу)"
+    return s + ("\n    Ω = %.3f  ДИ95 [%.3f; %.3f]"
+                % (m["omega"], m["omega_ci"][0], m["omega_ci"][1]))
+
+
+def report_target(sm):
+    bar = sm["bar"]
+    print("\n" + "═" * 62)
+    print("ЦЕЛЬ СДЕЛКИ · экстремум 90д против канала продолжения · "
+          "первое касание за %dч" % sm["H"])
+    print("═" * 62)
+    print("ПЕРВИЧНЫЙ: Ω = цель/стоп по первому касанию на ДОПУЩЕННОМ наборе "
+          "продакшн-плеча,\nничьи и «никуда» исключены из обоих счётчиков. "
+          "Планка 1/RR_MIN = %.2f — самая\nщедрая точка допущенного "
+          "диапазона, ошибка в пользу действующей цели.\nКворум: %d сетапов и "
+          "%d дат на сторону и рукав." % (bar, sm["quorum"][0],
+                                          sm["quorum"][1]))
+    for sd, nm in (("long", "ЛОНГ"), ("short", "ШОРТ")):
+        m = sm["arms"]["prod"][sd]
+        print("\n" + "─" * 62)
+        print("%s · экстремум 90д (продакшн)" % nm)
+        print("  " + _tgt_line(m))
+        if not m:
+            continue
+        if not m["quorum"]:
+            print("  ВЕРДИКТ: не выносится — ниже кворума")
+        elif not np.isfinite(m["omega"]):
+            print("  ВЕРДИКТ: не выносится — Ω не определена")
+        else:
+            lo_, hi_ = m["omega_ci"]
+            v = ("ДИ95 ЦЕЛИКОМ НИЖЕ %.2f — экстремум 90д не даёт шансов, "
+                 "которые обещает его собственный RR, на горизонте, которым "
+                 "система торгует" % bar if hi_ < bar else
+                 "ДИ95 целиком выше %.2f — даёт, и с запасом; цель канала "
+                 "продолжения отклоняется" % bar if lo_ > bar else
+                 "ДИ95 накрывает %.2f — даёт; цель канала продолжения "
+                 "отклоняется" % bar)
+            print("  ВЕРДИКТ (правило зафиксировано до прогона): " + v)
+        print("  СПРАВОЧНО калибровка цели факт/модель: %s"
+              % ("не считается" if m["calib"] is None else
+                 "%.2f [%.2f; %.2f] (факт %.1f%% · модель %.1f%%)"
+                 % (m["calib"], m["calib_ci"][0], m["calib_ci"][1],
+                    100 * m["measured"], 100 * m["model"])))
+        print("  СПРАВОЧНО P(никуда за %dч): %.1f%%"
+              % (sm["H"], 100 * (m["p_none"] or 0)))
+        print("  СПРАВОЧНО модельные шансы Σq/Σ(1−q) по ЛОГ-дистанциям: %s · "
+              "среднее 1/RR по относительным: %s"
+              % ("—" if m["model_odds"] is None else "%.3f" % m["model_odds"],
+                 "—" if m["inv_rr"] is None else "%.3f" % m["inv_rr"]))
+        print("  СПРАВОЧНО реализованный R (+rr цель / −1 стоп / 0 ничья / "
+              "переоценка на H): %s" % ("—" if m["R"] is None
+                                        else "%+.3f" % m["R"]))
+        print("    Регистрируется БЕЗ ПОСЛЕДСТВИЙ: при E[R]=0 на блуждании "
+              "(инв. 32) это число\n    не может быть доводом ни за одну из "
+              "целей, пока не предъявлен источник\n    сноса или издержек.")
+        sd_m = sm["sides"][sd]
+        print("  СПРАВОЧНО ранговая связь RR ↔ tgtSig на ВСЕХ %d строках, "
+              "дошедших до геометрии: %s"
+              % (sd_m["n_geo"], "—" if sd_m["spearman"] is None
+                 else "%+.3f" % sd_m["spearman"]))
+        for key, t in (("adm", "допущено"), ("ref", "отказано")):
+            v = sd_m[key]
+            print("  СПРАВОЧНО tgtSig %s: %s" % (t, "—" if not v else
+                  "n=%d · медиана %.2f · p10 %.2f · p90 %.2f"
+                  % (v["n"], v["med"], v["p10"], v["p90"])))
+        print("  КАНАЛ ПРОДОЛЖЕНИЯ:")
+        for k in sm["ks"]:
+            c = sm["arms"][_ak(k)][sd]
+            if not c:
+                print("    k=%.1f · сетапов нет" % k)
+                continue
+            print("    k=%.1f · n=%-5d дат %-4d Ω %s · калибровка %s · "
+                  "P(никуда) %.0f%%%s"
+                  % (k, c["n"], c["n_dates"],
+                     "—" if not np.isfinite(c["omega"]) else
+                     "%.3f [%.3f; %.3f]" % (c["omega"], c["omega_ci"][0],
+                                            c["omega_ci"][1]),
+                     "—" if c["calib"] is None else "%.2f" % c["calib"],
+                     100 * (c["p_none"] or 0),
+                     "" if c["quorum"] else " · НИЖЕ КВОРУМА"))
+        ks_ = sd_m["kstar"]
+        print("  k* (наименьший k, чей ДИ95 накрывает %.2f или выше): %s"
+              % (bar, "нет такого k в сетке" if ks_ is None else "%.1f" % ks_))
+        print("    k* — НАХОДКА, а не константа: в index.html она не "
+              "переносится и продакшн-числом не становится.")
+    print("\n" + "─" * 62)
+    print("ЧТО СРАВНИВАЛОСЬ (инв. 22) · допущено сетапов по монетам")
+    print("  %-8s %5s %7s %7s %7s" % ("монета", "дат", "лонг", "шорт", "канал"))
+    for r in sm["symbols"]:
+        print("  %-8s %5d %7d %7d %7d"
+              % (r["sym"], r["dates"], r["long"], r["short"], r["cont"]))
+
+
+# ── 11. --lab-selftest · known-answer worlds for the four experiments ───────
 def synth_hl(mode, n_coins=16, hours=16000, seed=3, sub=6):
     """Hourly series WITH intra-hour high/low built from `sub` substeps.
     normal — iid gaussian substeps: measured touch must match the model;
@@ -1878,6 +2329,86 @@ def lab_selftest(html, bot, seeds=3):
              float(np.mean(icc)), "ОК" if c_ok else "СТОП"))
     ok = ok and n_ok and c_ok
 
+    # D · target: the continuation channel against the 90-day extremum. Runs
+    # unconditionally, not behind a flag: a comparator never proven on identity
+    # supports no claim about a real diff (inv. 45).
+    print("D · --target")
+    H1 = int(_read_js_num(html, "H_NOISE"))
+    w = synth_hl("normal")
+    btc = w.pop(sorted(w)[0])       # BTC is the regime meter, not a candidate
+    dA = run_target(w, bot, html, btc, k_grid=K_GRID, want_identity=True,
+                    verbose=False)
+    sA = target_summary(dA, html)
+
+    c = sA["pooled"][_ak(1.5)]
+    d1 = bool(c and c["calib"] is not None
+              and (c["calib_ci"][0] <= 1.0 <= c["calib_ci"][1]
+                   or 0.85 <= c["calib"] <= 1.10))
+    print("  D1 калибровка цели, k=1.5: %s %s"
+          % ("—" if not c or c["calib"] is None else
+             "%.2f [%.2f; %.2f]" % (c["calib"], c["calib_ci"][0],
+                                    c["calib_ci"][1]),
+             "ОК" if d1 else "СТОП"))
+
+    ov = [(sA["pooled"][_ak(k)] or {}).get("omega", float("nan"))
+          for k in K_GRID]
+    on = [(sA["pooled"][_ak(k)] or {}).get("n", 0) for k in K_GRID]
+    d2 = (all(np.isfinite(v) for v in ov)
+          and all(ov[i] > ov[i + 1] for i in range(len(ov) - 1)))
+    print("  D2 монотонность Ω(k): %s %s"
+          % (" > ".join("%.3f" % v for v in ov), "ОК" if d2 else "СТОП"))
+    print("     допущено на точку сетки: %s"
+          % " · ".join("k=%.1f n=%d" % (k, n) for k, n in zip(K_GRID, on)))
+
+    dB = run_target(w, bot, html, btc, k_grid=[], H_override=8 * H1,
+                    verbose=False)
+    bm = target_summary(dB, html, ks=[], H=8 * H1)["pooled"]["prod"]
+    d3 = bool(bm and bm["model_odds"] and np.isfinite(bm["omega"])
+              and bm["p_none"] < 0.05
+              and abs(bm["omega"] - bm["model_odds"]) <= 0.15 * bm["model_odds"])
+    print("  D3 тождество на 8×%dч: P(никуда) %s · Ω %s против Σq/Σ(1−q) %s %s"
+          % (H1, "—" if not bm else "%.3f" % bm["p_none"],
+             "—" if not bm else "%.3f" % bm["omega"],
+             "—" if not bm or bm["model_odds"] is None
+             else "%.3f" % bm["model_odds"], "ОК" if d3 else "СТОП"))
+
+    n_cmp, n_diff = 0, 0
+    for d in dA:
+        for o in d["obs"]:
+            a1, a2 = o["arms"].get("prod"), o["arms"].get("ident")
+            if (a1 is None) != (a2 is None):
+                n_cmp += 1
+                n_diff += 1
+                continue
+            if a1 is None:
+                continue
+            for f in ("first", "hit", "R", "p", "rr", "tgtSig", "a", "b"):
+                n_cmp += 1
+                n_diff += int(a1[f] != a2[f])
+    d4 = n_cmp > 0 and n_diff == 0
+    print("  D4 тождественный дифф: сравнений %d, расхождений %d %s"
+          % (n_cmp, n_diff, "ОК" if d4 else "СТОП"))
+
+    tmax = max(d["t"] for d in dA) + H1 * HOUR_MS
+    cut = lambda ser: {s: {f: [r for r in ser[s][f] if r[0] <= tmax]
+                           for f in ("prices", "volumes", "hl")} for s in ser}
+    dC = run_target(cut(w), bot, html, cut({"B": btc})["B"], k_grid=K_GRID,
+                    want_identity=True, verbose=False)
+    d5 = (json.dumps(dA, sort_keys=True) == json.dumps(dC, sort_keys=True)
+          and len(dA) > 0)
+    print("  D5 взгляд в будущее: запись на полном ряде против обрезанного "
+          "на t+H — %s %s" % ("совпала" if d5 else "РАЗОШЛАСЬ",
+                              "ОК" if d5 else "СТОП"))
+
+    ml, ms = sA["arms"]["prod"]["long"], sA["arms"]["prod"]["short"]
+    d6 = bool(ml and ms and np.isfinite(ml["omega"])
+              and np.isfinite(ms["omega"])
+              and abs(ml["omega"] - ms["omega"]) <= 0.10)
+    print("  D6 обмен сторон: Ω лонг %s · Ω шорт %s %s"
+          % ("—" if not ml else "%.3f" % ml["omega"],
+             "—" if not ms else "%.3f" % ms["omega"], "ОК" if d6 else "СТОП"))
+    ok = ok and d1 and d2 and d3 and d4 and d5 and d6
+
     print("\nВЕРДИКТ ЛАБОРАТОРИИ: %s"
           % ("измеряет то, что должна" if ok else "НЕИСПРАВНА — результатам не верить"))
     return 0 if ok else 1
@@ -1892,6 +2423,7 @@ def main():
     ap.add_argument("--probe", action="store_true")
     ap.add_argument("--regimes", action="store_true")
     ap.add_argument("--stops", action="store_true")
+    ap.add_argument("--target", action="store_true")
     ap.add_argument("--res7", action="store_true")
     ap.add_argument("--funding", action="store_true")
     ap.add_argument("--fetch-funding", action="store_true")
@@ -1921,6 +2453,28 @@ def main():
         sm = stops_summary(run_stops(ser, a.bot, a.html, a.horizon, a.step))
         report_stops(sm)
         json.dump(sm, open(os.path.join(HERE, "stops_raw.json"), "w"))
+        return 0
+    if a.target:
+        # --horizon/--step are NOT read here: the mode's horizon is H_NOISE cut
+        # from index.html and its step is registered at 7 days (inv. 23).
+        ser = load_cache()
+        btc = load_cache(keep_btc=True).get("BTC")
+        if btc is None:
+            sys.exit("СТОП: в кэше нет BTC — плечо и режим считать не от чего.")
+        if len(ser) < 8:
+            sys.exit("СТОП: в кэше %d монет." % len(ser))
+        sm = target_summary(run_target(ser, a.bot, a.html, btc,
+                                       betawalk=BetaWalk(a.bot, btc["prices"])),
+                            a.html)
+        report_target(sm)
+        json.dump(sm, open(os.path.join(HERE, "target_raw.json"), "w"))
+        pl, ps = sm["arms"]["prod"]["long"], sm["arms"]["prod"]["short"]
+        if not (pl and pl["quorum"]) and not (ps and ps["quorum"]):
+            # A run that compared too little must not look like a run that
+            # found nothing (инв. 22, 37).
+            sys.exit("СТОП: обе стороны продакшн-рукава ниже кворума "
+                     "(%d сетапов и %d дат) — сравнивать нечего."
+                     % (TGT_QUORUM_N, TGT_QUORUM_D))
         return 0
     if a.res7:
         ser = load_cache()
