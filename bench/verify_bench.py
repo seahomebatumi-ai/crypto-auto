@@ -153,7 +153,8 @@ def half_point(rec):
 code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=half_point))
 ok('half a point on a return passes', code == 0,
    'exit=%s — a 0.5 pp gap must be inside the 2.0 pp threshold' % code)
-ok('returns are printed in percentage points', 'пп' in out)
+ok('returns are printed in SIGNED percentage points',
+   _re.search(r'[+-]\s*\d+\.\d\d пп', out) is not None, out[:300])
 
 # 5. time gap larger than three hours -> returns are NOT comparable.
 #    The verdict must say so instead of claiming full agreement.
@@ -188,18 +189,26 @@ make_cache(tmp, {})
 code, out = run_verify(tmp, {'generated_at': '2026-08-11T10:00:00', 'analysis_data': []})
 ok('empty cache exits non-zero', code != 0, 'exit=%s' % code)
 
-# 9. threshold semantics (12.08.2026): a reconstruction defect is systemic or
-#    huge; single small outliers are SOURCE noise and must warn, not kill the
-#    pipeline that has experiments queued behind the step.
+# 9. threshold semantics, re-registered by TZ-29 §2.5. The v3 rule of
+#    12.08.2026 let a single coin over the bar exit 0 at ANY magnitude,
+#    because ONE threshold table was reporting three causes as one verdict and
+#    the pipeline had experiments queued behind the step. The causes are now
+#    separated by class: `venue-basis` is reference, `coverage` and
+#    `unexplained` return non-zero and name themselves. The pipeline is
+#    protected where it belongs instead — --target excludes the symbol whose
+#    reconciliation failed (§2.6) rather than the run swallowing the
+#    disagreement. So a single unexplained outlier is RED, and it says which
+#    coin, which field, in which direction and by how much.
 def bump_one_small(rec):
     if rec['symbol'] == 'AAA':
         rec['min_price'] = rec['min_price'] * 1.03      # 3 % = 1.5x threshold
 
 make_cache(tmp, coins)
 code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_one_small))
-ok('single small outlier exits 0', code == 0, 'exit=%s' % code)
-ok('single small outlier prints a named warning',
-   'ПРЕДУПРЕЖДЕНИЕ' in out and 'AAA' in out.split('ПРЕДУПРЕЖДЕНИЕ')[-1],
+ok('single outlier exits non-zero and is classified unexplained',
+   code != 0 and 'AAA unexplained' in out and 'BBB clean' in out, 'exit=%s' % code)
+ok('the failing cell carries symbol, field and a SIGNED deviation',
+   _re.search(r'AAA\s+min_price\s+[+-]\d', out) is not None,
    out.strip().splitlines()[-1][:150])
 
 def bump_one_huge(rec):
@@ -207,9 +216,9 @@ def bump_one_huge(rec):
         rec['min_price'] = rec['min_price'] * 1.10      # 10 % = 5x threshold
 
 code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_one_huge))
-ok('single outlier of ANY size warns, exits 0 (v3: defects are systemic)',
-   code == 0 and 'ПРЕДУПРЕЖДЕНИЕ' in out and 'AAA' in out.split('ПРЕДУПРЕЖДЕНИЕ')[-1],
-   'exit=%s' % code)
+ok('an outlier of ANY size is red, and only its own coin is dirty',
+   code != 0 and 'AAA unexplained' in out and 'CCC clean' in out
+   and _re.search(r'unexplained\s+1\b', out) is not None, 'exit=%s' % code)
 
 # 10. fut basis lane: with html naming AAA as fut:true, a big return gap on AAA
 #     is labelled as basis and does not fail; the same gap without html does.
@@ -226,16 +235,40 @@ def bump_fut_level(rec):
     if rec['symbol'] == 'AAA':
         rec['min_price'] = rec['min_price'] * 1.06      # the HYPE case of 12.08
 
+def basis_sets(text):
+    """The two sets that must be the SAME object: what the classifier put in
+    `venue-basis`, and what the «БАЗИС ПЕРП/СПОТ» line names. The class is READ
+    from that calculation, never from a field-family label written by hand, and
+    a classifier never shown to reproduce the note it is derived from supports
+    no claim about a new reading (inv. 45)."""
+    cls, note, block = set(), set(), False
+    for ln in text.splitlines():
+        if ln.startswith('  venue-basis'):
+            block = True; continue
+        if block:
+            m = _re.match(r'\s+(\w+)\s+(\w+)\s+[+-]', ln)
+            if m:
+                cls.add(m.group(1, 2)); continue
+            block = False
+        if 'БАЗИС ПЕРП/СПОТ' in ln:
+            for part in ln.split(':', 1)[1].split('·'):
+                sy, fs = part.split(':')
+                for f in fs.split(','):
+                    note.add((sy.strip(), f.strip().split()[0]))
+    return cls, note
+
 code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_fut_ret),
                        html=html_fut)
 ok('fut basis: return gap exits 0 with html', code == 0, 'exit=%s' % code)
-ok('fut basis: return gap named as basis', 'БАЗИС ПЕРП/СПОТ' in out and 'AAA' in out,
-   out.strip().splitlines()[-1][:150])
+ok('fut basis: return gap named as basis and classified venue-basis',
+   'БАЗИС ПЕРП/СПОТ' in out and 'AAA' in out and basis_sets(out)[0] == basis_sets(out)[1]
+   and len(basis_sets(out)[0]) > 0, out.strip().splitlines()[-1][:150])
 code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_fut_level),
                        html=html_fut)
-ok('fut basis: LEVEL gap also exits 0 with html (all fields covered)',
-   code == 0 and 'БАЗИС ПЕРП/СПОТ' in out and 'min_price' in out.split('БАЗИС')[-1],
-   'exit=%s' % code)
+ok('fut basis: LEVEL gap also exits 0, and the class set IS the basis note',
+   code == 0 and 'БАЗИС ПЕРП/СПОТ' in out and 'min_price' in out.split('БАЗИС')[-1]
+   and basis_sets(out)[0] == basis_sets(out)[1] == {('AAA', 'min_price')},
+   'exit=%s · %r' % (code, basis_sets(out)))
 # systemic detection power is intact: all three coins over the bar still fails
 code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_level))
 ok('systemic breach (all coins) still fails after v3', code != 0, 'exit=%s' % code)

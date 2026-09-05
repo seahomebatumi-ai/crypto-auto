@@ -25,6 +25,7 @@
 """
 
 import os, re, ast, sys, json, time, math, argparse, subprocess, textwrap, bisect
+import calendar
 import numpy as np
 
 HOUR_MS = 3600 * 1000
@@ -250,6 +251,74 @@ def extract_bot_block(bot_path):
     return compile(block, "<bot-block>", "exec"), ns
 
 
+# coeffs.json field -> the local name main.py's own block binds it to. ONE
+# declaration: CdBuilder reads the record through it and bot_field_windows /
+# bot_field_expr read main.py's AST through the same names (inv. 20).
+CD_FIELDS = {"min_price": "min_p", "max_price": "max_p", "min30": "mn30",
+             "max30": "mx30", "volatility": "volatility", "vol7": "vol7",
+             "r7": "r7", "r14": "r14", "r30": "r30", "eff14": "eff14",
+             "vol_ratio": "vratio"}
+
+
+def _gtb_node(bot_path):
+    src = open(bot_path, encoding="utf-8").read()
+    return next(n for n in ast.parse(src).body
+                if isinstance(n, ast.FunctionDef) and n.name == "get_token_betas")
+
+
+def _assign_targets(node):
+    t = node.targets[0]
+    return t.elts if isinstance(t, ast.Tuple) else [t]
+
+
+def bot_field_windows(bot_path):
+    """{coeffs.json field: its own window in DAYS}, READ from the same block
+    the bench cuts by AST out of `get_token_betas`. `--verify` needs it to tell
+    a field whose window overlaps a gap the census named from a field that
+    disagrees for a reason of its own; a table of 7/14/30 written into the
+    bench would be a second place for numbers production already states
+    (inv. 20, 58). Everything the block does not build from an explicit window
+    is measured over `CdBuilder`'s own 90-day cut, which is the widest input
+    any of them has."""
+    win = {}
+    for node in ast.walk(_gtb_node(bot_path)):
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
+            continue
+        if getattr(node.value.func, "id", "") not in ("window_stats", "window_vol"):
+            continue
+        if len(node.value.args) < 2:
+            continue
+        a = node.value.args[1]
+        if not (isinstance(a, ast.Constant) and isinstance(a.value, (int, float))):
+            continue
+        for nm in _assign_targets(node):
+            if isinstance(nm, ast.Name):
+                win[nm.id] = float(a.value)
+    if not win:
+        raise ValueError("в боте не найдены окна window_stats/window_vol")
+    out = dict((fld, win.get(loc, 90.0)) for fld, loc in CD_FIELDS.items())
+    # eff14 = r14 / (volatility * sqrt(336)): a gap reaches it through the
+    # WIDER of its two inputs, and volatility is cut over the whole 90 days.
+    out["eff14"] = max(out["r14"], out["volatility"])
+    return out
+
+
+def bot_field_expr(bot_path, field):
+    """The production expression a coeffs.json field is built from, read out of
+    main.py's AST and printed by --verify. A column whose construction is
+    stated by the tool cannot be read as some other quotient with the same
+    name — which is exactly how `vol_ratio` was read (map §3.2's leverage cap
+    is `volRegime` = vol7/volatility in index.html and is NOT this field)."""
+    loc = CD_FIELDS.get(field, field)
+    for node in ast.walk(_gtb_node(bot_path)):
+        if not isinstance(node, ast.Assign):
+            continue
+        for t in _assign_targets(node):
+            if isinstance(t, ast.Name) and t.id == loc:
+                return ast.unparse(node.value)
+    return None
+
+
 class CdBuilder:
     """Собирает запись coeffs.json на момент t тем же кодом, что и бот."""
 
@@ -280,14 +349,10 @@ class CdBuilder:
         g.update({"c_data": {"prices": seg, "total_volumes": segv},
                   "debug": {}, "np": np})
         exec(self.code, g)
-        return {
-            "min_price": g["min_p"], "max_price": g["max_p"],
-            "price_pos": float(g["price_pos"]), "volatility": g["volatility"],
-            "r7": g["r7"], "r14": g["r14"], "r30": g["r30"],
-            "min30": g["mn30"], "max30": g["mx30"], "vol7": g["vol7"],
-            "eff14": g["eff14"], "vol_ratio": g["vratio"],
-            "rank": None, "rank_prev": None, "fdv_mc": None,
-        }
+        out = dict((fld, g[loc]) for fld, loc in CD_FIELDS.items())
+        out.update({"price_pos": float(g["price_pos"]), "rank": None,
+                    "rank_prev": None, "fdv_mc": None})
+        return out
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -645,13 +710,78 @@ def tokens_from_html(html_path):
     return json.loads(out.stdout)
 
 
-def _save(sym, P, V, src_name, HL=None):
+def _fmt_ts(ms):
+    """A recorded state without its date is not a state (inv. 56)."""
+    return ("—" if not ms else
+            time.strftime("%Y-%m-%dT%H", time.gmtime(float(ms) / 1000.0)))
+
+
+def census(P, t_ref):
+    """Coverage of an hourly series, as SEPARATE numbers.
+
+    What is missing at the TAIL and what is missing INSIDE are two different
+    facts with two different causes, and only the second one is what
+    production's gap rule is about (map §2: returns are taken between adjacent
+    buckets and gaps are dropped). «дыр 2.8 %» names a quantity and hides the
+    only thing that explains it, so the largest interior gap is reported with
+    its own start and end (inv. 56).
+
+    `P` is the bucket dict both fetchers build: {hour_bucket: [stamp_ms, value]}.
+    `t_ref` is the moment coverage is measured against; the tail deficit is
+    counted to the last COMPLETE hour, never to `now`, because the hour in
+    progress is not a candle anybody is missing."""
+    keys = sorted(P)
+    out = {"hours": len(keys), "first": None, "last": None, "tail": 0,
+           "gaps": [], "n_gaps": 0, "max_gap": None, "inside": 0}
+    if not keys:
+        return out
+    out["first"] = int(P[keys[0]][0])
+    out["last"] = int(P[keys[-1]][0])
+    lch = (int(t_ref) // HOUR_MS) * HOUR_MS      # close of the last complete hour
+    out["tail"] = max(0, int((lch - out["last"]) // HOUR_MS))
+    gaps = []
+    for a, b in zip(keys, keys[1:]):
+        if b - a > 1:
+            gaps.append([int(P[a][0]) + HOUR_MS, int(P[b][0]) - HOUR_MS,
+                         int(b - a - 1)])
+    out["gaps"] = gaps
+    out["n_gaps"] = len(gaps)
+    out["inside"] = sum(g[2] for g in gaps)
+    out["max_gap"] = max(gaps, key=lambda g: g[2]) if gaps else None
+    return out
+
+
+def census_of_doc(doc, t_ref):
+    """The same census off a cache file already on disk, so a symbol that was
+    restored from the Actions cache still prints its line (a census printed
+    only for a symbol this run happened to download is not a census)."""
+    P = {int(p[0]) // HOUR_MS: p for p in doc.get("prices", [])}
+    return census(P, t_ref)
+
+
+def print_census(sym, ticker, cov, verdict):
+    """One census line per ATTEMPTED symbol, accepted or skipped. Tail deficit
+    and interior gaps are printed as separate numbers on purpose: that
+    separation is what decides whether the tail top-up was the whole defect."""
+    g = cov.get("max_gap")
+    print("  %-7s %-17s %-13s %-13s %6d %6d %5d %6d  %-13s %-13s  %s"
+          % (sym, ticker, _fmt_ts(cov.get("first")), _fmt_ts(cov.get("last")),
+             cov.get("hours", 0), cov.get("tail", 0), cov.get("n_gaps", 0),
+             cov.get("inside", 0),
+             _fmt_ts(g[0]) if g else "—", _fmt_ts(g[1]) if g else "—",
+             verdict))
+
+
+def _save(sym, P, V, src_name, HL=None, cov=None):
     """Общий выход обеих качалок + гарды. Часовой шаг обязателен: вся математика
-    бота часовая (√336, √168, Vol в %/час) — дневной ряд молча дал бы бред."""
+    бота часовая (√336, √168, Vol в %/час) — дневной ряд молча дал бы бред.
+
+    The skip rules below are UNCHANGED and their numbers are not touched: 2600
+    hours of history and a 5 % hole fraction are what they were, so the census
+    beside them measures the same coins against the same bar (inv. 47)."""
     pr = [P[k] for k in sorted(P)]
     if len(pr) < 2600:                      # < ~110 дней: даже на прогрев не хватит
-        print("  %-7s МАЛО ИСТОРИИ (%d ч) — пропуск" % (sym, len(pr)))
-        return False
+        return False, "МАЛО ИСТОРИИ — пропуск"
     ts = [p[0] for p in pr]
     step = float(np.median(np.diff(ts))) / HOUR_MS
     if not (0.8 < step < 1.5):
@@ -659,14 +789,17 @@ def _save(sym, P, V, src_name, HL=None):
     span = (ts[-1] - ts[0]) / HOUR_MS + 1
     gaps = 1.0 - len(pr) / span
     if gaps > 0.05:
-        print("  %-7s ДЫР %.1f%% — пропуск" % (sym, 100 * gaps))
-        return False
+        return False, "ДЫР %.1f%% — пропуск" % (100 * gaps)
     doc = {"prices": pr, "volumes": [V[k] for k in sorted(V)], "src": src_name}
     if HL:
         doc["hl"] = [HL[k] for k in sorted(HL)]     # additive; old readers unaffected
+    if cov:
+        # Additive, exactly as `hl` is: --verify reads it to tell a field whose
+        # window overlaps a gap from a field that disagrees for its own reasons,
+        # and a reader that does not know the key is unaffected (inv. 1, 9).
+        doc["cov"] = cov
     json.dump(doc, open(os.path.join(CACHE, sym + ".json"), "w"))
-    print("  %-7s ok  %5d ч  дыр %.1f%%  (%s)" % (sym, len(pr), 100 * gaps, src_name))
-    return True
+    return True, "ok  дыр %.1f%%  (%s)" % (100 * gaps, src_name)
 
 
 HOSTS = [
@@ -726,7 +859,39 @@ def _rows_from_zip(blob):
     return out
 
 
+def _month_days(mo, t_beg, t_end):
+    """Every calendar day of month `mo` ("YYYY-MM") that intersects the window.
+    The month length is computed, never enumerated, so February and a leap year
+    are not two more places for one fact to be wrong (inv. 20)."""
+    y, m = int(mo[:4]), int(mo[5:7])
+    out = []
+    for d in range(1, calendar.monthrange(y, m)[1] + 1):
+        ts = calendar.timegm((y, m, d, 0, 0, 0, 0, 1, 0)) * 1000
+        if ts + DAY_MS < t_beg or ts > t_end:
+            continue
+        out.append("%s-%02d" % (mo, d))
+    return out
+
+
 def _vision_rows(pair, is_fut, t_beg, t_end):
+    """Monthly ZIPs, every ABSENT month refilled from that month's DAILY files,
+    then the tail topped up from the mirror. ONE path serves spot and perp
+    (inv. 20): they differ only in the archive root and in whether a mirror for
+    the leg exists at all, and never in whether coverage is completed.
+
+    Why every absent month and not only the current one. The monthly aggregate
+    is not published at the same moment on the two archives, and until it is,
+    that month exists only as daily files. Measured 05.09.2026 by HTTP status
+    on BTCUSDT (no price read): spot monthly 2026-08 -> 404 while futures/um
+    monthly 2026-08 -> 200, spot monthly 2026-07 -> 200, and both daily
+    2026-09-03 -> 200. A loop that refilled `months[-1]` alone therefore lost
+    the WHOLE of the last complete month on every spot series and none on a
+    perp one — 744 h, which is exactly the constant block run #14 measured as
+    2.8-4.0 % of four series of four different lengths.
+
+    Months absent BEFORE the pair's first archived month are pre-listing and
+    have no daily files either, so they are not refilled: the fill window is
+    read off the data (the first month that answered 200), never declared."""
     import requests
     base = ("https://data.binance.vision/data/futures/um" if is_fut
             else "https://data.binance.vision/data/spot")
@@ -736,27 +901,48 @@ def _vision_rows(pair, is_fut, t_beg, t_end):
     while (y, m) <= (end.tm_year, end.tm_mon):
         months.append("%04d-%02d" % (y, m))
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
-    rows, miss = [], 0
+    rows, gone, have = [], [], []
     for mo in months:
         u = "%s/monthly/klines/%s/1h/%s-1h-%s.zip" % (base, pair, pair, mo)
         r = requests.get(u, timeout=60)
         if r.status_code == 200:
             rows += _rows_from_zip(r.content)
+            have.append(mo)
         else:
-            miss += 1
-    # Текущий месяц выкладывается посуточно — добираем его дневными файлами.
-    for d in range(0, 40):
-        ts = t_end - d * DAY_MS
-        if ts < t_beg:
-            break
-        day = time.strftime("%Y-%m-%d", time.gmtime(ts / 1000))
-        if day[:7] != months[-1]:
-            break
-        u = "%s/daily/klines/%s/1h/%s-1h-%s.zip" % (base, pair, pair, day)
-        r = requests.get(u, timeout=60)
-        if r.status_code == 200:
-            rows += _rows_from_zip(r.content)
-    return rows, miss
+            gone.append(mo)
+    for mo in gone:
+        if have and mo < have[0]:
+            continue
+        for day in _month_days(mo, t_beg, t_end):
+            u = "%s/daily/klines/%s/1h/%s-1h-%s.zip" % (base, pair, pair, day)
+            r = requests.get(u, timeout=60)
+            if r.status_code == 200:
+                rows += _rows_from_zip(r.content)
+    note = ""
+    lch = (int(t_end) // HOUR_MS) * HOUR_MS      # close of the last complete hour
+    if rows:
+        tail = max(int(r[0]) for r in rows) + HOUR_MS   # first hour still absent
+        if tail < lch:
+            if is_fut:
+                # data-api.binance.vision carries no futures endpoint (measured
+                # 05.09.2026: /fapi/v1/klines -> 404) and fapi.binance.com is
+                # inv. 24. Topping a PERPETUAL series up from the SPOT endpoint
+                # would splice a different instrument onto its tail — a wrong
+                # join fabricates a move the whole bench then measures. The
+                # archive's own lag is REPORTED by the census instead.
+                note = "хвост перпа не добирается: зеркала фьючерсов нет"
+            else:
+                add, code = _rest_rows("https://data-api.binance.vision",
+                                       "/api/v3/klines", pair, tail, lch)
+                # The hour in progress is not a closed candle: a partial bar
+                # would enter the series as an hourly close and be wrong in the
+                # only place the whole run reads.
+                add = [k for k in (add or []) if int(k[0]) < lch]
+                if add:
+                    rows += add
+                else:
+                    note = "хвост не добран (HTTP %s)" % code
+    return rows, len(gone), note
 
 
 def _rest_rows(host, path, pair, t_beg, t_end):
@@ -799,6 +985,94 @@ def _series_from_rows(rows):
     return P, V, HL
 
 
+# ── Ticker aliases · CANDIDATES, never facts (inv. 44) ──────────────────────
+# `data.binance.vision` is keyed by the Binance PAIR. `main.py` reads CoinGecko
+# by ID and inv. 10 requires that id to survive a rebrand, so production never
+# notices one — and the same rebrand silently truncates a series HERE and
+# nowhere else. That asymmetry is why it has never surfaced.
+#
+# Each row is a CANDIDATE and neither half of it is asserted by this file: the
+# CUTOVER is not written here either, it is read off the two legs the archive
+# actually returns, and the joint is admitted only by the arithmetic rule in
+# `_splice`. A candidate the data refuses is refused and the run says so.
+ALIAS = {"GRAMUSDT": "TONUSDT", "SKYUSDT": "MKRUSDT"}
+
+
+def _bucket_closes(rows):
+    return {int(k[0]) // HOUR_MS: float(k[4]) for k in rows or []}
+
+
+def _splice(old_rows, new_rows):
+    """Admissibility is ARITHMETIC and its bar is DERIVED from the run's own
+    data (inv. 49): the joint's own return across the splice is admitted only
+    if it lies inside the hourly-return extremes the two legs THEMSELVES
+    exhibit. No numeral is written here and none is read from a TZ.
+
+    A pure rename joins at an ordinary hour and passes. A token migration
+    carrying a conversion ratio joins at a fabricated multi-thousand-percent
+    move and fails, and NOTHING here is allowed to rescue it: hand-writing the
+    ratio into the data path is exactly the numeral inv. 49 refuses, and it
+    would put a production-shaped constant inside a bench.
+
+    The extremes are taken BETWEEN ADJACENT BUCKETS ONLY and inside each leg
+    separately — production's own gap rule (map §2), never across the joint the
+    rule is judging. A refused splice is not a failure: the symbol enters by
+    its post-rename leg alone."""
+    nb, ob = _bucket_closes(new_rows), _bucket_closes(old_rows)
+    r = {"ok": False, "cut": None, "r": None, "lo": None, "hi": None, "n": 0,
+         "old_h": 0, "span": None, "why": "", "rows": new_rows}
+    if not nb:
+        r["why"] = "новой пары в архиве нет"
+        return r
+    cut = min(nb)                       # the cutover is READ, never declared
+    r["cut"] = cut * HOUR_MS + HOUR_MS
+    pre = dict((b, v) for b, v in ob.items() if b < cut)
+    r["old_h"] = len(pre)
+    if not pre:
+        r["why"] = "плеча до переименования нет"
+        return r
+    a, b = pre[max(pre)], nb[cut]
+    if not (a > 0 and b > 0):
+        r["why"] = "нулевая цена на стыке"
+        return r
+    r["r"] = b / a - 1.0
+    r["span"] = int(cut - max(pre))
+    rets = []
+    for leg in (pre, nb):
+        ks = sorted(leg)
+        for x, y in zip(ks, ks[1:]):
+            if y - x == 1 and leg[x] > 0:
+                rets.append(leg[y] / leg[x] - 1.0)
+    r["n"] = len(rets)
+    if not rets:
+        # A rule with nothing to compare against is not a rule (inv. 22).
+        r["why"] = "ни одной часовой пары в рядах — сравнивать не с чем"
+        return r
+    r["lo"], r["hi"] = min(rets), max(rets)
+    r["ok"] = bool(r["lo"] <= r["r"] <= r["hi"])
+    r["why"] = ("стык внутри собственных часовых крайностей ряда" if r["ok"]
+                else "стык ВНЕ собственных часовых крайностей ряда")
+    if r["ok"]:
+        r["rows"] = [k for k in old_rows if int(k[0]) // HOUR_MS < cut] + list(new_rows)
+    return r
+
+
+def _try_alias(pair, is_fut, t_beg, t_end, new_rows):
+    """One candidate, fetched and judged at run time. Returns (rows, ticker)."""
+    old = ALIAS[pair]
+    orows, _m, _n = _vision_rows(old, is_fut, t_beg, t_end)
+    sp = _splice(orows, new_rows)
+    print("    СКЛЕЙКА %s -> %s · стык %s · плечо до %d ч · доходность стыка "
+          "%s за %d ч"
+          % (old, pair, _fmt_ts(sp["cut"]), sp["old_h"],
+             "—" if sp["r"] is None else "%+.4f" % sp["r"], sp["span"] or 0))
+    print("      крайности ряда [%s; %s] по %d часовым парам -> %s: %s"
+          % ("—" if sp["lo"] is None else "%+.4f" % sp["lo"],
+             "—" if sp["hi"] is None else "%+.4f" % sp["hi"], sp["n"],
+             "ПРИНЯТА" if sp["ok"] else "ОТКЛОНЕНА", sp["why"]))
+    return sp["rows"], ((old + "+" + pair) if sp["ok"] else pair)
+
+
 def fetch_prices(html_path, bot_path, years=3, source="auto"):
     os.makedirs(CACHE, exist_ok=True)
     print("Проверка доступности источников:")
@@ -814,28 +1088,36 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
     toks = tokens_from_html(html_path) + [{"name": "BTC", "s": "BTCUSDT"}]
     t_end = int(time.time() * 1000)
     t_beg = t_end - int(years * 365 * DAY_MS)
+    print("ПЕРЕПИСЬ ПОКРЫТИЯ · строка на КАЖДУЮ попытку, принятую и отвергнутую.")
+    print("  %-7s %-17s %-13s %-13s %6s %6s %5s %6s  %-13s %-13s  %s"
+          % ("монета", "тикер", "начало", "конец", "часов", "хвост", "дыр",
+             "ч дыр", "дыра с", "дыра по", "вердикт"))
     ok = 0
     for t in toks:
         sym, pair, fut = t["name"], t["s"], bool(t.get("fut"))
-        if os.path.exists(os.path.join(CACHE, sym + ".json")):
-            print("  %-7s уже в кэше" % sym); ok += 1; continue
-        rows, why = [], ""
+        cf = os.path.join(CACHE, sym + ".json")
+        if os.path.exists(cf):
+            # A census printed only for the symbols THIS run happened to
+            # download is not a census: the Actions cache restores most of
+            # them, and those are exactly the lines a reader needs.
+            doc = json.load(open(cf))
+            cov = doc.get("cov") or census_of_doc(doc, t_end)
+            print_census(sym, cov.get("ticker", pair), cov, "уже в кэше")
+            ok += 1
+            continue
+        rows, why, ticker, note = [], "", pair, ""
+        # The census reports the BEST attempt, not the last one. A spot coin
+        # whose post-rename leg is real but short falls through to the futures
+        # leg, which does not exist for it, and reporting that second attempt
+        # printed «строк 0» — «the bench broke it» where the fact is «the leg
+        # is 1 500 h and the skip rule refused it». Two different facts.
+        best = ([], "", pair, "")
         for is_fut in ((True,) if fut else (False, True)):
             if source == "vision":
-                rows, miss = _vision_rows(pair, is_fut, t_beg, t_end)
-                why = "нет %d месячных файлов" % miss
-                # Дневные файлы архива выкладываются на следующие сутки, поэтому
-                # он всегда отстаёт примерно на день. Дотягиваем хвост зеркалом,
-                # иначе сверка сравнивает два разных момента времени.
-                if rows:
-                    tail = max(int(r[0]) for r in rows) + HOUR_MS
-                    if t_end - tail > 2 * HOUR_MS:
-                        add, code = _rest_rows("https://data-api.binance.vision",
-                                               "/api/v3/klines", pair, tail, t_end)
-                        if add:
-                            rows += add
-                        else:
-                            why += ", хвост не добран (HTTP %s)" % code
+                rows, miss, note = _vision_rows(pair, is_fut, t_beg, t_end)
+                why = "нет %d месячных файлов" % miss + ((", " + note) if note else "")
+                if pair in ALIAS:
+                    rows, ticker = _try_alias(pair, is_fut, t_beg, t_end, rows)
             else:
                 host = (("https://fapi.binance.com", "/fapi/v1/klines") if is_fut else
                         (("https://data-api.binance.vision", "/api/v3/klines")
@@ -843,13 +1125,27 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
                          ("https://api.binance.com", "/api/v3/klines")))
                 rows, code = _rest_rows(host[0], host[1], pair, t_beg, t_end)
                 rows, why = rows or [], "HTTP %s" % code
+            if len(rows) > len(best[0]):
+                best = (rows, why, ticker, note)
             if len(rows) >= 2600:
                 break
+        rows, why, ticker, note = best
+        P, V, HL = _series_from_rows(rows) if rows else ({}, {}, {})
+        cov = census(P, t_end)
+        cov["ticker"] = ticker
         if len(rows) < 2600:
-            print("  %-7s НЕТ ДАННЫХ (%s, строк %d)" % (sym, why, len(rows)))
+            # «no data» and «a real leg the skip rule refused» are two facts and
+            # the line says which one it is.
+            print_census(sym, ticker, cov,
+                         ("НЕТ ДАННЫХ (%s)" % why if not rows else
+                          "МАЛО ИСТОРИИ (%d ч) — пропуск (%s)" % (len(rows), why)))
             continue
-        P, V, HL = _series_from_rows(rows)
-        if _save(sym, P, V, source + ("-perp" if fut else ""), HL):
+        good, verdict = _save(sym, P, V, source + ("-perp" if fut else ""), HL, cov)
+        # A tail the top-up could not close is named on the ACCEPTED line too:
+        # a series that quietly ends early is the failure mode this census
+        # exists to remove.
+        print_census(sym, ticker, cov, verdict + ((" · " + note) if note else ""))
+        if good:
             ok += 1
     print("монет в кэше: %d из %d" % (ok, len(toks)))
     if ok < 8:
@@ -873,7 +1169,10 @@ def fetch_cg(bot_path, years=1):
     calls = 0
     for sym, cid in tokens.items():
         if os.path.exists(os.path.join(CACHE, sym + ".json")):
-            print("  %-7s уже в кэше" % sym); continue
+            doc = json.load(open(os.path.join(CACHE, sym + ".json")))
+            cov = doc.get("cov") or census_of_doc(doc, int(time.time() * 1000))
+            print_census(sym, cov.get("ticker", cid), cov, "уже в кэше")
+            continue
         P, V = {}, {}
         for (a, b) in chunks:
             r = requests.get(
@@ -891,48 +1190,73 @@ def fetch_cg(bot_path, years=1):
             for ts, v in j.get("total_volumes", []):
                 V[int(ts) // HOUR_MS] = [int(ts), float(v)]
             time.sleep(2.5)
-        _save(sym, P, V, "coingecko-demo")
+        cov = census(P, int(time.time() * 1000))
+        cov["ticker"] = cid
+        good, verdict = _save(sym, P, V, "coingecko-demo", None, cov)
+        print_census(sym, cid, cov, verdict)
     print("вызовов CoinGecko: %d (месячный лимит Demo — 10 000)" % calls)
 
 
-def verify_against_live(bot_path, html_path=None):
-    """Сверка восстановленной записи с ЖИВЫМ coeffs.json.
+GIST_LIVE = ("https://gist.githubusercontent.com/seahomebatumi-ai/"
+             "3f50574a29bc37434c18cc8480779ccb/raw/coeffs.json")
 
-    ВАЖНО про меру. Раньше всё сверялось в ОТНОСИТЕЛЬНЫХ процентах, и на
-    доходностях это давало мусор: r14 у монеты бывает 0.001, тогда расхождение
-    в полпроцентного пункта печатается как 1449%. Уровни цен сверяются
-    относительно, доходности — в процентных ПУНКТАХ, eff14 — в своих единицах.
+# Class of a symbol-field cell that sits over its threshold. `venue-basis` is
+# READ from the calculation that already produces the «БАЗИС ПЕРП/СПОТ» line
+# and is never a family label written down here: run #14's basis note covers
+# `min_price` on XMR and `eff14` on XMR and HYPE, and neither is return-family,
+# so a hand-written enumeration would push those cells into `unexplained` and
+# leave --verify red on two clean coins after a fully successful repair
+# (inv. 58). Order is severity: a symbol takes the worst class it carries.
+CLASSES = ["venue-basis", "coverage", "unexplained"]
 
-    ВАЖНО про вердикт (11.08.2026). Это единственный режим, который умеет
-    ошибиться в ОПАСНУЮ сторону — напечатать «совпадает». Поэтому:
-      • код возврата ненулевой при любом провале (раньше был всегда 0, и
-        упавшая сверка выглядела в workflow зелёной — тот же класс, что инв. 25);
-      • считается число сверок ПО КАЖДОМУ ПОЛЮ, а не только число монет:
-        поле, которого нет в живом coeffs.json ни у одной монеты, раньше
-        проходило порог с нулём сравнений (инв. 22);
-      • поля, не сравнимые из-за разрыва во времени, названы в вердикте —
-        «совпадает» без оговорки о них больше не печатается.
 
-    ВАЖНО про порог (v3 семантики, 12.08.2026, после двух боевых прогонов).
-    Дефект ВОССТАНОВЛЕНИЯ системный по построению кода: логика окон, семантика
-    времени и единицы применяются ко всем монетам одинаково. Поэтому поле
-    ПРОВАЛЕНО только если за порогом >= 3 монет или ВСЕ сравнённые (>= 2).
-    Одна монета за порогом — ЛЮБОГО размера — это идиосинкразия источников
-    (прогон №1: XLM volatility 12.4 %, один день; прогон №2: HYPE min90 6.1 % —
-    фитиль ликвидаций на перпе против композитного спота) и печатается
-    громким поимённым предупреждением, не останавливая конвейер.
+def _cov_hit(cov, win_d, t_last):
+    """Does this field's OWN window overlap a gap the census named (2.2)?
+    Tail deficit and interior gaps are kept apart here for the same reason the
+    census keeps them apart: they are two different facts about one series."""
+    if not cov:
+        return None
+    if cov.get("tail", 0) > 0:
+        return "хвост %d ч" % cov["tail"]
+    lo = t_last - win_d * DAY_MS
+    for g in cov.get("gaps", []):
+        if g[1] >= lo:
+            return "дыра %s..%s (%d ч)" % (_fmt_ts(g[0]), _fmt_ts(g[1]), g[2])
+    return None
 
-    БАЗИС ПЕРП/СПОТ. У монет с fut:true спота на Binance НЕТ: кэш стенда —
-    перп-свечи, бот считает по композитному споту CoinGecko. Это два РАЗНЫХ
-    настоящих инструмента, поэтому при переданном html у fut-монет ЛЮБОЕ поле
-    за порогом идёт в справочную полосу «базис перп/спот» и в провал не
-    попадает никогда. Урок двух прогонов: №1 срубили доходности XMR (r30
-    6.7 пп), №2 — уровень HYPE (min90 6.1 %); ограничивать полосу одними
-    доходностями было моей ошибкой масштаба."""
+
+def reconcile(bot_path, html_path=None):
+    """The comparison itself — it prints nothing and returns no exit code.
+
+    --verify prints it and returns its code; --target reads its classes to
+    decide which symbols it may measure at all. ONE reconciliation, never two
+    (inv. 20): --target runs BEFORE --verify in backtest_bench.yml, so a gate
+    that read a file the later step writes would not be a control over the
+    numbers it guards (inv. 62).
+
+    ВАЖНО про меру. Уровни цен сверяются ОТНОСИТЕЛЬНО, доходности — в
+    процентных ПУНКТАХ, eff14 — в своих единицах. Раньше всё сверялось в
+    относительных процентах, и на доходностях это давало мусор: r14 у монеты
+    бывает 0.001, тогда расхождение в полпроцентного пункта печатается как
+    1449 %. `info` теперь названо явно, а не проваливается в ветку `rel`.
+
+    ВАЖНО про знак. Расхождения несут ЗНАК: слишком большая volatility и
+    слишком маленькая — разные вещи, и именно направление говорит, занижен RR
+    или завышен. Сравнение с порогом идёт по модулю, печать — со знаком.
+
+    ВАЖНО про vol_ratio. Это НЕ vol7/volatility. Это `volume_expansion` —
+    оборот за 24 ч, делённый на медиану оборота за 90 д (main.py), и его
+    конструкция печатается из AST, а не описывается словами. Частное
+    vol7/volatility — это `volRegime` во фронте, потолок плеча §3.2, и в
+    coeffs.json такого поля нет вовсе. Порога у vol_ratio нет и не появляется:
+    его компоненты порогов не несут, распространять в частное нечего.
+
+    ВАЖНО про вердикт. Одна таблица порогов сводила ТРИ причины в один вердикт,
+    поэтому красную сверку приходилось читать человеку. Теперь каждая ячейка за
+    порогом получает класс, и класс решает: `venue-basis` — справочно (§3.14),
+    `coverage` и `unexplained` — ненулевой код возврата с названной причиной."""
     import requests
-    live = requests.get(
-        "https://gist.githubusercontent.com/seahomebatumi-ai/"
-        "3f50574a29bc37434c18cc8480779ccb/raw/coeffs.json", timeout=30).json()
+    live = requests.get(GIST_LIVE, timeout=30).json()
     ref = {d["symbol"]: d for d in live["analysis_data"]} if isinstance(
         live.get("analysis_data"), list) else live["analysis_data"]
     gen = live.get("generated_at", "")
@@ -942,13 +1266,14 @@ def verify_against_live(bot_path, html_path=None):
     except Exception:
         g = None
     cdb = CdBuilder(bot_path)
-    fut = set()
+    windows = bot_field_windows(bot_path)
+    fut, fut_note = set(), ""
     if html_path:
         try:
             fut = {t["name"] for t in tokens_from_html(html_path) if t.get("fut")}
         except Exception as e:
-            print("tokens[] из HTML не разобраны (%s) — базис-поблажки нет"
-                  % type(e).__name__)
+            fut_note = ("tokens[] из HTML не разобраны (%s) — базис-поблажки нет"
+                        % type(e).__name__)
     RET_FIELDS = ("r7", "r14", "r30", "eff14")
     # поле -> (вид сверки, порог).  rel = относительно, pp = проц. пункты,
     # abs = в единицах величины, info = только показать
@@ -958,28 +1283,19 @@ def verify_against_live(bot_path, html_path=None):
             ("r7", "pp", 1.5), ("r14", "pp", 2.0), ("r30", "pp", 3.0),
             ("eff14", "abs", 0.15), ("vol_ratio", "info", 0.0)]
     # Same filter as load_cache: '_'-prefixed files are side data, not series.
-    # --run --quality-const legitimately keeps _quality_today.json right here,
-    # and reading ["prices"] out of it crashed the whole check.
     ends = [json.load(open(os.path.join(CACHE, f)))["prices"][-1][0]
             for f in os.listdir(CACHE)
             if f.endswith(".json") and not f.startswith("_")]
     gap = None
     if g and ends:
         gap = (g - max(ends) / 1000.0) / 3600.0
-        print("coeffs.json собран %s · кэш кончается %s · разрыв %.1f ч" % (
-            gen[:16], time.strftime("%Y-%m-%dT%H:%M", time.gmtime(max(ends) / 1000)), gap))
-        if gap > 3:
-            print("РАЗРЫВ БОЛЬШЕ ТРЁХ ЧАСОВ: доходности r7/r14/r30/eff14 считаются "
-                  "на разные моменты и НЕ СРАВНИМЫ. Смотреть только уровни и "
-                  "волатильность; для доходностей показан сдвиг в сигмах.")
-    print("уровни и скорости — в относительных %, доходности — в проц. пунктах")
-    print("%-7s " % "монета" + " ".join("%-9s" % k for k, _, _ in SPEC))
-    worst = {k: 0.0 for k, _, _ in SPEC}
-    seen = {k: 0 for k, _, _ in SPEC}          # comparisons actually performed
-    breach = {k: [] for k, _, _ in SPEC}       # (sym, dev) over threshold
-    basis = []                                 # fut-coin return gaps: informative
-    cmp_n = 0
-    for sym, ser in sorted(load_cache().items()):
+    ser_all = load_cache()
+    worst = dict((k, 0.0) for k, _, _ in SPEC)
+    seen = dict((k, 0) for k, _, _ in SPEC)
+    basis, rows, cmp_n = [], [], 0
+    classes = dict((c, []) for c in CLASSES)
+    sym_class = {}
+    for sym, ser in sorted(ser_all.items()):
         r = ref.get(sym)
         if not r:
             continue
@@ -987,86 +1303,144 @@ def verify_against_live(bot_path, html_path=None):
         if cd is None:
             continue
         cmp_n += 1
-        cells = []
-        for k, kind, _ in SPEC:
+        cov = ser.get("cov")
+        t_last = int(ser["prices"][-1][0])
+        cells = {}
+        for k, kind, thr in SPEC:
             a, b = cd.get(k), r.get(k)
             if a is None or b is None or not isinstance(b, (int, float)):
-                cells.append("   —     "); continue
+                cells[k] = None
+                continue
             if kind == "pp":
-                dv = abs(a - b) * 100.0; cells.append("%7.2f пп" % dv)
+                dv = (a - b) * 100.0
             elif kind == "abs":
-                dv = abs(a - b); cells.append("%9.3f" % dv)
-            else:
-                dv = 100 * abs(a - b) / max(1e-12, abs(b)); cells.append("%8.2f%% " % dv)
-            worst[k] = max(worst[k], dv)
+                dv = a - b
+            else:                                   # rel and info alike
+                dv = 100.0 * (a - b) / max(1e-12, abs(b))
             seen[k] += 1
-            thr_k = next(t for kk, _, t in SPEC if kk == k)
-            kind_k = next(kd for kk, kd, _ in SPEC if kk == k)
-            if kind_k != "info" and dv > thr_k:
+            if abs(dv) > abs(worst[k]):
+                worst[k] = dv
+            over = kind != "info" and abs(dv) > thr
+            cls, why = None, None
+            if over:
                 if sym in fut:
-                    basis.append((sym, k, dv))   # ALL fields: two instruments
+                    # ALL fields: two different real instruments (map §3.14).
+                    basis.append((sym, k, dv))
+                    cls = "venue-basis"
                 else:
-                    breach[k].append((sym, dv))
-        print("%-7s " % sym + " ".join(cells))
+                    why = _cov_hit(cov, windows.get(k, 90.0), t_last)
+                    cls = "coverage" if why else "unexplained"
+                classes[cls].append((sym, k, dv, why))
+            cells[k] = {"a": a, "b": b, "dv": dv, "kind": kind, "over": over,
+                        "cls": cls, "why": why}
+        rows.append({"sym": sym, "cells": cells, "cov": cov})
+        worst_cls = None
+        for c in CLASSES:
+            if any(v and v["cls"] == c for v in cells.values()):
+                worst_cls = c
+        sym_class[sym] = worst_cls or "clean"
     if cmp_n == 0:
         sys.exit("СТОП: сверять нечего — в кэше ноль монет. "
                  "Это провал закачки, а не успешная сверка.")
     skip = RET_FIELDS if (gap is None or gap > 3) else ()
-    def field_fails(k, thr):
-        # A reconstruction defect is SYSTEMIC by construction: window logic,
-        # timestamp semantics and units apply to every coin equally. A single
-        # coin over the bar — at any magnitude — is source idiosyncrasy
-        # (12.08: XLM volatility one day, HYPE perp-wick min90 the next) and
-        # warns loudly instead of killing the pipeline.
-        br = breach[k]
-        return len(br) >= 3 or (cmp_n >= 2 and len(br) >= cmp_n)
-    bad = [k for k, kind, thr in SPEC
-           if kind != "info" and k not in skip and field_fails(k, thr)]
-    warn = [(k, breach[k]) for k, kind, thr in SPEC
-            if kind != "info" and k not in skip and breach[k]
-            and k not in bad]
-    # A field the live JSON never carried compares zero times and keeps
-    # worst = 0.0, i.e. it passes its threshold without a single comparison.
-    # That is invariant 22 verbatim, one level down: count, then judge.
     never = [k for k, kind, _ in SPEC
              if kind != "info" and k not in skip and seen[k] == 0]
-    print("\nсверено монет: %d" % cmp_n)
+    return {"spec": SPEC, "gen": gen, "gap": gap, "skip": skip, "rows": rows,
+            "seen": seen, "worst": worst, "basis": basis, "classes": classes,
+            "sym_class": sym_class, "never": never, "cmp_n": cmp_n,
+            "windows": windows, "fut": sorted(fut), "fut_note": fut_note,
+            "ends": ends,
+            "vr_expr": bot_field_expr(bot_path, "vol_ratio"),
+            "vr_parts": dict((f, bot_field_expr(bot_path, f))
+                             for f in ("vol7", "volatility"))}
+
+
+def verify_against_live(bot_path, html_path=None):
+    """Сверка восстановленной записи с ЖИВЫМ coeffs.json. Печать и код
+    возврата; вся арифметика — в reconcile()."""
+    R = reconcile(bot_path, html_path)
+    SPEC, gap, skip = R["spec"], R["gap"], R["skip"]
+    if R["fut_note"]:
+        print(R["fut_note"])
+    if gap is not None:
+        print("coeffs.json собран %s · кэш кончается %s · разрыв %.1f ч" % (
+            R["gen"][:16],
+            time.strftime("%Y-%m-%dT%H:%M", time.gmtime(max(R["ends"]) / 1000)),
+            gap))
+        if gap > 3:
+            print("РАЗРЫВ БОЛЬШЕ ТРЁХ ЧАСОВ: доходности r7/r14/r30/eff14 считаются "
+                  "на разные моменты и НЕ СРАВНИМЫ. Смотреть только уровни и "
+                  "волатильность; для доходностей показан сдвиг в сигмах.")
+    print("уровни и скорости — в относительных %, доходности — в проц. пунктах; "
+          "ЗНАК сохранён, порог сравнивается по модулю")
+    print("vol_ratio построен продакшном как: %s — это ОБОРОТ, а не vol7/volatility "
+          "(то частное — volRegime во фронте и полем coeffs.json не является); "
+          "порога не имеет" % (R["vr_expr"] or "?"))
+    print("%-7s " % "монета" + " ".join("%-10s" % k for k, _, _ in SPEC))
+    for row in R["rows"]:
+        cells = []
+        for k, kind, _ in SPEC:
+            c = row["cells"][k]
+            if c is None:
+                cells.append("    —     ")
+            elif kind == "pp":
+                cells.append("%+7.2f пп" % c["dv"])
+            elif kind == "abs":
+                cells.append("%+10.3f" % c["dv"])
+            else:
+                cells.append("%+8.2f%% " % c["dv"])
+        print("%-7s " % row["sym"] + " ".join(cells))
+    print("\nсверено монет: %d" % R["cmp_n"])
     for k, kind, thr in SPEC:
         u = {"rel": "%", "pp": " пп", "abs": "", "info": "%"}[kind]
         note = ("не сравнимо (разрыв во времени)" if k in skip else
-                "справочно" if kind == "info" else "%.2f%s" % (thr, u))
-        print("  %-11s сверок %2d   худшее %8.3f%s   порог %s"
-              % (k, seen[k], worst[k], u, note))
+                "справочно, порога нет" if kind == "info" else "%.2f%s" % (thr, u))
+        print("  %-11s сверок %2d   окно %2dд   худшее %+9.3f%s   порог %s"
+              % (k, R["seen"][k], int(R["windows"].get(k, 90)), R["worst"][k],
+                 u, note))
     if skip:
         print("  ожидаемый сдвиг цены за разрыв: ~%.1f%% при часовой воле 1%%"
               % (100 * 0.01 * math.sqrt(max(gap or 0, 0))))
     print("")
-    if never:
-        print("НЕ СВЕРЕНО НИ РАЗУ: " + ", ".join(never)
+    # Every failing cell carries a class, and the class is printed WITH the
+    # number of cells it holds (inv. 43). A class with no cells is printed as
+    # zero rather than omitted: an absent line cannot be told from a forgotten
+    # one, and the mode still refuses to pass on zero comparisons (inv. 22).
+    print("КЛАССЫ РАСХОЖДЕНИЙ (ячеек монета-поле):")
+    for c in CLASSES:
+        cl = R["classes"][c]
+        eff = {"venue-basis": "справочно (§3.14), в провал не идёт",
+               "coverage": "ПРОВАЛ, причина названа",
+               "unexplained": "ПРОВАЛ"}[c]
+        print("  %-12s %3d   %s" % (c, len(cl), eff))
+        for sy, k, dv, why in sorted(cl):
+            print("      %-7s %-11s %+9.3f%s"
+                  % (sy, k, dv, ("  ·  " + why) if why else ""))
+    if R["never"]:
+        print("НЕ СВЕРЕНО НИ РАЗУ: " + ", ".join(R["never"])
               + " — поля нет в живом coeffs.json. Нулевое число сравнений "
                 "не является совпадением.")
-    for k, br in warn:
-        print("ПРЕДУПРЕЖДЕНИЕ %s: единичные выбросы (%s) — источники, не "
-              "восстановление; конвейер не останавливается"
-              % (k, ", ".join("%s %.2f" % (sy, dv) for sy, dv in br)))
-    if basis:
+    if R["basis"]:
         by = {}
-        for sy, k, dv in basis:
-            by.setdefault(sy, []).append("%s %.1f" % (k, dv))
+        for sy, k, dv in R["basis"]:
+            by.setdefault(sy, []).append("%s %+.1f" % (k, dv))
         print("БАЗИС ПЕРП/СПОТ (fut-монеты, справочно, не провал): "
               + " · ".join(sy + ": " + ", ".join(v) for sy, v in sorted(by.items())))
-    if bad:
-        print("ВЫШЛИ ЗА ПОРОГ: " + ", ".join(bad))
-    if not bad and not never:
+    hard = R["classes"]["coverage"] + R["classes"]["unexplained"]
+    if hard:
+        print("ВЫШЛИ ЗА ПОРОГ: " + ", ".join(sorted(set(k for _, k, _, _ in hard))))
+    print("СВЕРКА ПО МОНЕТАМ: " + " · ".join(
+        "%s %s" % (sy, cl) for sy, cl in sorted(R["sym_class"].items())))
+    if not hard and not R["never"]:
         checked = [k for k, kind, _ in SPEC if kind != "info" and k not in skip]
         print("совпадает с продакшном по сверенным полям: " + ", ".join(checked))
     if skip:
         print("НЕ СВЕРЯЛОСЬ (разрыв во времени %s): %s"
               % ("неизвестен" if gap is None else "%.1f ч" % gap, ", ".join(skip)))
     # Non-zero exit is the whole point: a workflow step must go red on failure.
-    # A time gap is an expected operational state of the archive, not a failure,
-    # so it downgrades the claim in words instead of failing the step.
-    return 1 if (bad or never) else 0
+    # A time gap is an expected operational state of the archive, not a
+    # failure, so it downgrades the claim in words instead of failing the step.
+    return 1 if (hard or R["never"]) else 0
 
 
 def load_cache(keep_btc=False):
@@ -2118,14 +2492,21 @@ def _arm_pool(dates, arm, side, level=95.0):
             "quorum": n >= TGT_QUORUM_N and len(rows) >= TGT_QUORUM_D}
 
 
-def target_summary(dates, html, ks=None, H=None, level=95.0):
+def target_summary(dates, html, ks=None, H=None, level=95.0, excluded=None):
     """The registered primary, the descriptives and the continuation arm's
     reading. Every verdict below is produced by the rule fixed before the data,
-    never by the number's appearance."""
+    never by the number's appearance.
+
+    `excluded` is {symbol: reconciliation class} for the symbols --target was
+    not allowed to measure (§2.6). It changes no bar and no primary: it is
+    carried so the printed verdict can say WHICH class removed the setups
+    instead of a quorum failure looking like a market with nothing in it
+    (inv. 22, inv. 37)."""
     ks = list(K_GRID if ks is None else ks)
     out = {"bar": 1.0 / _read_js_num(html, "RR_MIN"), "ks": ks,
            "H": int(H if H is not None else _read_js_num(html, "H_NOISE")),
            "quorum": [TGT_QUORUM_N, TGT_QUORUM_D],
+           "excluded": dict(excluded or {}),
            "arms": {}, "pooled": {}, "sides": {}}
     for arm in ["prod"] + [_ak(k) for k in ks]:
         out["arms"][arm] = {sd: _arm_pool(dates, arm, sd, level)
@@ -2164,16 +2545,35 @@ def target_summary(dates, html, ks=None, H=None, level=95.0):
     return out
 
 
+def _excl_line(sm):
+    """Which class removed the setups. Printed wherever a verdict is withheld,
+    so «ниже кворума» can never be read as «рынок ничего не дал»."""
+    ex = sm.get("excluded") or {}
+    if not ex:
+        return "снято сверкой: ничего (все монеты кэша прошли --verify)"
+    by = {}
+    for sy, cl in ex.items():
+        by.setdefault(cl, []).append(sy)
+    return "снято сверкой: " + " · ".join(
+        "%s %d (%s)" % (cl, len(v), ", ".join(sorted(v)))
+        for cl, v in sorted(by.items()))
+
+
 def _tgt_line(m):
     if not m:
         return "не выносится — сетапов нет"
     s = ("сетапов %d · дат %d · цель %d / стоп %d / ничья %d / никуда %d"
          % (m["n"], m["n_dates"], m["n_tgt"], m["n_stop"], m["n_tie"],
             m["n_none"]))
+    if not m["quorum"]:
+        # Below quorum Ω is not printed at all: a number printed beside the
+        # words «ниже кворума» is a number somebody will quote (§2.6).
+        return s + " · НИЖЕ КВОРУМА — Ω не печатается"
     if not np.isfinite(m["omega"]):
         return s + " · Ω не определена (стоп не выбит ни разу)"
-    return s + ("\n    Ω = %.3f  ДИ95 [%.3f; %.3f]"
-                % (m["omega"], m["omega_ci"][0], m["omega_ci"][1]))
+    return s + ("\n    Ω = %.3f  ДИ95 [%.3f; %.3f]   ·   среднее 1/RR = %s"
+                % (m["omega"], m["omega_ci"][0], m["omega_ci"][1],
+                   "—" if m["inv_rr"] is None else "%.3f" % m["inv_rr"]))
 
 
 def report_target(sm):
@@ -2188,6 +2588,14 @@ def report_target(sm):
           "диапазона, ошибка в пользу действующей цели.\nКворум: %d сетапов и "
           "%d дат на сторону и рукав." % (bar, sm["quorum"][0],
                                           sm["quorum"][1]))
+    # The one line a reader needs to interpret the verdict, and it moves no bar
+    # and changes no primary (inv. 23).
+    print("АРИФМЕТИКА ПЛАНКИ: допуск требует RR ≥ RR_MIN, значит 1/RR ≤ %.2f на "
+          "КАЖДОМ\nдопущенном сетапе; на блуждании без сноса необрезанные шансы "
+          "первого касания\nравны 1/RR (инв. 32) — поэтому Ω подходит к планке "
+          "только там, где RR стоит\nу самой границы допуска. Среднее 1/RR "
+          "рукава печатается рядом с Ω." % bar)
+    print(_excl_line(sm))
     for sd, nm in (("long", "ЛОНГ"), ("short", "ШОРТ")):
         m = sm["arms"]["prod"][sd]
         print("\n" + "─" * 62)
@@ -2196,7 +2604,8 @@ def report_target(sm):
         if not m:
             continue
         if not m["quorum"]:
-            print("  ВЕРДИКТ: не выносится — ниже кворума")
+            print("  ВЕРДИКТ: не выносится — ниже кворума; Ω и k* не печатаются")
+            print("           " + _excl_line(sm))
         elif not np.isfinite(m["omega"]):
             print("  ВЕРДИКТ: не выносится — Ω не определена")
         else:
@@ -2252,8 +2661,12 @@ def report_target(sm):
                      100 * (c["p_none"] or 0),
                      "" if c["quorum"] else " · НИЖЕ КВОРУМА"))
         ks_ = sd_m["kstar"]
-        print("  k* (наименьший k, чей ДИ95 накрывает %.2f или выше): %s"
-              % (bar, "нет такого k в сетке" if ks_ is None else "%.1f" % ks_))
+        if not (m and m["quorum"]):
+            print("  k*: не печатается — продакшн-рукав этой стороны ниже "
+                  "кворума. " + _excl_line(sm))
+        else:
+            print("  k* (наименьший k, чей ДИ95 накрывает %.2f или выше): %s"
+                  % (bar, "нет такого k в сетке" if ks_ is None else "%.1f" % ks_))
         print("    k* — НАХОДКА, а не константа: в index.html она не "
               "переносится и продакшн-числом не становится.")
     print("\n" + "─" * 62)
@@ -2262,6 +2675,14 @@ def report_target(sm):
     for r in sm["symbols"]:
         print("  %-8s %5d %7d %7d %7d"
               % (r["sym"], r["dates"], r["long"], r["short"], r["cont"]))
+    # The symbols that never reached an arm are named HERE, with the class that
+    # removed them: a table listing only what survived reads as a market with
+    # nothing in it (инв. 22, инв. 37).
+    ex = sm.get("excluded") or {}
+    print("  ИСКЛЮЧЕНО СВЕРКОЙ (--verify): %s"
+          % (len(ex) if ex else "нет"))
+    for sy, cl in sorted(ex.items()):
+        print("  %-8s %s" % (sy, cl))
 
 
 def _tgt_probe_rr(html):
@@ -2685,11 +3106,38 @@ def main():
         btc = load_cache(keep_btc=True).get("BTC")
         if btc is None:
             sys.exit("СТОП: в кэше нет BTC — плечо и режим считать не от чего.")
+        # §2.6 — the mode is GATED on the reconciliation it depends on, and the
+        # gate is computed HERE rather than read out of a file --verify writes:
+        # backtest_bench.yml runs --target BEFORE --verify, so a gate that
+        # depended on the step order would not be a control over the numbers it
+        # guards (инв. 62). One reconciliation serves both (инв. 20).
+        try:
+            R = reconcile(a.bot, a.html)
+        except SystemExit:
+            raise
+        except Exception as e:
+            sys.exit("СТОП: сверка перед замером не выполнена (%s) — --target "
+                     "гейтится на ней и без неё не считает (§2.6)."
+                     % type(e).__name__)
+        excluded = dict((sy, cl) for sy, cl in R["sym_class"].items()
+                        if cl in ("coverage", "unexplained") and sy in ser)
+        for sy in excluded:
+            ser.pop(sy, None)
+        unrec = sorted(sy for sy in ser if sy not in R["sym_class"])
+        print("СВЕРКА ПЕРЕД ЗАМЕРОМ: сверено монет %d · исключено %d · "
+              "в рукава идёт %d" % (R["cmp_n"], len(excluded), len(ser)))
+        if unrec:
+            # Named, not excluded: §2.6 authorises removing `coverage` and
+            # `unexplained` and nothing else, and a wider gate would be this
+            # session's judgement standing where the specification is.
+            print("  НЕ СВЕРЕНО (нет строки в живом coeffs.json), но в рукава "
+                  "допущено: " + ", ".join(unrec))
         if len(ser) < 8:
-            sys.exit("СТОП: в кэше %d монет." % len(ser))
+            sys.exit("СТОП: после исключений в кэше %d монет — замер "
+                     "невозможен. %s" % (len(ser), _excl_line({"excluded": excluded})))
         sm = target_summary(run_target(ser, a.bot, a.html, btc,
                                        betawalk=BetaWalk(a.bot, btc["prices"])),
-                            a.html)
+                            a.html, excluded=excluded)
         report_target(sm)
         json.dump(sm, open(os.path.join(HERE, "target_raw.json"), "w"))
         pl, ps = sm["arms"]["prod"]["long"], sm["arms"]["prod"]["short"]
@@ -2697,8 +3145,8 @@ def main():
             # A run that compared too little must not look like a run that
             # found nothing (инв. 22, 37).
             sys.exit("СТОП: обе стороны продакшн-рукава ниже кворума "
-                     "(%d сетапов и %d дат) — сравнивать нечего."
-                     % (TGT_QUORUM_N, TGT_QUORUM_D))
+                     "(%d сетапов и %d дат) — сравнивать нечего. %s"
+                     % (TGT_QUORUM_N, TGT_QUORUM_D, _excl_line(sm)))
         return 0
     if a.res7:
         ser = load_cache()
