@@ -14,36 +14,44 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-03-b.** Baseline unchanged: TZ-25 and TZ-26 merged into `main` as one pull
-request; implementation commits `ea05962` (TZ-25) and `69bddc3` (TZ-26), reports
-`CryptoReports/TZ-25-universe-morpho-arb-report.md`,
-`CryptoReports/TZ-25-universe-morpho-arb-report-2.md` and
-`CryptoReports/TZ-26-venue-count-expectations-report.md`. **The baseline names the
+**Revision 2026-09-05-a.** Baseline: TZ-27 and TZ-28, both on `bench/backtest_bench.py`
+plus one workflow; implementation commits `0404286` (TZ-27) and `b29284e` (TZ-28), reports
+`CryptoReports/TZ-27-continuation-target-backtest-report.md` and
+`CryptoReports/TZ-28-scorer-extraction-and-target-bars-report.md`. **The baseline names the
 implementation commits, not the merge commit** — a merge commit carries no content, and
-content is what this block pins. The merge is `f27d5ee`; `Bench gate` #122 is green on it.
+content is what this block pins. TZ-27 merged as pull request #25 (merge `5c8d59f`); TZ-28
+is the merge this revision waits on, and the map is **uploaded after it, never before**,
+because a map is not a forecast of what `main` will hold.
 
-**This letter is a documentation revision and no production file moves at this revision.**
-It closes the two §10 rows TZ-25 left open — the producer's symbol list and the two
-CoinGecko ids — on readings taken 03.09.2026 outside the repository, and repairs the §11
-sentence that described the producer as not yet updated. The file table and every gate
-figure below are `-a`'s, unchanged and re-stated rather than re-measured.
+**No production file moves at this revision and no gate figure moves either.** Neither TZ
+touched `index.html`, `main.py`, `catalysts.json` or the calibration record, and both
+replayed the thirteen steps locally at **1 255 401**, **delta zero against `-b`**. What
+moves is one bench, one workflow, three invariants and this map's own description of the
+scoring backtest — which was itself part of the defect.
 
-**The file table moved at revision `-a`, and it moved because the universe did.** TZ-25 took `TOKENS` and `tokens[]` from 28 to 30 — **MORPHO** and
-**ARB**, both declared `fut:true` — and TZ-26 repaired the venue-count expectations and
-the §3.17 caption that addition falsified. `index.html` and `main.py` carry new values
-below; `catalysts.json` and the calibration record do not. The seven `2026-08-30` and
-`2026-09-0*` letters before this one were documentation revisions on the TZ-21 and TZ-23
-baselines — governing text only, `ANALYST-INSTRUCTIONS.md` through `2026-09-02-b` and
-`EXECUTOR-INSTRUCTIONS.md` through **v18**, plus invariants 57 and 58 — with no production
-file moved and the gate steady at 1 250 739 throughout.
+**`bench/backtest_bench.py` has no row in the file table, and two consecutive TZs have now
+had to explain the absence.** The table pins the four files a TZ header fingerprints:
+three production artifacts plus the calibration record, and the record is there only
+because it is one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists (inv. 46).
+A bench in that table would put a hash in every TZ header for a file that moves whenever a
+bench moves — the argument §11 already makes for `live-gate.sh`. A TZ needing the figure
+states it in its own `§0`, as TZ-28 did (2544 → 2768 lines,
+`fb9464afba2e87450bd3fd11877da9f1` → `9357c2bc4e71542c21068be79f8691f9`).
 
-**TZ-25 was BLOCKED before it was executed, and both of its reports stand (inv. 59).**
-Hard floor item 3 of contract **v18** froze the universe at 28, and TZ-25 amended that
-freeze in its own text, which is the one move a hard floor exists to refuse; the Executor
-blocked and was right to. The freeze was then lifted by the Boss in session, so for two
-commits the code carried a 30-coin universe against a contract and a map that both said
-28. Contract **v19** (801 lines, MD5 `a6ebc2e7c2f2b74e813dfdc20400558f`, measured on
-`main` by TZ-26) closed half of that gap and this revision closes the other half.
+**TZ-27 was delivered PARTIAL and was right to be (hard floor item 2).** Two of its nine
+validation items failed: `--lab-selftest` was red on D2 and D3, and the archive run was not
+taken. Both reds were properties of the registered BARS rather than of the new code, and
+editing an assertion to make it pass is the one move a hard floor exists to refuse — so
+they stood red, reached the Architect as findings, and TZ-28 re-registered them through a
+specification (inv. 61). **The instrument now exists and the measurement still does not:**
+`k*` has never been computed, `Ω` has never been read on the archive, and no later TZ may
+cite either from TZ-27 (§3.10a, §3.12, §10).
+
+**The two revisions before this one, in one line each.** `2026-09-03-a` moved the file
+table because the universe went from 28 to 30 (TZ-25, TZ-26, inv. 59); `2026-09-03-b` was
+documentation only and closed the two §10 rows TZ-25 left open on readings taken
+03.09.2026. Contract **v19** (801 lines, MD5 `a6ebc2e7c2f2b74e813dfdc20400558f`) is
+unchanged and is the version both TZs ran under.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -51,13 +59,13 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-03-b.**` |
+| revision | `**Revision 2026-09-05-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `59. **A standing decision is amended in the floor before it is amended in the code.**` |
+| newest invariant | `62. **A workflow that runs only on demand is not a control over the files it reads.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -81,9 +89,18 @@ Rewriting the header would make the description of one sample describe a differe
 which is inv. 46 read backwards — the constant would then agree with a record that no
 longer names the run behind it. It goes stale by design; the reader is told so here.
 
-Gate at this revision: `bench.yml`, **13 steps, 1 255 401 checks**, green on the hosted
-runner (`Bench gate` #122 on merge commit `f27d5ee`). The whole **+4 662** against the
-previous revision's 1 250 739 is TZ-25's; TZ-26 moved no counter at all.
+Gate at this revision: `bench.yml`, **13 steps, 1 255 401 checks**, unchanged. TZ-27 and
+TZ-28 each replayed all thirteen steps locally at that figure with 0 failures and reported
+**delta zero**, so nothing below needs re-attributing; the last hosted green this map can
+name is `Bench gate` #122 on `f27d5ee`, and the hosted conclusions for TZ-27's merge and
+TZ-28's branch are read off the pull-request page by the actor who merges, never from a
+report (§10). **Neither TZ could move a counter:** `backtest_bench.py` is not a gate step
+and `bench.yml` was not touched. The one thread between them is step 4 — `verify_bench.py`
+imports `backtest_bench.py` at module scope, so the gate proves the module IMPORTS and not
+that a bundle builds, which is where inv. 62's residual lives.
+
+The **+4 662** attribution below is `-a`'s, re-stated rather than re-measured: the whole
+delta against 1 250 739 is TZ-25's and TZ-26 moved no counter at all.
 
 | Step | Bench | Was | Now | Δ | Attribution |
 |---:|---|---:|---:|---:|---|
@@ -139,7 +156,7 @@ iPhone Shortcut → workflow_dispatch → GitHub Actions → main.py
 | Catalyst registry | `catalysts.json` | static, served by Pages | — | edited by the Architect through a TZ |
 | Verdict journal | `journal/write.js` | `journal.yml`, 13:00 UTC | Gist, `data-api.binance.vision`, `catalysts.json`, `index.html` | `journal/data/**`, `journal/out/**`, `journal/runs.jsonl` |
 | Benches | `bench/**` | `bench.yml` on push/PR | production files at runtime | nothing tracked |
-| Backtest | `bench/backtest_bench.py` | `backtest_bench.yml`, manual | `data.binance.vision` archive | artifacts only |
+| Backtest | `bench/backtest_bench.py` | `backtest_bench.yml`, **manual dispatch only** | `index.html` + `main.py` at runtime, `data.binance.vision` archive | artifacts only |
 | Calibration | `bench/exhaustion_calib.py` | `calib.yml`, `workflow_dispatch` + push on `claude/**` — never on `main` | `data.binance.vision` archive | `bench/exhaustion-calibration.txt` on a PASSING run; artifact always |
 | Analytical engine | `ANALYST-INSTRUCTIONS.md` + `analyst/**` | Boss-triggered, in a Claude Code session | `analyst/live.json`, `analyst/state.json`, `index.html` (`tokens[]`) | `analyst/state.json`, `analyst/log/**` |
 
@@ -508,12 +525,23 @@ the block is not drawn and the rest of the card lives (inv. 9).
 Separate file, production untouched. Answers one question: does `scoreCandidate`
 sort coins better than a lottery.
 
-**Construction.** Zero copies of production math (inv. 21). Each run cuts
-`scoreCandidate` + `has/clamp01/sigmaDay/volRegime` + `EFF_TREND/PACE_Z/
-VOL_ABNORMAL` out of `index.html` and executes them with node; the fields
+**Construction.** Zero copies of production math (inv. 21). Each run cuts the scoring
+functions and the constants they read out of `index.html`, assembles them into one bundle
+and executes it with node; the fields
 `cur/min/max/volatility/r7/r14/r30/vol7/eff14/vol_ratio` come from a block cut by
 AST from `get_token_betas` in `main.py`. Editing either production file changes
 the bench automatically.
+
+**The extraction MANIFEST is deliberately not enumerated here, and the omission is the
+repair (inv. 60).** This paragraph used to list the five names `JS_FUNCS` carried, which
+made the map a second copy of a list that lives in the bench — and both copies went stale
+on the same day, when production split `scoreCandidate` into `qualityScore` + `scoreFinish`
+and neither the code's list nor this sentence learned it. The authority is now
+`_assert_js_closed`: it derives the identifiers a bundle references from the bundle's own
+text, compares them against what the bundle, its driver and one short explicit `JS_GLOBALS`
+list define, raises at BUILD time naming the first identifier defined nowhere, counts what
+it compared and refuses to pass on zero (inv. 22). The globals list is short on purpose —
+every entry on it is a name the check can no longer catch.
 
 **Data.** `data.binance.vision` monthly ZIPs (3 years of hourly candles), tail
 topped up from `data-api.binance.vision`. Pair list from the frontend's `tokens[]`.
@@ -525,7 +553,7 @@ score tercile, and three controls (shuffled score, «proximity to min90 only»,
 «r7 only»).
 
 **Modes:** `--probe` · `--selftest` · `--fetch` · `--verify` · `--run` ·
-`--regimes` · `--stops` · `--res7` · `--funding` · `--lab-selftest`.
+`--regimes` · `--stops` · `--res7` · `--funding` · `--target` · `--lab-selftest`.
 
 **`--verify` is the only mode that can fail in the DANGEROUS direction** — print
 «matches» where nothing matched. Its rules are locked by `bench/verify_bench.py`
@@ -541,6 +569,22 @@ twenty. Plus a look-ahead check: the record for date `t` built from the full
 series must be byte-identical to the one built from the series truncated at `t`.
 Below ten seeds the selftest raises a FALSE ALARM by construction — it errs
 towards declaring itself broken, never healthy.
+
+**A stale cut fails LOUDLY at the run and SILENTLY at the trigger, and no published number
+is affected.** With `scoreFinish` missing from the bundle, node compiled it without
+complaint — `node --check` sees syntax, not reference — the driver's per-row
+`catch (e) { r = null; }`, which exists so an unscorable row yields `null` instead of
+killing the run, converted the reference error into a DATA value, and every row came back
+`null`; the run then died hundreds of lines downstream on `'>' not supported between
+instances of 'NoneType' and 'NoneType'`, naming neither the function nor the file. That is
+a crash, not a wrong answer: a null column produces no IC, and `--selftest` never reached
+its three world blocks at all. **Every standing result below therefore predates the split
+and none of them is contaminated** — what the split destroyed is the instrument, not its
+output. What made the destruction invisible is the TRIGGER rather than the defect
+(inv. 62): `backtest_bench.py` runs only under `backtest_bench.yml`, which is
+`workflow_dispatch` only, so the file it cuts its arithmetic out of moves on every
+production TZ while the only thing that would complain waits to be asked. It was dead at
+step 2 of its own job, under `bash -euo pipefail`, until TZ-27 tripped over it.
 
 **Standing result — the model is an attention sorter with measured zero
 predictive power.** `scoreCandidate` IC across both sides and 3/7/14d horizons
@@ -563,6 +607,7 @@ of new data.**
 | `--stops` | pooled measured/model calibration of the invalidation layer at 7d | LONG 0.88 [0.68; 1.07], SHORT 0.88 [0.74; 1.03] — CI covers 1 | touch model honest; no multiplier in §7 |
 | `--res7` | LONG · 7d · contrarian residual, IC ≥ +0.05 | −0.009 [−0.048; +0.030]; all 11 exploration cells fail | `residual7` stays display-only |
 | `--funding` | SHORT · 7d crowding-z, IC ≥ +0.05 | +0.003 [−0.030; +0.039]; all 8 exploration cells fail | no crowding factor; funding stays a cost |
+| `--target` | `Ω = n_tgt / n_stop` on the production arm, pooled per side, against the bar `1/RR_MIN = 0.50` | **not measured** — the instrument is built and self-tested, the archive run has never been taken | none. §3.12's tension stands unchanged and no `k*` exists to cite (inv. 62) |
 
 Descriptive, no action by registration: 35 % / 42 % of stopped setups return to
 entry within 7d; the only cell where measured exceeds model is the 6σ-capped LONG
@@ -575,6 +620,31 @@ res-reversion worlds → 0 / strongly positive; uncoupled / coupled funding worl
 → 0 / +0.24…0.27. Two lessons recorded before real data: volatility clustering at
 the 2σ floor pushes the stops ratio BELOW 1 (errs safe), and symmetric diffusive
 jumps stay inside the estimated σ — only wick-like moves can push the ratio above 1.
+
+**Section D (`--target`) is six controls rather than a world**, added by TZ-27 and
+re-registered by TZ-28: D1 target calibration, D2 monotonicity of `Ω(k)`, D3 the limit as
+the window grows, D4 an identity differ, D5 truncation invariance, D6 a side swap. **D2 and
+D3 shipped red, and the reason is inv. 61 — both bars named an object the author had
+assumed rather than derived.** D2 required `Ω(k)` to fall across five grid points when
+production's own `RR_MIN` can never admit the first one, so the claim was unevaluable
+rather than false; D3 required `P_none < 0.05` at a fixed rung where escape still measures
+0.154, so a correct resolver was refused by three times the numeral. **Both now derive
+their object at run time.** D2 probes the unmodified `tradeGeometry` for the `rr` each grid
+point can reach (`k=1.0` 1.6169 · 1.5 2.6940 · 2.0 4.0023 · 2.5 5.5914 · 3.0 7.5214) and
+asserts two things: emptiness coincides exactly with unreachability, and the fall is
+strict across the points that clear quorum. D3 walks a registered ladder
+`H = m·H_NOISE`, `m ∈ {1, 4, 8, 16, 32}`, and asserts SHAPE — escape decays, the gap to the
+closed form shrinks, and `Σq/Σ(1−q)` lands inside `Ω`'s CI95 at the rung where escape has
+decayed. On the driftless world it reads `P_none` 0.639 → 0.304 → 0.154 → 0.055 → 0.000 and
+`Ω` 0.026 → 0.146 → 0.213 → 0.250 → 0.293 against `Σq/Σ(1−q) ≈ 0.25`, converging exactly at
+`m = 16`; **no numeral in the rule names that rung — D3c finds it** (inv. 49).
+
+**The negative control is section D's acceptance criterion and it now passes.** Inverting
+`_touch_calc`'s long/short branch turns D1, D2, D3 and D6 red; D4 and D5 correctly do not
+fire, because an identity differ and a truncation check both run the inverted resolver on
+each side of their own comparison. Under the OLD bars D2 and D3 were red before the
+inversion and unchanged by it — they could not tell a broken resolver from a healthy one,
+which is the whole cost of a bar written rather than derived.
 
 **Capital-efficiency question, answered by identity.** P&L per dollar of margin =
 `L · move`, and the engine sets `L ≈ risk_budget / dist`, so ranking by capital EV
@@ -801,9 +871,26 @@ target, while in `trend` the ranking comes from the CONTINUATION channel. A coin
 with strong momentum sits near its 90-day extremum, so remaining reward is small
 and R:R breaks against `RR_MIN`. The veto is substantively CORRECT in the observed
 cases, and «a continuation target would have produced a better outcome» is a
-hypothesis without a backtest, which inv. 32 forbids acting on. **Opening
-condition:** an archive backtest comparing `RR ≥ 2` to the 90-day extremum against
-a continuation target (e.g. `E + k·σ·√H`) on the same momentum-channel inputs.
+hypothesis without a backtest, which inv. 32 forbids acting on.
+**Opening condition, now half met:** the archive backtest EXISTS — `bench/backtest_bench.py --target`, built by
+TZ-27 and repaired by TZ-28, running both arms off one shared risk leg so that
+`inv.dist`, `inv.price`, `moneyBelowMin` and `ok` are the same numbers in both and only
+the reward moves — **and it has never been run on the archive.** The condition is the
+RESULT and not the instrument: `Ω = n_tgt / n_stop` per side, above quorum, with its CI95
+read against `1/RR_MIN = 0.50`, and a `k*`. Until a runner produces those this paragraph
+stands unchanged, and a TZ citing a continuation target as measured is citing a capability
+(inv. 62).
+
+**One fact about the continuation target is already established, through production's own
+arithmetic rather than through a market: the NEAR target is untradable.** `RR` is largest
+exactly at the invalidation floor `INV_FLOOR_SD · sigmaDay = 2·vol·√24 = 9.80·vol`, and at
+`k = 1.0` the reward `exp(vol·√H_NOISE) − 1` reaches a maximum `RR` of **1.611** across the
+entire range in which leverage is issued at all (`0 < vol < VOL_STOP`), on both sides,
+against `RR_MIN = 2.0`. So `RR_MIN` does not merely prefer the far target — it refuses the
+near one outright, on every coin and in every world, which is this section's own fact that
+reward/risk is monotone in target distance with no ceiling, running the other way. Any
+future continuation design starts at `k ≥ 1.5`, and that is a property of the product, not
+of a bench.
 
 ### 3.13 Verdict journal — «вход → вердикт доски → факт»
 
@@ -1490,6 +1577,58 @@ cite them, so an invariant is rewritten in place and never renumbered.
     a rule; this bans writing one against a rule that is already gone. The cost of doing
     it in the wrong order is measured and it is two sessions and three disagreeing
     documents; the cost of doing it in the right order is one upload.
+60. **An extraction manifest is a second description of production's call graph, and it is
+    proved closed rather than maintained.** Inv. 21 makes cutting production code out of
+    the source mandatory; nothing made the LIST of what to cut correct, and that list is a
+    hand-written copy of a call graph the author does not own. Production splits one
+    function into three, the list keeps naming one, and the failure is invisible in every
+    direction an author looks: `node --check` passes, because a bundle missing a definition
+    is syntactically valid and only referentially broken; the driver's per-row `catch`,
+    which exists so an unscorable row yields `null` instead of killing the run, converts
+    the reference error into a DATA value; and the run dies far downstream on a type error
+    naming neither the function nor the file. **A build failure and a row failure must not
+    share a channel, because one of them is data and the other is not.** Measured:
+    `scoreCandidate` gained `qualityScore` and `scoreFinish`, `JS_FUNCS` did not, and
+    `--selftest`, `--run` and `--regimes` were dead on `main` until a later TZ tripped over
+    it — while this map's own §3.10 carried the same stale list in prose, which is why it
+    now carries none. The remedy is a closure check at bundle-BUILD time, ahead of
+    `node --check` and ahead of any row: references derived from the bundle's own text,
+    compared against bundle + driver + one short explicit globals list, counted (inv. 22)
+    and proved by a known-answer control that removes a name from each half and must raise
+    (inv. 23).
+61. **A control's bar names an object, and the object is derived from production at run
+    time, never assumed by its author.** Inv. 49 says a band about a MEASUREMENT is
+    computed from a null in the same run rather than written down as a numeral; this is
+    the same rule where there is no null to simulate, and it reaches the two cases inv. 49
+    does not: a bar quantified over a SET the product cannot populate, and a bar naming
+    the POINT at which a limit is reached. Both shipped red in one TZ, and both were right
+    about the world and wrong about the product. A monotonicity claim was registered across
+    five grid points when production's own `RR_MIN` refuses the first on every coin, so the
+    claim was unevaluable rather than false. A convergence claim was registered at a fixed
+    horizon where escape still measures 0.154 against a bar of 0.05, so a correct resolver
+    was refused by three times the numeral. **The repaired form asserts SHAPE and lets the
+    data locate the point:** the admissible set is probed through the very production
+    function that does the refusing, and the limit is asserted as a ladder — escape decays,
+    the gap shrinks, the closed form falls inside the CI at the rung where escape has
+    decayed — with no numeral naming a rung. The cost of getting this wrong is not only a
+    specification cycle: a red control is indistinguishable from a product defect inside an
+    immutable report, and the report outlives the bar.
+62. **A workflow that runs only on demand is not a control over the files it reads.**
+    Inv. 37 says a bench outside the gate is not a control, and inv. 53 says a bench inside
+    it is not one while the trigger excludes the commits that would exercise it. This names
+    the third case, where the trigger is CORRECT and the decay arrives from upstream.
+    `backtest_bench.yml` is `workflow_dispatch` only and must be — it needs a three-year
+    archive and a warm cache, which no push can pay for — while `backtest_bench.py` cuts
+    its arithmetic out of `index.html` at every run, so any production TZ can retire it and
+    the only thing that would complain runs when a human asks. It sat dead at step 2 of its
+    own job for as long as nobody dispatched it, and the repository's evidence was a
+    silence indistinguishable from health. **The remedy is that the coupling is asserted
+    where something already runs, not that the workflow is re-triggered:** `calib.yml` is
+    the same shape and already has it, because inv. 46's bench compares the constant to its
+    record on every push, whereas this bench's only thread into the gate is a step that
+    imports the module — which proves it imports, not that a bundle builds. **A manual
+    workflow's silence is not evidence, and the interval over which it decayed is not
+    recoverable afterwards.**
 
 ---
 
@@ -1550,8 +1689,12 @@ cite them, so an invariant is rewritten in place and never renumbered.
     literal equals `bench/exhaustion-calibration.txt` (inv. 46).
 
 **Bench triggers.** Editing `verify_against_live` → run `bench/verify_bench.py`
-(offline, ~20 s, must give 0 failures). Editing `scoreCandidate`, `window_stats`,
-`window_vol` or `volume_expansion` → run `bench/backtest_bench.py --selftest`.
+(offline, ~20 s, must give 0 failures). Editing `scoreCandidate` **or anything
+`scoreCandidate` calls**, `window_stats`, `window_vol` or `volume_expansion` → run
+`bench/backtest_bench.py --selftest`. **That trigger is prose and has already been missed
+once** — splitting `scoreCandidate` into `qualityScore` + `scoreFinish` was editing it, and
+nothing fired (inv. 60, 62) — so the mechanical form is the closure check the bench now
+runs at bundle-build time, and this line is the human backstop rather than the control.
 Any production edit → the full `bench.yml` gate, 13 steps.
 
 ---
@@ -1630,6 +1773,7 @@ monthly audit stops rediscovering them.
 | `withdrawn` | the claim behind it was false | no |
 | `measured DD.MM.YYYY[Thh:mmZ]` | a reading of a host, machine or producer | **yes, always** |
 | `not built, gated` | waits on a named external condition | no |
+| `built, unmeasured` | the instrument exists and is self-tested; the measurement it was built to take has not been taken | no — but the row names what would take it |
 
 **A `measured` row is re-measured before it is cited as current state**, and the reading
 that replaces it replaces the date with it. A row carrying `measured` with no date, or a
@@ -1640,7 +1784,7 @@ until someone re-runs the command.
 |---|---|---|
 | Wide research universe (n = 120) | not built, gated — **gate probed 02.09.2026, did not open** | a named tier-1 hypothesis with external effect size ≥ 0.030 IC on a liquid cross-section at 7–14d (§3.10c). The probe was a full literature sweep of cross-sectional predictability in liquid perpetuals 2019–2026 and it returned nothing that clears all three conditions at once; §8 carries the reading and the one external IC that matched our own measurement. **A run never re-sweeps this on its own** — the gate opens on a hypothesis ARRIVING, never on another search for one, and re-probing a closed lane is the failure this repository exists to prevent |
 | Regime hysteresis | not built | the Boss reports the regime label flapping between renders. Not built pre-emptively: a second trend constant on speculation violates inv. 20 |
-| Continuation target for `tradeGeometry` | not built, gated | an archive backtest comparing the 90-day extremum against a continuation target on the same momentum-channel inputs (§3.12) |
+| Continuation target for `tradeGeometry` | **built, unmeasured** — TZ-27 built `--target`, TZ-28 repaired its controls | the archive run itself, on a runner: `backtest_bench.yml` dispatched to `--target`, producing `Ω` per side above quorum with its CI95 against `1/RR_MIN = 0.50`, and a `k*`. **The instrument is not the answer** — no `k*` exists and nothing in TZ-27 may be cited as a market reading (§3.12, inv. 62). The effective grid is four points: `k = 1.0` is unreachable through production's own `RR_MIN` |
 | Journal outcome layer at scale | running | nothing — h7/h14 files appear automatically 7 and 14 days after each snapshot |
 | Journal storage growth | watched | ~73 KB/day. Act if the repository becomes unwieldy; records are immutable (inv. 38), so the answer is archival, never deletion |
 | Catalyst registry content | live, one confirmed entry | analyst work, delivered as a TZ; entries never promoted to `confirmed` without a primary source (inv. 39) |
@@ -1648,6 +1792,12 @@ until someone re-runs the command.
 | Re-running the calibration | frozen, deliberately | nothing at present. `calib.yml`'s paths filter names `calib.yml` itself, so ANY edit to that workflow re-fires the whole 3-year run on the branch and commits a fresh record on a longer archive, which can move the p90 away from the adopted constant and turn the inv. 46 bench red. Editing it is a re-calibration, never a touch-up; the stale `(TZ-11 stage B)` in its hardcoded commit message stays until a TZ genuinely needs a new run |
 | `calib.yml` commits the record only on a PASS | correct by design | nothing. The commit step has no `if: always()`, so a refused run leaves no repository record and only an artifact — a record pinning no constant would look authoritative and pin nothing |
 | `badge_bench.js`, `clean_bench.py` unwired | deliberate, documented in `bench.yml`'s own header | nothing. Both are two-input differs needing a `before` file the repository does not carry: manual tools, not controls (inv. 37) |
+| The closure check does not run inside `bench.yml` | open, unowned — the residual of inv. 62 | the next TZ opening `bench.yml`. `backtest_bench.yml` was dead at step 2 for as long as nobody dispatched it, and TZ-28 closed the defect; what is missing is the coupling, because **the gate still never BUILDS a bundle**. Step 4's `verify_bench.py` imports `backtest_bench.py` and proves the module IMPORTS, not that a bundle builds, so `_assert_js_closed` — the one check that catches a stale cut — never fires in the gate. One offline step that builds the four bundles and asserts zero missing identifiers would put the coupling where something already runs, at the cost of a few seconds |
+| `.gitignore`'s comment enumerates the bridge files | open, unowned | any TZ opening `.gitignore`. The RULE is the prefix `bench/_*` and covers `bench/_tgt_bridge.js` correctly; only the explanatory list is one name short. Same class as `index.html:799` and the same repair — **delete the enumeration**, do not synchronise it, or one list lives in two files (inv. 20) |
+| `target_raw.json` can carry bare `NaN` | watched | nothing. Emitted when a pooled arm records zero stop touches; Python's `json` reads it back and strict parsers do not. It mirrors `stops_raw.json` exactly, so repairing one alone would create two artifact conventions where there is currently one defect |
+| D3b compares the first ladder rung to the last, and the ladder overshoots | watched | a growth of section D, or an archive short enough to thin the last rung. Measured gap 89.5 % → 41.1 % → 14.5 % → **0.0 %** → 17.2 %: convergence is at `m = 16` and `m = 32` walks back out as its sample falls to 622 setups over 51 dates. D3c is what locates the limit and it selects `m = 16`, so the bar holds comfortably today; the clause a shorter history could break is D3b, not the ladder |
+| The closure check's blind spots | watched | nothing. It recognises three declaration forms — `function NAME(`, `var NAME`, declared parameters — so a comma declarator (`var a = 1, b = 2;`), a computed member access (`obj[name]()`) and a runtime-assembled name are invisible to it. **Every miss is a LOUD build-time raise naming the identifier, never a silent pass**, which is the safe direction and the one the check exists to enforce; no such name exists in any of the four bundles today |
+| `_skip_to_matching_brace` could rewind on an unterminated block comment | **closed by TZ-28**, as a consequence rather than a request | nothing. `str.find("*/", …)` returns `−1`, so the scanner jumped to index 1 and rescanned the file from the top. A single shared description of string and comment traversal (inv. 20) cannot rewind or the stripper loops, so the factoring had to fix it; unreachable on any well-formed `index.html`, and the direction of the change is a stop where the old code could loop |
 | `journal_bench.js` count is content-sensitive (§0) | watched; held at 691 109 through TZ-15 | the first step-7 delta that cannot be attributed field by field, or any TZ touching `journal/write.js` |
 | `NaN% от входа` at `E ≤ 0` in «ГРАНИЦЫ СДЕЛКИ» | pre-existing, unreachable live | any TZ touching that block. `Math.abs(liqSel / E - 1)` at `E = 0` is `0/0`; entry price is never zero on a live board, so it buys a diff and no safety |
 | Raw Cyrillic literal at `bench/prot_bench.js:177` | pre-existing, bench-only | any TZ editing that bench. It violates the ES5/escape rule the frontend keeps, in a file no browser loads |
@@ -1687,7 +1837,7 @@ until someone re-runs the command.
 | An analysis run's landing place depended on its checkout | **closed by contract v18** | nothing. The 02.09 run executed inside a harness worktree with no upstream, brought its tree to `origin/main` by ff-only merge — correctly — and then had to argue past a clause reading «never starts from a branch», which named a checkout where it meant a tree. §4b step 2 now states the two facts it was always about (tree byte-identical to `origin/main`, reached without a merge commit) and step 8 pushes `HEAD:main` by explicit refspec. **The refspec is the load-bearing half:** inv. 54 forbids the day log from reporting its own push, so a target that depends on the checkout is a landing nobody can name until the next run reads a stale state. Whether that run's own commit reached `main` is still unknown here and is reported by the next run under methodology §12 |
 | A carried catalyst printed a verified status on an unread source | **closed by `ANALYST-INSTRUCTIONS.md` 2026-09-01-d** | nothing. Status `НЕ ПРОВЕРЕНО`, purely subtractive in the standing of inv. 31, counted per item and closing as `ИСТЕКЛО` on the second consecutive run. **A DATE established by a primary is permanent and is never re-established; the ASSESSMENT built on it decays** — the distinction the engine reached by hand three times on 01.09 with no rule to reach it by |
 | Nothing verifies that an accepted TZ's branch reached `main` | open, unowned | the next TZ touching the audit procedure. TZ-20 sat unmerged across four subsequent TZs and a monthly audit without being noticed, because §13's rule reads «executed ⇔ a report exists in `CryptoReports/`» and a report exists for work that never landed. **The gate count masked it rather than exposing it:** step 8 agreed at 23 062 the whole time, and the agreement was evidence that nothing on `main` ever reflected TZ-20, not evidence that it had. The check is one command — `git merge-base --is-ancestor <branch> origin/main` per open branch — and it belongs in the audit, not in a bench |
-| The Executor's VPS cannot run gate step 5 under `bench.yml`'s own command | watched — **measured 31.08.2026**, TZ-23's session | nothing. `direction_bench.py --control` exhausts V8's default old-space on a 955 MB single-CPU host; reproduced on a pristine `origin/main` tree and cleared by `NODE_OPTIONS=--max-old-space-size=2600`, so it is a ceiling and not a defect. `ubuntu-latest` has no such ceiling. Recorded so a future session does not read the OOM as a product failure and does not edit a bench to make it pass |
+| The Executor's VPS cannot run gate step 5 under `bench.yml`'s own command | watched — **measured 31.08.2026**, TZ-23's session; reproduced by TZ-27 and pre-empted by TZ-28, **dates unrecorded in either report** | nothing. `direction_bench.py --control` exhausts V8's default old-space on a 955 MB single-CPU host; reproduced on a pristine `origin/main` tree and cleared by `NODE_OPTIONS=--max-old-space-size=2600`, so it is a ceiling and not a defect. TZ-27 cleared the same step with 8192 and TZ-28 set 4096 pre-emptively and therefore never measured whether it was needed — a raise applied in advance stops being a reading (inv. 56). `ubuntu-latest` has no such ceiling. Recorded so a future session does not read the OOM as a product failure and does not edit a bench to make it pass |
 | `tokenomist.ai`, `cryptorank.io` egress | **measured 30.08.2026T18:07Z (TZ-22) — both open at the network layer** | nothing on egress. The reading is a point in time behind Cloudflare and is replaced by a later reading, never argued with (inv. 52). What remains is not an egress question and carries its own row |
 | §6a discovery host | **closed by TZ-24; the readings behind it measured 30.08.2026T20:42Z — both hosts refused on the data question** | nothing, and a run never re-probes them. Permission was answered — `tokenomist.ai/robots.txt` grants `Allow: /` to a group naming `ClaudeBot`, `Claude-SearchBot`, `anthropic-ai` and `Claude-User`; `cryptorank.io` names no agent beyond `*`. **Extractability was answered and it is what closes the lane:** the unlock-events page serves the boolean `isUnlockScheduleEmpty` and no schedule, nine schedule key names return zero across 617 540 bytes, and a fund's rounds page serves dated round records whose element schema carries no amount, valuation or investor key. Both load those figures client-side from a credentialed API. §6a now records the closure so no future run spends a fetch rediscovering it |
 | A reachability control that fails only at DNS | **partly closed by TZ-24, measured 30.08.2026T20:42Z; one layer still unproven** | any future egress TZ. TZ-24 added `192.0.2.1` (RFC 5737) beside the `.invalid` host and the exit codes differ — 6 at resolution, 28 at connection — so the instrument is now known to distinguish the two layers. **The residual is mine and is the reading that matters most:** TEST-NET-1 is blackholed, so control 3 times out (28) rather than being refused (7), and a REFUSED connect is the old cloud sandbox's exact signature. A third control returning exit 7 — a loopback port that actively rejects is enough, since the claim is about the instrument and not about egress — belongs beside the other two |
