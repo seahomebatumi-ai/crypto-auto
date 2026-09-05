@@ -1106,6 +1106,12 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
             ok += 1
             continue
         rows, why, ticker, note = [], "", pair, ""
+        # The census reports the BEST attempt, not the last one. A spot coin
+        # whose post-rename leg is real but short falls through to the futures
+        # leg, which does not exist for it, and reporting that second attempt
+        # printed «строк 0» — «the bench broke it» where the fact is «the leg
+        # is 1 500 h and the skip rule refused it». Two different facts.
+        best = ([], "", pair, "")
         for is_fut in ((True,) if fut else (False, True)):
             if source == "vision":
                 rows, miss, note = _vision_rows(pair, is_fut, t_beg, t_end)
@@ -1119,14 +1125,20 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
                          ("https://api.binance.com", "/api/v3/klines")))
                 rows, code = _rest_rows(host[0], host[1], pair, t_beg, t_end)
                 rows, why = rows or [], "HTTP %s" % code
+            if len(rows) > len(best[0]):
+                best = (rows, why, ticker, note)
             if len(rows) >= 2600:
                 break
+        rows, why, ticker, note = best
         P, V, HL = _series_from_rows(rows) if rows else ({}, {}, {})
         cov = census(P, t_end)
         cov["ticker"] = ticker
         if len(rows) < 2600:
+            # «no data» and «a real leg the skip rule refused» are two facts and
+            # the line says which one it is.
             print_census(sym, ticker, cov,
-                         "НЕТ ДАННЫХ (%s, строк %d)" % (why, len(rows)))
+                         ("НЕТ ДАННЫХ (%s)" % why if not rows else
+                          "МАЛО ИСТОРИИ (%d ч) — пропуск (%s)" % (len(rows), why)))
             continue
         good, verdict = _save(sym, P, V, source + ("-perp" if fut else ""), HL, cov)
         # A tail the top-up could not close is named on the ACCEPTED line too:
