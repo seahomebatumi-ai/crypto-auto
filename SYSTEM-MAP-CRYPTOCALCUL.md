@@ -14,44 +14,51 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-05-a.** Baseline: TZ-27 and TZ-28, both on `bench/backtest_bench.py`
-plus one workflow; implementation commits `0404286` (TZ-27) and `b29284e` (TZ-28), reports
-`CryptoReports/TZ-27-continuation-target-backtest-report.md` and
-`CryptoReports/TZ-28-scorer-extraction-and-target-bars-report.md`. **The baseline names the
+**Revision 2026-09-05-b.** Baseline: TZ-29 on `bench/backtest_bench.py` and
+`bench/verify_bench.py` — implementation commits `8ab0a0e` and `6faf833`, report
+`CryptoReports/TZ-29-archive-coverage-and-verify-reconciliation-report.md`, merged — plus
+the archive dispatch its PARTIAL status was waiting on. **The baseline names the
 implementation commits, not the merge commit** — a merge commit carries no content, and
-content is what this block pins. TZ-27 merged as pull request #25 (merge `5c8d59f`); TZ-28
-is the merge this revision waits on, and the map is **uploaded after it, never before**,
-because a map is not a forecast of what `main` will hold.
+content is what this block pins.
 
-**No production file moves at this revision and no gate figure moves either.** Neither TZ
-touched `index.html`, `main.py`, `catalysts.json` or the calibration record, and both
-replayed the thirteen steps locally at **1 255 401**, **delta zero against `-b`**. What
-moves is one bench, one workflow, three invariants and this map's own description of the
-scoring backtest — which was itself part of the defect.
+**What moved this revision is a MEASUREMENT, not a specification.** TZ-29 built the
+instrument and could not run it: an Executor session cannot dispatch a workflow (inv. 44),
+so three validation items had no runner reading and the report was PARTIAL and right to be.
+The dispatch of `Backtest bench (ручной запуск)` on **05.09.2026 — run #16** — took them.
+Five passages that read «never measured», «expected» or «25 of the 28» now carry a number,
+and two of them carry the opposite of what they predicted.
 
-**`bench/backtest_bench.py` has no row in the file table, and two consecutive TZs have now
+**No production file moves at this revision and no gate figure moves either.** `index.html`,
+`main.py`, `catalysts.json` and the calibration record are untouched and `bench.yml` was not
+opened. **Nothing measured here reaches a production constant:** `k*` does not exist on
+either side at any grid point, so there is no number to carry across and §3.12's veto stands
+exactly as written (inv. 32).
+
+**`bench/backtest_bench.py` has no row in the file table, and three consecutive TZs have now
 had to explain the absence.** The table pins the four files a TZ header fingerprints:
 three production artifacts plus the calibration record, and the record is there only
 because it is one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists (inv. 46).
 A bench in that table would put a hash in every TZ header for a file that moves whenever a
 bench moves — the argument §11 already makes for `live-gate.sh`. A TZ needing the figure
-states it in its own `§0`, as TZ-28 did (2544 → 2768 lines,
-`fb9464afba2e87450bd3fd11877da9f1` → `9357c2bc4e71542c21068be79f8691f9`).
+states it in its own `§0`, as TZ-28 and TZ-29 both did (2544 → 2768 → 3216 lines,
+`fb9464afba2e87450bd3fd11877da9f1` → `9357c2bc4e71542c21068be79f8691f9` →
+`1b921e88fdae5c1c404fbf9fbcee8b2c`).
 
-**TZ-27 was delivered PARTIAL and was right to be (hard floor item 2).** Two of its nine
-validation items failed: `--lab-selftest` was red on D2 and D3, and the archive run was not
-taken. Both reds were properties of the registered BARS rather than of the new code, and
-editing an assertion to make it pass is the one move a hard floor exists to refuse — so
-they stood red, reached the Architect as findings, and TZ-28 re-registered them through a
-specification (inv. 61). **The instrument now exists and the measurement still does not:**
-`k*` has never been computed, `Ω` has never been read on the archive, and no later TZ may
-cite either from TZ-27 (§3.10a, §3.12, §10).
+**Two of the last three TZs were delivered PARTIAL and both were right to be (hard floor
+item 2).** TZ-27 left `--lab-selftest` red on D2 and D3 rather than editing an assertion to
+make it pass, and TZ-28 re-registered both bars through a specification (inv. 61). TZ-29
+left three validation items with NO reading rather than manufacturing one, because the
+top-up, the alias verdict and the archive run all live on a runner. In both cases the red
+was a property of the world, the report said so, and the next step was a specification or a
+dispatch — never a softer bar. **The measurement TZ-27 could not take has now been taken:**
+run #16 read `Ω` on the archive for both sides at every grid point, and the finding is that
+no `k*` exists (§3.10a, §3.12, §10).
 
-**The two revisions before this one, in one line each.** `2026-09-03-a` moved the file
-table because the universe went from 28 to 30 (TZ-25, TZ-26, inv. 59); `2026-09-03-b` was
-documentation only and closed the two §10 rows TZ-25 left open on readings taken
-03.09.2026. Contract **v19** (801 lines, MD5 `a6ebc2e7c2f2b74e813dfdc20400558f`) is
-unchanged and is the version both TZs ran under.
+**The two revisions before this one, in one line each.** `2026-09-05-a` recorded TZ-27 and
+TZ-28 — the `--target` instrument and the repair of its two derived bars — and moved no
+production file; `2026-09-03-b` was documentation only and closed the two §10 rows TZ-25
+left open on readings taken 03.09.2026. Contract **v19** (801 lines, MD5
+`a6ebc2e7c2f2b74e813dfdc20400558f`) is unchanged.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -59,13 +66,13 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-05-a.**` |
+| revision | `**Revision 2026-09-05-b.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `62. **A workflow that runs only on demand is not a control over the files it reads.**` |
+| newest invariant | `64. **A tail top-up must serve the instrument it tops up.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -89,10 +96,10 @@ Rewriting the header would make the description of one sample describe a differe
 which is inv. 46 read backwards — the constant would then agree with a record that no
 longer names the run behind it. It goes stale by design; the reader is told so here.
 
-Gate at this revision: `bench.yml`, **13 steps, 1 255 401 checks**, unchanged. TZ-27 and
-TZ-28 each replayed all thirteen steps locally at that figure with 0 failures and reported
-**delta zero**, so nothing below needs re-attributing; the last hosted green this map can
-name is `Bench gate` #122 on `f27d5ee`, and the hosted conclusions for TZ-27's merge and
+Gate at this revision: `bench.yml`, **13 steps, 1 255 401 checks**, unchanged. TZ-27, TZ-28
+and TZ-29 each replayed all thirteen steps locally at that figure with 0 failures and
+reported **delta zero**, so nothing below needs re-attributing; the last hosted green this
+map can name is `Bench gate` #122 on `f27d5ee`, and the hosted conclusions for TZ-27's merge and
 TZ-28's branch are read off the pull-request page by the actor who merges, never from a
 report (§10). **Neither TZ could move a counter:** `backtest_bench.py` is not a gate step
 and `bench.yml` was not touched. The one thread between them is step 4 — `verify_bench.py`
@@ -546,6 +553,27 @@ every entry on it is a name the check can no longer catch.
 **Data.** `data.binance.vision` monthly ZIPs (3 years of hourly candles), tail
 topped up from `data-api.binance.vision`. Pair list from the frontend's `tokens[]`.
 
+**The monthly archive is published with a LAG, and the lag is not the same on both venues.**
+Measured 05.09.2026: the monthly ZIP for the last COMPLETE month answers 200 on `futures/um`
+and 404 on `spot`, while both venues already carry that month's DAILY files. The old refill
+loop filled only the CURRENT month from dailies and expected the last complete month to
+arrive as a monthly ZIP, so on `futures/um` it did and on `spot` it did not: **744 h,
+interior, on every spot pair and on no perpetual**, for as long as the lag lasts. A
+publication schedule therefore read as a venue asymmetry in the code, and the tail top-up
+could not cover it either — the hole sits BEHIND the last row, not in front of it.
+`_vision_rows` now records every month the monthly ZIP did not carry and refills each
+from that month's daily files, whatever the reason it was absent; months before the pair's
+first archived month are skipped, and that window is read off the data — the first month
+that answered 200 — never declared. **The repair does not depend on the lag being
+permanent**, which is the whole point: a fix keyed to «spot publishes late» retires silently
+on the day the schedule changes.
+
+**The tail is topped up from the SPOT endpoint and no futures mirror exists (inv. 64).** A
+`fut:true` series therefore ends at the archive's last daily file and carries a visible tail
+deficit of about a day, which the census prints rather than hides. Run #16: **31 of 31
+symbols cached**, 26 spot pairs at tail 0, five perpetuals at 20 h of tail each, and one
+interior gap in the whole set — GRAM's 53 h at the rename joint (inv. 63).
+
 **Metric.** Excess return against the list mean: the score decides «which of the
 30», not «where the market goes». IC = rank correlation of score with the future
 per date, averaged, CI by block bootstrap; plus top-3 vs mean, worst drawdown by
@@ -561,6 +589,19 @@ score tercile, and three controls (shuffled score, «proximity to min90 only»,
 `eff14` `abs`); a non-zero exit code on any failure; comparisons counted PER FIELD,
 not per coin; fields not comparable because of the archive's ~1-day lag are named
 in the verdict; cache files starting with `_` are skipped.
+
+**Since TZ-29 a failing cell is CLASSIFIED and the class decides the verdict**, because one
+threshold table was reporting three different causes as one number. `venue-basis` is read
+off the calculation that already prints the «БАЗИС ПЕРП/СПОТ» line and is reference (§3.14);
+`coverage` is decided by the field's OWN window — read out of `main.py`'s AST rather than
+written down a second time (inv. 20) — against the coverage census; `unexplained` is
+everything else. The last two return non-zero and **remove the SYMBOL from `--target`'s arms
+rather than removing the run.** The gate is computed inside `--target` and never read out of
+a file `--verify` writes, because the workflow runs `--target` first and a control whose
+answer depends on step order is not a control (inv. 62). Deviations carry their sign; the
+comparison is on the magnitude. **This retired the v3 single-outlier licence, and it is a
+tightening:** that licence let one coin over the bar exit 0 at any magnitude, and it existed
+only because the verdict had no way to name a cause.
 
 **Selftest is mandatory before trusting any number.** Three worlds — pure random
 walk (the reference factor must read 0), mean reversion (+), momentum (−) — ten
@@ -594,6 +635,13 @@ Rank-1 follow-up: №1 beats the list median on 50 % / 48 % of dates. **Weights 
 never tuned** — the rule «do not touch the weights under any outcome» was
 registered before the run and holds.
 
+**Re-measured on the repaired instrument and on the wider universe — same answer.** Run #16
+(05.09.2026; 144 dates × 26.9 coins, 31 of 31 symbols cached) reads IC across both sides and
+3/7/14d inside **[−0.026; +0.032]**, every CI95 crossing zero, shuffled control
+−0.008…+0.030, both verdicts «ШУМ». **That retires the caveat above:** the standing result no
+longer rests only on runs predating the `scoreFinish` split, and the universe going 28 → 30
+moved nothing. A null measured twice on two instruments is still a null (inv. 32).
+
 ### 3.10a Experiment lab — pre-registered measurements
 
 Additive modes of the same bench; production untouched; rules registered BEFORE
@@ -607,7 +655,29 @@ of new data.**
 | `--stops` | pooled measured/model calibration of the invalidation layer at 7d | LONG 0.88 [0.68; 1.07], SHORT 0.88 [0.74; 1.03] — CI covers 1 | touch model honest; no multiplier in §7 |
 | `--res7` | LONG · 7d · contrarian residual, IC ≥ +0.05 | −0.009 [−0.048; +0.030]; all 11 exploration cells fail | `residual7` stays display-only |
 | `--funding` | SHORT · 7d crowding-z, IC ≥ +0.05 | +0.003 [−0.030; +0.039]; all 8 exploration cells fail | no crowding factor; funding stays a cost |
-| `--target` | `Ω = n_tgt / n_stop` on the production arm, pooled per side, against the bar `1/RR_MIN = 0.50` | **not measured** — the instrument is built and self-tested, the archive run has never been taken | none. §3.12's tension stands unchanged and no `k*` exists to cite (inv. 62) |
+| `--target` | `Ω = n_tgt / n_stop` on the production arm, pooled per side, against the bar `1/RR_MIN = 0.50` | **measured 05.09.2026, run #16.** LONG `Ω` 0.025 [0.010; 0.043] on 1740 setups × 136 dates; SHORT 0.016 [0.002; 0.036] on 1095 × 137. Both CI95 **entirely below 0.50** | the 90d extremum does not pay the odds its own R:R promises at 168 h — and neither does any continuation rung. **No `k*` exists in the grid on either side**, so nothing crosses into `index.html` and §3.12's veto stands (inv. 32) |
+
+**The continuation channel was measured on the same run and it does not open either.** The
+grid sets the target at `k · vol·√H_NOISE` and `Ω(k)` falls monotonically on both sides —
+exactly as D2 requires, and in the wrong direction for the hypothesis:
+
+| k | LONG n / dates | LONG `Ω` [CI95] | SHORT n / dates | SHORT `Ω` [CI95] |
+|---:|---:|---|---:|---|
+| 1.0 | — | no setups — unreachable through `RR_MIN` (§3.12) | — | no setups |
+| 1.5 | 994 / 120 | 0.202 [0.118; 0.338] | — | no setups on the archive |
+| 2.0 | 1525 / 137 | 0.095 [0.049; 0.162] | 867 / 132 | 0.107 [0.041; 0.205] |
+| 2.5 | 1871 / 143 | 0.074 [0.045; 0.119] | 1104 / 137 | 0.061 [0.023; 0.116] |
+| 3.0 | 2048 / 143 | 0.047 [0.023; 0.087] | 1298 / 141 | 0.045 [0.014; 0.088] |
+
+**The nearest reachable rung is the best of them and its CI95 tops out at 0.338 against a bar
+of 0.50**; every wider target is worse, and `P(никуда за 168ч)` climbs 52 % → 69 % as `k`
+grows. **The ordering is the one inv. 32 predicts and it is not an opportunity:** a nearer
+target buys first-touch odds and sells reward at the same rate, so on a driftless walk it
+buys nothing — and the nearest rung of all is the one `RR_MIN` refuses outright. What the
+ladder rules out is the OPPOSITE hypothesis, that a farther continuation target would pay
+better than the extremum. Reference on the production arm: mean `1/RR` 0.213 long and 0.293
+short, so the admitted set sits far above `RR_MIN` and the generous 0.50 bar was generous by
+a further factor of two.
 
 Descriptive, no action by registration: 35 % / 42 % of stopped setups return to
 entry within 7d; the only cell where measured exceeds model is the 6σ-capped LONG
@@ -872,14 +942,28 @@ with strong momentum sits near its 90-day extremum, so remaining reward is small
 and R:R breaks against `RR_MIN`. The veto is substantively CORRECT in the observed
 cases, and «a continuation target would have produced a better outcome» is a
 hypothesis without a backtest, which inv. 32 forbids acting on.
-**Opening condition, now half met:** the archive backtest EXISTS — `bench/backtest_bench.py --target`, built by
-TZ-27 and repaired by TZ-28, running both arms off one shared risk leg so that
-`inv.dist`, `inv.price`, `moneyBelowMin` and `ok` are the same numbers in both and only
-the reward moves — **and it has never been run on the archive.** The condition is the
-RESULT and not the instrument: `Ω = n_tgt / n_stop` per side, above quorum, with its CI95
-read against `1/RR_MIN = 0.50`, and a `k*`. Until a runner produces those this paragraph
-stands unchanged, and a TZ citing a continuation target as measured is citing a capability
-(inv. 62).
+**Opening condition MET and the answer is NO — measured 05.09.2026, run #16.**
+`bench/backtest_bench.py --target`, built by TZ-27, repaired by TZ-28 and gated on the
+reconciliation by TZ-29, ran the archive with both arms off one shared risk leg, so
+`inv.dist`, `inv.price`, `moneyBelowMin` and `ok` are the same numbers in both and only the
+reward moves. Above quorum on both sides: the production 90d extremum reads `Ω` 0.025
+[0.010; 0.043] long and 0.016 [0.002; 0.036] short, and the continuation channel reads 0.202
+at its nearest reachable rung and falls from there (§3.10a). **Every CI95 on every rung is
+entirely below `1/RR_MIN = 0.50`, and `k*` does not exist in the grid on either side.** The
+tension named above is therefore REAL and its obvious repair is REFUTED: swapping the
+mean-reversion target for a continuation one does not buy the odds `RR_MIN` is asking for.
+The veto is not merely correct in the observed cases — it is correct against the alternative
+that motivated the doubt. **`tradeGeometry` therefore keeps the extremum target**, §10's row
+on it is withdrawn rather than open, and a TZ proposing the change now argues against a
+measurement rather than against a silence (inv. 32).
+
+**The run also says the TARGET was never the binding constraint — the HORIZON is.** At 168 h
+most setups resolve nowhere: `P(никуда)` is 69 % long and 60 % short, so `Ω` is computed on
+the minority that resolve and is truncated far below its untruncated value. D3's ladder shows
+where it stops being truncated — the gap to the closed form `Σq/Σ(1−q) ≈ 0.25` closes at
+`H = 16 · H_NOISE`, sixteen weeks (§3.10a). This system trades 1–14 days. **No target
+geometry repairs a horizon**, so this paragraph is re-opened by a change of holding period
+and by nothing else (§8: the 7d/30d horizon switch is closed).
 
 **One fact about the continuation target is already established, through production's own
 arithmetic rather than through a market: the NEAR target is untradable.** `RR` is largest
@@ -995,11 +1079,17 @@ delisted, zero-volume row. The row exists; the market does not. Classifying by
 what the host returned disagreed with the declaration and showed up as a
 permanently degraded `status`.
 
-**Consequence 3 — the bench divergence in §7 is a source property.** Measured at 28
-coins, the backtest reconciled with production on 25; the three that diverged by 7–9 pp
-on returns were exactly the `fut:true` ones — the bench reads the perpetual, CoinGecko
-reads a spot index, and the basis is the difference. The prediction for MORPHO and ARB is
-the same divergence for the same reason, and it is a prediction until a run measures it.
+**Consequence 3 — the bench divergence in §7 is a source property; the CLASS held and the
+MAGNITUDE was refuted.** Measured 05.09.2026 on all 30 coins (run #16): the reconciliation
+classed 21 cells `venue-basis`, 0 `coverage` and 0 `unexplained`, and the five coins carrying
+every one of those cells are exactly the five `fut:true` assets — the bench reads the
+perpetual, CoinGecko reads a spot index, and the basis is the difference. **The prediction
+that MORPHO and ARB would show «the same divergence for the same reason» was wrong in both
+directions**: this map wrote 7–9 pp on returns, MORPHO reads 2.4–3.8 pp and ARB reads
+14.3–24.8 pp. The reason was right and the size was carried over from three other coins and
+stated as an expectation. **A divergence CLASS is predictable from the venue contract; its
+SIZE is a property of the individual asset's basis and is not** — the same rule inv. 52 makes
+for a reachability reading, applied to a number this map produced itself.
 
 **Consequence 4 — coverage is 25/30 and every added futures-only asset widens the gap.**
 Every statistical statement built on the journal or on the day-range measure is a
@@ -1629,6 +1719,39 @@ cite them, so an invariant is rewritten in place and never renumbered.
     imports the module — which proves it imports, not that a bundle builds. **A manual
     workflow's silence is not evidence, and the interval over which it decayed is not
     recoverable afterwards.**
+63. **The archive is keyed by TICKER and production by CoinGecko id.**
+    Inv. 10 says a rebrand keeps the id and moves the pair; this names what that costs the
+    bench. `main.py` fetches by the id in `TOKENS`; `backtest_bench.py` fetches
+    `<SYMBOL>USDT` ZIPs from `data.binance.vision`. An id survives a rebrand and a Binance
+    pair does not, so the one event inv. 10 makes INVISIBLE to the product silently
+    truncates the bench's history to the post-rename leg — and a shorter series raises
+    nothing, it is a smaller sample that still answers. **The repair is a splice whose
+    admissibility is ARITHMETIC and derived, never a table of trusted pairs (inv. 49):**
+    the joint's own return is admitted only if it lies inside the hourly-return extremes
+    the two legs themselves exhibit, taken between adjacent buckets, inside each leg
+    separately — production's own gap rule, never measured across the joint being judged.
+    Measured 05.09.2026 on the only two the list carries, and the rule did both of the
+    things a rule must do. `TON → GRAM` ADMITTED: joint +0.0069 over 54 h against extremes
+    [−0.1937; +0.0972] on 18 147 hourly pairs, and GRAM carries 18 149 h. `MKR → SKY`
+    REFUSED: joint −1.0000 against [−0.1318; +0.0803] on 26 365 pairs — a redenomination,
+    not a price move — and SKY enters on its 8 484 post-rename hours alone. **A refusal is
+    a correct outcome and must READ as one:** the census reports the best attempt across
+    legs, because a short-but-real spot leg falling through to a futures leg that does not
+    exist for the symbol printed «0 rows» for a coin with 8 484 hours.
+64. **A tail top-up must serve the instrument it tops up.**
+    `data-api.binance.vision` carries a spot klines endpoint and no futures one (measured
+    05.09.2026: `/api/v3/klines` 200, `/fapi/v1/klines` 404), and `fapi.binance.com` is
+    banned from CI code by inv. 24. The top-up nevertheless called the SPOT endpoint for
+    every series, so each `fut:true` archive was having roughly a day of SPOT candles welded
+    onto its tail. **A wrong join fabricates a move that every downstream measure then
+    measures**, and it is invisible in the one way that matters: a spliced tail looks exactly
+    like a complete one, and the perps duly read 0.0–0.1 % missing while the spot pairs read
+    a month. The top-up is now spot-only and a perpetual's tail deficit is PRINTED by the
+    census instead. **The price of the repair is a number getting worse** — perps now show
+    ~20 h of missing tail — and reaching the old figure again would require splicing the
+    wrong instrument, which is what hard floor item 2 forbids. The top-up also stops at the
+    last COMPLETE hour and never at `now`, or the hour in progress enters the series as an
+    hourly close.
 
 ---
 
@@ -1711,8 +1834,8 @@ Any production edit → the full `bench.yml` gate, 13 steps.
 - Alpha (the regression intercept) is not extrapolated — at 14d it is indistinguishable from zero.
 - Unlocks are deliberately NOT automated.
 - Liquidation probability (§3.3) assumes normality and constant volatility. Crypto tails are fatter and volatility clustering is unmodelled → **the true probability is higher than computed**; the figure is a LOWER BOUND. Measured at 7d and typical 2σ–6σ distances the same touch formula is honest and even conservative (measured/model 0.88, CI95 covers 1 on both sides); beyond the 6σ clip the far tail confirms the prior (3.5 % measured vs 0.9 % model on the long side). **Crediting the 0.88 into the calculation is REJECTED:** the CI covers 1, the understatement is explained by clustering (so the correction would break exactly in an expansion regime), and `touchProb` does not enter leverage at all — all four ceilings are distance-based.
-- The backtest reconstructs 82.5 % of the long score and 86 % of the short: market-cap rank and Binance turnover are historically unavailable, so the quality block runs on `vol_ratio` alone, through production's own missing-field path (inv. 9). Both inputs move slowly across the list, so their contribution is close to a constant tilt.
-- Backtest vs production reconciled on 25 of the 28 coins the universe held when it was measured (median divergence: prices 0.06–0.12 %, `r7` 0.32 pp, `r14` 0.26 pp, `r30` 0.31 pp, `eff14` 0.02). The three that diverged are exactly the `fut:true` assets of that list — a source identity, not an error (§3.14). MORPHO and ARB are expected to join them and have not been measured.
+- The backtest reconstructs 82.5 % of the long score and 86 % of the short: market-cap rank and Binance turnover are historically unavailable, so the quality block runs on `vol_ratio` alone, through production's own missing-field path (inv. 9). Both inputs move slowly across the list, so their contribution is close to a constant tilt. **`vol_ratio` itself has NO ARCHIVE ANALOGUE and therefore carries no threshold — it is reference-only in `--verify`.** Production builds it as `volume_expansion(c_data['total_volumes'])`, CoinGecko's composite turnover across every venue; the bench builds it from the archive's own Binance quote turnover. Two different turnover series, each divided by its own 90d median, give one scale-free ratio that is not a function of the other — so no bound derived from any price field can constrain it. Measured 05.09.2026: worst cell XMR **+317 %**, while `vol7` and `volatility` on the same coins sit under 3 %, and on synthetic data with identical prices and a substituted turnover series the derived bound is identically 0.000 % against a deviation of 134 %. **It is NOT `vol7 / volatility`** — that quotient is `volRegime` in the frontend, the §3.2 leverage cap, and is not a `coeffs.json` field at all. A TZ attaching a threshold here is attaching one to a quantity the archive cannot reproduce (inv. 49).
+- **Backtest vs production reconciled on 30 of 30 coins — measured 05.09.2026, run #16; the earlier «25 of 28» is superseded.** Zero cells classed `coverage`, zero `unexplained`, 21 `venue-basis` on the five `fut:true` assets and on nothing else; the other 25 coins are clean on all ten compared fields. Worst cells: ARB `r30` −24.8 pp and `r7` −18.8 pp, LIT `r30` +11.0 pp, XMR `r7` −6.5 pp — all perpetuals, all reference by §3.14. **The archive is no longer the limiting factor**: 31 of 31 symbols cached, 26 spot pairs at zero tail, five perpetuals at 20 h of tail because there is no futures mirror to top up from (inv. 64), and one interior gap in the whole set — GRAM's 53 h at the rename joint.
 
 ---
 
@@ -1784,7 +1907,7 @@ until someone re-runs the command.
 |---|---|---|
 | Wide research universe (n = 120) | not built, gated — **gate probed 02.09.2026, did not open** | a named tier-1 hypothesis with external effect size ≥ 0.030 IC on a liquid cross-section at 7–14d (§3.10c). The probe was a full literature sweep of cross-sectional predictability in liquid perpetuals 2019–2026 and it returned nothing that clears all three conditions at once; §8 carries the reading and the one external IC that matched our own measurement. **A run never re-sweeps this on its own** — the gate opens on a hypothesis ARRIVING, never on another search for one, and re-probing a closed lane is the failure this repository exists to prevent |
 | Regime hysteresis | not built | the Boss reports the regime label flapping between renders. Not built pre-emptively: a second trend constant on speculation violates inv. 20 |
-| Continuation target for `tradeGeometry` | **built, unmeasured** — TZ-27 built `--target`, TZ-28 repaired its controls | the archive run itself, on a runner: `backtest_bench.yml` dispatched to `--target`, producing `Ω` per side above quorum with its CI95 against `1/RR_MIN = 0.50`, and a `k*`. **The instrument is not the answer** — no `k*` exists and nothing in TZ-27 may be cited as a market reading (§3.12, inv. 62). The effective grid is four points: `k = 1.0` is unreachable through production's own `RR_MIN` |
+| Continuation target for `tradeGeometry` | **measured 05.09.2026 — hypothesis withdrawn** (run #16) | nothing. Above quorum on both sides and on every reachable rung, every CI95 sits entirely below `1/RR_MIN = 0.50` and **no `k*` exists in the grid**: LONG 0.025 [0.010; 0.043] on the production extremum and 0.202 [0.118; 0.338] at the best continuation rung, SHORT 0.016 [0.002; 0.036] and 0.107 [0.041; 0.205]. §3.12's veto is now measured rather than argued. **Re-opened only by a change of holding period**, because the binding constraint is truncation at 168 h and not the choice of target (§3.10a D3, inv. 32) |
 | Journal outcome layer at scale | running | nothing — h7/h14 files appear automatically 7 and 14 days after each snapshot |
 | Journal storage growth | watched | ~73 KB/day. Act if the repository becomes unwieldy; records are immutable (inv. 38), so the answer is archival, never deletion |
 | Catalyst registry content | live, one confirmed entry | analyst work, delivered as a TZ; entries never promoted to `confirmed` without a primary source (inv. 39) |
@@ -1792,7 +1915,7 @@ until someone re-runs the command.
 | Re-running the calibration | frozen, deliberately | nothing at present. `calib.yml`'s paths filter names `calib.yml` itself, so ANY edit to that workflow re-fires the whole 3-year run on the branch and commits a fresh record on a longer archive, which can move the p90 away from the adopted constant and turn the inv. 46 bench red. Editing it is a re-calibration, never a touch-up; the stale `(TZ-11 stage B)` in its hardcoded commit message stays until a TZ genuinely needs a new run |
 | `calib.yml` commits the record only on a PASS | correct by design | nothing. The commit step has no `if: always()`, so a refused run leaves no repository record and only an artifact — a record pinning no constant would look authoritative and pin nothing |
 | `badge_bench.js`, `clean_bench.py` unwired | deliberate, documented in `bench.yml`'s own header | nothing. Both are two-input differs needing a `before` file the repository does not carry: manual tools, not controls (inv. 37) |
-| The closure check does not run inside `bench.yml` | open, unowned — the residual of inv. 62 | the next TZ opening `bench.yml`. `backtest_bench.yml` was dead at step 2 for as long as nobody dispatched it, and TZ-28 closed the defect; what is missing is the coupling, because **the gate still never BUILDS a bundle**. Step 4's `verify_bench.py` imports `backtest_bench.py` and proves the module IMPORTS, not that a bundle builds, so `_assert_js_closed` — the one check that catches a stale cut — never fires in the gate. One offline step that builds the four bundles and asserts zero missing identifiers would put the coupling where something already runs, at the cost of a few seconds |
+| The closure check does not run inside `bench.yml` | open — the residual of inv. 62, now owned | the next TZ opening `bench.yml`. `backtest_bench.yml` was dead at step 2 for as long as nobody dispatched it, and TZ-28 closed the defect; what is missing is the coupling, because **the gate still never BUILDS a bundle**. Step 4's `verify_bench.py` imports `backtest_bench.py` and proves the module IMPORTS, not that a bundle builds, so `_assert_js_closed` — the one check that catches a stale cut — never fires in the gate. One offline step that builds the four bundles and asserts zero missing identifiers would put the coupling where something already runs, at the cost of a few seconds. **TZ-29 widened the same gap and named it:** the coverage census, the derived splice rule and the `--target` reconciliation gate are locked only by validation-time controls and by `verify_bench.py`'s 35 checks, and the harness that proved all three lives OUTSIDE the repository because the TZ authorised no new file. A harness that is not in the tree is not evidence for the next session (inv. 37), and the next TZ is written against this row |
 | `.gitignore`'s comment enumerates the bridge files | open, unowned | any TZ opening `.gitignore`. The RULE is the prefix `bench/_*` and covers `bench/_tgt_bridge.js` correctly; only the explanatory list is one name short. Same class as `index.html:799` and the same repair — **delete the enumeration**, do not synchronise it, or one list lives in two files (inv. 20) |
 | `target_raw.json` can carry bare `NaN` | watched | nothing. Emitted when a pooled arm records zero stop touches; Python's `json` reads it back and strict parsers do not. It mirrors `stops_raw.json` exactly, so repairing one alone would create two artifact conventions where there is currently one defect |
 | D3b compares the first ladder rung to the last, and the ladder overshoots | watched | a growth of section D, or an archive short enough to thin the last rung. Measured gap 89.5 % → 41.1 % → 14.5 % → **0.0 %** → 17.2 %: convergence is at `m = 16` and `m = 32` walks back out as its sample falls to 622 setups over 51 dates. D3c is what locates the limit and it selects `m = 16`, so the bar holds comfortably today; the clause a shorter history could break is D3b, not the ladder |
