@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-04-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-06-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,17 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`-a` closes two rules that named an object and no computation (map inv. 58), both of
+them found from the outside, after the owner had closed a position on one of them.** §2's
+regime table said the side in a range is «decided per coin» and named nothing that decides
+it, so it fell to `RR_MIN` — which map inv. 30 states in one line is not what arbitrates
+direction — and a rallying list produced a basket of shorts. §4 published a zone and let
+the next run cut a new one, so rows reversed between two runs of the same day with no
+market event behind them. **Neither repair adds a function, a threshold or an input:** the
+side is `marketRegime` executed on the coin's own structural row exactly as it is already
+executed on `btc`, and a published zone is carried exactly as a `СОЗРЕВАЕТ` zone already
+is. §7 gains items 50–52.
 
 **This file is methodology, not contract.** Authority, repository operations, the
 trigger protocol, the hard floor, what may be committed and where all live in
@@ -145,15 +156,15 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 
 # ЛУЧШИЕ СДЕЛКИ СЕЙЧАС
 **1. МОНЕТА — ЛОНГ**
-Вход $X–$X · Стоп $X · Цель $X · R:R X.X · Уверенность [ВЫСОКАЯ / СРЕДНЯЯ]
+Вход $X–$X · Стоп $X · Первая цель $X · Цель $X · R:R X.X · Уверенность [ВЫСОКАЯ / СРЕДНЯЯ]
 Шанс дойти за 7 дней: цель XX% · стоп XX%
 Почему: одно предложение.
 
 # СТРАТЕГИЯ — МОЙ СПИСОК
 | Монета | Сторона | Вход | Стоп | Цель | Статус |
 |---|---|---|---|---|---|
-| XXX | ЛОНГ | $X–$X | $X | $X–$X | СЕЙЧАС $X |
-| XXX | ШОРТ | $X–$X | $X | $X–$X | ЖДАТЬ |
+| XXX | ЛОНГ | $X–$X | $X | $X → $X | СЕЙЧАС $X |
+| XXX | ШОРТ | $X–$X | $X | $X → $X | ЖДАТЬ |
 Шанс дойти за 7 дней, если вход исполнился: XXX цель XX% / стоп XX% · XXX цель XX% / стоп XX%
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
@@ -249,6 +260,12 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   drift that empties a zone erodes the ratio that justified it: a setup re-entering the
   answer at a materially worse R:R than the one it was published on is re-argued or
   dropped, never reprinted on yesterday's number.
+- **The `Цель` cell carries BOTH levels of §4, first then structural, and gains no
+  column.** The form is `$X → $X`: the nearer structural extreme the holding window can
+  reach, then the level `RR_MIN` was computed against. A seventh column would not survive
+  a phone, and the two levels are one decision — where to reduce and where the trade is
+  measured to. Where the nearer extreme sits behind price the cell carries one number and
+  the row says so once (§4).
 - **ТОП-3 ВНЕ СПИСКА is mandatory to search and never mandatory to fill.** One
   genuine candidate beats three manufactured ones; zero genuine candidates prints
   «Нет достойных кандидатов.» in one line.
@@ -461,7 +478,7 @@ invented out of a missing read.
 |---|---|---|
 | БЫЧИЙ | trend up | ЛОНГ only |
 | МЕДВЕЖИЙ | trend down | ШОРТ only |
-| ДИАПАЗОН | range | both, decided per coin |
+| ДИАПАЗОН | range | both, and the COIN's own regime decides — below |
 | ПЕРЕГРЕТ | stress, upper branch | **neither** |
 | ВЫСОКИЙ РИСК | stress, lower branch | **neither** |
 
@@ -472,6 +489,43 @@ rule is worse than a label nobody borrowed. **Measured 03.09:** the answer print
 outside-list SHORTS underneath it — an asymmetry with no basis anywhere in this file,
 resting on the observation that had just refused the other side. The word closes both
 sides or it is the wrong word.
+
+**In `ДИАПАЗОН` the side is decided by the SAME function, executed on the COIN.** «Both,
+decided per coin» named an object and never a computation, so in every range this engine
+has run the side fell to whichever leg cleared `RR_MIN` — and map inv. 30 states in one
+line that geometry does not arbitrate direction, because a mid-range coin clears the ratio
+on both sides at once. What decides it is the regime layer, and the regime layer already
+has a per-instrument form: `marketRegime`'s `eff` is the formula the bot computes as a
+coin's own `eff14`, against the same `EFF_TREND` (map inv. 20). The run therefore executes
+the cut `marketRegime` a second time, on the coin's own structural row, exactly as it
+executes `invalidationInfo` and `touchProb` there (§4) and for the same reason (map
+inv. 21). **No function is added, no threshold is introduced and no input is new** — the
+row is one the run has already read for every coin that reached candidacy (§7 item 42).
+
+| Coin's own regime | Side admitted on that coin |
+|---|---|
+| trend, `dir` up | ЛОНГ only |
+| trend, `dir` down | ШОРТ only |
+| range | both — geometry then decides, which is the one case in which it may |
+| stress | **neither** — a coin at `REG_STRESS_Z` in its own week is a chase on either side |
+
+**The market's regime is the outer gate and the coin's is the inner one, and both must
+admit the side.** A `БЫЧИЙ` market does not make a long of a coin in its own downtrend, and
+a `ДИАПАЗОН` market is not a licence to fade thirty coins that are individually trending —
+which is the failure this rule was written from. **Measured 06.09, both runs:** BTC ranged
+while the median of the list added 3.83 % in a day, the per-coin side was left to the
+ratio, and the ratio against a 90-day extremum is largest exactly at the top of a rally —
+so a list that had risen produced thirteen shorts and one long, and the one long was the
+only coin on the list that had fallen. The owner took one of those shorts against an
+intact own-trend; the coin ran another nine per cent and stopped just under the published
+invalidation. **A rally is not evidence for a short, and until this rule existed it was the
+strongest evidence the ratio had.**
+
+**A coin refused here is refused BY NAME**, on the same terms as every other per-coin
+refusal (§3A): the appendix carries the coin, the regime word its own row produced, and the
+side that word closed. **A side closed by the coin's own regime is not a `СОЗРЕВАЕТ`
+candidate on that side** — the refusal is not a ratio, so no deeper entry repairs it and
+the two-pass construction of §4 is not run on it.
 
 ---
 
@@ -674,6 +728,24 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   and the least favourable ratio in it. A single-price entry collapses the two into one and
   nothing changes. Neither edge is invented here — one is the activating price §2 already
   requires in the cell, the other is the far side of the same cell.
+- **A published zone is a CARRIED object, and the next run measures the market against
+  it rather than re-cutting it.** The zone, the invalidation and the target of a live row
+  are what the previous run published; the new run reads its freeze against them and
+  changes the row only on a price EVENT — the zone filled, the invalidation was reached,
+  the target was reached, or the structural row itself moved and produced a new extreme.
+  **A re-cut is
+  not an event.** Recomputing the same coin at a second freeze produces a second zone, the
+  frozen price then sits outside it, and §2's `СЕЙЧАС` test correctly reports a row that
+  has not changed as one that has. **Measured 06.09:** SKY was published in the morning at
+  `СЕЙЧАС $0.07089` and in the afternoon as `ЖДАТЬ` on the same entry, the same stop and
+  the same target to every digit; SOL moved 0.15 % between the two runs and crossed from
+  `СЕЙЧАС` to `ЖДАТЬ`; ADA was withdrawn on a ratio that fell from 2.2 to 1.99. Not one of
+  the three was a market event, and the Boss read three reversals in ten hours.
+  **The ratio is re-tested at the PUBLISHED anchor and nowhere else** (§4): `RR_MIN` is a
+  cliff, so a setup re-measured at a fresh anchor every run crosses it on noise, and a
+  withdrawal naming no price event is the answer changing its mind rather than the market
+  changing. This is the discipline `gap` / `gap_prev` already applies to a `СОЗРЕВАЕТ`
+  zone, arriving at the section the Boss actually trades from.
 - **The target is a level in the same structural row, and R:R at the anchor decides
   publication.** Where no structural level clears `RR_MIN`, the coin is refused BY NAME
   in the appendix and does not appear — a refusal, not a silence. **The target itself does
@@ -691,6 +763,24 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   archive backtest, and this file does not act on it — a continuation target with no
   backtest behind it is precisely what map inv. 32 forbids. What a run owes here is the
   computation and the named refusal, never a more convenient number.
+- **A published trade carries TWO levels ahead of it, and they are not the same object.**
+  `Цель` is the structural target `tradeGeometry` reads from `cd`; it is what `RR_MIN` and
+  publication are computed against and none of that moves, because the archive has already
+  measured every alternative to it and refused them all (map §3.10a). What the answer has
+  never carried is the level the holding window can reach, and the Boss exits somewhere
+  whether or not this file names it: given only a 90-day extremum he either holds a
+  seven-day trade for a quarter or closes at a price the engine never mentioned, which is
+  what happened on 06.09.
+  **`Первая цель` is the nearer structural extreme the same `cd` row already carries,
+  taken in the trade's own direction** — the same row, the same read, and the field name
+  taken at run time like every other (§3). Where that extreme already sits behind price the
+  row prints `Цель` alone, which is production's own fallback and not a new rule.
+  **No claim about expectancy is made here and none may be made from it:** the `--target`
+  run measured `Ω` on every reachable rung and every CI95 sits below the bar its own R:R
+  promises, so a nearer level buys first-touch odds and sells reward at the same rate (map
+  inv. 32). It is published because it describes the trade honestly and for no other
+  reason. **It gates nothing, ranks nothing and enters no ratio** — the standing production
+  gives every printed measure (map inv. 27).
 - **Every published setup carries two touch probabilities — the target's and the stop's,
   over the holding horizon — and they are printed wherever it is printed** (§2).
   `touchProb` is cut from `index.html` and executed, exactly as `invalidationInfo` and
@@ -1625,6 +1715,14 @@ which is the shape §7 exists to replace.
 49. **Every price printed in `# BTC` was computed from the structural `btc` object and its
     derivation is in the log** (§2, §12). A level in that section with no line in the
     appendix is a level nobody can check, on the section the rest of the answer hangs from.
+50. **The side of every published list setup was produced by executing `marketRegime`
+    on that coin's own structural row** (§2), and no side rests on the ratio in a coin
+    whose own regime admits only the other one, or neither.
+51. **Every live row carries the zone the previous run published**, and every change to a
+    row names the price event behind it (§4). A status that moved with no event behind it
+    is a re-cut, and the row is restored.
+52. **Every published trade carries `Первая цель` and `Цель` as two distinct levels**
+    (§4), or states that the nearer structural extreme sits behind price.
 
 **Every item on this list names a failure that happened, and the list grows only that
 way.** Items 12–18 were added after rules already written here were broken by runs that
@@ -1653,7 +1751,13 @@ reading the answer against the state file beside it. **49 is the first item this
 gained from a run that broke nothing:** the run under `-a` executed every rule correctly,
 documented sixteen sections of arithmetic, and the only numbers in its answer without a
 derivation anywhere were the three BTC levels its own strategy table was conditioned on — a
-gap no checklist could have caught, because no rule had ever named the computation. **Three
+gap no checklist could have caught, because no rule had ever named the computation.
+**50–52 name the two runs of 06.09 and they are one defect standing in two places:** the
+rule that decides a side named no computation and the rule that carries a zone named no
+event, so the engine chose direction with a ratio and revised its own answer without a
+market. Both were found from outside the system, by the owner, after a position had been
+closed on the strength of one of them — which is the reading end of «the answer never
+changes» inverted: an answer that changes with nothing behind it. **Three
 of 25–28 and
 three of 29–32 are the same defect wearing six shapes** — the run decided something
 correctly and did not say it — which is why every one of them is checked against an
