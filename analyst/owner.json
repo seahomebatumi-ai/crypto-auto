@@ -1,7 +1,7 @@
 {
   "v": 1,
   "k": "owner",
-  "updated": "2026-09-02",
+  "updated": "2026-09-06",
   "rule": "A positions entry is created ONLY from an explicit written declaration by the owner naming the coin and the side, and the entry quotes that declaration in its note. Interest in a coin, a mention, a thesis, a vector or an inference from any of them is NOT a position and never becomes one. This file was wrong once in exactly that way - a coin the owner had said he was interested in was carried here as an open long - and the engine correctly obeyed it, which is what makes the error expensive: nothing downstream can detect a false owner fact, because this file IS the source of truth for it.",
   "positions": [],
   "vectors": [
