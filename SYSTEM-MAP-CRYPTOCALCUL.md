@@ -14,17 +14,18 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-05-c.** Baseline: TZ-30 on `bench/backtest_guard_bench.py` (new),
+**Revision 2026-09-06-a.** Baseline: TZ-30 on `bench/backtest_guard_bench.py` (new),
 `bench/backtest_bench.py` and `.github/workflows/bench.yml` — implementation commit
 `7fdd7db`, report `CryptoReports/TZ-30-backtest-guard-in-gate-report.md`, merged.
 **The baseline names the implementation commit, not the merge commit** — a merge commit
 carries no content, and content is what this block pins.
 
-**What moved this revision is a CONTROL, not a number.** The gate gained a fourteenth step
-and now builds a JavaScript bundle for the first time; no measured result, no threshold and
-no production constant moves with it. `index.html`, `main.py`, `catalysts.json` and the
-calibration record are untouched and every figure below the gate line is the one `-b`
-published.
+**What moved at `-c` was a CONTROL and what moves here is the RUNNER READING of it.** The
+gate gained a fourteenth step and now builds a JavaScript bundle for the first time; no
+measured result, no threshold and no production constant moves with either revision.
+`index.html`, `main.py`, `catalysts.json` and the calibration record are untouched and every
+figure below the gate line is the one `-b` published. Two readings arrive: the hosted gate on
+the merge, and the inv. 53 proof this map had recorded as owed.
 
 **Contract v20 lands in the same revision and is not a TZ.** `EXECUTOR-INSTRUCTIONS.md` §2
 gained the three `analyst/**` paths its class table never carried — `analyst/owner.json`,
@@ -58,13 +59,13 @@ dispatch — never a softer bar. **The measurement TZ-27 could not take has now 
 run #16 read `Ω` on the archive for both sides at every grid point, and the finding is that
 no `k*` exists (§3.10a, §3.12, §10).
 
-**The two revisions before this one, in one line each.** `2026-09-05-b` carried no
-specification at all — it recorded the dispatch of run #16, which took the three
-measurements TZ-29 built an instrument for and could not run (inv. 44), and closed the
-continuation-target hypothesis by measuring it; `2026-09-05-a` recorded TZ-27 and TZ-28 —
-the `--target` instrument and the repair of its two derived bars — and moved no production
-file. Contract **v19** (801 lines, MD5 `a6ebc2e7c2f2b74e813dfdc20400558f`) is superseded by
-v20 at this revision, above.
+**The two revisions before this one, in one line each.** `2026-09-05-c` recorded TZ-30 and
+contract v20 — the fourteenth gate step and the three `analyst/**` classes — on a local
+replay, with no hosted reading and one reading owed; `2026-09-05-b` carried no specification
+at all, recording the dispatch of run #16, which took the three measurements TZ-29 built an
+instrument for and could not run (inv. 44). Contract **v19** (801 lines, MD5
+`a6ebc2e7c2f2b74e813dfdc20400558f`) was superseded by v20 at `-c` and v20 is unchanged
+here.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -72,7 +73,7 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-05-c.**` |
+| revision | `**Revision 2026-09-06-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -106,10 +107,10 @@ Gate at this revision: `bench.yml`, **14 steps, 1 255 495 checks**. Steps 1–13
 1 255 401 — **delta zero**, replayed locally against the unmodified checkout before any edit
 and again after, so the zero is a comparison of two measurements and not of a measurement
 against this document. **Step 14 measured 94**, and the figure is published as measured: the
-TZ named no expected total and none was predicted (inv. 43). The last hosted green this map
-can name is still `Bench gate` #122 on `f27d5ee`; **no hosted reading exists here for
-TZ-30**, whose conclusion is read off the pull-request page by the actor who merges, never
-from a report (§10).
+TZ named no expected total and none was predicted (inv. 43). **The hosted gate is green on `main` at fourteen steps**, read off the run page rather than
+from a report (§10): `Bench gate` **#134** on the branch commit `7fdd7db` and **#135** on the
+merge commit `ea259c6`, both completed successfully. That supersedes #122 on `f27d5ee` as the
+last hosted green this map can name.
 
 **What the fourteenth step changes is the class of decay the gate can see.** Until it landed,
 the only thread from `backtest_bench.py` into these gates was step 4 — `verify_bench.py`
@@ -2000,7 +2001,7 @@ until someone re-runs the command.
 | `live-gate.sh` check 3 is one-sided | **closed by TZ-18** | nothing. Window is `−120 … +900` s, both sides named in stderr, both constants single-site |
 | `'**/*.md'` root-level claim | **withdrawn by TZ-18** | nothing. The claim was false: runner history shows three root-Markdown pushes and no bot run. `'**.md'` was adopted anyway, for the ambiguity, not for a repair (inv. 52) |
 | `live-gate.sh` sits under `bench.yml`'s `analyst/**` ignore | **closed by TZ-19** | nothing. Proven on the runner: a push carrying only the script now starts the gate |
-| `bench.yml`'s analyst ignore must grow with the written set | **literal added by TZ-30; the reading is OWED** | the Boss's next upload of `analyst/owner.json`, and nothing else. `analyst/owner.json` was the first file in that tree the analyst does NOT write and still qualified: it is pushed by the Boss, so every upload fired the full gate. TZ-30 added it to `paths-ignore` as an exact literal (inv. 52) while opening the workflow for another reason, which is how this row said it would land. **What is established is that the literal is present and the workflow parses; what inv. 53 requires is a real push carrying only that file**, and no such push has happened since the merge. Until it does, this entry is a reading of a pattern, which is exactly what inv. 53 refuses. The original coupling stands for every file the analyst DOES write: a forgotten entry burns a gate per run, loud rather than silent |
+| `bench.yml`'s analyst ignore must grow with the written set | **closed — measured 06.09.2026 on the runner** | nothing. TZ-30 added `analyst/owner.json` to `paths-ignore` as an exact literal (inv. 52) and the proof inv. 53 demands has now been taken: a push carrying ONLY that file — one field of it, `updated` — started `pages build and deployment` and started **no** `Bench gate` at all. The two `.md` uploads that preceded it behaved the same way under `'**.md'`. **The reading is what closes this, not the literal:** an entry that has only been read as a pattern is exactly what inv. 53 refuses, and this row carried it as OWED for one revision on that ground. The original coupling stands for every file the analyst DOES write — a forgotten entry burns a gate per run, loud rather than silent |
 | `analyst/live.json` producer emits a stray newline | **closed — measured 31.08.2026T10:03:40Z on a live payload** | nothing. The Shortcut no longer emits the raw LF inside the symbol list: a payload of `n:29` parses, `n == len(c)`, every `p`/`h`/`l` casts to a finite positive, no symbol carries whitespace, no duplicate. **The row above it was stale for days and nobody re-measured it** — the Architect read a recorded blocker as current state and reported the engine unusable when it was not. That is inv. 52 applied to this map's own rows: a row resting on a measurement falls with it, and a blocker is re-measured before it is repeated |
 | First live analysis runs | **31.08 two runs, 01.09 one run, 02.09 one run, all measured** | nothing. The gate's freshness window is `−120 … +900` s and is a GATE budget, not a RUN budget. The 14:29Z run of 31.08 passed the gate three times and published no level; the 20:32Z run froze levels at gate step 4 and published two setups. **The 01.09 run proved the repair incomplete rather than wrong:** the freeze held every level, and the same window then demoted every status, so the answer carried a correct strategy table under «СДЕЛОК СЕЙЧАС НЕТ». The constant has still never moved; the object it governed was wrong twice, each time smaller than the last (inv. 57). **The 02.09 run is the first with no clock defect at all** — gate green at 116 s after a fetch that had moved the payload, one freeze, levels traced to the payload and to a 14.7-hour-old journal file, and not one number off the open web. Its four defects were all of the kind inv. 58 names, and none of them touched a price |
 | A rule moved between environments is re-derived, not copied | **closed by `ANALYST-INSTRUCTIONS.md` 2026-09-01-a** | nothing. The 15-minute price age was written where the Boss pasted the payload into chat, so «re-pull before sending, or the coin leaves the answer» had two live exits; moving the reader into the repository closed the first and left the sentence untouched, and the file's own provenance table certified the clause carried «byte-equivalent in substance». Byte-equivalence WAS the defect. Appendix A now records that a provenance table asserting a clause unchanged is asserting the environment did not matter |
@@ -2204,10 +2205,10 @@ needs no entry; `'**.md'` covers it.
 **The fourth path is `analyst/owner.json` and it breaks the rule the other three follow.**
 It is written by the Architect and pushed by the Boss, so it is neither the analyst's data nor
 a control — and every upload of it fired the whole gate. TZ-30 added it as an exact literal
-while opening the workflow for another reason (inv. 52). **The reading inv. 53 requires has
-not been taken:** the proof is a real push carrying only that file, the only actor who can
-make it is the Boss, and until then the entry rests on a reading of the pattern — which is
-the thing inv. 53 refuses. §10 carries the row.
+while opening the workflow for another reason (inv. 52), and **the proof inv. 53 demands was
+taken on the runner 06.09.2026**: a push carrying only that file started the Pages build and
+no `Bench gate`. The reading is what makes the entry a control; the literal alone was a
+reading of the pattern, which is the thing inv. 53 refuses.
 
 **That narrowing creates a coupling and it is deliberate.** Any NEW file the analyst writes
 must be added to `bench.yml`'s list, or it starts a 14-step gate on every analysis run.
