@@ -1209,6 +1209,12 @@ GIST_LIVE = ("https://gist.githubusercontent.com/seahomebatumi-ai/"
 # (inv. 58). Order is severity: a symbol takes the worst class it carries.
 CLASSES = ["venue-basis", "coverage", "unexplained"]
 
+# The classes that FAIL. `venue-basis` is reference (§3.14) and is not here.
+# One place, because --verify's exit code and --target's arm gate are the same
+# rule read twice (inv. 20): a set that drifted would let --target measure a
+# symbol --verify refused.
+HARD_CLASSES = ("coverage", "unexplained")
+
 
 def _cov_hit(cov, win_d, t_last):
     """Does this field's OWN window overlap a gap the census named (2.2)?
@@ -1426,7 +1432,7 @@ def verify_against_live(bot_path, html_path=None):
             by.setdefault(sy, []).append("%s %+.1f" % (k, dv))
         print("БАЗИС ПЕРП/СПОТ (fut-монеты, справочно, не провал): "
               + " · ".join(sy + ": " + ", ".join(v) for sy, v in sorted(by.items())))
-    hard = R["classes"]["coverage"] + R["classes"]["unexplained"]
+    hard = sum((R["classes"][c] for c in HARD_CLASSES), [])
     if hard:
         print("ВЫШЛИ ЗА ПОРОГ: " + ", ".join(sorted(set(k for _, k, _, _ in hard))))
     print("СВЕРКА ПО МОНЕТАМ: " + " · ".join(
@@ -1441,6 +1447,26 @@ def verify_against_live(bot_path, html_path=None):
     # A time gap is an expected operational state of the archive, not a
     # failure, so it downgrades the claim in words instead of failing the step.
     return 1 if (hard or R["never"]) else 0
+
+
+def target_gate(sym_class, symbols):
+    """Which symbols --target may measure, given the reconciliation's verdict.
+
+    §2.6 authorises removing `coverage` and `unexplained` and NOTHING else, so
+    the removed set is read from HARD_CLASSES rather than from this function's
+    own judgement. A symbol the reconciliation never saw is NOT removed — it is
+    returned separately to be named, because an unreconciled symbol and a
+    refused one are different facts and silence would merge them (inv. 22, 37).
+
+    Pure: it mutates neither argument. Returns
+    (excluded {symbol: class}, unrec [symbols the reconciliation never saw]).
+    """
+    keep = set(symbols)
+    excluded = dict((sy, cl) for sy, cl in sym_class.items()
+                    if cl in HARD_CLASSES and sy in keep)
+    unrec = sorted(sy for sy in keep
+                   if sy not in sym_class and sy not in excluded)
+    return excluded, unrec
 
 
 def load_cache(keep_btc=False):
@@ -3119,11 +3145,9 @@ def main():
             sys.exit("СТОП: сверка перед замером не выполнена (%s) — --target "
                      "гейтится на ней и без неё не считает (§2.6)."
                      % type(e).__name__)
-        excluded = dict((sy, cl) for sy, cl in R["sym_class"].items()
-                        if cl in ("coverage", "unexplained") and sy in ser)
+        excluded, unrec = target_gate(R["sym_class"], ser)
         for sy in excluded:
             ser.pop(sy, None)
-        unrec = sorted(sy for sy in ser if sy not in R["sym_class"])
         print("СВЕРКА ПЕРЕД ЗАМЕРОМ: сверено монет %d · исключено %d · "
               "в рукава идёт %d" % (R["cmp_n"], len(excluded), len(ser)))
         if unrec:

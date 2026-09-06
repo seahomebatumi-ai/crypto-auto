@@ -4,7 +4,11 @@
 # ключ CoinGecko не нужен.
 #
 # Вне этих ворот намеренно оставлены:
-#   backtest_bench.py  — нужен архив/кэш, обслуживается backtest_bench.yml
+#   backtest_bench.py  — сам стенд нужен архив/кэш и обслуживается
+#                        backtest_bench.yml; но сборка связок, перепись
+#                        покрытия, правило склейки и гейт рукавов --target
+#                        держатся backtest_guard_bench.py — последним шагом
+#                        ЭТИХ ворот
 #   badge_bench.js     — читает index.html.prev, которого в репозитории нет
 #   clean_bench.py     — требует два позиционных HTML (before/after), их нет
 #   direction_bench.py --identity  — читает orig.html, которого нет
@@ -31,6 +35,11 @@ on:
       - 'analyst/state.json'
       - 'analyst/live.json'
       - 'analyst/log/**'
+      # owner.json — канал владельца в движок: пишет Архитектор, заливает
+      # Босс, аналитик только читает. Контролем файл не является, а каждая
+      # его заливка заводила ворота целиком. Литерал, а не маска: две
+      # точные строки либо равны, либо нет (инв. 52).
+      - 'analyst/owner.json'
       - '**.md'
   pull_request:
 
@@ -133,3 +142,12 @@ jobs:
       - name: Ворота живых данных аналитика (live-gate.sh --selftest)
         shell: bash -euo pipefail {0}
         run: bash analyst/live-gate.sh --selftest
+
+      # ТЗ-30. Гарнизон backtest_bench.py: замкнутость всех четырёх связок,
+      # перепись покрытия, арифметика склейки и гейт рукавов --target. Сети шагу
+      # не нужно — requests подменяется, архив синтетический, index.html берётся
+      # из чекаута. Именно этот шаг закрывает остаток инв. 62: ворота впервые
+      # СОБИРАЮТ связку, а не только импортируют модуль.
+      - name: Гарнизон бэктеста (backtest_guard_bench.py)
+        shell: bash -euo pipefail {0}
+        run: python3 bench/backtest_guard_bench.py
