@@ -1,8 +1,18 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 19.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 20.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v20 closes three gaps in the §2 class table.** `analyst/owner.json`,
+`analyst/live-gate.sh` and `analyst/README.md` were in the repository with no row, so the
+sentence that opens that section — every file belongs to exactly one class — was false, and
+the check it exists to support could not fire on three real paths. TZ-30 reported all three
+and correctly acted on none: this file is Architect-owned and item 14 of the hard floor
+forbids you to write it, so a TZ asking for the repair would itself be defective. **The
+table is a control only while it is closed** — an unclassed file has nothing to contradict a
+wrong guess about it, which is the same argument §2 already makes about `image.PNG`.
+Nothing else in v19 changed.
 
 **v19 opens hard-floor item 3 to an owner decision and de-enumerates item 11.** TZ-25
 carried the owner's decision to add MORPHO and ARB, and item 3 as written could only
@@ -176,7 +186,10 @@ table is created without a TZ that names it.
 | Live payload | `analyst/live.json` | Boss's Shortcut | machine, direct to `main` | one copy, replaced in place |
 | Analytical state | `analyst/state.json` | you (role 2) | you, direct to `main` | one copy, replaced in place |
 | Day log | `analyst/log/**` | you (role 2) | you, direct to `main` | **permanent, immutable** |
-| Assets | `image.PNG`, `README.md` | you | branch + PR | live |
+| Owner channel | `analyst/owner.json` | Architect | Boss upload to `main` | one copy, replaced in place |
+| Live-data gate | `analyst/live-gate.sh` | you | branch + PR | live |
+| Analyst README | `analyst/README.md` | you | branch + PR | live |
+| Assets | `image.PNG`, `README.md` (root) | you | branch + PR | live |
 | Hygiene | `.gitignore` | you | branch + PR | live |
 | Generated artifacts | `bench/_*`, `bench/cache/`, `__pycache__/` | — | tooling | ignored, never committed |
 
