@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-06-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-06-b.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -24,6 +24,19 @@ market event behind them. **Neither repair adds a function, a threshold or an in
 side is `marketRegime` executed on the coin's own structural row exactly as it is already
 executed on `btc`, and a published zone is carried exactly as a `СОЗРЕВАЕТ` zone already
 is. §7 gains items 50–52.
+
+**`-b` closes the half of that repair that was left open, and the run of 06.09 night is
+the measurement.** `-a` shut the side on a coin in its own TREND and left «range → geometry
+then decides» standing, so every coin without a trend fell back to the arbitrator inv. 30
+had just been cited to remove: eleven shorts and one long, on a list whose median was up,
+with a fresh short opened on a coin that had made a new high hours earlier. **A fallback to
+the rule a repair removed is not a repair.** `-b` closes the range branch, bans fading a
+coin's own trend outright, and takes the target off the price history: it is derived from
+the stop and `RR_MIN`, and it must sit inside the distance the coin's own volatility
+covers in the holding window. `Первая цель` as `-a` defined it — the nearer structural
+extreme — is retired by measurement in the same run: on LINK it printed 33 % below entry
+and its own touch probability read 0.0 %, so it failed the one thing it was added to do.
+§7 gains items 53–56.
 
 **This file is methodology, not contract.** Authority, repository operations, the
 trigger protocol, the hard floor, what may be committed and where all live in
@@ -186,10 +199,10 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 Действие: одна строка о том, что это значит для альт-экспозиции.
 
 # КАТАЛИЗАТОРЫ
-УЖЕ БЫЛО СЕГОДНЯ — **ЧЧ:ММ — событие.** Реакция рынка: … Эффект: [ЛОНГ / ШОРТ / ЖДАТЬ / НЕТ ВЛИЯНИЯ]. Что меняет: …
-ИДЁТ СЕЙЧАС — **событие.** Что отменяет сетап: … Эффект: […]. Что меняет: …
-ВПЕРЕДИ СЕГОДНЯ — **ЧЧ:ММ Тбилиси / ЧЧ:ММ ET — событие.** Эффект: […]. Что меняет: …
-ДАЛЬШЕ — **ДД.ММ — событие.** Эффект: […]. Что меняет: …
+УЖЕ БЫЛО СЕГОДНЯ — **ЧЧ:ММ — событие.** Реакция рынка: … Эффект: [ЛОНГ / ШОРТ / ЖДАТЬ / НЕТ ВЛИЯНИЯ] · [ВЫСОКОЕ / СРЕДНЕЕ / УСЛОВНОЕ]. Что меняет: …
+ИДЁТ СЕЙЧАС — **событие.** Что отменяет сетап: … Эффект: [сторона] · [сила]. Что меняет: …
+ВПЕРЕДИ СЕГОДНЯ — **ЧЧ:ММ Тбилиси / ЧЧ:ММ ET — событие.** Эффект: [сторона] · [сила]. Что меняет: …
+ДАЛЬШЕ — **ДД.ММ — событие.** Эффект: [сторона] · [сила]. Что меняет: …
 ЗАКРЫТО — **событие / тезис — статус.** · … — строка строится из разницы `items` (§11)
 Каждый пункт несёт метку влияния [ВЫСОКОЕ / СРЕДНЕЕ / УСЛОВНОЕ] и статус
 [НОВОЕ / БЕЗ ИЗМЕНЕНИЙ / ПРИБЛИЖАЕТСЯ / СРАБОТАЛО / ИЗМЕНИЛОСЬ / ОТМЕНЕНО / ИСТЕКЛО /
@@ -506,7 +519,7 @@ row is one the run has already read for every coin that reached candidacy (§7 i
 |---|---|
 | trend, `dir` up | ЛОНГ only |
 | trend, `dir` down | ШОРТ only |
-| range | both — geometry then decides, which is the one case in which it may |
+| range | **neither as a directional trade** — see below |
 | stress | **neither** — a coin at `REG_STRESS_Z` in its own week is a chase on either side |
 
 **The market's regime is the outer gate and the coin's is the inner one, and both must
@@ -520,6 +533,30 @@ only coin on the list that had fallen. The owner took one of those shorts agains
 intact own-trend; the coin ran another nine per cent and stopped just under the published
 invalidation. **A rally is not evidence for a short, and until this rule existed it was the
 strongest evidence the ratio had.**
+
+**A coin in its OWN range is not a directional trade, and geometry does not get the
+casting vote it was just denied.** `-a` sent the range branch back to «geometry then
+decides», which is the arbitrator map inv. 30 exists to remove, so every coin without a
+trend of its own arrived at exactly the ratio that had produced the basket in the first
+place — and the ratio against a 90-day extremum is largest at the top of a rally, whatever
+gate stands in front of it. **Measured 06.09, night run:** eleven shorts and one long on a
+list whose median was up, and a NEW short opened on a coin that had made a new high that
+day and blown the morning's stop, on a stop widened because «structure above had run out».
+Re-entering the side a stop just refuted, at a worse price, on a looser stop, is the TAO
+failure wearing the range branch.
+
+**What a range coin may still be is a FADE of its own range, and only on its own
+boundaries.** The levels are the coin's own extremes from `cd` and its 24-hour high and low
+from the payload — never the 90-day extremum on the far side, which is a price from a
+different BTC regime and is not a boundary of anything the coin is doing now. A fade whose
+target does not clear §4's reachability band is not published, and that is the ordinary
+outcome: a range wide enough to pay `RR_MIN` inside one week is rare, and an engine that
+says so is not an engine that is broken.
+
+**Fading a coin's own TREND is banned outright, in both directions.** No ratio, no
+catalyst, no oversold reading and no structure above or below reopens it; the only entry
+in a trend is a pullback in the trend's direction, cut per §4. This is the sentence `-a`
+implied and did not write, and every trade it would have refused on 06.09 was published.
 
 **A coin refused here is refused BY NAME**, on the same terms as every other per-coin
 refusal (§3A): the appendix carries the coin, the regime word its own row produced, and the
@@ -763,24 +800,37 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   archive backtest, and this file does not act on it — a continuation target with no
   backtest behind it is precisely what map inv. 32 forbids. What a run owes here is the
   computation and the named refusal, never a more convenient number.
-- **A published trade carries TWO levels ahead of it, and they are not the same object.**
-  `Цель` is the structural target `tradeGeometry` reads from `cd`; it is what `RR_MIN` and
-  publication are computed against and none of that moves, because the archive has already
-  measured every alternative to it and refused them all (map §3.10a). What the answer has
-  never carried is the level the holding window can reach, and the Boss exits somewhere
-  whether or not this file names it: given only a 90-day extremum he either holds a
-  seven-day trade for a quarter or closes at a price the engine never mentioned, which is
-  what happened on 06.09.
-  **`Первая цель` is the nearer structural extreme the same `cd` row already carries,
-  taken in the trade's own direction** — the same row, the same read, and the field name
-  taken at run time like every other (§3). Where that extreme already sits behind price the
-  row prints `Цель` alone, which is production's own fallback and not a new rule.
-  **No claim about expectancy is made here and none may be made from it:** the `--target`
-  run measured `Ω` on every reachable rung and every CI95 sits below the bar its own R:R
-  promises, so a nearer level buys first-touch odds and sells reward at the same rate (map
-  inv. 32). It is published because it describes the trade honestly and for no other
-  reason. **It gates nothing, ranks nothing and enters no ratio** — the standing production
-  gives every printed measure (map inv. 27).
+- **The trade's target is DERIVED FROM THE STOP, and never read off the price history.**
+  `Цель = вход ± RR_MIN × |вход − стоп|`. Both terms are production's — the stop is
+  `invalidationInfo`'s structural level at the anchor with its own clip, and `RR_MIN` is
+  the constant cut with the geometry — **so no constant is introduced and no level is
+  chosen.** The ratio is then `RR_MIN` by construction and stops being a selector, which
+  is the point: a ratio built by moving the target is a ratio anyone can manufacture, and
+  moving the target is exactly how this engine manufactured it.
+  **A structural extreme is not a target and stops being published as one.** The 30- and
+  90-day extremes are prices from a market that no longer exists — on 06.09 the engine
+  published LINK to $7.03 and ETH to $1524, levels last traded when BTC was near $58–60k,
+  as objectives for a seven-day trade — and `Первая цель` as the previous revision defined
+  it inherited the same defect at a smaller number: 33 % below entry on LINK, with its own
+  printed touch probability at 0.0 %. **A level the run's own model gives no chance of
+  reaching is not a first target, whatever it is nearer than.** Both extremes still print,
+  as `Структура`, which is what they are: where the coin has been, never where it is going.
+  **The target must be REACHABLE, and reachability is measured in the coin's own movement,
+  not asserted.** The reward is expressed in units of the coin's own holding-window
+  volatility — `|цель − вход| / (vol × √H_NOISE)`, the same `vol` from `cd` and the same
+  `H_NOISE` `touchProb` is already given below — and the setup publishes only inside the
+  band production itself defines: **at or above `TGT_SIGMA_MIN`, which is production's own
+  floor against a target the market reaches by chop, and at or below one**, which is the
+  unit itself and not a chosen number — a coin that must travel further than it moves in
+  the whole window to pay is not being asked for a trade, it is being asked for a
+  different market. A setup that fits nowhere in that band is REFUSED and named; that
+  refusal is the ordinary case and a run that produces few trades has measured the market
+  rather than failed to read it.
+  **No claim about expectancy is made here and none may be made from it:** `E[R] = 0`
+  under any selection on a random walk is a theorem and the `--control` run confirmed it
+  (map inv. 32). What this rule buys is not edge, it is that every number published can be
+  reached inside the week it is published for. **It changes what is PRINTED and what is
+  REFUSED; it changes no production file** (map inv. 27).
 - **Every published setup carries two touch probabilities — the target's and the stop's,
   over the holding horizon — and they are printed wherever it is printed** (§2).
   `touchProb` is cut from `index.html` and executed, exactly as `invalidationInfo` and
@@ -1721,8 +1771,20 @@ which is the shape §7 exists to replace.
 51. **Every live row carries the zone the previous run published**, and every change to a
     row names the price event behind it (§4). A status that moved with no event behind it
     is a re-cut, and the row is restored.
-52. **Every published trade carries `Первая цель` and `Цель` as two distinct levels**
-    (§4), or states that the nearer structural extreme sits behind price.
+52. **Every published trade prints `Структура` beside its levels** (§4) — the coin's
+    own 30- and 90-day extremes, labelled as history and never as an objective.
+53. **No published side fades the coin's own trend** (§2). A short on a coin whose own
+    regime reads trend-up, or a long on trend-down, fails this item whatever the ratio,
+    the catalyst or the structure says, and a coin in its own range carries no directional
+    side at all.
+54. **Every published target was computed as `вход ± RR_MIN × |вход − стоп|`** (§4), and
+    no target was read from a 30- or 90-day extreme.
+55. **Every published target's reward, in units of `vol × √H_NOISE`, sits inside the band
+    of §4** — at or above `TGT_SIGMA_MIN`, at or below one — and every setup outside it is
+    refused by name in the appendix.
+56. **Every catalyst item's `Эффект` carries BOTH halves — the side and the strength**
+    (§2). A side alone is the field half-filled, and `ЖДАТЬ` alone says nothing the reader
+    did not already know.
 
 **Every item on this list names a failure that happened, and the list grows only that
 way.** Items 12–18 were added after rules already written here were broken by runs that
@@ -1752,7 +1814,12 @@ gained from a run that broke nothing:** the run under `-a` executed every rule c
 documented sixteen sections of arithmetic, and the only numbers in its answer without a
 derivation anywhere were the three BTC levels its own strategy table was conditioned on — a
 gap no checklist could have caught, because no rule had ever named the computation.
-**50–52 name the two runs of 06.09 and they are one defect standing in two places:** the
+**53–56 name the night run of 06.09, the first to execute under 50–52, and they are one
+defect:** a repair that removes an arbitrator must remove it everywhere, and 50–52 left it
+standing on every coin without a trend — so the run obeyed the new rule, fell through its
+own fallback, and reproduced the basket the rule was written to prevent, down to a fresh
+short on the coin that had just stopped the morning's out. **50–52 name the two runs of
+06.09 and they are one defect standing in two places:** the
 rule that decides a side named no computation and the rule that carries a zone named no
 event, so the engine chose direction with a ratio and revised its own answer without a
 market. Both were found from outside the system, by the owner, after a position had been
