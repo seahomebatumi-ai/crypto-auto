@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-06-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-06-c.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -37,6 +37,29 @@ covers in the holding window. `Первая цель` as `-a` defined it — the
 extreme — is retired by measurement in the same run: on LINK it printed 33 % below entry
 and its own touch probability read 0.0 %, so it failed the one thing it was added to do.
 §7 gains items 53–56.
+
+**`-c` closes an EMPTY BAND that `-b` shipped, and it was found by arithmetic before a run
+executed it.** `-b` required a published reward to sit at or above `TGT_SIGMA_MIN` and at or
+below one. `TGT_SIGMA_MIN` is 1.0, so the band was the single point 1.0 — and no setup this
+engine can construct reaches it. The reward is `RR_MIN × |вход − стоп|` and the stop is
+`invalidationInfo`'s, clipped at `INV_FLOOR_SD` day-sigmas, so the SMALLEST reward the
+geometry admits is `RR_MIN × INV_FLOOR_SD × √24 / √168` = **1.512** window-sigmas, above the
+ceiling on every coin, on every run, forever. **A rule whose admitting set is empty does not
+produce a careful engine, it produces a silent one**, and the next run would have refused all
+thirty coins and printed «СДЕЛОК СЕЙЧАС НЕТ» with nothing behind it but a contradiction
+between three production constants. The ceiling is retired: the stop's own clip already
+bounds the reward at both ends, and the floor is production's own veto and stands. **No §7
+item is added** — no run broke this rule, so the list does not grow (§7); item 55, which
+asserted the band, is corrected to what the band actually is.
+
+**What `-c` does NOT do is choose a workable upper bound, because none can be derived from
+production's constants and one that is chosen is a tuned threshold** (map inv. 32). Whether a
+4.5-sigma reward is publishable at all is a MEASUREMENT, and the instrument for it already
+exists: `bench/backtest_bench.py --target` on the three-year hourly archive, whose own run #16
+put `Ω` at 0.025 long and 0.016 short against the bar `1/RR_MIN = 0.50` and recorded that at
+168 h most setups resolve nowhere. Until that grid is run over the horizon as well as the
+target, the printed touch pair is what tells the Boss how far the level is — which is what it
+was added for.
 
 **This file is methodology, not contract.** Authority, repository operations, the
 trigger protocol, the hard floor, what may be committed and where all live in
@@ -818,14 +841,22 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   **The target must be REACHABLE, and reachability is measured in the coin's own movement,
   not asserted.** The reward is expressed in units of the coin's own holding-window
   volatility — `|цель − вход| / (vol × √H_NOISE)`, the same `vol` from `cd` and the same
-  `H_NOISE` `touchProb` is already given below — and the setup publishes only inside the
-  band production itself defines: **at or above `TGT_SIGMA_MIN`, which is production's own
-  floor against a target the market reaches by chop, and at or below one**, which is the
-  unit itself and not a chosen number — a coin that must travel further than it moves in
-  the whole window to pay is not being asked for a trade, it is being asked for a
-  different market. A setup that fits nowhere in that band is REFUSED and named; that
-  refusal is the ordinary case and a run that produces few trades has measured the market
-  rather than failed to read it.
+  `H_NOISE` `touchProb` is already given below — and the setup publishes only **at or above
+  `TGT_SIGMA_MIN`, which is production's own floor against a target the market reaches by
+  chop.** A setup below that floor is REFUSED and named. **There is no ceiling here, and the
+  stop's own clip is already the upper bound:** the reward is `RR_MIN × risk` and `risk` is
+  clipped at `INV_CAP_SD` day-sigmas, so the reward can never exceed
+  `RR_MIN × INV_CAP_SD × √24 / √168` = 4.536 window-sigmas without the stop breaking its own
+  clip first. **The previous revision wrote a ceiling of one and made the rule
+  unsatisfiable** — the same clip sets the floor at `INV_FLOOR_SD`, which puts the smallest
+  constructible reward at 1.512, above that ceiling on every coin — so the band admitted
+  nothing and the engine would have refused the whole list every run. A bound that has to be
+  chosen rather than derived is a tuned threshold and is not written here; **how far a reward
+  may sit and still be worth publishing is a measurement, and `bench/backtest_bench.py
+  --target` is where it is made**, not this file. What survives unchanged is the sentence
+  above: a level the run's own model gives no chance of reaching is not a target, and its
+  touch probability prints beside it so the Boss reads the distance rather than being told
+  about it.
   **No claim about expectancy is made here and none may be made from it:** `E[R] = 0`
   under any selection on a random walk is a theorem and the `--control` run confirmed it
   (map inv. 32). What this rule buys is not edge, it is that every number published can be
@@ -1779,9 +1810,11 @@ which is the shape §7 exists to replace.
     side at all.
 54. **Every published target was computed as `вход ± RR_MIN × |вход − стоп|`** (§4), and
     no target was read from a 30- or 90-day extreme.
-55. **Every published target's reward, in units of `vol × √H_NOISE`, sits inside the band
-    of §4** — at or above `TGT_SIGMA_MIN`, at or below one — and every setup outside it is
-    refused by name in the appendix.
+55. **Every published target's reward, in units of `vol × √H_NOISE`, sits at or above
+    `TGT_SIGMA_MIN`** (§4), and every setup below that floor is refused by name in the
+    appendix. **No upper bound is applied**: the stop's own clip already bounds the reward,
+    and a run that refuses a setup for being too far has applied a threshold this file does
+    not carry.
 56. **Every catalyst item's `Эффект` carries BOTH halves — the side and the strength**
     (§2). A side alone is the field half-filled, and `ЖДАТЬ` alone says nothing the reader
     did not already know.
@@ -1814,8 +1847,12 @@ gained from a run that broke nothing:** the run under `-a` executed every rule c
 documented sixteen sections of arithmetic, and the only numbers in its answer without a
 derivation anywhere were the three BTC levels its own strategy table was conditioned on — a
 gap no checklist could have caught, because no rule had ever named the computation.
-**53–56 name the night run of 06.09, the first to execute under 50–52, and they are one
-defect:** a repair that removes an arbitrator must remove it everywhere, and 50–52 left it
+**Revision `-c` added nothing to this list and item 55 was corrected rather than
+supplemented**, because no run broke it: the band it asserted was empty by arithmetic and was
+caught before a run executed it. **A list that grows on a defect nobody met would stop being
+a record of what this engine does wrong** and start being a record of what someone feared it
+might, and the two are not the same evidence. **53–56 name the night run of 06.09, the first
+to execute under 50–52, and they are one defect:** a repair that removes an arbitrator must remove it everywhere, and 50–52 left it
 standing on every coin without a trend — so the run obeyed the new rule, fell through its
 own fallback, and reproduced the basket the rule was written to prevent, down to a fresh
 short on the coin that had just stopped the morning's out. **50–52 name the two runs of
