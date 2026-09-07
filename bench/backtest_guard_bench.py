@@ -26,7 +26,7 @@ real builders write land in the scratch tree and leave with it.
 
   python3 bench/backtest_guard_bench.py [path/to/backtest_bench.py] [path/to/index.html]
 """
-import io, os, re, sys, types, shutil, zipfile, calendar, tempfile
+import io, os, re, sys, math, types, shutil, zipfile, calendar, tempfile
 import contextlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -562,6 +562,249 @@ for sy in excluded:
 ok('26. a withheld verdict reads as «removed by the reconciliation»',
    line.startswith('снято сверкой:') and 'ничего' not in line, line)
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# E. The `--regime-gate` arm  (ТЗ-32)
+# ═══════════════════════════════════════════════════════════════════════════
+# Three rules of the new arm have no executing control anywhere else: the
+# partition it groups by, the bar it derives, and the right-truncation it
+# accounts. Every assertion below calls the arm's own function by name and
+# feeds it a synthetic input; none re-implements the rule it checks (inv. 21).
+
+def rg_obs(side, arm_rr, rr, b=0.05, first='tgt', p=0.3):
+    """One observation shaped exactly as run_target records it."""
+    return {'sym': 'X', 'side': side, 'reg': None, 'rr': rr, 'tgtSig': 1.0,
+            'adm': True,
+            'arms': {bb._rk(arm_rr): {'first': first, 'hit': first == 'tgt',
+                                      'p': p, 'rr': rr, 'tgtSig': 1.0,
+                                      'a': rr * b, 'b': b,
+                                      'R': rr if first == 'tgt' else -1.0}}}
+
+
+def rg_date(t, word, obs):
+    for o in obs:
+        o['reg'] = word
+    return {'t': t, 'obs': obs}
+
+
+# ── 27. the partition: one word per date, checked rather than assumed
+d_ok = rg_date(1, 'range', [rg_obs('long', 2.0, 4.0), rg_obs('short', 2.0, 4.0)])
+ok('27. _rg_word returns the date\'s single word', bb._rg_word(d_ok) == 'range',
+   bb._rg_word(d_ok))
+mixed = {'t': 2, 'obs': [rg_obs('long', 2.0, 4.0), rg_obs('long', 2.0, 4.0)]}
+mixed['obs'][0]['reg'] = 'range'
+mixed['obs'][1]['reg'] = 'trend'
+e27, m27 = caught(lambda: bb._rg_word(mixed))
+ok('27. and REFUSES a date carrying two words', e27 == 'ValueError', (e27, m27))
+ok('27. naming the date it refused', '2' in m27, m27)
+
+# ── 28. _rg_split is exhaustive and disjoint, and stress is its own bucket
+ds = [rg_date(10, 'range', [rg_obs('long', 2.0, 4.0)]),
+      rg_date(20, 'trend', [rg_obs('long', 2.0, 4.0)]),
+      rg_date(30, 'stress', [rg_obs('long', 2.0, 4.0)]),
+      rg_date(40, 'range', [rg_obs('long', 2.0, 4.0)])]
+sp = bb._rg_split(ds)
+ok('28. every date lands in a bucket', sum(len(v) for v in sp.values()) == len(ds),
+   {k: len(v) for k, v in sp.items()})
+ok('28. the buckets are disjoint by timestamp',
+   len(set(d['t'] for v in sp.values() for d in v)) == len(ds))
+ok('28. all three words get a bucket', set(sp) == {'range', 'trend', 'stress'},
+   sorted(sp))
+ok('28. stress is NOT folded into either compared population',
+   30 not in [d['t'] for p in bb.RG_POPS for d in sp.get(p, [])],
+   [(p, [d['t'] for d in sp.get(p, [])]) for p in bb.RG_POPS])
+ok('28. and the compared populations are the two the arm registered',
+   tuple(bb.RG_POPS) == ('range', 'trend') and bb.RG_STRESS == 'stress',
+   (bb.RG_POPS, bb.RG_STRESS))
+
+# ── 29. the bar is DERIVED from the rr tradeGeometry returned, never the
+# nominal RR. The fixture's realised rr differs from its nominal on every row,
+# which is the case inv. 61/65 exist for.
+def same(a, b):
+    """NaN is a legitimate value here — Ω is undefined wherever the stop was
+    never hit — and `nan == nan` is False, so a plain equality would report a
+    difference the arm did not make."""
+    if isinstance(a, float) and isinstance(b, float):
+        return (a == b) or (a != a and b != b)
+    if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
+    return a == b
+
+
+RRN = 2.0
+realised = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+bar_dates = [rg_date(100 + i, 'range',
+                     [rg_obs('long', RRN, realised[i % len(realised)],
+                             first='tgt' if i % 3 else 'stop')])
+             for i in range(30)]
+pool = bb._arm_pool(bar_dates, bb._rk(RRN), 'long', with_b=True)
+want = sum(1.0 / r for r in realised) / len(realised)
+ok('29. the pool was actually built', pool is not None and pool['n'] == 30,
+   None if pool is None else pool['n'])
+ok('29. the bar is the mean of 1/rr over EVERY admitted setup, whatever it did',
+   pool is not None and abs(pool['inv_rr'] - want) < 1e-12,
+   None if pool is None else (pool['inv_rr'], want))
+ok('29. and it does NOT equal the nominal 1/RR',
+   pool is not None and abs(pool['inv_rr'] - 1.0 / RRN) > 1e-6,
+   None if pool is None else (pool['inv_rr'], 1.0 / RRN))
+ok('29. the mean risk leg is reported for the funding arithmetic',
+   pool is not None and abs(pool['mean_b'] - 0.05) < 1e-12,
+   None if pool is None else pool['mean_b'])
+plain = bb._arm_pool(bar_dates, bb._rk(RRN), 'long')
+ok('29. and with_b=False adds NO key — the untouched path keeps its shape',
+   plain is not None and 'mean_b' not in plain,
+   None if plain is None else sorted(plain))
+ok('29. the two pools agree on every key the untouched path already had',
+   plain is not None and pool is not None
+   and all(same(plain[k], pool[k]) for k in plain)
+   and set(pool) - set(plain) == {'mean_b'},
+   None if plain is None else
+   ([k for k in plain if not same(plain[k], pool[k])],
+    sorted(set(pool) - set(plain))))
+
+# ── 30. right-truncation: dates lost are counted against the fullest grid and
+# the last usable entry is reported, so a rising Ω on a shrinking sample cannot
+# read as a rising Ω.
+by_H = {48: [rg_date(t, 'range', [rg_obs('long', 2.0, 4.0)]) for t in (1, 2, 3, 4)],
+        168: [rg_date(t, 'range', [rg_obs('long', 2.0, 4.0)]) for t in (1, 2, 3)],
+        336: [rg_date(t, 'range', [rg_obs('long', 2.0, 4.0)]) for t in (1, 2)]}
+tr = bb._rg_trunc(by_H)
+ok('30. the shallowest horizon loses nothing', tr[48]['lost'] == 0, tr[48])
+ok('30. a deeper horizon loses exactly the dates it cannot resolve',
+   tr[168]['lost'] == 1 and tr[336]['lost'] == 2, (tr[168], tr[336]))
+ok('30. and each horizon reports its own last usable entry',
+   tr[48]['last'] == 4 and tr[336]['last'] == 2, (tr[48], tr[336]))
+by_H_empty = dict(by_H)
+by_H_empty[672] = []
+tr_e = bb._rg_trunc(by_H_empty)
+ok('30. a horizon with no dates at all is counted, not dropped',
+   tr_e[672] == {'n_dates': 0, 'lost': 4, 'last': None}, tr_e.get(672))
+
+# ── 30b. the derived bar reaches the CELL. Check 29 proves _arm_pool derives
+# it; this proves regime_gate_summary carries THAT number onto the cell the
+# report prints, which is where a nominal numeral would be substituted.
+sum_dates = [rg_date(200 + i, 'range' if i % 2 else 'trend',
+                     [rg_obs('long', RRN, realised[i % len(realised)],
+                             first='tgt' if i % 3 else 'stop')])
+             for i in range(60)]
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    sm_rg = bb.regime_gate_summary({168: sum_dates}, {'prices': []}, HTML)
+cell_rg = bb._rg_cell(sm_rg, 168, RRN, 'long', 'range')
+pool_rg = bb._arm_pool([d for d in sum_dates if bb._rg_word(d) == 'range'],
+                       bb._rk(RRN), 'long', with_b=True)
+ok('30b. the cell was pooled', cell_rg is not None and cell_rg.get('pooled'),
+   cell_rg)
+ok('30b. the cell\'s bar IS the derived mean of 1/rr, not a written numeral',
+   cell_rg is not None and pool_rg is not None
+   and cell_rg['bar'] == pool_rg['inv_rr'],
+   None if cell_rg is None else (cell_rg.get('bar'),
+                                 None if pool_rg is None else pool_rg['inv_rr']))
+ok('30b. and it differs from the nominal 1/RR the cell is named after',
+   cell_rg is not None and cell_rg['bar'] is not None
+   and abs(cell_rg['bar'] - 1.0 / RRN) > 1e-6,
+   None if cell_rg is None else (cell_rg.get('bar'), 1.0 / RRN))
+ok('30b. the cell carries its own right-truncation accounting',
+   cell_rg is not None and 'lost_dates' in cell_rg and 'last_entry' in cell_rg,
+   None if cell_rg is None else sorted(cell_rg))
+ok('30b. stress absent from the fixture is reported as an absent population, '
+   'never as a folded one',
+   (bb._rg_cell(sm_rg, 168, RRN, 'long', 'stress') or {}).get('pooled') is not True
+   and sm_rg['pop_dates'][168].get('stress', 0) == 0,
+   sm_rg['pop_dates'][168])
+
+# ── 31. the registered verdict rule (§4): the claim falls ONLY when `range` is
+# strictly below `trend`. Overlap and excess both hold it, and a cell where one
+# population misses quorum is not a comparison at all (inv. 22).
+def rg_sm(cells):
+    return {'H_grid': [168], 'rr_grid': [2.0], 'cells': cells}
+
+
+def rg_cell(om, lo, hi, quorum=True):
+    return {'pooled': True, 'omega': om, 'omega_ci': (lo, hi), 'quorum': quorum}
+
+
+def rg_pair(a, b):
+    return rg_sm({'168|2.0|long|range': a, '168|2.0|long|trend': b})
+
+
+v_over = bb._rg_verdict(rg_pair(rg_cell(0.5, 0.4, 0.6), rg_cell(0.55, 0.45, 0.65)))
+ok('31. overlapping CIs hold the claim',
+   v_over['holds'] and v_over['n_cmp'] == 1, v_over)
+v_exc = bb._rg_verdict(rg_pair(rg_cell(0.9, 0.8, 1.0), rg_cell(0.3, 0.2, 0.4)))
+ok('31. `range` strictly ABOVE `trend` also holds the claim',
+   v_exc['holds'] and not v_exc['failed'], v_exc)
+v_bel = bb._rg_verdict(rg_pair(rg_cell(0.3, 0.2, 0.4), rg_cell(0.9, 0.8, 1.0)))
+ok('31. `range` strictly BELOW `trend` fails it',
+   not v_bel['holds'] and v_bel['failed'] == [(168, 2.0, 'long')], v_bel)
+v_nq = bb._rg_verdict(rg_pair(rg_cell(0.3, 0.2, 0.4, quorum=False),
+                              rg_cell(0.9, 0.8, 1.0)))
+ok('31. a cell missing quorum on one side is not compared',
+   v_nq['n_cmp'] == 0 and not v_nq['decidable'], v_nq)
+ok('31. and zero comparisons never read as «the claim held»',
+   not v_nq['holds'], v_nq)
+v_stub = bb._rg_verdict(rg_pair({'pooled': False, 'n_setups': 0},
+                                rg_cell(0.9, 0.8, 1.0)))
+ok('31. an unpooled cell is skipped rather than crashing the verdict',
+   v_stub['n_cmp'] == 0 and not v_stub['holds'], v_stub)
+
+# ── 32. the R:R substitution reaches production geometry through the bridge,
+# under the key the Python side expects and at the level §3.2 registers. This
+# is a BUILD and a CALL, not a reading of the driver text: the substitution is
+# computed in JavaScript because only there is the stop known.
+ok('32. the key format is the one the driver writes',
+   bb._rk(2.0) == 'rr:2.0' and bb._rk(1.5) == 'rr:1.5',
+   (bb._rk(2.0), bb._rk(1.5)))
+vol = bb._read_js_num(HTML, 'VOL_STOP') * (1 - 1e-9)
+Hn = int(bb._read_js_num(HTML, 'H_NOISE'))
+E = 1.0
+sub_job = {'cd': {'volatility': vol, 'min30': E, 'max30': E,
+                  'min_price': E, 'max_price': E},
+           'E': E, 'isLong': True, 'H': Hn,
+           'btcStats': {'volatility': vol, 'r7': 0.0, 'r14': 0.0},
+           'hi24': E, 'lo24': E, 'subs': {},
+           'rrGrid': list(bb.RG_RR_GRID)}
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    brg = bb.JsBridge(HTML, bb.TARGET_JS_FUNCS, bb.TARGET_JS_VARS,
+                      bb.TARGET_DRIVER, '_tgt_bridge.js')
+    rsub = brg.call([sub_job, dict(sub_job, isLong=False)])
+ok('32. the bridge answered both sides', len(rsub) == 2 and all(r for r in rsub),
+   rsub)
+if rsub and rsub[0] and rsub[1]:
+    for lbl, r, sgn in (('long', rsub[0], 1.0), ('short', rsub[1], -1.0)):
+        keys = sorted(r['subs'])
+        ok('32. %s carries exactly the registered rr keys' % lbl,
+           keys == sorted(bb._rk(x) for x in bb.RG_RR_GRID), keys)
+        bl = abs(math.log(r['stop'] / E))
+        ok('32. %s reads a real risk leg off the stop' % lbl, bl > 0, (r['stop'], bl))
+        for x in bb.RG_RR_GRID:
+            want_l = E * math.exp(sgn * x * bl)
+            got = r['subs'][bb._rk(x)]['tgt']
+            ok('32. %s target at RR=%.1f is E·exp(%sRR·b_log)' % (lbl, x,
+                                                                 '+' if sgn > 0 else '−'),
+               abs(got - want_l) < 1e-12 * max(1.0, abs(want_l)), (got, want_l))
+        ok('32. %s realised rr need not equal the nominal RR' % lbl,
+           any(r['subs'][bb._rk(x)]['g'] is not None
+               and abs(r['subs'][bb._rk(x)]['g']['rr'] - x) > 1e-9
+               for x in bb.RG_RR_GRID),
+           [(x, (r['subs'][bb._rk(x)]['g'] or {}).get('rr'))
+            for x in bb.RG_RR_GRID])
+# ── 33. and WITHOUT the grid the driver adds nothing: the untouched path is
+# byte-identical, which is the assertion ТЗ-32 §6.2 rests on.
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    r_no = brg.call([dict(sub_job, rrGrid=[]), {k: v for k, v in sub_job.items()
+                                                if k != 'rrGrid'}])
+ok('33. an empty grid produces no rr arm', r_no[0] is not None and r_no[0]['subs'] == {},
+   None if not r_no[0] else sorted(r_no[0]['subs']))
+ok('33. an absent grid produces no rr arm', r_no[1] is not None and r_no[1]['subs'] == {},
+   None if not r_no[1] else sorted(r_no[1]['subs']))
+ok('33. and the untouched keys of the answer are unchanged',
+   r_no[0] is not None and r_no[1] is not None
+   and sorted(r_no[0]) == sorted(r_no[1]) == ['dist', 'moneyBelowMin', 'ok',
+                                              'prod', 'reg', 'stop', 'subs'],
+   None if not r_no[0] else sorted(r_no[0]))
 # ═══════════════════════════════════════════════════════════════════════════
 shutil.rmtree(tmp, ignore_errors=True)
 for f in os.listdir(HERE):

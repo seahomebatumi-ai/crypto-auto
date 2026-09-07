@@ -2274,6 +2274,33 @@ for (var i = 0; i < job.length; i++) {
                    ? touchProb(vol, Math.abs(Math.log(lvl / j.E)), j.H) : null,
                 tgt: lvl };
         }
+        // ТЗ-32. Подстановка по R:R живёт ЗДЕСЬ, потому что стоп известен
+        // только здесь: b_log читается с dec.inv.price, той же ноги риска,
+        // которую печатает доска. Цель уходит в max_price (лонг) / min_price
+        // (шорт) — противоположное поле от того, что читает invalidationInfo,
+        // так что в стоп подстановка не протекает, ровно как у сетки k выше.
+        // tradeGeometry НЕ трогается: ей отдаётся тот же shape, что и всегда.
+        // Без j.rrGrid цикл не исполняется и subs остаётся прежним объектом.
+        if (j.rrGrid && j.rrGrid.length && dec.inv && has(dec.inv.price)
+            && dec.inv.price > 0 && j.E > 0) {
+            var bl = Math.abs(Math.log(dec.inv.price / j.E));
+            if (bl > 0) {
+                for (var qi = 0; qi < j.rrGrid.length; qi++) {
+                    var rrv = j.rrGrid[qi];
+                    var lv2 = j.E * Math.exp(j.isLong ? rrv * bl : -rrv * bl);
+                    var cd2 = {};
+                    for (var f2 in j.cd) cd2[f2] = j.cd[f2];
+                    if (j.isLong) cd2.max_price = lv2; else cd2.min_price = lv2;
+                    subs['rr:' + rrv.toFixed(1)] = {
+                        g: armOut(tradeGeometry(cd2, j.E, j.isLong, dec,
+                                                j.hi24, j.lo24)),
+                        p: (has(vol) && vol > 0 && lv2 > 0)
+                           ? touchProb(vol, Math.abs(Math.log(lv2 / j.E)), j.H)
+                           : null,
+                        tgt: lv2 };
+                }
+            }
+        }
         r = { ok: dec.ok, moneyBelowMin: dec.moneyBelowMin,
               dist: dec.inv ? dec.inv.dist : null,
               stop: dec.inv ? dec.inv.price : null,
@@ -2334,7 +2361,8 @@ def _touch_calc(hi, lo, j0, j1, tgt, stop, is_long):
 
 
 def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
-               H_override=None, want_identity=False, verbose=True):
+               H_override=None, want_identity=False, rr_grid=None,
+               verbose=True):
     """Per (date, coin, side): production's own geometry on the 90-day extremum
     against the same geometry on a continuation target, resolved by first touch
     on the forward window. Requires 'hl' in the cache — a close-based touch
@@ -2351,6 +2379,7 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
                      "оба барьера, а занижённая цель — ровно та ошибка, ради "
                      "которой этот замер и существует." % s)
     ks = list(K_GRID if k_grid is None else k_grid)
+    rrs = list(rr_grid or [])
     H = int(H_override if H_override else _read_js_num(html, "H_NOISE"))
     horizon_d = max(1, H // 24)
     cdb = CdBuilder(bot)
@@ -2412,9 +2441,12 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
                     t0 = cd["max_price"] if isL else cd["min_price"]
                     if t0 is not None and t0 > 0:
                         subs["ident"] = float(t0)
-                jobs.append({"cd": cd, "E": E, "isLong": isL, "H": H,
-                             "btcStats": btc_stats, "hi24": hi24, "lo24": lo24,
-                             "subs": subs})
+                job = {"cd": cd, "E": E, "isLong": isL, "H": H,
+                       "btcStats": btc_stats, "hi24": hi24, "lo24": lo24,
+                       "subs": subs}
+                if rrs:
+                    job["rrGrid"] = rrs
+                jobs.append(job)
                 meta.append((s, i, iF, j0, E, isL))
         if not meta:
             continue
@@ -2465,10 +2497,14 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
     return dates
 
 
-def _arm_pool(dates, arm, side, level=95.0):
+def _arm_pool(dates, arm, side, level=95.0, with_b=False):
     """One arm on one side (side=None pools both). The resampling unit is the
     DATE, exactly as stops_summary does it: setups inside one week are not
-    independent, so a setup-level bootstrap would invent precision."""
+    independent, so a setup-level bootstrap would invent precision.
+
+    `with_b` ADDS the mean risk leg and changes nothing else: --regime-gate
+    charges funding in units of that leg (§3.4) and the key is absent for every
+    caller that does not ask, so no existing figure moves (ТЗ-32 §6.2)."""
     rows = []
     for d in dates:
         r = [o["arms"][arm] for o in d["obs"]
@@ -2508,14 +2544,18 @@ def _arm_pool(dates, arm, side, level=95.0):
     qs = [o["b"] / (o["a"] + o["b"]) for o in flat if (o["a"] + o["b"]) > 0]
     den = sum(1.0 - q for q in qs)
     irr = [1.0 / o["rr"] for o in flat if o["rr"]]
-    return {"n": n, "n_dates": len(rows), "n_tgt": nt, "n_stop": ns,
-            "n_tie": nz, "n_none": nn, "omega": om, "omega_ci": ci(bo),
-            "p_none": (nn / n) if n else None, "measured": meas, "model": mod,
-            "calib": (meas / mod) if mod > 0 else None, "calib_ci": ci(bc),
-            "model_odds": (sum(qs) / den) if qs and den > 0 else None,
-            "inv_rr": float(np.mean(irr)) if irr else None,
-            "R": float(np.mean([o["R"] for o in flat])) if flat else None,
-            "quorum": n >= TGT_QUORUM_N and len(rows) >= TGT_QUORUM_D}
+    out = {"n": n, "n_dates": len(rows), "n_tgt": nt, "n_stop": ns,
+           "n_tie": nz, "n_none": nn, "omega": om, "omega_ci": ci(bo),
+           "p_none": (nn / n) if n else None, "measured": meas, "model": mod,
+           "calib": (meas / mod) if mod > 0 else None, "calib_ci": ci(bc),
+           "model_odds": (sum(qs) / den) if qs and den > 0 else None,
+           "inv_rr": float(np.mean(irr)) if irr else None,
+           "R": float(np.mean([o["R"] for o in flat])) if flat else None,
+           "quorum": n >= TGT_QUORUM_N and len(rows) >= TGT_QUORUM_D}
+    if with_b:
+        bb_ = [o["b"] for o in flat if o["b"] and o["b"] > 0]
+        out["mean_b"] = float(np.mean(bb_)) if bb_ else None
+    return out
 
 
 def target_summary(dates, html, ks=None, H=None, level=95.0, excluded=None):
@@ -2747,6 +2787,316 @@ def _tgt_probe_rr(html):
         rr = g["rr"] if g else None
         out.append((k, rr, rr is not None and rr >= rr_min))
     return out
+
+
+# ── 12. --regime-gate · слой направления: его единственный вход, замеренный ─
+# Зарегистрировано до данных (инв. 23), по одному объявлению на величину
+# (инв. 20). Кворум НЕ переобъявляется: сетка берёт тот же TGT_QUORUM_N /
+# TGT_QUORUM_D, который применяет _arm_pool.
+RG_H_GRID = [48, 72, 96, 120, 168, 336]     # часы: «от двух до семи суток»
+RG_RR_GRID = [1.0, 1.5, 2.0, 3.0]           # цель = RR × нога риска
+RG_POPS = ("range", "trend")                # две популяции первичного тезиса
+RG_STRESS = "stress"                        # печатается отдельно, НЕ вливается
+RG_REF_H, RG_REF_RR = 168, 2.0              # опорная ячейка для фандинга
+
+
+def _rk(rr):
+    return "rr:%.1f" % rr
+
+
+def _rg_word(d):
+    """Слово режима у ДАТЫ. marketRegime читает btcStats, а run_target строит
+    его один раз на дату, поэтому все наблюдения даты несут одно слово. Это
+    ПРОВЕРЯЕТСЯ, а не предполагается: деление по полю, которое менялось бы
+    внутри даты, было бы делением ни по чему, а блочный бутстрап по датам
+    молча смешал бы популяции."""
+    ws = set(o["reg"] for o in d["obs"] if o.get("reg"))
+    if len(ws) != 1:
+        raise ValueError("на дате %d слов режима %d (%s) — деление по дате "
+                         "невозможно" % (d["t"], len(ws), sorted(ws)))
+    return ws.pop()
+
+
+def _rg_split(dates):
+    """{слово: [даты]}. Все три слова, включая stress: он исключён из тезиса,
+    но не из отчёта (§3.3)."""
+    out = {}
+    for d in dates:
+        out.setdefault(_rg_word(d), []).append(d)
+    return out
+
+
+def _rg_agree(by_H, btc):
+    """Согласие двух разметчиков: одно целое на клетку (слово marketRegime ×
+    слово btc_regimes) по датам, которые сетка реально посчитала. Ничего не
+    решает и никуда не подключается — btc_regimes не трогается и тезисом не
+    является (§3.3). Даты без метки btc_regimes названы, а не отброшены:
+    исчезнувшая строка читалась бы как согласие."""
+    times = sorted(set(d["t"] for ds in by_H.values() for d in ds))
+    lab = btc_regimes(btc, times)
+    cell, seen = {}, set()
+    for ds in by_H.values():
+        for d in ds:
+            if d["t"] in seen:
+                continue
+            seen.add(d["t"])
+            w2 = lab.get(d["t"])
+            cell[(_rg_word(d), w2[0] if w2 else "нет метки")] = \
+                cell.get((_rg_word(d), w2[0] if w2 else "нет метки"), 0) + 1
+    return cell, len(seen)
+
+
+def _rg_trunc(by_H):
+    """Правая усечённость. walk_grid держит t0 и шаг постоянными и двигает
+    только правый край (t1 = конец − горизонт), поэтому сетка дат при большем
+    H — префикс сетки при меньшем. Потери считаются от САМОГО МЕЛКОГО H сетки
+    и печатаются рядом с каждой ячейкой: растущая Ω на сжимающейся выборке —
+    не растущая Ω (§3.4)."""
+    base = max((len(by_H[h]) for h in by_H), default=0)
+    out = {}
+    for h in sorted(by_H):
+        ds = by_H[h]
+        out[h] = {"n_dates": len(ds), "lost": base - len(ds),
+                  "last": (max(d["t"] for d in ds) if ds else None)}
+    return out
+
+
+def _rg_break_even(cell, ref, H, html):
+    """Постоянная восьмичасовая ставка, на которой преимущество ячейки над
+    опорной (168ч / RR 2.0) съедается ровно.
+
+    Число выплат за окно — FUND_PAY_7D, прочитанный из index.html, а не
+    набранный здесь (инв. 20), масштабированный по H: FUND_PAY_7D × H / 168.
+    Награда ячейки живёт в единицах ноги риска, поэтому и стоимость приводится
+    к ним делением на СОБСТВЕННУЮ среднюю ногу ячейки. Ставка решает
+    R_c − f·N_c/b_c = R_r − f·N_r/b_r. Совпали знаменатели — преимущество
+    ничем не съедается, и это НЕ ноль: печатается прочерк."""
+    if not cell or not ref:
+        return None
+    for m in (cell, ref):
+        if m.get("R") is None or not m.get("mean_b"):
+            return None
+    pay7 = _read_js_num(html, "FUND_PAY_7D")
+    base_h = float(_read_js_num(html, "H_NOISE"))
+    n_c = pay7 * H / base_h
+    n_r = pay7 * RG_REF_H / base_h
+    den = n_c / cell["mean_b"] - n_r / ref["mean_b"]
+    if den == 0:
+        return None
+    return (cell["R"] - ref["R"]) / den
+
+
+def regime_gate_summary(by_H, btc, html, level=95.0, excluded=None):
+    """Сетка H × RR, делённая словом marketRegime на дате входа. Ω, ДИ и
+    планка каждой ячейки приходят из _arm_pool — того же блочного бутстрапа по
+    датам, что и у --target: он РЕЖЕТСЯ по популяции, а не переписывается
+    (инв. 38). Популяция — подмножество ДАТ, поэтому блоки бутстрапа остаются
+    блоками."""
+    out = {"H_grid": sorted(by_H), "rr_grid": list(RG_RR_GRID),
+           "pops": list(RG_POPS), "stress": RG_STRESS,
+           "quorum": [TGT_QUORUM_N, TGT_QUORUM_D],
+           "ref": [RG_REF_H, RG_REF_RR], "excluded": dict(excluded or {}),
+           "trunc": _rg_trunc(by_H), "cells": {}, "pop_dates": {}}
+    split = {h: _rg_split(by_H[h]) for h in by_H}
+    for h in by_H:
+        out["pop_dates"][h] = {w: len(split[h].get(w, [])) for w in split[h]}
+    # Опорная ячейка считается первой: остальные меряются от неё.
+    refs = {}
+    for sd in ("long", "short"):
+        for pop in list(RG_POPS) + [RG_STRESS]:
+            ds = split.get(RG_REF_H, {}).get(pop, [])
+            refs[(sd, pop)] = (_arm_pool(ds, _rk(RG_REF_RR), sd, level,
+                                         with_b=True) if ds else None)
+    for h in sorted(by_H):
+        for rr in RG_RR_GRID:
+            for sd in ("long", "short"):
+                for pop in list(RG_POPS) + [RG_STRESS]:
+                    ds = split[h].get(pop, [])
+                    m = (_arm_pool(ds, _rk(rr), sd, level, with_b=True)
+                         if ds else None)
+                    if m is None:
+                        # Пустая ячейка называет ПРИЧИНУ пустоты. «Сетапов
+                        # нет» и «дат меньше, чем нужно пулу» — разные факты, и
+                        # ячейка, где рукав не допустил ни одного сетапа,
+                        # отличается от популяции, которой не было (инв. 22).
+                        m = {"pooled": False,
+                             "n_pop_dates": len(ds),
+                             "n_arm_dates": sum(
+                                 1 for d in ds if any(
+                                     _rk(rr) in o["arms"] and o["side"] == sd
+                                     for o in d["obs"])),
+                             "n_setups": sum(
+                                 1 for d in ds for o in d["obs"]
+                                 if o["side"] == sd and _rk(rr) in o["arms"])}
+                    else:
+                        m["pooled"] = True
+                        m["bar"] = m["inv_rr"]      # планка ячейки — её же
+                        m["break_even"] = _rg_break_even(
+                            m, refs.get((sd, pop)), h, html)
+                        m["lost_dates"] = out["trunc"][h]["lost"]
+                        m["last_entry"] = out["trunc"][h]["last"]
+                    out["cells"]["%d|%.1f|%s|%s" % (h, rr, sd, pop)] = m
+    out["agree"], out["agree_dates"] = _rg_agree(by_H, btc)
+    out["verdict"] = _rg_verdict(out)
+    return out
+
+
+def _rg_cell(sm, h, rr, sd, pop):
+    return sm["cells"].get("%d|%.1f|%s|%s" % (h, rr, sd, pop))
+
+
+def _rg_below(a, b):
+    """Строго ниже: ДИ95 популяции `a` целиком под ДИ95 популяции `b`.
+    Перекрытие И превышение одинаково НЕ являются провалом тезиса (§4)."""
+    return a["omega_ci"][1] < b["omega_ci"][0]
+
+
+def _rg_verdict(sm):
+    """ПЕРВИЧНЫЙ ТЕЗИС, зафиксированный до прогона (§4): на КАЖДОЙ ячейке с
+    кворумом ДИ95 Ω на `range` перекрывает ДИ95 на `trend` или превышает его.
+    Тезис падает ровно тогда, когда `range` строго ниже хотя бы раз.
+
+    Кворум ячейки — кворум ОБЕИХ популяций: сравнение, у которого одна сторона
+    ниже кворума, не сравнение (инв. 22)."""
+    cmp_n, bad = 0, []
+    for h in sm["H_grid"]:
+        for rr in sm["rr_grid"]:
+            for sd in ("long", "short"):
+                a = _rg_cell(sm, h, rr, sd, "range")
+                b = _rg_cell(sm, h, rr, sd, "trend")
+                if not (a and b and a.get("quorum") and b.get("quorum")):
+                    continue
+                if not (np.isfinite(a["omega"]) and np.isfinite(b["omega"])):
+                    continue
+                cmp_n += 1
+                if _rg_below(a, b):
+                    bad.append((h, rr, sd))
+    return {"n_cmp": cmp_n, "failed": bad,
+            "holds": (cmp_n > 0 and not bad), "decidable": cmp_n > 0}
+
+
+def run_regime_grid(series, bot, html, btc, betawalk=None, H_grid=None,
+                    rr_grid=None, verbose=True):
+    """Один проход run_target на каждый H сетки; все RR приходят одним рукавом
+    внутри прохода, потому что подстановка живёт на задании. H уходит в тот же
+    H_override, которым уже пользуется D3 — новой машинерии горизонта здесь
+    нет (§3.2). k_grid пуст: сетка k — вопрос ТЗ-28 и в этом рукаве не
+    участвует."""
+    hs = list(H_grid or RG_H_GRID)
+    rrs = list(rr_grid or RG_RR_GRID)
+    out = {}
+    for h in hs:
+        if verbose:
+            print("  H = %dч ..." % h, flush=True)
+        try:
+            out[h] = run_target(series, bot, html, btc, betawalk=betawalk,
+                                k_grid=[], H_override=h, rr_grid=rrs,
+                                verbose=False)
+        except ValueError as e:
+            # РОВНО один случай: архива не хватает даже на одну дату при этом
+            # горизонте — крайняя точка той самой правой усечённости, которую
+            # §3.4 требует учесть. Горизонт записывается ПУСТЫМ и печатается,
+            # а не роняет остальную сетку; любая другая ValueError летит
+            # дальше, потому что глушить неизвестную ошибку значит печатать
+            # число, за которым ничего не стоит.
+            if "истории не хватает" not in str(e):
+                raise
+            print("  H = %dч: архива не хватает ни на одну дату — горизонт "
+                  "пуст (правая усечённость)" % h, flush=True)
+            out[h] = []
+    return out
+
+
+def _rg_line(m):
+    """Одна ячейка. Ниже кворума Ω не печатается вовсе — число рядом со словами
+    «ниже кворума» это число, которое кто-нибудь процитирует (как у _tgt_line)."""
+    if not m:
+        return "популяции нет — ни одной даты с этим словом"
+    if not m.get("pooled"):
+        return ("сетапов %d на %d датах (дат в популяции %d) — пул не собран"
+                % (m["n_setups"], m["n_arm_dates"], m["n_pop_dates"]))
+    s = ("n %-5d дат %-4d P(никуда) %s"
+         % (m["n"], m["n_dates"],
+            "—" if m["p_none"] is None else "%.3f" % m["p_none"]))
+    if not m["quorum"]:
+        return s + " · НИЖЕ КВОРУМА — Ω не печатается"
+    if not np.isfinite(m["omega"]):
+        return s + " · Ω не определена (стоп не выбит ни разу)"
+    return s + (" · Ω %.3f [%.3f; %.3f] · планка %s · f* %s"
+                % (m["omega"], m["omega_ci"][0], m["omega_ci"][1],
+                   "—" if m["bar"] is None else "%.3f" % m["bar"],
+                   "—" if m.get("break_even") is None
+                   else "%+.5f" % m["break_even"]))
+
+
+def report_regime_gate(sm):
+    print("\n" + "═" * 62)
+    print("ВОРОТА РЕЖИМА · слово marketRegime на дате входа против исхода")
+    print("═" * 62)
+    print("ПЕРВИЧНЫЙ: на каждой ячейке с кворумом ДИ95 Ω на `range` перекрывает\n"
+          "ДИ95 на `trend` или превышает его. Тезис падает, только если `range`\n"
+          "строго ниже. `stress` печатается, но в тезис не входит (§3.3).")
+    print("Кворум: %d сетапов и %d дат — на КАЖДОЙ из двух популяций."
+          % (sm["quorum"][0], sm["quorum"][1]))
+    print("ПЛАНКА КАЖДОЙ ЯЧЕЙКИ — среднее 1/rr по её же допущенным сетапам,\n"
+          "снятое с rr, который вернула НЕТРОНУТАЯ tradeGeometry: погоня двигает\n"
+          "вход, и реализованный rr номинальному RR не обязан (инв. 61, 65).")
+    print("f* — постоянная восьмичасовая ставка, съедающая преимущество ячейки\n"
+          "над опорной (%dч / RR %.1f) ровно; фандинг в архиве не лежит и\n"
+          "заряжается арифметикой (§3.4)." % (sm["ref"][0], sm["ref"][1]))
+    print(_excl_line(sm))
+
+    print("\nПРАВАЯ УСЕЧЁННОСТЬ (растущая Ω на сжимающейся выборке — не рост):")
+    for h in sm["H_grid"]:
+        t = sm["trunc"][h]
+        print("  H=%-4d дат %-4d · потеряно против самой мелкой сетки %-4d · "
+              "последний вход %s"
+              % (h, t["n_dates"], t["lost"],
+                 "—" if t["last"] is None else _fmt_ts(t["last"])))
+
+    print("\nДАТ НА ПОПУЛЯЦИЮ:")
+    for h in sm["H_grid"]:
+        pd = sm["pop_dates"].get(h, {})
+        print("  H=%-4d %s" % (h, " · ".join(
+            "%s %d" % (w, pd.get(w, 0))
+            for w in list(sm["pops"]) + [sm["stress"]])))
+
+    for sd in ("long", "short"):
+        print("\n" + "─" * 62)
+        print("СТОРОНА: %s" % sd.upper())
+        for h in sm["H_grid"]:
+            for rr in sm["rr_grid"]:
+                print("  H=%-4d RR=%.1f" % (h, rr))
+                for pop in list(sm["pops"]) + [sm["stress"]]:
+                    print("    %-7s %s"
+                          % (pop, _rg_line(_rg_cell(sm, h, rr, sd, pop))))
+
+    print("\n" + "─" * 62)
+    print("СОГЛАСИЕ РАЗМЕТЧИКОВ · marketRegime × btc_regimes · дат %d"
+          % sm["agree_dates"])
+    print("Счёт, и только счёт: btc_regimes не тронут, тезисом не является и\n"
+          "ничего не подключает (§3.3).")
+    for (w1, w2), n in sorted(sm["agree"].items()):
+        print("  %-8s × %-10s %d" % (w1, w2, n))
+
+    v = sm["verdict"]
+    print("\n" + "═" * 62)
+    if not v["decidable"]:
+        print("ВЕРДИКТ: НЕ ВЫНОСИТСЯ — ни одной ячейки, где обе популяции взяли\n"
+              "кворум. Это не «тезис устоял»: сравнивать было нечего (инв. 22).")
+    elif v["holds"]:
+        print("ВЕРДИКТ: ТЕЗИС УСТОЯЛ на %d сравнениях — слово режима НЕ отделяет\n"
+              "прибыльные входы от убыточных. Ворота, закрывающие каждый день\n"
+              "`ДИАПАЗОН`, уничтожают сделки, а не убытки. Следствие\n"
+              "зарегистрировано до прогона (§4): открывается ТЗ на marketRegime\n"
+              "по пункту 1 жёсткого пола, и этот замер его и удовлетворяет."
+              % v["n_cmp"])
+    else:
+        print("ВЕРДИКТ: ТЕЗИС ПАЛ на %d ячейках из %d — `range` строго ниже\n"
+              "`trend`. Ворота делают свою работу, дни `ДИАПАЗОН` действительно\n"
+              "пусты, и молчание движка на них ВЕРНО. Ячейки: %s"
+              % (len(v["failed"]), v["n_cmp"],
+                 " · ".join("H=%d RR=%.1f %s" % f for f in v["failed"])))
 
 
 # ── 11. --lab-selftest · known-answer worlds for the four experiments ───────
@@ -3078,7 +3428,79 @@ def lab_selftest(html, bot, seeds=3):
     print("  D6 обмен сторон: Ω лонг %s · Ω шорт %s %s"
           % ("—" if not ml else "%.3f" % ml["omega"],
              "—" if not ms else "%.3f" % ms["omega"], "ОК" if d6 else "СТОП"))
-    ok = ok and d1 and d2 and d3 and d4 and d5 and d6
+
+    # D7 · the PARTITION, and its correct outcome is a REFUSAL. The world is
+    # driftless, so it has no regime to find: `range` and `trend` are two names
+    # for the same generator, and the two populations must NOT separate. An
+    # instrument that separates them HERE is inverted, and every number it
+    # would print on the archive is worthless — so a separation is СТОП.
+    # Read the preconditions before the overlap: a control in which one
+    # population is empty asserts nothing (inv. 22), and a known-answer control
+    # that cannot fail is dead specification rather than a guard.
+    by_H = run_regime_grid(w, bot, html, btc, verbose=False)
+    sg = regime_gate_summary(by_H, btc, html)
+    pop_d = {p: max((sg["pop_dates"][h].get(p, 0) for h in sg["H_grid"]),
+                    default=0)
+             for p in list(RG_POPS) + [RG_STRESS]}
+    d7a = all(pop_d[p] > 0 for p in RG_POPS)
+    quor = {p: sum(1 for h in sg["H_grid"] for rr in sg["rr_grid"]
+                   for sd in ("long", "short")
+                   if (_rg_cell(sg, h, rr, sd, p) or {}).get("quorum"))
+            for p in RG_POPS}
+    d7b = all(quor[p] > 0 for p in RG_POPS)
+    # `stress` is EXCLUDED, not absent by construction: it must OCCUR, and no
+    # date carrying it may reach either compared population. Read off the same
+    # _rg_split the arm itself partitions with (inv. 21) and compared as SETS
+    # of timestamps, so a fold would actually fire this — a check written as
+    # `word == stress and word in POPS` is false by arithmetic and guards
+    # nothing.
+    spl = {h: _rg_split(by_H[h]) for h in by_H}
+    st_ts = set(d["t"] for h in spl for d in spl[h].get(RG_STRESS, []))
+    pp_ts = set(d["t"] for h in spl for p in RG_POPS for d in spl[h].get(p, []))
+    bled = len(st_ts & pp_ts)
+    whole = all(sum(len(v) for v in spl[h].values()) == len(by_H[h])
+                for h in by_H)
+    d7c = pop_d[RG_STRESS] > 0 and bled == 0 and whole
+    print("  D7 деление по слову режима на мире БЕЗ сноса — верный исход ОТКАЗ")
+    print("     дат на популяцию: %s"
+          % " · ".join("%s %d" % (p, pop_d[p])
+                       for p in list(RG_POPS) + [RG_STRESS]))
+    print("     D7a оба слова встречаются: %s · D7b ячеек с кворумом %s: %s"
+          % ("ОК" if d7a else "СТОП",
+             " · ".join("%s %d" % (p, quor[p]) for p in RG_POPS),
+             "ОК" if d7b else "СТОП"))
+    print("     D7c stress исключён, а не отсутствует: дат %d · протекло в "
+          "популяции %d · деление покрывает все даты: %s %s"
+          % (pop_d[RG_STRESS], bled, "да" if whole else "НЕТ",
+             "ОК" if d7c else "СТОП"))
+    ov_n, sep = 0, []
+    for h in sg["H_grid"]:
+        for rr in sg["rr_grid"]:
+            for sd in ("long", "short"):
+                a = _rg_cell(sg, h, rr, sd, "range")
+                b = _rg_cell(sg, h, rr, sd, "trend")
+                if not (a and b and a.get("quorum") and b.get("quorum")):
+                    continue
+                if not (np.isfinite(a["omega"]) and np.isfinite(b["omega"])):
+                    continue
+                ov_n += 1
+                if a["omega_ci"][1] < b["omega_ci"][0] or \
+                   b["omega_ci"][1] < a["omega_ci"][0]:
+                    sep.append("H=%d RR=%.1f %s" % (h, rr, sd))
+    d7d = ov_n > 0 and not sep
+    print("     D7d ДИ95 перекрываются на всех ячейках с кворумом: сравнений "
+          "%d, разделений %d %s"
+          % (ov_n, len(sep), "ОК" if d7d else "СТОП"))
+    if sep:
+        print("       разошлись: %s" % " · ".join(sep))
+    d7 = d7a and d7b and d7c and d7d
+    if not (d7a and d7b and d7c):
+        # Сказать «не может сработать» там, где D7d только что сработал, значит
+        # соврать. Верное утверждение одно: предусловия не выполнены, поэтому
+        # чтение D7d ничего не стоит — в ЛЮБУЮ сторону.
+        print("     D7 ПРЕДУСЛОВИЯ НЕ ВЫПОЛНЕНЫ — читать D7d нельзя ни в одну "
+              "сторону: это дефект прибора, а не результат")
+    ok = ok and d1 and d2 and d3 and d4 and d5 and d6 and d7
 
     print("\nВЕРДИКТ ЛАБОРАТОРИИ: %s"
           % ("измеряет то, что должна" if ok else "НЕИСПРАВНА — результатам не верить"))
@@ -3095,6 +3517,7 @@ def main():
     ap.add_argument("--regimes", action="store_true")
     ap.add_argument("--stops", action="store_true")
     ap.add_argument("--target", action="store_true")
+    ap.add_argument("--regime-gate", action="store_true")
     ap.add_argument("--res7", action="store_true")
     ap.add_argument("--funding", action="store_true")
     ap.add_argument("--fetch-funding", action="store_true")
@@ -3169,6 +3592,46 @@ def main():
             # A run that compared too little must not look like a run that
             # found nothing (инв. 22, 37).
             sys.exit("СТОП: обе стороны продакшн-рукава ниже кворума "
+                     "(%d сетапов и %d дат) — сравнивать нечего. %s"
+                     % (TGT_QUORUM_N, TGT_QUORUM_D, _excl_line(sm)))
+        return 0
+    if a.regime_gate:
+        # Тот же вход и тот же гейт сверки, что у --target: рукав аддитивен и
+        # своей машинерии допуска не заводит. Горизонт здесь СВОЙ — сетка
+        # RG_H_GRID, — и --horizon им не перекрывается (инв. 23).
+        ser = load_cache()
+        btc = load_cache(keep_btc=True).get("BTC")
+        if btc is None:
+            sys.exit("СТОП: в кэше нет BTC — плечо и режим считать не от чего.")
+        try:
+            R = reconcile(a.bot, a.html)
+        except SystemExit:
+            raise
+        except Exception as e:
+            sys.exit("СТОП: сверка перед замером не выполнена (%s) — "
+                     "--regime-gate гейтится на ней и без неё не считает "
+                     "(§2.6)." % type(e).__name__)
+        excluded, unrec = target_gate(R["sym_class"], ser)
+        for sy in excluded:
+            ser.pop(sy, None)
+        print("СВЕРКА ПЕРЕД ЗАМЕРОМ: сверено монет %d · исключено %d · "
+              "в сетку идёт %d" % (R["cmp_n"], len(excluded), len(ser)))
+        if unrec:
+            print("  НЕ СВЕРЕНО (нет строки в живом coeffs.json), но в сетку "
+                  "допущено: " + ", ".join(unrec))
+        if len(ser) < 8:
+            sys.exit("СТОП: после исключений в кэше %d монет — замер "
+                     "невозможен. %s"
+                     % (len(ser), _excl_line({"excluded": excluded})))
+        by_H = run_regime_grid(ser, a.bot, a.html, btc,
+                               betawalk=BetaWalk(a.bot, btc["prices"]))
+        sm = regime_gate_summary(by_H, btc, a.html, excluded=excluded)
+        report_regime_gate(sm)
+        json.dump(sm, open(os.path.join(HERE, "regime_gate_raw.json"), "w"))
+        if not sm["verdict"]["decidable"]:
+            # Прогон, сравнивший слишком мало, не должен выглядеть как прогон,
+            # который ничего не нашёл (инв. 22, 37).
+            sys.exit("СТОП: ни одной ячейки, где обе популяции взяли кворум "
                      "(%d сетапов и %d дат) — сравнивать нечего. %s"
                      % (TGT_QUORUM_N, TGT_QUORUM_D, _excl_line(sm)))
         return 0
