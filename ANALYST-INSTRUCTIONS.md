@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-06-c.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-07-b.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -60,6 +60,49 @@ put `Ω` at 0.025 long and 0.016 short against the bar `1/RR_MIN = 0.50` and rec
 168 h most setups resolve nowhere. Until that grid is run over the horizon as well as the
 target, the printed touch pair is what tells the Boss how far the level is — which is what it
 was added for.
+
+**`-d` closes FOUR objections the run of 07.09 recorded while obeying every rule, and one
+of them is a hole `-c` opened.** `-c` retired an empty ceiling and restored publication;
+what it did not notice is that the ceiling had been the ONLY test a range fade could fail,
+so seventeen fades were constructed and five published on a list whose median was up —
+the shape `-b` was written to stop, arriving through the repair of `-b`. **A brake removed
+because it was jammed is still a brake removed.** The run's own numbers say the rest: all
+seventeen carried a reward between 1.910 and 1.934 window-sigmas, a target probability of
+2.1–4.0 % and a stop probability of 35.5–36.8 %. **At `RR_MIN` the expectancy of every one
+of them is negative by its own printed pair**, and a geometry whose ratio is a constant by
+construction cannot tell one coin from another — which is the first objection, and it has
+the same cause as the second. `-d` makes the pair OPERATIVE: it is what refuses. §7 gains
+items 57–58, item 44 is corrected, §3B gains the object an outside-list side is produced
+from, and §11's schema gains the field §6a already writes.
+
+**`-b` RETRACTS the expectancy gate `-a` added, and the evidence is the run of 04.09 that
+the owner rates highest.** That run printed target probabilities of 0.4–0.6 % against stops
+of 8–43 % on all three published rows. **Under `-a`'s gate every one of them is refused** —
+so the rule would have deleted the best answer this engine has produced, and a gate that
+refuses the best output is measuring the horizon, not the setup. The pair is a `touchProb`
+reading over `H_NOISE`, the target lives on a longer clock, and TZ-31 is the measurement of
+that clock. **This is the second time the same line was crossed:** the audit of 04.09 refused
+in writing to put a threshold on the pair or a ceiling on the target sigma and routed both to
+a backtest (inv. 32); `-b` of 06.09 added the ceiling and `-a` of 07.09 added the threshold,
+and each broke the engine on its first run. The refusal stands and is written into §4 so it
+is not crossed a third time.
+
+**What actually produced the shorts is the FADE PATH, and `-b` closes it.** `-b` of 06.09
+correctly stopped a range coin being a directional trade and then left one door open — a
+fade of the coin's own boundaries — and on a list sitting high in its day that door
+manufactures shorts on a rally, which is the failure the whole repair existed to stop. It
+produced eleven of them on 06.09 through the ratio and five on 07.09 through the fade. **A
+range market's product is not a basket; it is `СОЗРЕВАЕТ`** — the price at which a coin
+WOULD become a trade, with the chance of that price arriving. That is the section the owner
+named as the most useful output this engine has given him, and its number reads 71–74 %
+where the target's reads 0.4 %.
+
+**Two more repairs come from the same run.** §3B's outside-list side is produced by the
+MARKET regime word, not by a dated catalyst as `-a` required — on 04.09 three outside-list
+longs were published on pullbacks in a `БЫЧИЙ` market and `-a` would have refused all three.
+And the `СОЗРЕВАЕТ` line carries the current price beside its trigger, which that run printed
+on its own judgement and no later run repeated. §7 item 44 returns to what it was, item 57 is
+replaced, item 58 is corrected.
 
 **This file is methodology, not contract.** Authority, repository operations, the
 trigger protocol, the hard floor, what may be committed and where all live in
@@ -211,7 +254,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 
 # СОЗРЕВАЕТ ≤14 ДНЕЙ
 **МОНЕТА — ЛОНГ** — тезис одним предложением.
-Что должно случиться: [ДД.ММ событие / цена $X] · зона $X–$X · инвалидация $X · цель $X.
+Что должно случиться: [ДД.ММ событие / цена $X (сейчас $X, ±X.X%)] · зона $X–$X · инвалидация $X · цель $X.
 Шанс дойти до зоны за 7 дней: XX%
 
 # ПОЗИЦИИ
@@ -317,6 +360,12 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   is a measurement and an unrun sweep is a gap has always been true internally; this is
   the same distinction reaching the person who trades on it. These lines are section
   values, not an account of the system, and §1's ban is untouched by them.
+- **A `СОЗРЕВАЕТ` trigger price carries the CURRENT price beside it and the distance in
+  per cent.** «цена $1.4255 (сейчас $1.4730, −3.2%)» tells the Boss in one glance how far the
+  setup is from arming; the trigger alone makes him fetch a second number to use the first.
+  The run of 04.09 printed it on its own judgement, no later run repeated it, and the owner
+  named that line as the clearest output this engine has produced — a display that has to be
+  reinvented every run is a display no run owes.
 - **СОЗРЕВАЕТ ≤14 ДНЕЙ carries what is not tradable yet and covers both universes.**
   Maximum three items printed. An item is admissible only if it names BOTH the thing
   that must happen — a dated event or an exact price — AND the level structure it
@@ -568,13 +617,24 @@ day and blown the morning's stop, on a stop widened because «structure above ha
 Re-entering the side a stop just refuted, at a worse price, on a looser stop, is the TAO
 failure wearing the range branch.
 
-**What a range coin may still be is a FADE of its own range, and only on its own
-boundaries.** The levels are the coin's own extremes from `cd` and its 24-hour high and low
-from the payload — never the 90-day extremum on the far side, which is a price from a
-different BTC regime and is not a boundary of anything the coin is doing now. A fade whose
-target does not clear §4's reachability band is not published, and that is the ordinary
-outcome: a range wide enough to pay `RR_MIN` inside one week is rare, and an engine that
-says so is not an engine that is broken.
+**A range coin is not published on either side, and the FADE path that stood here is
+CLOSED.** It said a range coin might still be faded on its own boundaries, gated only by
+§4's reachability band — and when `-c` retired that band as unsatisfiable, the gate went
+with it and the door stood open. **On a list sitting high in its own day, a boundary fade is
+a short, per coin, every time**, so the path manufactured exactly the basket the range rule
+was written to prevent: eleven shorts on 06.09 through the ratio, five on 07.09 through the
+fade, both on lists whose median was up. **A door that produces the banned outcome on every
+list that walks through it is not a narrow exception**, and the band was never a brake on it
+— it was a brake on the target, standing in front of a different failure by accident.
+
+**What a range market produces instead is `СОЗРЕВАЕТ`** — for each coin, the price at which
+it WOULD become a trade, with the chance of that price arriving inside the window (§4). That
+is the honest product of a market with no direction, and it is the one section whose
+seven-day number means something: measured 04.09 it read 71–74 % on three items while the
+target probabilities on the same page read 0.4 %. **Where a side is nevertheless required —
+naming which way a `СОЗРЕВАЕТ` item points — it is map inv. 30's, the higher mean-reversion
+score of production's own scoring, cut and executed on the coin's `cd` row like every other
+production function (inv. 21).** No side is invented here and none is taken from the ratio.
 
 **Fading a coin's own TREND is banned outright, in both directions.** No ratio, no
 catalyst, no oversold reading and no structure above or below reopens it; the only entry
@@ -626,6 +686,18 @@ weakness, clean structure, real liquidity, derivatives positioning, or an asymme
 reversal or continuation setup. **«It moved the most» is not a candidate.** These carry
 chart-and-catalyst reads only — no beta and no liquidation math exists for them, and that
 limitation is stated nowhere, because the answer never claims otherwise.
+
+**A side here is produced by the CATALYST, because an outside-list candidate has no
+structural row and the coin-regime read of §2 cannot be executed on it.** `cd` covers the
+list and nothing else (§5), so the function that decides a side on a list coin has no input
+here; a screen that must nevertheless produce a side would have to invent one from the
+price move, which is «it moved the most» wearing a direction. **The dated event is therefore
+not merely the priority of this search, it is the only object in it that can name a side** —
+which is why the order was written CATALYST FIRST. A candidate with no dated event is
+refused by name and the section prints «Нет достойных кандидатов.», which is a measurement.
+**Measured 07.09:** sixty rows cleared the screen, none carried a dated event, and the run
+recorded a contradiction between this section and §2 rather than an empty result — because
+neither section said which object governs where the other has none.
 
 **Every published coin must be tradable on a Binance USDⓈ-M perpetual.** A list coin
 that is spot-only by standing decision carries «Спот» in the Сторона cell. A coin
@@ -857,7 +929,18 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   above: a level the run's own model gives no chance of reaching is not a target, and its
   touch probability prints beside it so the Boss reads the distance rather than being told
   about it.
-  **No claim about expectancy is made here and none may be made from it:** `E[R] = 0`
+  **NO THRESHOLD IS PUT ON THE TOUCH PAIR AND NO CEILING ON THE TARGET'S SIGMA, and this
+  refusal is a standing rule rather than an omission.** Both numbers are `touchProb` read
+  over `H_NOISE`, and `RR_MIN` is a ratio of two distances with no horizon inside it, so a
+  target two stop-widths away is being judged on a clock it does not live on. **Every
+  attempt to close that gap inside this file has broken the engine on its first run:** a
+  ceiling on the target sigma emptied the admitting set entirely, and a threshold on the
+  pair refused every row of the best answer this engine has produced — measured 04.09,
+  target 0.4–0.6 % against stops 8–43 %, three published rows the owner rates as the
+  engine's high-water mark. **The pair is printed so the Boss reads the distance; it
+  refuses nothing** (§7 item 44). The gap is real, it is map §3.12's open architectural
+  item, and it is closed by measurement on the archive — not here (inv. 32).
+  **No claim about EDGE is made here and none may be made from it:** `E[R] = 0`
   under any selection on a random walk is a theorem and the `--control` run confirmed it
   (map inv. 32). What this rule buys is not edge, it is that every number published can be
   reached inside the week it is published for. **It changes what is PRINTED and what is
@@ -1781,7 +1864,10 @@ which is the shape §7 exists to replace.
     that the numbers look consistent.
 44. **Every published setup with a structural row carries its two touch probabilities in
     the ANSWER** (§2, §4), in whatever section it is published — not merely computed, not
-    merely logged. Neither number was used to refuse, downgrade or promote anything.
+    merely logged. **Neither number was used to refuse, downgrade or promote anything**
+    (§4) — they are read over `H_NOISE` and the target is not on that clock, so a run that
+    gates on them deletes correct setups. A run that believes a pair disqualifies a setup
+    records the objection and publishes.
 45. **Every printed catalyst item carries BOTH its impact tag and its status word** (§2),
     checked per printed item and not per section, collapsed line included, and no item
     under `ВПЕРЕДИ` or `ДАЛЬШЕ` lacks a date or repeats a closure already in `ЗАКРЫТО`.
@@ -1847,6 +1933,15 @@ gained from a run that broke nothing:** the run under `-a` executed every rule c
 documented sixteen sections of arithmetic, and the only numbers in its answer without a
 derivation anywhere were the three BTC levels its own strategy table was conditioned on — a
 gap no checklist could have caught, because no rule had ever named the computation.
+57. **No published row is a fade of a coin's own range** (§3). A coin whose own row reads
+    range carries no directional publication at all — not through the ratio, not through a
+    boundary, not through a catalyst — and what it may carry instead is a `СОЗРЕВАЕТ` item
+    naming the price at which it would become a trade.
+58. **Every outside-list candidate published takes its side from the MARKET regime word**
+    (§3B). No structural row exists for it, so no coin-regime read can be executed on it;
+    in a regime admitting no directional side the section prints «Нет достойных
+    кандидатов.» and every screened row is refused by name in the appendix.
+
 **Revision `-c` added nothing to this list and item 55 was corrected rather than
 supplemented**, because no run broke it: the band it asserted was empty by arithmetic and was
 caught before a run executed it. **A list that grows on a defect nobody met would stop being
@@ -1953,7 +2048,8 @@ overwrites the empty seed.
   "items":[ { "id","type","sym","status","d","dclass","impact","note",
               "entry","inv","tgt","trigger","oi_prev","gap","gap_prev",
               "first_seen","last_seen" } ],
-  "archive":[ { "id","sym","d","closed","status" } ] }
+  "archive":[ { "id","sym","d","closed","status" } ],
+  "sweeps":{ "horizon":{ "<lane>":{ "d","sec6_md5","host","n" } } } }
 ```
 
 `type ∈ catalyst | thesis | sozrevaet | position | signal`. `d` is the event or
