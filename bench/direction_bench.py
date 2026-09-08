@@ -252,7 +252,7 @@ for (var i = 0; i < %d; i++) {
     var dec = leverageDecision(cd, cur, isLong, btc);
     var rc7 = residual7(cd, btc);
     out[k] = directionVerdict(cd, pair, name, cur, p24, qv, isLong,
-                              reg, dec, hi, lo, rc7, Date.UTC(2026, 7, 19));
+                              reg, dec, hi, lo, rc7, Date.UTC(2026, 7, 19), btc);
   }
   checks++;
   cmp++; if (out[0].action === 'trade' && out[1].action === 'trade') both++;
@@ -443,7 +443,7 @@ for (var s = 0; s < 2; s++) {
   var geo = tradeGeometry(gram, 1.3190, isLong, dec, 1.3260, 1.3150);
   var v = directionVerdict(gram, 'GRAMUSDT', 'GRAM', 1.3190, 0.30, 3e7,
             isLong, reg, dec, 1.3260, 1.3150, residual7(gram, btc),
-            Date.UTC(2026, 7, 19));
+            Date.UTC(2026, 7, 19), btc);
   out.push({ coin: 'GRAM', side: isLong ? 'long' : 'short',
              rr: geo ? geo.rr : null, tgtSig: geo ? geo.tgtSig : null,
              veto: geo ? geo.veto : null, action: v.action, why: v.why });
@@ -465,7 +465,7 @@ for (var s2 = 0; s2 < 2; s2++) {
   var geo2 = tradeGeometry(zec, 502.98, isL, dec2, 518.0, 484.0);
   var v2 = directionVerdict(zec, 'ZECUSDT', 'ZEC', 502.98, -0.98, 3.4e8,
             isL, reg, dec2, 518.0, 484.0, residual7(zec, btc),
-            Date.UTC(2026, 7, 19));
+            Date.UTC(2026, 7, 19), btc);
   out.push({ coin: 'ZEC', side: isL ? 'long' : 'short',
              rr: geo2 ? geo2.rr : null, tgtSig: geo2 ? geo2.tgtSig : null,
              veto: geo2 ? geo2.veto : null, action: v2.action, why: v2.why,
@@ -600,7 +600,7 @@ for (var b = 0; b < B.length; b++) {
       var sc = scoreCandidate(d.cd, 'P', d.cur, 0, 1e7, isLong);
       if (!sc) continue;
       var v = directionVerdict(d.cd, 'P', 'NOCAT', d.cur, 0, 1e7, isLong,
-                reg, dec, d.hi24, d.lo24, null, Date.UTC(2026, 7, 19));
+                reg, dec, d.hi24, d.lo24, null, Date.UTC(2026, 7, 19), bat.btc);
       // ГОНКА БАРЬЕРОВ до первого касания. Цель — структурный ориентир 90д,
       // поэтому горизонт замера 30 суток: мерить его 7 днями значит
       // гарантировать отрицательную R обеим системам и ничего не различить.
@@ -745,7 +745,7 @@ for (var L = 0; L < %d; L++) {
       var dec = leverageDecision(pc.cd, pc.cur, isLong, btc);
       var vd = directionVerdict(pc.cd, 'P', pc.name, pc.cur, pc.p24, pc.qv,
                  isLong, reg, dec, pc.hi, pc.lo,
-                 residual7(pc.cd, btc), Date.UTC(2026, 7, 19));
+                 residual7(pc.cd, btc), Date.UTC(2026, 7, 19), btc);
       rows.push({ t: { name: pc.name }, cd: pc.cd, vd: vd,
                   sc: (vd.score !== null) ? { score: vd.score } : null });
     }
@@ -873,7 +873,7 @@ for (var b = 0; b < B.length; b++) {
       var sc = scoreCandidate(d.cd, 'P', d.cur, 0, 1e7, isLong);
       if (!sc) continue;
       var v = directionVerdict(d.cd, 'P', 'NOCAT', d.cur, 0, 1e7, isLong,
-                reg, dec, d.hi24, d.lo24, null, Date.UTC(2026, 7, 19));
+                reg, dec, d.hi24, d.lo24, null, Date.UTC(2026, 7, 19), bat.btc);
       var tgt = isLong ? d.cd.max_price : d.cd.min_price;
       var stop = dec.inv.price, done = false, R = 0;
       for (var f = 0; f < d.fwd.length; f++) {

@@ -241,7 +241,7 @@ async function section1() {
                 const vd  = P.directionVerdict(cd, t.s, t.name, coin.lastPrice,
                                                coin.priceChangePercent, coin.quoteVolume,
                                                isLong, reg, dec, coin.highPrice, coin.lowPrice,
-                                               rc7, tsMs);
+                                               rc7, tsMs, btc);
                 const row = { t: t, coin: coin, cd: cd, dec: dec, vd: vd,
                               sc: P.has(vd.score) ? { score: vd.score, reasons: vd.reasons } : null };
                 const tag = L.sym + (isLong ? ' L' : ' S') + ' ';

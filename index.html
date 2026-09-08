@@ -1898,6 +1898,14 @@ function marketRegime(btcStats) {
 // Дисциплина входа: опора — 24ч-минимум для лонга и 24ч-максимум для шорта.
 // Работает в ОБОИХ каналах, потому что запрещает не «покупать дорого», а
 // «покупать ПОСЛЕ движения» — то есть погоню, а не силу.
+// TZ-33. E IS A PARAMETER AND THE CALLER DECIDES WHICH PRICE IT IS. Every
+// number returned here — reward, rr, tgtSig, risk and the `wait` limit — is
+// measured from the E it was handed, so directionVerdict runs this function
+// TWICE on a waiting row: once at `cur`, whose only product is the anchor
+// `g.wait`, and once AT that anchor, which is the geometry the card publishes
+// and the only one the veto is read off. `dec` must be the decision taken at
+// the SAME E — the risk leg is `dec.inv.dist`, and a risk cut at one price
+// against a reward measured at another is not a ratio.
 function tradeGeometry(cd, E, isLong, dec, hi24, lo24) {
     var vol = cd.volatility;
     if (!has(vol) || vol <= 0 || !(E > 0)) return null;
@@ -2005,9 +2013,35 @@ function catalystCheck(sym, isLong, nowMs) {
 //   trend  -> только сторона по направлению рынка;
 //   range  -> только сторона с БОЛЬШИМ счётом возврата (равенство -> ни одной).
 // Поэтому одна монета физически не может получить и ЛОНГ, и ШОРТ.
-function directionVerdict(cd, pair, name, cur, p24, qv, isLong, reg, dec, hi24, lo24, rc7, nowMs) {
+//
+// TZ-33. TWO PASSES, AND THE TRADE IS DECIDED ON THE SECOND ONE. The first
+// pass runs at `cur` for exactly one purpose: to locate the ANCHOR, the price
+// this verdict actually publishes as its entry — `geo.wait` when the chase rule
+// fired, `cur` when it did not. Every level the card then prints is computed at
+// that price. invalidationInfo clips its distance FROM AN ENTRY, so a stop cut
+// at `cur` and published against `geo.wait` is a stop the INV_FLOOR_SD floor
+// never protected; and the ratio, being larger at the anchor on every waiting
+// row, refused setups that clear RR_MIN at the very entry the card names. The
+// veto is therefore evaluated ONCE, on the anchored geometry, never on the
+// first pass: a coin refused at `cur` must reach the anchor before it can be
+// refused. This is the rule ANALYST-INSTRUCTIONS §4 already runs; production
+// is the single implementation of it (инв. 20, 38).
+//
+// Termination is a property and not a hope. `lim` inside tradeGeometry is built
+// from the 24h anchor and `inv.sd = sigmaDay(vol)`, and neither depends on E,
+// so `lim` is the same number in both passes and the second one tests `E > lim`
+// at `E === lim`, which is false: geoA.wait is null whenever geo.wait is not.
+//
+// `row.dec` is NOT this decision and must not become it (инв. 14). The leverage
+// buttons, the card and the board keep deriving from the current-price decision;
+// `v.decA` exists for the trade-plan line and for this gate, and for nothing
+// else. The score is not re-run either: it is fixed before the anchor exists,
+// and a score that moved with a hypothetical price would reorder the board on a
+// price nobody paid.
+function directionVerdict(cd, pair, name, cur, p24, qv, isLong, reg, dec, hi24, lo24, rc7, nowMs, btcStats) {
     var v = { action: 'none', score: null, why: '', wait: null,
-              ch: '', reasons: [], geo: null, note: null };
+              ch: '', reasons: [], geo: null, note: null,
+              anchor: null, decA: null };
 
     // Счёт считается ВСЕГДА и при ЛЮБОМ исходе. Карточка без счёта невидима
     // для сортировки, а ранжирование строго по фактическому счёту —
@@ -2031,15 +2065,33 @@ function directionVerdict(cd, pair, name, cur, p24, qv, isLong, reg, dec, hi24, 
     }
     if (!has(v.score)) { v.why = '\u043d\u0435\u0442 \u043c\u0435\u0442\u0440\u0438\u043a'; return v; }
 
+    // Pass 1, at cur. Its ONLY product is the anchor: no veto is read here.
     var geo = tradeGeometry(cd, cur, isLong, dec, hi24, lo24);
     if (!geo) { v.why = '\u043d\u0435\u0442 \u0433\u0435\u043e\u043c\u0435\u0442\u0440\u0438\u0438'; return v; }
-    v.geo = geo;
-    if (geo.veto.length) { v.why = geo.veto[0]; return v; }
+
+    // Pass 2, at the anchor. Skipped entirely when the chase rule did not fire:
+    // there the anchor IS cur and a second call would return the same objects.
+    var anchor = (geo.wait !== null) ? geo.wait : cur;
+    var decA = dec, geoA = geo;
+    if (geo.wait !== null) {
+        decA = leverageDecision(cd, anchor, isLong, btcStats);
+        geoA = tradeGeometry(cd, anchor, isLong, decA, hi24, lo24);
+    }
+    v.anchor = anchor;
+    v.decA   = decA;
+    // A leverageDecision that fails at the anchor leaves decA.inv absent and
+    // tradeGeometry returns null at its own guard — the same refusal the first
+    // pass gets, with a reason and never a throw.
+    if (!geoA) { v.why = '\u043d\u0435\u0442 \u0433\u0435\u043e\u043c\u0435\u0442\u0440\u0438\u0438'; return v; }
+    v.geo = geoA;
+    if (geoA.veto.length) { v.why = geoA.veto[0]; return v; }
 
     var cat = catalystCheck(name, isLong, nowMs);
     if (cat.veto) { v.why = cat.veto; return v; }
     v.note = cat.note;
 
+    // The STATE is the first pass's: the chase rule is what says the entry must
+    // be waited for, and inv. 33 fixes what `v.wait` means on the glyph.
     if (geo.wait !== null) { v.action = 'wait'; v.wait = geo.wait; return v; }
     v.action = 'trade';
     return v;
@@ -2191,9 +2243,19 @@ function regimeBanner(reg, isLong) {
 // Строка плана сделки. Печатается ТОЛЬКО когда модель сделку разрешила
 // (`trade` или `wait`) и только для тиров Сильный/Средний — требование Босса
 // 20.08. Ни одно число здесь не вычисляется заново: цель — тот же экстремум
-// 90д, что берёт `tradeGeometry`, стоп — тот же `dec.inv.price`, что печатает
-// доска, R:R — тот же `geo.rr` (инв. 20). При `action === 'none'` строка пуста:
-// печатать «вход» там, где движок отказал, значило бы выдумать рекомендацию.
+// 90д, что берёт `tradeGeometry`, R:R — тот же `geo.rr` (инв. 20).
+// При `action === 'none'` строка пуста: печатать «вход» там, где движок
+// отказал, значило бы выдумать рекомендацию.
+//
+// TZ-33. THE STOP IS THE ANCHORED ONE — `vd.decA.inv.price`, the decision taken
+// at the price this very line names as the entry. It was `dec.inv.price` until
+// TZ-33, i.e. the decision taken at `cur`, and on a `ЖДАТЬ` row that printed an
+// entry from one price beside a stop from another: invalidationInfo clips its
+// distance FROM AN ENTRY, so the published distance sat under the INV_FLOOR_SD
+// floor on every waiting card. On a `СЕЙЧАС` row the anchor IS `cur`, `decA` is
+// `dec` object-identically, and nothing on the line moves. `row.dec` is left
+// alone deliberately: the board, the card and every leverage control read it
+// (инв. 14) and this line is the only surface the anchored decision reaches.
 function planLine(row, isLong) {
     if (!row.vd || !row.sc || !has(row.sc.score)) return '';
     if (row.sc.score < TIER_MID) return '';
@@ -2213,8 +2275,9 @@ function planLine(row, isLong) {
                + '\u0412\u0425\u041e\u0414 ' + fmtP(row.vd.wait) + '</span>');
     }
     out.push('<span style="color:var(--green);">\u0426\u0415\u041b\u042c ' + fmtP(tgt) + '</span>');
-    if (row.dec && row.dec.inv && has(row.dec.inv.price) && row.dec.inv.price > 0) {
-        out.push('<span style="color:var(--red);">\u0421\u0422\u041e\u041f ' + fmtP(row.dec.inv.price) + '</span>');
+    var decA = row.vd.decA;
+    if (decA && decA.inv && has(decA.inv.price) && decA.inv.price > 0) {
+        out.push('<span style="color:var(--red);">\u0421\u0422\u041e\u041f ' + fmtP(decA.inv.price) + '</span>');
     }
     if (has(geo.rr)) out.push('<span style="color:#9a9aa8;">R:R 1:' + geo.rr.toFixed(1) + '</span>');
     return '<div style="font-size:0.78em;font-weight:700;letter-spacing:0.02em;'
@@ -3287,7 +3350,7 @@ function update() {
             row.dec = leverageDecision(row.cd, curP, isLong, btcStats);
             row.vd  = directionVerdict(row.cd, t.s, t.name, curP, p24v, qvv, isLong,
                                        reg, row.dec, hi24, lo24,
-                                       residual7(row.cd, btcStats), null);
+                                       residual7(row.cd, btcStats), null, btcStats);
             row.sc  = has(row.vd.score)
                     ? { score: row.vd.score, reasons: row.vd.reasons } : null;
         }
