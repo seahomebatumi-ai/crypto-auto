@@ -14,18 +14,28 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-06-a.** Baseline: TZ-30 on `bench/backtest_guard_bench.py` (new),
-`bench/backtest_bench.py` and `.github/workflows/bench.yml` — implementation commit
-`7fdd7db`, report `CryptoReports/TZ-30-backtest-guard-in-gate-report.md`, merged.
-**The baseline names the implementation commit, not the merge commit** — a merge commit
-carries no content, and content is what this block pins.
+**Revision 2026-09-08-a.** Baseline: TZ-33 on `index.html` — `directionVerdict` computes
+the trade's levels at the ANCHOR, the price the card publishes as its entry — report
+`CryptoReports/TZ-33-entry-anchor-geometry-report.md`, accepted and merged.
+**The file table's hashes are the pin; the commit is provenance and is not restated
+here.** This revision was authored from delivered files rather than from a checkout, and
+a commit hash copied out of a report is the report's word rather than a reading
+(inv. 55). Content is what this block pins and MD5 pins it either way.
 
-**What moved at `-c` was a CONTROL and what moves here is the RUNNER READING of it.** The
-gate gained a fourteenth step and now builds a JavaScript bundle for the first time; no
-measured result, no threshold and no production constant moves with either revision.
-`index.html`, `main.py`, `catalysts.json` and the calibration record are untouched and every
-figure below the gate line is the one `-b` published. Two readings arrive: the hosted gate on
-the merge, and the inv. 53 proof this map had recorded as owed.
+**What moves here is production's own PUBLICATION PRICE, and two instruments did not move
+with it.** `tradeGeometry` and `leverageDecision` now run a SECOND time at the anchor and
+the veto is read off that pass alone; `directionVerdict` takes `btcStats` for it; `planLine`
+prints the anchored stop (§3.12). No threshold and no production constant moves. Inv. 35 was
+disproven by the change and is rewritten in place; inv. 66 is new. **The journal still
+records the decision taken at `cur` beside a card that prints the decision taken at the
+anchor, and `--target`'s production arm is admitted at the anchor and resolved at `cur`** —
+one cause, two sites, reserved as TZ-35 (§3.13, §3.10, §10).
+
+**The reconciliation is no longer 30 of 30.** UNI, XLM and ZEC now class `unexplained`, and
+that class removes a SYMBOL from `--target`'s arms rather than removing the run, so every
+mode behind that gate now measures 27 coins (§7, §3.14, §10). Nothing measured on run #16
+moves: that run was taken while the reconciliation was clean, and a sample is described by
+the universe it was taken on (§3.10b).
 
 **Contract v20 lands in the same revision and is not a TZ.** `EXECUTOR-INSTRUCTIONS.md` §2
 gained the three `analyst/**` paths its class table never carried — `analyst/owner.json`,
@@ -41,7 +51,8 @@ A bench in that table would put a hash in every TZ header for a file that moves 
 bench moves — the argument §11 already makes for `live-gate.sh`. A TZ needing the figure
 states it in its own `§0`, as TZ-28, TZ-29 and TZ-30 all did (2544 → 2768 → 3216 → **3240
 lines**, `fb9464afba2e87450bd3fd11877da9f1` → `9357c2bc4e71542c21068be79f8691f9` →
-`1b921e88fdae5c1c404fbf9fbcee8b2c` → **`d2dad0f80afa2c191c2faf1d40081a88`**).
+`1b921e88fdae5c1c404fbf9fbcee8b2c` → `d2dad0f80afa2c191c2faf1d40081a88`), and TZ-33 moved
+it again — **3724 lines**, `84b1572fd3af207b1e658f44f0191fcf`.
 
 **`bench/backtest_guard_bench.py` gets no row either, and for the stronger reason:
 its control is being a gate step.** It executes on every push at step 14, so a hash in a TZ
@@ -59,13 +70,11 @@ dispatch — never a softer bar. **The measurement TZ-27 could not take has now 
 run #16 read `Ω` on the archive for both sides at every grid point, and the finding is that
 no `k*` exists (§3.10a, §3.12, §10).
 
-**The two revisions before this one, in one line each.** `2026-09-05-c` recorded TZ-30 and
-contract v20 — the fourteenth gate step and the three `analyst/**` classes — on a local
-replay, with no hosted reading and one reading owed; `2026-09-05-b` carried no specification
-at all, recording the dispatch of run #16, which took the three measurements TZ-29 built an
-instrument for and could not run (inv. 44). Contract **v19** (801 lines, MD5
-`a6ebc2e7c2f2b74e813dfdc20400558f`) was superseded by v20 at `-c` and v20 is unchanged
-here.
+**The two revisions before this one, in one line each.** `2026-09-06-a` carried no
+specification either: it recorded the hosted runner reading of the fourteenth gate step and
+the inv. 53 proof the map had listed as owed; `2026-09-05-c` recorded TZ-30 and contract v20
+— that step and the three `analyst/**` classes — on a local replay. Contract **v20** (814
+lines, MD5 `9a257890e9db663eb0fc74129f4841e0`) is unchanged here.
 
 Every TZ header quotes this block IN FULL — all seven anchors and the file table,
 never a subset. The Executor matches each anchor as an exact substring against the
@@ -73,19 +82,19 @@ repository copy before any work (contract §5); any mismatch is BLOCKED.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-06-a.**` |
+| revision | `**Revision 2026-09-08-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `65. **A bar derived from the constant it judges moves with it.**` |
+| newest invariant | `66. **A published level and the price it was computed at are one fact.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
 | File | Lines | MD5 |
 |---|---:|---|
-| `index.html` | 3736 | `dd39536d18cc1feb4839808e41e7bff4` |
+| `index.html` | 3799 | `4e71da9badca3ccae85b656fdc3773e8` |
 | `main.py` | 518 | `0e3ead8c300d2ee6783303c4bf2fb6b5` |
 | `catalysts.json` | 17 | `f9b2dd4a3594134b2b7b603de19075c3` |
 | `bench/exhaustion-calibration.txt` | 175 | `3b8730b254467c9df4c0a845a0f3cfb3` |
@@ -103,14 +112,19 @@ Rewriting the header would make the description of one sample describe a differe
 which is inv. 46 read backwards — the constant would then agree with a record that no
 longer names the run behind it. It goes stale by design; the reader is told so here.
 
-Gate at this revision: `bench.yml`, **14 steps, 1 255 495 checks**. Steps 1–13 hold at
-1 255 401 — **delta zero**, replayed locally against the unmodified checkout before any edit
-and again after, so the zero is a comparison of two measurements and not of a measurement
-against this document. **Step 14 measured 94**, and the figure is published as measured: the
-TZ named no expected total and none was predicted (inv. 43). **The hosted gate is green on `main` at fourteen steps**, read off the run page rather than
-from a report (§10): `Bench gate` **#134** on the branch commit `7fdd7db` and **#135** on the
-merge commit `ea259c6`, both completed successfully. That supersedes #122 on `f27d5ee` as the
-last hosted green this map can name.
+**The gate was NOT re-read at this revision, so the totals here are a recorded state and not
+a current one (inv. 56).** Last measured 06.09.2026: `bench.yml`, **14 steps, 1 255 495
+checks** — steps 1–13 at 1 255 401 and step 14 at 94 — with the hosted `Bench gate` green on
+`main`, `#134` on branch commit `7fdd7db` and `#135` on merge commit `ea259c6`, read off the
+run page rather than from a report (§10). This revision was authored from delivered files and
+no runner reading arrived with them.
+
+**Step 7 carries a DERIVABLE prediction and it is the first figure to read after TZ-33.**
+`journal_bench.js` counts numeric leaves of the records it writes; `vd.geo` is now the
+ANCHORED geometry and its `wait` is null on every waiting row by the termination property
+(§3.12). If `journal/write.js` stores that object whole — which §3.13 says it does — the
+counter FALLS by one leaf per waiting row, and a fall is attributed rather than assumed
+benign, because a defect that nulls a field lowers it identically.
 
 **What the fourteenth step changes is the class of decay the gate can see.** Until it landed,
 the only thread from `backtest_bench.py` into these gates was step 4 — `verify_bench.py`
@@ -620,6 +634,20 @@ comparison is on the magnitude. **This retired the v3 single-outlier licence, an
 tightening:** that licence let one coin over the bar exit 0 at any magnitude, and it existed
 only because the verdict had no way to name a cause.
 
+**Since TZ-33 the `--target` PRODUCTION arm mixes two prices, deliberately and at a cost
+that has to be named.** Production's own call sequence changed, so the driver takes the
+second pass too and `prod.g` is the ANCHORED geometry — a driver still making one call would
+execute a sequence production no longer performs (inv. 42, 48). What did NOT move is the
+reference leg every arm is scored against: `stop`, `dist`, `b_log` and the first-touch
+resolution stay at `E`, because they are shared with the substituted arms and moving them
+would move those arms too. **The production arm is therefore ADMITTED at the anchor and
+RESOLVED at `cur`**, so on a waiting row it counts the outcome of an entry production would
+not have taken, and its `R` pairs an anchored `rr` with a barrier pair measured somewhere
+else. The decision is right for the substituted arms and wrong for the production one, and
+the repair is a SECOND arm rather than a moved leg (TZ-35, §10). **Every `--target` figure
+standing in this map was taken on the single-pass instrument and predates TZ-33**; the next
+dispatch is not comparable to them until that arm exists.
+
 **Since TZ-30 the failing set has ONE definition site — `HARD_CLASSES` — and two readers.**
 `verify_against_live` decides the exit code from it and the module-level `target_gate`
 decides which symbols leave `--target`'s arms, so the two cannot disagree about what
@@ -702,7 +730,7 @@ of new data.**
 | `--stops` | pooled measured/model calibration of the invalidation layer at 7d | LONG 0.88 [0.68; 1.07], SHORT 0.88 [0.74; 1.03] — CI covers 1 | touch model honest; no multiplier in §7 |
 | `--res7` | LONG · 7d · contrarian residual, IC ≥ +0.05 | −0.009 [−0.048; +0.030]; all 11 exploration cells fail | `residual7` stays display-only |
 | `--funding` | SHORT · 7d crowding-z, IC ≥ +0.05 | +0.003 [−0.030; +0.039]; all 8 exploration cells fail | no crowding factor; funding stays a cost |
-| `--target` | `Ω = n_tgt / n_stop` on the production arm, pooled per side, against the bar `1/RR_MIN = 0.50` | **measured 05.09.2026, run #16.** LONG `Ω` 0.025 [0.010; 0.043] on 1740 setups × 136 dates; SHORT 0.016 [0.002; 0.036] on 1095 × 137. Both CI95 **entirely below 0.50** | the 90d extremum does not pay the odds its own R:R promises at 168 h — and neither does any continuation rung. **No `k*` exists in the grid on either side**, so nothing crosses into `index.html` and §3.12's veto stands (inv. 32) |
+| `--target` | `Ω = n_tgt / n_stop` on the production arm, pooled per side, against the bar `1/RR_MIN = 0.50` | **measured 05.09.2026, run #16, on the pre-TZ-33 single-pass instrument (§3.10).** LONG `Ω` 0.025 [0.010; 0.043] on 1740 setups × 136 dates; SHORT 0.016 [0.002; 0.036] on 1095 × 137. Both CI95 **entirely below 0.50** | the 90d extremum does not pay the odds its own R:R promises at 168 h — and neither does any continuation rung. **No `k*` exists in the grid on either side**, so nothing crosses into `index.html` and §3.12's veto stands (inv. 32) |
 
 **The continuation channel was measured on the same run and it does not open either.** The
 grid sets the target at `k · vol·√H_NOISE` and `Ω(k)` falls monotonically on both sides —
@@ -929,6 +957,11 @@ money veto is read from `dec.moneyBelowMin` (inv. 20).
 | money | `dec.moneyBelowMin` | a stop costing more than `MAX_MARGIN_LOSS` even at `L_MIN` |
 | leverage | `!dec.ok` | «БЕЗ БЕЗОПАСНОГО ПЛЕЧА» becoming a tradable card |
 
+**`E` is a PARAMETER and the caller decides which price it is.** Every number the function
+returns — reward, `rr`, `tgtSig`, risk and the `wait` limit — is measured from the `E` it
+was handed, and `dec` must be the decision taken at the SAME price: a risk leg cut at one
+price against a reward measured at another is not a ratio.
+
 **Entry discipline — `wait`, not a veto.** Anchor = the 24-hour low for a long,
 the 24-hour high for a short (already in the Binance ticker — zero new requests).
 Beyond `ENTRY_CHASE_SD` daily sigmas from that anchor the card enters ЖДАТЬ and
@@ -974,11 +1007,49 @@ The range rule is load-bearing: a coin mid-range with a wide 90-day range can
 clear R:R ≥ 2 on both sides simultaneously. Geometry filters bad trades; it does
 not arbitrate direction. The regime does (inv. 30).
 
+**Two passes, and the trade is decided on the SECOND one (TZ-33).** The first pass runs at
+`cur` for one purpose — to locate the ANCHOR, the price this verdict publishes as its entry:
+`geo.wait` where the chase rule fired, `cur` where it did not. Where it fired,
+`leverageDecision` and `tradeGeometry` run again AT that anchor, every level the card prints
+is computed there, and the veto is read off that pass ALONE — a coin refused at `cur` must
+reach the anchor before it can be refused. The signature therefore takes `btcStats`: the
+second `leverageDecision` needs the BTC ceiling, and a caller passing thirteen arguments
+drops that ceiling silently and nothing else.
+
+```
+geo    = tradeGeometry(cd, cur, …, dec)        pass 1 — anchor only, no veto read
+anchor = geo.wait !== null ? geo.wait : cur    what the card publishes as the entry
+decA   = leverageDecision(cd, anchor, …)       pass 2 — only when wait fired
+geoA   = tradeGeometry(cd, anchor, …, decA)    the geometry the veto is read off
+```
+
+**Termination is a property, not a hope: `geoA.wait === null` whenever `geo.wait` is not.**
+`lim` is built from the 24-hour anchor and `sigmaDay(vol)`, neither of which depends on `E`,
+so it is the same number in both passes and the second tests `E > lim` at `E === lim`.
+
+**The single-pass form was biased in exactly ONE direction and both halves of the bias
+pointed the same way.** `invalidationInfo` clips its distance FROM AN ENTRY, so a stop cut at
+`cur` and published against `geo.wait` sat closer to the published entry than `INV_FLOOR_SD`
+permits — on every waiting row, in the dangerous direction. And at the lower entry the reward
+`(tgt − E)/E` strictly rises while `dist` can only fall or hold at the 2σ floor, so `rr` is
+strictly LARGER at the anchor: the old R:R veto refused setups that cleared `RR_MIN` at the
+very price the card named, and never the reverse. Neither error was reachable on a `СЕЙЧАС`
+row, where the anchor IS `cur` and `decA` is `dec` object-identically — which is why the
+defect survived every board bench that never built a waiting row.
+
+**`row.dec` is not the anchored decision and must not become it (inv. 14).** The board, the
+card and every leverage control keep deriving from the current-price decision; `v.decA`
+reaches one surface — `planLine` — and nothing else. The score is not re-run either: it is
+fixed before the anchor exists, and a score moving with a hypothetical price would reorder
+the board on a price nobody paid.
+
 **Display contract** — inv. 33–36 carry it: number and word mean PLACE IN THE
 RANKING and STRENGTH OF ATTENTION, the glyph (`stateMark`) means ENTRY STATE
 (empty = trade, `~` = wait for the pullback with its price, `✕` = no trade); the
 tier badge reads «Сильный / Средний / Кандидат / Фон» at thresholds 70/50/35;
-`planLine` prints entry and target only where the engine allowed the trade; a card
+`planLine` prints entry and target only where the engine allowed the trade, and every number
+on that line comes from the ANCHOR — `vd.decA.inv.price` for the stop, the anchored `geo.rr`
+for the ratio (inv. 35, 66); a card
 below `TIER_MIN` moves to the expandable strip rather than vanishing; degraded
 rows are never hidden.
 
@@ -1045,14 +1116,29 @@ every unjournaled day is lost permanently.
 **Snapshot fields.** `d · ts · sym · pair · gen · age · px{src,cur,p24,qv,hi,lo,cnt}
 · reg · cd (analysis_data row verbatim) · btc (coeffs.btc verbatim) · rp ·
 long{…} · short{…} · cat{acting,hash} · fp{script,commit}`. Side block:
-`rel · score · tier · ch · action · why · note · verdict · wait · tgt ·
-geo{rr,reward,risk,tgtSig} · dec{ok,L,binding,moneyBelowMin,parts} ·
-inv{dist,price,dStruct,capped,floored,sd,ref,src}`. Objects returned by production
-functions are stored WHOLE and unrounded: a field not written today cannot be
-recovered from a year-old record, and it costs bytes. Outcome line: `p0 · p1 · hi ·
+`rel · score · tier · ch · action · why · note · verdict · wait · tgt · geo · dec · inv`.
+Objects returned by production functions are stored WHOLE and unrounded: a field not
+written today cannot be recovered from a year-old record, and it costs bytes. **Their
+members are deliberately NOT enumerated here** — an enumeration of a production return is a
+second copy of a shape this map does not own, and every such copy in this document has gone
+stale (inv. 20, 60); the authority is the function. Outcome line: `p0 · p1 · hi ·
 lo` plus, per side, the ISO hour of first touch of `tgt` / `stop` / `wait` and
 `first ∈ tgt|stop|tie|null`. `tie` means both levels fell inside one hourly candle
 and the order is genuinely unresolvable — recorded, not guessed.
+
+**Since TZ-33 the side block has the same SHAPE and a different MEANING, and no schema check
+can see the difference (inv. 66).** `geo` is now the ANCHORED geometry: `rr`, `reward` and
+`tgtSig` are measured at the price the card published, and `geo.wait` is null on every
+waiting row by the termination property (§3.12) — the wait price itself is unaffected, it
+lives in the side block's own `wait`. `dec` and `inv` are still the decision taken at `cur`,
+so on a waiting row **the journal records a stop the board did not print** while `planLine`
+printed `decA.inv.price`, and the outcome layer then times its `stop` touch against that
+recorded level — against a stop no card ever named. **Records are immutable (inv. 38), so
+the boundary is disclosed rather than repaired:** `fp{script,commit}` dates every record and
+the epoch is recoverable from it, which is the only reason this change is survivable at all.
+The repair is additive and is reserved as TZ-35 (§10); the first thing that TZ reads is
+whether the writer passes `btcStats` into `directionVerdict`'s fourteenth parameter, because
+a thirteen-argument call drops the BTC ceiling out of the anchored decision.
 
 **Three standing decisions.**
 
@@ -1129,7 +1215,10 @@ permanently degraded `status`.
 **Consequence 3 — the bench divergence in §7 is a source property; the CLASS held and the
 MAGNITUDE was refuted.** Measured 05.09.2026 on all 30 coins (run #16): the reconciliation
 classed 21 cells `venue-basis`, 0 `coverage` and 0 `unexplained`, and the five coins carrying
-every one of those cells are exactly the five `fut:true` assets — the bench reads the
+every one of those cells are exactly the five `fut:true` assets. **A later reading breaks the
+second half of that sentence and not the first:** UNI, XLM and ZEC now class `unexplained`
+(§7), and all three are SPOT assets — this venue contract does not explain them, and a class
+meaning «everything else» explains nothing by itself — the bench reads the
 perpetual, CoinGecko reads a spot index, and the basis is the difference. **The prediction
 that MORPHO and ARB would show «the same divergence for the same reason» was wrong in both
 directions**: this map wrote 7–9 pp on returns, MORPHO reads 2.4–3.8 pp and ARB reads
@@ -1395,6 +1484,11 @@ revisions has proven nothing about the change. TZ-15 ran the identical protocol 
 harness written fresh and read 0 of **1 240** fields with the record byte-identical
 again; the two field counts are properties of each harness's enumeration, and the
 result replicating across two independent harnesses is worth more than either run.
+**TZ-33 widened that confound and did not weaken the proof.** `hi24`/`lo24` now feed the
+anchor, so the same perturbation moves `anchor`, `decA`, `geo` and every level derived from
+them rather than one field — the entry-chase dependency this paragraph already names,
+reaching further. The two-sided form is what carries it, and it now has a precondition: the
+comparison revision must also have the second pass, or the control proves nothing.
 
 `[решение принято мной]` Discarded: making exhaustion a Layer 1 veto. At the
 adopted line it would close roughly a tenth of all sessions on both sides on the
@@ -1513,7 +1607,7 @@ cite them, so an invariant is rewritten in place and never renumbered.
 32. **Geometry does not predict and is not required to.** On a random walk `E[R] = 0` under ANY selection — a theorem, confirmed by the `--control` run (−0.001 at 2SE 0.080). Any future claim that «a veto raised accuracy» must first explain where drift or costs came from.
 33. **One channel, one meaning, and no channel argues with the glyph.** NUMBER + WORD speak about PLACE IN THE RANKING and STRENGTH OF ATTENTION; the GLYPH (`stateMark`) speaks about ENTRY STATE: empty = trade, `~ $price` = wait for the pullback, `✕` = no trade. The distinction may never be carried by colour alone and may never erase the number. Both surfaces take glyph and verdict text from the SAME functions (`stateMark`, `verdictNote`) — a board silent about the card's prohibition is the same defect. Colour carries STATE, not score quality: at `action === 'none'` the badge fades to `#888` while the tier colour remains on `trade` and `wait`. Tier vocabulary is «Сильный / Средний / Кандидат / Фон», badge format «Сильный #1 — 91», thresholds `TIER_STRONG/TIER_MID/TIER_MIN` = 70/50/35. The market-cap rank carries no «#»: that symbol belongs to the score ranking alone.
 34. **The number is a PLACE IN THE RANKING and every scored card has one.** Order is strictly by score (`byScore`, a 0.05 tie window resolved by market-cap rank), numbering continuous 1..N over the displayed list. Entry state may neither reorder the list nor take a number away. Only rows without a score and rows collapsed as irrelevant to the side (`row.off`) go unnumbered. `byScore`, `assignRanks`, `tierBadge`, `stateMark`, `verdictNote` are separate functions precisely so a bench can check them.
-35. **Only an allowed trade prints an entry price and a target.** `planLine` is empty at `action === 'none'`: printing «entry / target» where geometry or regime refused invents a recommendation the model does not have. No number in the line is recomputed — target is the same 90-day extremum `tradeGeometry` used, stop is `dec.inv.price`, R:R is `geo.rr` (inv. 20). The line exists only for tiers Сильный and Средний.
+35. **Only an allowed trade prints an entry price and a target, and every number on the line is computed at ONE price — the one the line names as the entry.** `planLine` is empty at `action === 'none'`: printing «entry / target» where geometry or regime refused invents a recommendation the model does not have. Nothing on the line is recomputed and nothing is mixed: the entry is `vd.wait` on a waiting row and `cur` otherwise, the stop is `vd.decA.inv.price` — the decision taken AT that entry — the ratio is the anchored `geo.rr`, and the target is the same 90-day extremum `tradeGeometry` used (inv. 20, 66). **The earlier form of this invariant named `dec.inv.price` and was DISPROVEN by TZ-33:** that is the decision taken at `cur`, true only on a `СЕЙЧАС` row, and on a `ЖДАТЬ` row it prescribed a line whose stop sat closer to its own published entry than `INV_FLOOR_SD` permits (§3.12). An invariant naming a source field rather than a source PRICE cannot distinguish the two. The line exists only for tiers Сильный and Средний.
 36. **A score below `TIER_MIN` leaves the main board but never disappears silently.** Such coins go into the same expandable strip as coins at the irrelevant edge of the range, with separate reason counters. Check order is fixed: weak score first, then position — otherwise one coin lands in both groups and the counters stop matching the strip length. Degraded rows (no pair / dead market / no metrics) are NEVER hidden: they are operational warnings, not candidates.
 37. **Silence must be explained, and the explanation must be machine-readable.** A run that recorded nothing must return a NON-ZERO code; every run must leave one grep-able line with `generated_at`; the night pause must differ from a failure by rule (`freshnessState`), not by eye. A gap in the sample with no recorded reason is indistinguishable from «no events», and a sample with unexplained gaps supports no statistical statement. Hence the journal writes a missing date as a gap LINE, not as an absent line. **A bench not wired into `bench.yml` never executes and is not a control.**
 38. **The journal is an instrument, and a record in it is immutable.** (1) The verdict is produced by EXECUTING the production script — functions are cut out of `index.html` and called by name (inv. 21). **A second implementation of any rule, threshold or formula is banned in any language and any file.** (2) A file once written is never reopened — not to append an outcome, not to fix a typo; the outcome lives in a separate file joined by key, and a re-run that finds an existing file writes `dup` and exits zero. Immutability is physical, not promised, because a record that can be rewritten stops being evidence exactly when the result is unwelcome. (3) Next to the verdict lies what can explain it: the acting catalyst set and its hash, the script fingerprint and the commit.
@@ -1820,6 +1914,25 @@ cite them, so an invariant is rewritten in place and never renumbered.
     not covered by the same check and must be named where it is:** removing a class leaves
     the derived section green too, and what catches it is step 4's `verify_bench.py`, a
     different step with a different authority.
+66. **A published level and the price it was computed at are one fact, and moving that price
+    is a schema change everywhere the level is recorded.**
+    TZ-33 moved production's publication price from `cur` to the anchor, correctly. Two
+    instruments record what production publishes and neither moved with it, in two different
+    ways and from one cause. The journal's `geo` became the anchored geometry under the same
+    field names and the same shape, so every schema check, field census and leaf counter
+    reads it as unchanged, while the `dec`/`inv` beside it now describe a stop the card did
+    not print and the outcome layer resolves against that stop. `--target`'s production arm
+    was moved on its ADMISSION leg and left on its RESOLUTION leg, so it counts the outcome
+    of an entry production would not have taken. **Neither failure is visible by comparing
+    shapes, and neither is visible to the instrument itself**, because an instrument records
+    what it is pointed at and cannot see that its subject moved. Therefore a TZ that changes
+    WHICH price a published number is computed at enumerates every recorder of that number
+    and either re-points it in the same change or records the boundary together with the TZ
+    that closes it — inv. 50's rule for a stated absence, applied to a stated MEANING.
+    Where the records are immutable (inv. 38) the boundary is disclosed and never repaired,
+    and it must be readable FROM THE RECORD: `fp{script,commit}` is what makes the journal's
+    epoch recoverable, and a store without such a field cannot carry a meaning change at all.
+    Inv. 20 bans one number living in two places; this bans one FIELD meaning two things.
 
 ---
 
@@ -1904,7 +2017,7 @@ Any production edit → the full `bench.yml` gate, 14 steps.
 - Unlocks are deliberately NOT automated.
 - Liquidation probability (§3.3) assumes normality and constant volatility. Crypto tails are fatter and volatility clustering is unmodelled → **the true probability is higher than computed**; the figure is a LOWER BOUND. Measured at 7d and typical 2σ–6σ distances the same touch formula is honest and even conservative (measured/model 0.88, CI95 covers 1 on both sides); beyond the 6σ clip the far tail confirms the prior (3.5 % measured vs 0.9 % model on the long side). **Crediting the 0.88 into the calculation is REJECTED:** the CI covers 1, the understatement is explained by clustering (so the correction would break exactly in an expansion regime), and `touchProb` does not enter leverage at all — all four ceilings are distance-based.
 - The backtest reconstructs 82.5 % of the long score and 86 % of the short: market-cap rank and Binance turnover are historically unavailable, so the quality block runs on `vol_ratio` alone, through production's own missing-field path (inv. 9). Both inputs move slowly across the list, so their contribution is close to a constant tilt. **`vol_ratio` itself has NO ARCHIVE ANALOGUE and therefore carries no threshold — it is reference-only in `--verify`.** Production builds it as `volume_expansion(c_data['total_volumes'])`, CoinGecko's composite turnover across every venue; the bench builds it from the archive's own Binance quote turnover. Two different turnover series, each divided by its own 90d median, give one scale-free ratio that is not a function of the other — so no bound derived from any price field can constrain it. Measured 05.09.2026: worst cell XMR **+317 %**, while `vol7` and `volatility` on the same coins sit under 3 %, and on synthetic data with identical prices and a substituted turnover series the derived bound is identically 0.000 % against a deviation of 134 %. **It is NOT `vol7 / volatility`** — that quotient is `volRegime` in the frontend, the §3.2 leverage cap, and is not a `coeffs.json` field at all. A TZ attaching a threshold here is attaching one to a quantity the archive cannot reproduce (inv. 49).
-- **Backtest vs production reconciled on 30 of 30 coins — measured 05.09.2026, run #16; the earlier «25 of 28» is superseded.** Zero cells classed `coverage`, zero `unexplained`, 21 `venue-basis` on the five `fut:true` assets and on nothing else; the other 25 coins are clean on all ten compared fields. Worst cells: ARB `r30` −24.8 pp and `r7` −18.8 pp, LIT `r30` +11.0 pp, XMR `r7` −6.5 pp — all perpetuals, all reference by §3.14. **The archive is no longer the limiting factor**: 31 of 31 symbols cached, 26 spot pairs at zero tail, five perpetuals at 20 h of tail because there is no futures mirror to top up from (inv. 64), and one interior gap in the whole set — GRAM's 53 h at the rename joint.
+- **Backtest vs production reconciles on 27 of 30 coins — reported 08.09.2026, the run behind it not dated here, so it is re-measured before it is cited as current (inv. 56).** **UNI, XLM and ZEC class `unexplained`**, and that class removes a SYMBOL from `--target`'s arms rather than removing the run (§3.10), so every mode behind the same gate now measures 27. `unexplained` is «everything else» by construction: it names no cause and is a question, not a diagnosis, and all three are SPOT assets so the venue contract does not answer it (§3.14, §10). The superseded reading is run #16, 05.09.2026 — 30 of 30, zero `coverage`, zero `unexplained` — and nothing measured on that run moves, because a sample is described by the universe it was taken on. The 21 `venue-basis` cells stand and are reference: Worst cells: ARB `r30` −24.8 pp and `r7` −18.8 pp, LIT `r30` +11.0 pp, XMR `r7` −6.5 pp — all perpetuals, all reference by §3.14. **The archive is no longer the limiting factor**: 31 of 31 symbols cached, 26 spot pairs at zero tail, five perpetuals at 20 h of tail because there is no futures mirror to top up from (inv. 64), and one interior gap in the whole set — GRAM's 53 h at the rename joint.
 
 ---
 
@@ -1974,9 +2087,12 @@ until someone re-runs the command.
 
 | Item | State | Trigger to act |
 |---|---|---|
+| TZ-33 moved the publication price and two recorders did not follow | **open — reserved as TZ-35** | nothing; TZ-34 is issued first and TZ-35 follows it. One cause, two sites (inv. 66). `journal/write.js` records `geo` as the anchored object while `dec`/`inv` stay at `cur`, so a waiting row's stored stop is not the stop the card printed and the outcome layer times its touch against it — and the record is immutable, so **every 13:00 UTC run adds another one while this waits**. `bench/backtest_bench.py`'s `--target` production arm is admitted at the anchor and resolved at `E`; the repair there is a second arm, never a moved reference leg, because that leg is shared with the substituted arms. The journal is the primary and the arm is additive. **First read of that TZ:** whether the writer passes `btcStats` into `directionVerdict`'s fourteenth parameter — a thirteen-argument call drops the BTC ceiling out of the anchored decision only, which is invisible on every `СЕЙЧАС` row |
+| UNI, XLM and ZEC class `unexplained` | **open — reported 08.09.2026, the run behind it undated** | before any figure from a post-run-#16 dispatch is cited. Three SPOT assets, so §3.14 does not explain them and the class names no cause. The per-field output that would name one is a runner artifact and a session may not fetch it (inv. 44), so this is a dispatch and a reading, not an authored hypothesis — and until it is taken, `--target`, `--regime-gate` and every mode behind the same gate measure 27 coins and say so through `excluded` |
+| Gate counters unread at revision `2026-09-08-a` | **open** | the next push, which reads them for free. §0 carries the derivable prediction: step 7 falls by one numeric leaf per waiting row if `journal/write.js` stores `geo` whole, and a fall is attributed rather than assumed benign |
 | Wide research universe (n = 120) | not built, gated — **gate probed 02.09.2026, did not open** | a named tier-1 hypothesis with external effect size ≥ 0.030 IC on a liquid cross-section at 7–14d (§3.10c). The probe was a full literature sweep of cross-sectional predictability in liquid perpetuals 2019–2026 and it returned nothing that clears all three conditions at once; §8 carries the reading and the one external IC that matched our own measurement. **A run never re-sweeps this on its own** — the gate opens on a hypothesis ARRIVING, never on another search for one, and re-probing a closed lane is the failure this repository exists to prevent |
 | Regime hysteresis | not built | the Boss reports the regime label flapping between renders. Not built pre-emptively: a second trend constant on speculation violates inv. 20 |
-| Continuation target for `tradeGeometry` | **measured 05.09.2026 — hypothesis withdrawn** (run #16) | nothing. Above quorum on both sides and on every reachable rung, every CI95 sits entirely below `1/RR_MIN = 0.50` and **no `k*` exists in the grid**: LONG 0.025 [0.010; 0.043] on the production extremum and 0.202 [0.118; 0.338] at the best continuation rung, SHORT 0.016 [0.002; 0.036] and 0.107 [0.041; 0.205]. §3.12's veto is now measured rather than argued. **Re-opened only by a change of holding period**, because the binding constraint is truncation at 168 h and not the choice of target (§3.10a D3, inv. 32) |
+| Continuation target for `tradeGeometry` | **measured 05.09.2026 — hypothesis withdrawn** (run #16) | nothing. Above quorum on both sides and on every reachable rung, every CI95 sits entirely below `1/RR_MIN = 0.50` and **no `k*` exists in the grid**: LONG 0.025 [0.010; 0.043] on the production extremum and 0.202 [0.118; 0.338] at the best continuation rung, SHORT 0.016 [0.002; 0.036] and 0.107 [0.041; 0.205]. §3.12's veto is now measured rather than argued. **Re-opened only by a change of holding period**, because the binding constraint is truncation at 168 h and not the choice of target (§3.10a D3, inv. 32). The arm behind it is the pre-TZ-33 single-pass one (§3.10) and the withdrawal is unaffected: no entry price shortens a horizon |
 | Journal outcome layer at scale | running | nothing — h7/h14 files appear automatically 7 and 14 days after each snapshot |
 | Journal storage growth | watched | ~73 KB/day. Act if the repository becomes unwieldy; records are immutable (inv. 38), so the answer is archival, never deletion |
 | Catalyst registry content | live, one confirmed entry | analyst work, delivered as a TZ; entries never promoted to `confirmed` without a primary source (inv. 39) |
