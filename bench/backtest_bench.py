@@ -2209,12 +2209,21 @@ def run_funding(series, fund, bot, horizon_d=7, step_d=7, verbose=True):
 # tradeGeometry always aims at the 90-day extremum — a MEAN-REVERSION target —
 # while in `trend` the ranking comes from the CONTINUATION channel. This mode is
 # that measurement and nothing else; it changes no production math.
-# Both arms share ONE leverageDecision, computed on the UNTOUCHED cd, so
+# Every arm shares ONE leverageDecision at E, computed on the UNTOUCHED cd, so
 # inv.dist, inv.price, moneyBelowMin and ok are literally the same numbers in
-# both: the comparison is on the reward leg alone. The continuation arm is a
-# shallow copy of cd whose extremum is replaced by E*exp(±k·vol·√H) and handed
+# all of them: the comparison is on the reward leg alone. The continuation arm is
+# a shallow copy of cd whose extremum is replaced by E*exp(±k·vol·√H) and handed
 # to the UNMODIFIED tradeGeometry, so every veto, the chase anchor and tgtSig
 # are production's own arithmetic on a substituted target (inv. 21, 38).
+# ТЗ-33. The PRODUCTION arm is the one exception and has to be: since ТЗ-33
+# directionVerdict runs leverageDecision and tradeGeometry a SECOND time, at the
+# price it publishes, and reads its veto off that second call. A driver still
+# making one call would execute a call sequence production no longer performs
+# (inv. 42, 48). The substituted arms are untouched — they exist to move the
+# TARGET, and the anchor is a property of the ENTRY. What did NOT move is the
+# reference leg every arm is scored against: `stop`, `dist`, `b_log` and the
+# touch resolution stay at E, because they are shared with the substituted arms
+# and moving them would move those arms too (§6.2 of that ТЗ).
 # Nothing here forecasts: the primary is a first-touch count against the odds
 # RR_MIN itself asserts.
 TARGET_JS_FUNCS = ["has", "firstNum", "normCdf", "sigmaDay", "touchProb",
@@ -2251,13 +2260,23 @@ var out = [];
 for (var i = 0; i < job.length; i++) {
     var j = job[i], r = null;
     try {
-        // ONE decision per (date, coin, side), on the untouched cd: both arms
-        // get the same dec, so the risk leg cannot move between them. The
+        // ONE decision at E per (date, coin, side), on the untouched cd: every
+        // arm gets the same dec, so the risk leg cannot move between them. The
         // substitution touches max_price (long) / min_price (short), which is
         // the opposite side from the one invalidationInfo reads, so it cannot
         // leak into the stop either.
         var dec = leverageDecision(j.cd, j.E, j.isLong, j.btcStats);
         var g0  = tradeGeometry(j.cd, j.E, j.isLong, dec, j.hi24, j.lo24);
+        // ТЗ-33. Production's SECOND pass, at the price it publishes. The first
+        // call's only product on a waiting row is the anchor g0.wait; the levels
+        // the board prints come from the pair below. When the chase rule did not
+        // fire the anchor is E itself and no second call is made at all — the
+        // same branch directionVerdict takes.
+        var decP = dec, gP = g0;
+        if (g0 && g0.wait !== null) {
+            decP = leverageDecision(j.cd, g0.wait, j.isLong, j.btcStats);
+            gP   = tradeGeometry(j.cd, g0.wait, j.isLong, decP, j.hi24, j.lo24);
+        }
         var vol = j.cd.volatility;
         var tgt0 = j.isLong ? j.cd.max_price : j.cd.min_price;
         var p0 = (has(vol) && vol > 0 && has(tgt0) && tgt0 > 0 && j.E > 0)
@@ -2305,7 +2324,7 @@ for (var i = 0; i < job.length; i++) {
               dist: dec.inv ? dec.inv.dist : null,
               stop: dec.inv ? dec.inv.price : null,
               reg: marketRegime(j.btcStats).mode,
-              prod: { g: armOut(g0), p: p0, tgt: has(tgt0) ? tgt0 : null },
+              prod: { g: armOut(gP), p: p0, tgt: has(tgt0) ? tgt0 : null },
               subs: subs };
     } catch (e) { r = null; }
     out.push(r);
@@ -3039,8 +3058,10 @@ def report_regime_gate(sm):
     print("Кворум: %d сетапов и %d дат — на КАЖДОЙ из двух популяций."
           % (sm["quorum"][0], sm["quorum"][1]))
     print("ПЛАНКА КАЖДОЙ ЯЧЕЙКИ — среднее 1/rr по её же допущенным сетапам,\n"
-          "снятое с rr, который вернула НЕТРОНУТАЯ tradeGeometry: погоня двигает\n"
-          "вход, и реализованный rr номинальному RR не обязан (инв. 61, 65).")
+          "снятое с rr, который вернула НЕТРОНУТАЯ tradeGeometry (с ТЗ-33 —\n"
+          "на ЯКОРЕ, той цене, по которой продакшн публикует вход): касание\n"
+          "по-прежнему разыгрывается от E, и реализованный rr номинальному RR\n"
+          "не обязан (инв. 61, 65).")
     print("f* — постоянная восьмичасовая ставка, съедающая преимущество ячейки\n"
           "над опорной (%dч / RR %.1f) ровно; фандинг в архиве не лежит и\n"
           "заряжается арифметикой (§3.4)." % (sm["ref"][0], sm["ref"][1]))

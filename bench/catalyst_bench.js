@@ -588,7 +588,7 @@ const BTC = { min_price: 41200, max_price: 88400, price_pos: 60, volatility: 0.0
             const dec = S.leverageDecision(FIX, 36.5, isLong, BTC);
             vd = S.directionVerdict(FIX, 'ZECUSDT', 'ZEC', 36.5, -1.07, 3.6e8, isLong,
                                     reg, dec, 38.1, 32.4, S.residual7(FIX, BTC),
-                                    Date.parse('2026-08-21T13:00:00Z'));
+                                    Date.parse('2026-08-21T13:00:00Z'), BTC);
         } catch (e) { threw = e; }
         eq(tag + ': directionVerdict did not throw (long=' + isLong + ')', threw, null);
         ok(tag + ': verdict produced (long=' + isLong + ')', vd !== null && typeof vd.action === 'string');

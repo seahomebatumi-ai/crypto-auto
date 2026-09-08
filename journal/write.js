@@ -359,7 +359,7 @@ function createJournal(opts) {
         const qv   = coin.quoteVolume, hi = coin.highPrice, lo = coin.lowPrice;
         const dec  = P.leverageDecision(cd, cur, isLong, btcStats);
         const vd   = P.directionVerdict(cd, token.s, token.name, cur, p24, qv, isLong,
-                                        reg, dec, hi, lo, rc7, tsMs);
+                                        reg, dec, hi, lo, rc7, tsMs, btcStats);
         const rp   = P.rangePos(cd, cur);
         const tier = P.has(vd.score) ? P.tierOf(vd.score).n : null;
         const row  = { t: token, coin: coin, cd: cd, dec: dec, vd: vd,

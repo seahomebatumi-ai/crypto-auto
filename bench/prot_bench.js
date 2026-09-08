@@ -629,7 +629,7 @@ function suiteSqueeze(ctx) {
             var vd = ctx.directionVerdict(r.cd, r.t.s, r.t.name, 10.4, 1.5, 90000000,
                                           isLong, reg, dec, 10.9, 9.95,
                                           ctx.residual7(r.cd, ctx.botData.btc),
-                                          Date.UTC(2026, 7, 23));
+                                          Date.UTC(2026, 7, 23), ctx.botData.btc);
             return JSON.stringify({ vd: vd, dec: dec,
                 sc: ctx.scoreCandidate(r.cd, r.t.s, 10.4, 1.5, 90000000, isLong) });
         }
