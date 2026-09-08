@@ -16,6 +16,10 @@ the control, and it is in the gate:
      legs' own extremes, and split-then-splice reproduces the original.
   D  the `--target` arm gate — what the gate DOES with a class. Which cell
      earns which class is `verify_bench.py`'s, not this bench's (inv. 20).
+  E  the venue actually fetched is an OBSERVATION (ТЗ-34): the census records
+     the leg that won, the declaration never decides it, the `venue-basis`
+     licence is granted off that record, and a document carrying no observed
+     venue is refused rather than read as spot.
 
 Nothing here re-implements a rule it checks (inv. 21, 38): every assertion
 calls the production function by name and compares its return, and every
@@ -805,6 +809,150 @@ ok('33. and the untouched keys of the answer are unchanged',
    and sorted(r_no[0]) == sorted(r_no[1]) == ['dist', 'moneyBelowMin', 'ok',
                                               'prod', 'reg', 'stop', 'subs'],
    None if not r_no[0] else sorted(r_no[0]))
+# ═══════════════════════════════════════════════════════════════════════════
+# E. The venue actually fetched is an OBSERVATION (ТЗ-34)
+# ═══════════════════════════════════════════════════════════════════════════
+# `fut:true` is a DECLARATION about an ASSET, read before the degradation ladder
+# in production (inv. 41). Which venue answered for the SERIES on disk is a
+# different fact, and the fetcher is free to disagree with the declaration: a
+# coin not declared attempts spot then futures and keeps the longer leg. Until
+# this section the disagreement was recorded nowhere, and the reconciliation
+# granted its basis licence off the declaration — so a coin silently cached on
+# the perpetual had its perp-versus-spot-index basis measured and then classed
+# `unexplained`, which names no cause and removes the symbol from `--target`.
+#
+# Nothing here re-implements a rule it checks: every assertion calls a
+# production function by name and every fixture is synthetic input to it.
+e0 = checks[0]
+E_TREF = 5000 * HOUR
+
+
+def leg_rows(n):
+    """`n` hourly rows, identical in every column but their count. The fixtures
+    below vary the count and NOTHING else — that is what makes «the longer leg
+    won» the only difference between them."""
+    return [kline(i * HOUR) for i in range(n)]
+
+
+def legs(n_spot, n_fut):
+    """A stub for `_fetch_best`'s `attempt`: one leg, keyed by its venue."""
+    def attempt(is_fut):
+        return leg_rows(n_fut if is_fut else n_spot), '', 'XUSDT', ''
+    return attempt
+
+
+UNDECLARED, DECLARED = (False, True), (True,)     # the leg orders production passes
+
+# ── 34. §5.2.1 the label follows the WINNING leg, in both directions.
+cov_fw = bb._fetch_best(UNDECLARED, legs(10, 20), 'XUSDT', E_TREF)[7]
+cov_sw = bb._fetch_best(UNDECLARED, legs(20, 10), 'XUSDT', E_TREF)[7]
+ok('34. the futures leg wins on length and the census records «perp»',
+   cov_fw['venue'] == bb.VENUE_PERP, cov_fw['venue'])
+ok('34. the spot leg wins on length and the census records «spot»',
+   cov_sw['venue'] == bb.VENUE_SPOT, cov_sw['venue'])
+ok('34. and the winning leg is the one actually kept',
+   cov_fw['hours'] == 20 and cov_sw['hours'] == 20,
+   (cov_fw['hours'], cov_sw['hours']))
+ok('34. a tie keeps the leg attempted FIRST — spot (§3.2, the order does not move)',
+   bb._fetch_best(UNDECLARED, legs(10, 10), 'XUSDT', E_TREF)[7]['venue']
+   == bb.VENUE_SPOT)
+ok('34. no leg returning a row observes NOTHING, which is not the word «spot»',
+   bb._fetch_best(UNDECLARED, legs(0, 0), 'XUSDT', E_TREF)[7]['venue'] is None)
+ok('34. a DECLARED coin attempts the futures leg only, even where spot is longer',
+   bb._fetch_best(DECLARED, legs(20, 10), 'XUSDT', E_TREF)[7]['venue']
+   == bb.VENUE_PERP)
+
+# ── 35. §5.2.2 the DECLARATION does not decide it. Same two fixtures, same
+# attempted legs, the symbol declared `fut:true` and not — four cells. This is
+# the check that the two facts have actually been separated: the declared set is
+# an argument of the CLASSIFIER and reaches neither the fetch nor the record.
+for lbl, cov, want in (('futures leg longer', cov_fw, bb.VENUE_PERP),
+                       ('spot leg longer', cov_sw, bb.VENUE_SPOT)):
+    for decl in (True, False):
+        fut_set = {'XUSDT'} if decl else set()
+        got = bb._fetch_best(UNDECLARED, legs(*((10, 20) if want == bb.VENUE_PERP
+                                                else (20, 10))),
+                             'XUSDT', E_TREF)[7]['venue']
+        ok('35. %s · declared=%s · venue is the observation' % (lbl, decl),
+           got == want == cov['venue'], (got, want, sorted(fut_set)))
+        ok('35. %s · declared=%s · and the licence reads the same' % (lbl, decl),
+           bb._venue_licence(cov) is (want == bb.VENUE_PERP),
+           bb._venue_licence(cov))
+
+# ── 36. §5.2.3 the LICENCE follows the observation. Both cells are asserted:
+# a section that checked only the perp one could not fail.
+W, T = 90.0, E_TREF
+ok('36. over threshold · NOT declared · series on the perpetual -> venue-basis',
+   bb._cell_class({'venue': bb.VENUE_PERP}, W, T) == ('venue-basis', None),
+   bb._cell_class({'venue': bb.VENUE_PERP}, W, T))
+ok('36. over threshold · NOT declared · series on spot -> unexplained',
+   bb._cell_class({'venue': bb.VENUE_SPOT}, W, T) == ('unexplained', None),
+   bb._cell_class({'venue': bb.VENUE_SPOT}, W, T))
+ok('36. the coverage lane is untouched: a spot series whose window meets a '
+   'named gap is still `coverage`, with its reason',
+   bb._cell_class({'venue': bb.VENUE_SPOT, 'tail': 5}, W, T)[0] == 'coverage'
+   and bb._cell_class({'venue': bb.VENUE_SPOT, 'tail': 5}, W, T)[1],
+   bb._cell_class({'venue': bb.VENUE_SPOT, 'tail': 5}, W, T))
+ok('36. every class it returns is one the production list carries',
+   all(bb._cell_class(c, W, T)[0] in bb.CLASSES
+       for c in ({'venue': bb.VENUE_PERP}, {'venue': bb.VENUE_SPOT},
+                 {'venue': bb.VENUE_SPOT, 'tail': 5})))
+ok('36. and `venue-basis` is still the lane that does NOT fail the run',
+   'venue-basis' not in bb.HARD_CLASSES, list(bb.HARD_CLASSES))
+
+# ── 37. §5.2.4 a document with no observed venue NEVER classifies as spot.
+# `census_of_doc` rebuilds a census from `prices` and cannot recover a venue, so
+# a document written before the key existed carries no answer. Raise, refuse or
+# refetch all pass here; a default in the reading direction does not.
+for lbl, cov in (('the key absent', {'hours': 9}),
+                 ('the value null', {'venue': None}),
+                 ('no census at all', None)):
+    kind, msg = caught(lambda c=cov: bb._cell_class(c, W, T))
+    ok('37. %s · the classifier refuses rather than answering' % lbl,
+       kind == 'VenueUnobserved', (kind, msg[:80]))
+    ok('37. %s · the licence is UNKNOWN and not False' % lbl,
+       bb._venue_licence(cov) is None, bb._venue_licence(cov))
+ok('37. a census rebuilt from prices alone carries no venue to read',
+   bb.census_of_doc({'prices': [[HOUR, 1.0], [2 * HOUR, 1.0]]}, 3 * HOUR)
+   .get('venue') is None)
+ok('37. and the fetcher, not the reader, is what fills the key',
+   'venue' in bb._fetch_best(UNDECLARED, legs(10, 20), 'XUSDT', E_TREF)[7])
+
+# ── 38. §5.2.5 NEGATIVE CONTROL (inv. 23, 45, 65). Restore `sym in fut` as the
+# licence test and re-run 36 and 37: they must go RED. The bar below is read off
+# the fixture's own `venue` — a different authority from the declaration under
+# test, which is what inv. 65 requires; a section reading its expectation from
+# the thing it judges would stay green under the inversion.
+def cell_declared(cov, win_d, t_last, sym, fut):
+    """The pre-ТЗ-34 rule, restored verbatim for the inversion."""
+    if sym in fut:
+        return 'venue-basis', None
+    why = bb._cov_hit(cov, win_d, t_last)
+    return ('coverage' if why else 'unexplained'), why
+
+
+inv_perp = cell_declared({'venue': bb.VENUE_PERP}, W, T, 'XUSDT', set())
+ok('38. inverted, 36 goes RED: a perp series NOT declared loses its licence',
+   inv_perp != ('venue-basis', None) and inv_perp[0] in bb.HARD_CLASSES,
+   inv_perp)
+inv_kind, _ = caught(lambda: cell_declared({'hours': 9}, W, T, 'XUSDT', set()))
+inv_absent = cell_declared({'hours': 9}, W, T, 'XUSDT', set())
+ok('38. inverted, 37 goes RED: a document with no venue is read as spot anyway',
+   inv_kind is None and inv_absent[0] in bb.HARD_CLASSES, (inv_kind, inv_absent))
+ok('38. inverted, the declaration alone buys the licence — the defect named',
+   cell_declared({'venue': bb.VENUE_SPOT}, W, T, 'XUSDT', {'XUSDT'})
+   == ('venue-basis', None))
+ok('38. and the LIVE rule disagrees with the inverted one on exactly that cell',
+   bb._cell_class({'venue': bb.VENUE_SPOT}, W, T) != ('venue-basis', None),
+   bb._cell_class({'venue': bb.VENUE_SPOT}, W, T))
+
+# ── 39. §5.2.6 the section reports its own count and refuses to pass on zero.
+# The count is printed AFTER its own guard so the figure printed here is the
+# figure the gate total moves by — a section reporting one less than it added is
+# a delta nobody can attribute (inv. 43).
+ok('39. section E compared something', checks[0] - e0 > 0, checks[0] - e0)
+print('E. venue-as-observation: %d comparisons' % (checks[0] - e0))
+
 # ═══════════════════════════════════════════════════════════════════════════
 shutil.rmtree(tmp, ignore_errors=True)
 for f in os.listdir(HERE):

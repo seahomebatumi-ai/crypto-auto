@@ -759,13 +759,92 @@ def census_of_doc(doc, t_ref):
     return census(P, t_ref)
 
 
+# ─── The venue actually fetched is an OBSERVATION (TZ-34) ────────────────────
+# `fut:true` in tokens[] is a DECLARATION about an ASSET and production reads it
+# before the degradation ladder (inv. 41). The question here is a different one:
+# which venue answered for the SERIES now sitting on disk. A coin not declared
+# `fut:true` attempts spot and then futures and is cached on whichever leg
+# returned more rows, so the two facts are free to disagree — and where they do,
+# only the fetcher knows. Nothing below re-derives the venue from `src`, from the
+# ticker or from the declaration: it is recorded once, where it is observed.
+VENUE_PERP, VENUE_SPOT = "perp", "spot"
+
+
+def _venue_name(is_fut):
+    """The venue of the leg that answered. `None` means NO leg returned a row,
+    so nothing was observed — which is not the same fact as «spot» and is never
+    written down as one."""
+    if is_fut is None:
+        return None
+    return VENUE_PERP if is_fut else VENUE_SPOT
+
+
+def _venue_licence(cov):
+    """Is this SERIES a perpetual? `True`/`False` read off the observation,
+    `None` where the document carries none.
+
+    `census_of_doc` rebuilds a census from `prices` and cannot recover a venue
+    from them, so a cache document written before this key existed has no
+    answer. There is no safe default: reading it as spot reproduces the exact
+    defect this records against — one layer down, where nothing would report it.
+    The absence is therefore returned as its own value and every caller must
+    handle it (TZ-34 §2.2)."""
+    if not cov:
+        return None
+    v = cov.get("venue")
+    if v is None:
+        return None
+    return v == VENUE_PERP
+
+
+def _fetch_best(legs, attempt, pair, t_ref):
+    """One coin's fetch: attempt the legs IN ORDER, keep the LONGEST series, and
+    record the venue of the leg that actually won.
+
+    `legs` is the sequence of `is_fut` values to attempt — `(True,)` for a coin
+    declared `fut:true`, `(False, True)` otherwise. The order is the caller's and
+    does not move here (TZ-34 §3.2). `attempt(is_fut)` performs one leg and
+    returns `(rows, why, ticker, note)`; it is a parameter because it is the only
+    part that touches the network, which leaves the rule below testable offline
+    against synthetic legs (inv. 21).
+
+    The census reports the BEST attempt, not the last one. A spot coin whose
+    post-rename leg is real but short falls through to the futures leg, which
+    does not exist for it, and reporting that second attempt printed «строк 0» —
+    «the bench broke it» where the fact is «the leg is 1 500 h and the skip rule
+    refused it». Two different facts.
+
+    A tie keeps the leg attempted FIRST, which is what the strict `>` has always
+    done: spot, for a coin not declared. The declaration is not an argument of
+    this function and cannot reach the answer.
+    """
+    best, best_fut = ([], "", pair, ""), None
+    for is_fut in legs:
+        cand = attempt(is_fut)
+        if len(cand[0]) > len(best[0]):
+            best, best_fut = cand, is_fut
+        if len(cand[0]) >= 2600:
+            break
+    rows, why, ticker, note = best
+    P, V, HL = _series_from_rows(rows) if rows else ({}, {}, {})
+    cov = census(P, t_ref)
+    cov["ticker"] = ticker
+    cov["venue"] = _venue_name(best_fut)
+    return rows, why, ticker, note, P, V, HL, cov
+
+
 def print_census(sym, ticker, cov, verdict):
     """One census line per ATTEMPTED symbol, accepted or skipped. Tail deficit
     and interior gaps are printed as separate numbers on purpose: that
     separation is what decides whether the tail top-up was the whole defect."""
     g = cov.get("max_gap")
-    print("  %-7s %-17s %-13s %-13s %6d %6d %5d %6d  %-13s %-13s  %s"
-          % (sym, ticker, _fmt_ts(cov.get("first")), _fmt_ts(cov.get("last")),
+    # The venue is printed because a field recorded and never shown is a field
+    # the next reader has to know exists, and this line is the surface on which
+    # a series cached on the other venue becomes visible without a diff (§2.4).
+    # «—» is the absence of an observation and is not the word «spot».
+    print("  %-7s %-17s %-9s %-13s %-13s %6d %6d %5d %6d  %-13s %-13s  %s"
+          % (sym, ticker, cov.get("venue") or "—",
+             _fmt_ts(cov.get("first")), _fmt_ts(cov.get("last")),
              cov.get("hours", 0), cov.get("tail", 0), cov.get("n_gaps", 0),
              cov.get("inside", 0),
              _fmt_ts(g[0]) if g else "—", _fmt_ts(g[1]) if g else "—",
@@ -1089,9 +1168,9 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
     t_end = int(time.time() * 1000)
     t_beg = t_end - int(years * 365 * DAY_MS)
     print("ПЕРЕПИСЬ ПОКРЫТИЯ · строка на КАЖДУЮ попытку, принятую и отвергнутую.")
-    print("  %-7s %-17s %-13s %-13s %6s %6s %5s %6s  %-13s %-13s  %s"
-          % ("монета", "тикер", "начало", "конец", "часов", "хвост", "дыр",
-             "ч дыр", "дыра с", "дыра по", "вердикт"))
+    print("  %-7s %-17s %-9s %-13s %-13s %6s %6s %5s %6s  %-13s %-13s  %s"
+          % ("монета", "тикер", "площадка", "начало", "конец", "часов", "хвост",
+             "дыр", "ч дыр", "дыра с", "дыра по", "вердикт"))
     ok = 0
     for t in toks:
         sym, pair, fut = t["name"], t["s"], bool(t.get("fut"))
@@ -1102,17 +1181,26 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
             # them, and those are exactly the lines a reader needs.
             doc = json.load(open(cf))
             cov = doc.get("cov") or census_of_doc(doc, t_end)
-            print_census(sym, cov.get("ticker", pair), cov, "уже в кэше")
-            ok += 1
-            continue
-        rows, why, ticker, note = [], "", pair, ""
-        # The census reports the BEST attempt, not the last one. A spot coin
-        # whose post-rename leg is real but short falls through to the futures
-        # leg, which does not exist for it, and reporting that second attempt
-        # printed «строк 0» — «the bench broke it» where the fact is «the leg
-        # is 1 500 h and the skip rule refused it». Two different facts.
-        best = ([], "", pair, "")
-        for is_fut in ((True,) if fut else (False, True)):
+            if _venue_licence(cov) is None:
+                # Written before the census recorded a venue, and
+                # `census_of_doc` cannot recover one from `prices`. Refetching
+                # is the mechanism; the property behind it is that no code path
+                # invents a venue it did not observe (TZ-34 §2.2). Falling
+                # through to the fetch below is what «refetch» means here — the
+                # Actions cache restores such a document and this is the only
+                # place that can replace it.
+                print_census(sym, cov.get("ticker", pair), cov,
+                             "площадка не записана — перекачка")
+            else:
+                print_census(sym, cov.get("ticker", pair), cov, "уже в кэше")
+                ok += 1
+                continue
+
+        def attempt(is_fut, pair=pair):
+            """One leg. Returns what the census compares: (rows, why, ticker,
+            note). The venue of this leg is `is_fut`, and `_fetch_best` is the
+            only thing that records it."""
+            ticker, note = pair, ""
             if source == "vision":
                 rows, miss, note = _vision_rows(pair, is_fut, t_beg, t_end)
                 why = "нет %d месячных файлов" % miss + ((", " + note) if note else "")
@@ -1125,14 +1213,15 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
                          ("https://api.binance.com", "/api/v3/klines")))
                 rows, code = _rest_rows(host[0], host[1], pair, t_beg, t_end)
                 rows, why = rows or [], "HTTP %s" % code
-            if len(rows) > len(best[0]):
-                best = (rows, why, ticker, note)
-            if len(rows) >= 2600:
-                break
-        rows, why, ticker, note = best
-        P, V, HL = _series_from_rows(rows) if rows else ({}, {}, {})
-        cov = census(P, t_end)
-        cov["ticker"] = ticker
+            return rows, why, ticker, note
+
+        # The leg ORDER is decided here, by the declaration, and is unchanged:
+        # a declared perpetual attempts futures only, everything else attempts
+        # spot and then futures (§3.2). What the declaration does NOT decide is
+        # which leg won — that is `_fetch_best`'s answer and it writes it into
+        # `cov["venue"]`.
+        rows, why, ticker, note, P, V, HL, cov = _fetch_best(
+            (True,) if fut else (False, True), attempt, pair, t_end)
         if len(rows) < 2600:
             # «no data» and «a real leg the skip rule refused» are two facts and
             # the line says which one it is.
@@ -1171,8 +1260,11 @@ def fetch_cg(bot_path, years=1):
         if os.path.exists(os.path.join(CACHE, sym + ".json")):
             doc = json.load(open(os.path.join(CACHE, sym + ".json")))
             cov = doc.get("cov") or census_of_doc(doc, int(time.time() * 1000))
-            print_census(sym, cov.get("ticker", cid), cov, "уже в кэше")
-            continue
+            if _venue_licence(cov) is not None:
+                print_census(sym, cov.get("ticker", cid), cov, "уже в кэше")
+                continue
+            print_census(sym, cov.get("ticker", cid), cov,
+                         "площадка не записана — перекачка")
         P, V = {}, {}
         for (a, b) in chunks:
             r = requests.get(
@@ -1192,6 +1284,12 @@ def fetch_cg(bot_path, years=1):
             time.sleep(2.5)
         cov = census(P, int(time.time() * 1000))
         cov["ticker"] = cid
+        # CoinGecko's market_chart is a spot index and this path attempts no
+        # second leg, so the venue here is read off the endpoint that answered
+        # exactly as it is read off `is_fut` above — one leg, and it won. This
+        # is an observation, not the default §2.2 forbids: the value is written
+        # by the code that performed the fetch, never by the code that reads it.
+        cov["venue"] = _venue_name(False)
         good, verdict = _save(sym, P, V, "coingecko-demo", None, cov)
         print_census(sym, cid, cov, verdict)
     print("вызовов CoinGecko: %d (месячный лимит Demo — 10 000)" % calls)
@@ -1229,6 +1327,44 @@ def _cov_hit(cov, win_d, t_last):
         if g[1] >= lo:
             return "дыра %s..%s (%d ч)" % (_fmt_ts(g[0]), _fmt_ts(g[1]), g[2])
     return None
+
+
+class VenueUnobserved(Exception):
+    """A cache document reached the reconciliation carrying no observed venue.
+
+    Raised rather than defaulted. The classifier's question is «is this SERIES a
+    perpetual?» and a document that never recorded which venue answered cannot
+    be asked it; reading such a document as spot is the defect of TZ-34 §1 moved
+    one layer down, where it would produce a `unexplained` class with no cause
+    and nothing at all would report why. `--fetch` refetches such a document
+    (§2.2); meeting one here means that was not run."""
+
+
+def _cell_class(cov, win_d, t_last):
+    """The class of a cell that sits OVER its threshold. Returns `(cls, why)`.
+
+    The `venue-basis` licence is granted where the SERIES is a perpetual — read
+    from `cov["venue"]`, the venue the fetcher OBSERVED — and NOT from
+    `sym in fut`. The declaration describes an ASSET and production reads it
+    first for exactly that reason (inv. 41); this function is looking at a FILE,
+    where the only truthful answer is what was downloaded. A coin not declared
+    `fut:true` can be cached on the perpetual legitimately and by design, and
+    classifying it off the declaration measures its perp-versus-spot-index basis
+    and then calls the result `unexplained` — a class that names no cause.
+
+    Nothing else moves: the three class names, `HARD_CLASSES`, every threshold in
+    `SPEC` and the sign convention are what they were. This decides WHICH cells
+    qualify for an existing licence and nothing about what the licence is."""
+    perp = _venue_licence(cov)
+    if perp is None:
+        raise VenueUnobserved(
+            "в кэше нет записанной площадки — класс ячейки неопределим. "
+            "Перекачать: --fetch перезальёт такой документ (ТЗ-34 §2.2).")
+    if perp:
+        # ALL fields: two different real instruments (map §3.14).
+        return "venue-basis", None
+    why = _cov_hit(cov, win_d, t_last)
+    return ("coverage" if why else "unexplained"), why
 
 
 def reconcile(bot_path, html_path=None):
@@ -1278,7 +1414,11 @@ def reconcile(bot_path, html_path=None):
         try:
             fut = {t["name"] for t in tokens_from_html(html_path) if t.get("fut")}
         except Exception as e:
-            fut_note = ("tokens[] из HTML не разобраны (%s) — базис-поблажки нет"
+            # The licence no longer hangs off this set (§2.3), so a parse
+            # failure costs the printed declaration and nothing else. Saying
+            # «базис-поблажки нет» here would now be false.
+            fut_note = ("tokens[] из HTML не разобраны (%s) — объявленный "
+                        "набор не показан; на класс ячейки это не влияет"
                         % type(e).__name__)
     RET_FIELDS = ("r7", "r14", "r30", "eff14")
     # поле -> (вид сверки, порог).  rel = относительно, pp = проц. пункты,
@@ -1299,6 +1439,7 @@ def reconcile(bot_path, html_path=None):
     worst = dict((k, 0.0) for k, _, _ in SPEC)
     seen = dict((k, 0) for k, _, _ in SPEC)
     basis, rows, cmp_n = [], [], 0
+    no_venue = set()          # cached documents carrying no observed venue
     classes = dict((c, []) for c in CLASSES)
     sym_class = {}
     for sym, ser in sorted(ser_all.items()):
@@ -1329,14 +1470,17 @@ def reconcile(bot_path, html_path=None):
             over = kind != "info" and abs(dv) > thr
             cls, why = None, None
             if over:
-                if sym in fut:
-                    # ALL fields: two different real instruments (map §3.14).
-                    basis.append((sym, k, dv))
-                    cls = "venue-basis"
+                try:
+                    cls, why = _cell_class(cov, windows.get(k, 90.0), t_last)
+                except VenueUnobserved:
+                    # Collected rather than raised on the spot: the operator
+                    # needs the WHOLE list to refetch, not the first symbol
+                    # that happened to sort first. The run refuses below.
+                    no_venue.add(sym)
                 else:
-                    why = _cov_hit(cov, windows.get(k, 90.0), t_last)
-                    cls = "coverage" if why else "unexplained"
-                classes[cls].append((sym, k, dv, why))
+                    if cls == "venue-basis":
+                        basis.append((sym, k, dv))
+                    classes[cls].append((sym, k, dv, why))
             cells[k] = {"a": a, "b": b, "dv": dv, "kind": kind, "over": over,
                         "cls": cls, "why": why}
         rows.append({"sym": sym, "cells": cells, "cov": cov})
@@ -1345,6 +1489,17 @@ def reconcile(bot_path, html_path=None):
             if any(v and v["cls"] == c for v in cells.values()):
                 worst_cls = c
         sym_class[sym] = worst_cls or "clean"
+    if no_venue:
+        # Printed to STDOUT and not to stderr: this is a verdict of the run,
+        # and a caller that captures the run's output must be able to read WHY
+        # it refused rather than meeting an empty answer.
+        print("СТОП: у %d монет в кэше не записана площадка закачки, а ячейка "
+              "за порогом есть: %s" % (len(no_venue), ", ".join(sorted(no_venue))))
+        print("      Класс такой ячейки неопределим. Прочесть её «как спот» — "
+              "это ровно тот дефект, который ТЗ-34 закрывает: перп-базис был бы "
+              "измерен и назван `unexplained`, то есть причиной без причины.")
+        print("      Перекачать: --fetch перезальёт такие документы (ТЗ-34 §2.2).")
+        sys.exit(1)
     if cmp_n == 0:
         sys.exit("СТОП: сверять нечего — в кэше ноль монет. "
                  "Это провал закачки, а не успешная сверка.")
@@ -1430,7 +1585,9 @@ def verify_against_live(bot_path, html_path=None):
         by = {}
         for sy, k, dv in R["basis"]:
             by.setdefault(sy, []).append("%s %+.1f" % (k, dv))
-        print("БАЗИС ПЕРП/СПОТ (fut-монеты, справочно, не провал): "
+        # «серия на перпетуале», not «fut-монеты»: the licence is granted off
+        # the OBSERVED venue, so this list can name a coin never declared.
+        print("БАЗИС ПЕРП/СПОТ (серия качана с перпетуала, справочно, не провал): "
               + " · ".join(sy + ": " + ", ".join(v) for sy, v in sorted(by.items())))
     hard = sum((R["classes"][c] for c in HARD_CLASSES), [])
     if hard:
