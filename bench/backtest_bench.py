@@ -3442,6 +3442,92 @@ def report_regime_gate(sm):
 
 
 # ── 11. --lab-selftest · known-answer worlds for the four experiments ───────
+# ТЗ-37 · D4's comparison, lifted out of `lab_selftest` so something other than
+# that function can execute it. Gate step 14 asserts the classifier by CALLING
+# it; a re-implementation there would be a second copy of the rule (inv. 21).
+#
+# The eight compared fields are named ONCE (inv. 20) and split three ways. The
+# split is the world inv. 69 asks for: since ТЗ-33 `prod` carries the ANCHORED
+# geometry while `ident` stays at `E`, so on a row the chase rule fired on the
+# measurement leg MUST have moved and the reference leg MUST NOT — the target,
+# the stop, the entry `E` and the window are shared with every substituted arm
+# (§3.10). That immobility is the whole claim `prod_anchor`'s additivity rests
+# on, and until now nothing checked it: §3.10 asserted it in prose.
+SAME_F = ("first", "hit", "R", "p", "rr", "tgtSig", "a", "b")
+TGT_FLIP_F = ("rr", "tgtSig")               # measured at the anchor vs at E
+TGT_HOLD_F = ("first", "hit", "p", "a", "b")   # the shared reference leg
+TGT_COND_F = ("R",)                         # differs iff `first` is `tgt`
+if (len(SAME_F) != 8
+        or set(TGT_FLIP_F) | set(TGT_HOLD_F) | set(TGT_COND_F) != set(SAME_F)
+        or len(TGT_FLIP_F) + len(TGT_HOLD_F) + len(TGT_COND_F) != len(SAME_F)):
+    raise RuntimeError("ТЗ-37: деление восьми полей D4 не покрывает их ровно "
+                       "один раз — %r против %r (инв. 20, 69)"
+                       % (SAME_F, (TGT_FLIP_F, TGT_HOLD_F, TGT_COND_F)))
+
+
+def d4_partition(dates):
+    """`prod` against `ident`, CLASSIFIED rather than merely counted.
+
+    `n_cmp` / `n_diff` keep D4's original construction, so the totals stay
+    comparable with every reading taken before ТЗ-37. Everything else is the
+    partition: a row is «moved» when the chase rule fired on it and «still»
+    when it did not, and the population is READ off `prod_anchor["wait"]` —
+    the member ТЗ-36 records at the site that knows it — never re-derived from
+    geometry here (inv. 21, 67).
+
+    A matched pair carrying no `prod_anchor` cannot be classified by that
+    test. It is counted in `n_unclassed` and lands in NEITHER population: a
+    reader without the observation refuses rather than guessing (inv. 67).
+    """
+    r = {"n_cmp": 0, "n_diff": 0, "n_still": 0, "n_moved": 0, "still_diff": 0,
+         "moved_missing": dict((f, 0) for f in TGT_FLIP_F),
+         "moved_extra": dict((f, 0) for f in TGT_HOLD_F),
+         "r_bad": 0, "r_tgt": 0,
+         "miss_prod": 0, "miss_ident": 0, "miss_bad": 0, "n_unclassed": 0}
+    for d in dates:
+        for o in d["obs"]:
+            a1, a2 = o["arms"].get("prod"), o["arms"].get("ident")
+            if (a1 is None) != (a2 is None):
+                r["n_cmp"] += 1
+                r["n_diff"] += 1
+                # The direction carries a meaning and is asserted against the
+                # admission the row already records: the anchored pass admits
+                # setups the R:R veto refused at `cur`, so `prod` without
+                # `ident` is an admitted row and `ident` without `prod` is a
+                # refused one. Neither COUNT carries a non-zero requirement —
+                # a world that changes no admission is a legitimate world, and
+                # a bar on it would be a bar on the DATA (inv. 61).
+                if a1 is not None:
+                    r["miss_prod"] += 1
+                    r["miss_bad"] += int(not o["adm"])
+                else:
+                    r["miss_ident"] += 1
+                    r["miss_bad"] += int(bool(o["adm"]))
+                continue
+            if a1 is None:
+                continue
+            for f in SAME_F:
+                r["n_cmp"] += 1
+                r["n_diff"] += int(a1[f] != a2[f])
+            pa = o["arms"].get("prod_anchor")
+            if pa is None:
+                r["n_unclassed"] += 1
+                continue
+            if pa["wait"]:
+                r["n_moved"] += 1
+                for f in TGT_FLIP_F:
+                    r["moved_missing"][f] += int(a1[f] == a2[f])
+                for f in TGT_HOLD_F:
+                    r["moved_extra"][f] += int(a1[f] != a2[f])
+                at_tgt = (a1["first"] == "tgt")
+                r["r_tgt"] += int(at_tgt)
+                r["r_bad"] += int((a1["R"] != a2["R"]) != at_tgt)
+            else:
+                r["n_still"] += 1
+                r["still_diff"] += sum(int(a1[f] != a2[f]) for f in SAME_F)
+    return r
+
+
 def synth_hl(mode, n_coins=16, hours=16000, seed=3, sub=6):
     """Hourly series WITH intra-hour high/low built from `sub` substeps.
     normal — iid gaussian substeps: measured touch must match the model;
@@ -3735,22 +3821,86 @@ def lab_selftest(html, bot, seeds=3):
                 lad[istar][1]["p_none"], med),
              "ОК" if d3c else "СТОП"))
 
-    n_cmp, n_diff = 0, 0
-    for d in dA:
-        for o in d["obs"]:
-            a1, a2 = o["arms"].get("prod"), o["arms"].get("ident")
-            if (a1 is None) != (a2 is None):
-                n_cmp += 1
-                n_diff += 1
-                continue
-            if a1 is None:
-                continue
-            for f in ("first", "hit", "R", "p", "rr", "tgtSig", "a", "b"):
-                n_cmp += 1
-                n_diff += int(a1[f] != a2[f])
-    d4 = n_cmp > 0 and n_diff == 0
-    print("  D4 тождественный дифф: сравнений %d, расхождений %d %s"
-          % (n_cmp, n_diff, "ОК" if d4 else "СТОП"))
+    # ТЗ-37 · D4 is a PAIR (inv. 69). An identity control names the WORLD in
+    # which the identity holds. Production legitimately gained a second pass at
+    # ТЗ-33, so the unconditional identity became false on exactly the rows the
+    # chase rule fired on and stayed true everywhere else. The repair is a
+    # partition, never a narrower field set: deleting `rr` and `tgtSig` from the
+    # comparison would be an assertion removed to make a bench pass (hard floor
+    # item 2) and would stop checking the leg that did NOT move.
+    #
+    # The anchor-off world is built ONCE and read by BOTH D4a and D9 — a third
+    # `run_target` over the same world would be a second construction of one
+    # fact. `want_identity=True` is all D4a adds to D9's own call; D9's
+    # comparison, its bar and its printed line are untouched by it, and the
+    # substituted arm cannot reach them: the driver copies `cd` per arm, and
+    # `prod` / `prod_anchor` are computed before `subs` is walked at all.
+    dI = run_target(w, bot, html, btc, k_grid=K_GRID, anchor_off=True,
+                    want_identity=True, verbose=False)
+
+    # D4a · the identity, in the world where it holds. With the chase rule
+    # forced off on every row the anchor IS the current price, so `ident` — a
+    # substituted arm handed production's own 90-day extremum — must reproduce
+    # `prod` exactly, and no row may classify as moved.
+    p4a = d4_partition(dI)
+    m4a = p4a["miss_prod"] + p4a["miss_ident"]
+    d4a = (p4a["n_cmp"] > 0 and p4a["n_diff"] == 0 and m4a == 0
+           and p4a["n_moved"] == 0)
+    print("  D4a тождество в мире, где оно держится (якорь погашен): "
+          "сравнений %d, расхождений %d, пропусков присутствия %d, "
+          "строк погони %d (без погони %d, неклассифицируемых %d) %s"
+          % (p4a["n_cmp"], p4a["n_diff"], m4a, p4a["n_moved"], p4a["n_still"],
+             p4a["n_unclassed"], "ОК" if d4a else "СТОП"))
+
+    # D4b · the partition on the LIVE path. Field by field, on the rows the
+    # chase rule fired on: the measurement leg must have moved, the reference
+    # leg must not, and `R` follows `first == "tgt"` because it IS `rr` there
+    # and is shared everywhere else. Both populations must be non-zero: a
+    # control that ran on nothing has not run (inv. 22, 68).
+    p4b = d4_partition(dA)
+    why = []
+    if p4b["still_diff"]:
+        why.append("сторона HOLD: расхождений без погони %d"
+                   % p4b["still_diff"])
+    why += ["сторона FLIP: %s не разошлось на %d строках" % (f, v)
+            for f, v in sorted(p4b["moved_missing"].items()) if v]
+    why += ["сторона HOLD: %s разошлось на %d строках" % (f, v)
+            for f, v in sorted(p4b["moved_extra"].items()) if v]
+    if p4b["r_bad"]:
+        why.append("R против first==tgt: %d" % p4b["r_bad"])
+    if p4b["miss_bad"]:
+        why.append("направление присутствия против adm: %d" % p4b["miss_bad"])
+    if p4b["n_unclassed"]:
+        why.append("неклассифицируемых пар: %d" % p4b["n_unclassed"])
+    if not p4b["n_still"]:
+        why.append("ПОПУЛЯЦИЯ БЕЗ ПОГОНИ ПУСТА")
+    if not p4b["n_moved"]:
+        why.append("ПОПУЛЯЦИЯ ПОГОНИ ПУСТА")
+    d4b = not why
+    print("  D4b деление на живом пути: сравнений %d, расхождений %d · "
+          "строк без погони %d (расхождений %d, должно 0) · "
+          "строк погони %d %s"
+          % (p4b["n_cmp"], p4b["n_diff"], p4b["n_still"], p4b["still_diff"],
+             p4b["n_moved"], "ОК" if d4b else "СТОП"))
+    print("     на строках погони ОБЯЗАНЫ разойтись: %s — не разошлись: %s"
+          % (" · ".join(TGT_FLIP_F),
+             " · ".join("%s %d" % (f, p4b["moved_missing"][f])
+                        for f in TGT_FLIP_F)))
+    print("     на строках погони ОБЯЗАНЫ совпасть: %s — разошлись: %s"
+          % (" · ".join(TGT_HOLD_F),
+             " · ".join("%s %d" % (f, p4b["moved_extra"][f])
+                        for f in TGT_HOLD_F)))
+    print("     R расходится тогда и только тогда, когда first==tgt: "
+          "нарушений %d (должно 0) · строк с first==tgt %d (без требования)"
+          % (p4b["r_bad"], p4b["r_tgt"]))
+    print("     присутствие: prod без ident %d · ident без prod %d "
+          "(без требования) · против adm %d (должно 0) · "
+          "неклассифицируемых пар %d (должно 0)"
+          % (p4b["miss_prod"], p4b["miss_ident"], p4b["miss_bad"],
+             p4b["n_unclassed"]))
+    if why:
+        print("     D4b ОТКАЗАЛА СТОРОНА: %s" % " · ".join(why))
+    d4 = d4a and d4b
 
     tmax = max(d["t"] for d in dA) + H1 * HOUR_MS
     cut = lambda ser: {s: {f: [r for r in ser[s][f] if r[0] <= tmax]
@@ -3781,7 +3931,7 @@ def lab_selftest(html, bot, seeds=3):
     # between the two production arms, and a row it fired on must differ in the
     # entry, the stop or the hour the resolution starts. A control that flips
     # everything has localised nothing; one that flips nothing has not run.
-    same_f = ("first", "hit", "R", "p", "rr", "tgtSig", "a", "b")
+    same_f = SAME_F
     n_same, n_wait_rows, n_bad_same, n_no_flip = 0, 0, 0, 0
     for d in dA:
         for o in d["obs"]:
@@ -3813,8 +3963,6 @@ def lab_selftest(html, bot, seeds=3):
     # resolution. A comparator never proven on identity supports no claim about
     # a real diff. The arm is NOT short-circuited under the flag: it runs its
     # own fill gate and its own resolver call and has to land on prod's numbers.
-    dI = run_target(w, bot, html, btc, k_grid=K_GRID, anchor_off=True,
-                    verbose=False)
     i_cmp, i_diff, i_wait = 0, 0, 0
     for d in dI:
         for o in d["obs"]:

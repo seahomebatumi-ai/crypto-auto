@@ -1123,6 +1123,291 @@ ok('44. section F compared something', checks[0] - f0 > 0, checks[0] - f0)
 print('F. anchored production arm: %d comparisons' % (checks[0] - f0))
 
 # ═══════════════════════════════════════════════════════════════════════════
+# G. D4's partition — `d4_partition` (ТЗ-37)
+# ═══════════════════════════════════════════════════════════════════════════
+# The letter is G because the file already carries TWO sections lettered E —
+# ТЗ-32's regime-gate arm and ТЗ-34's venue observation — and only the second
+# prints a section line. Neither is renumbered, for the reason an invariant
+# number never is: a section letter appears in the immutable report of the TZ
+# that created it (ТЗ-37 §6 C1).
+#
+# `--lab-selftest` runs only under `backtest_bench.yml`, which is
+# `workflow_dispatch`, so D4 stood red across two TZs with no push able to say
+# so (inv. 62). This section puts the CLASSIFIER's construction where something
+# already runs. It calls `d4_partition` BY NAME on hand-built `dates` and
+# compares its return (inv. 21); `requests` stays stubbed, no socket is opened
+# and nothing is read from the archive.
+#
+# The list below IS the negative control (inv. 45, 68): every constructed
+# defect must be detected AND the clean fixtures must stay clean, so the
+# section proves the classifier flips exactly on what it should and on nothing
+# else. A section that only ran the clean cases would be green while asserting
+# nothing.
+g0 = checks[0]
+
+
+def g_arm(**over):
+    """One compared arm, carrying exactly the eight fields `SAME_F` names."""
+    a = {'first': 'none', 'hit': False, 'R': 0.5, 'p': 0.3, 'rr': 3.0,
+         'tgtSig': 1.0, 'a': 0.15, 'b': 0.05}
+    a.update(over)
+    return a
+
+
+def g_anchor(wait, entry=None):
+    """`prod_anchor` as run_target records it. Only `wait` is read by the
+    population test; the levels are carried so a fixture can prove that."""
+    return {'first': 'none', 'hit': False, 'p': 0.3, 'rr': 4.0, 'tgtSig': 1.2,
+            'a': 0.15, 'b': 0.05, 'R': 0.5, 'wait': wait,
+            'entry': (95.0 if wait else 100.0) if entry is None else entry,
+            'stop': 97.0 if wait else 90.0, 'j': 3 if wait else 0}
+
+
+def g_row(prod=None, ident=None, wait=False, adm=True, anchor=True,
+          entry=None):
+    """One observation. `anchor=False` omits `prod_anchor` entirely — the
+    matched pair the population test cannot classify."""
+    o = {'sym': 'X', 'side': 'long', 'reg': 'range', 'rr': 3.0, 'tgtSig': 1.0,
+         'adm': adm, 'E': 100.0, 'stop': 90.0, 'arms': {}}
+    if prod is not None:
+        o['arms']['prod'] = prod
+    if ident is not None:
+        o['arms']['ident'] = ident
+    if anchor:
+        o['arms']['prod_anchor'] = g_anchor(wait, entry)
+    return o
+
+
+def g_part(*obs):
+    return bb.d4_partition([{'t': 0, 'obs': list(obs)}])
+
+
+def g_zero(p, *live):
+    """Every bucket that is not named in `live` reads zero. This is the half of
+    inv. 68 a control most often skips: naming what must NOT move."""
+    flat = {'still_diff': p['still_diff'], 'r_bad': p['r_bad'],
+            'r_tgt': p['r_tgt'], 'miss_prod': p['miss_prod'],
+            'miss_ident': p['miss_ident'], 'miss_bad': p['miss_bad'],
+            'n_unclassed': p['n_unclassed'], 'n_still': p['n_still'],
+            'n_moved': p['n_moved']}
+    for f, v in p['moved_missing'].items():
+        flat['moved_missing[%s]' % f] = v
+    for f, v in p['moved_extra'].items():
+        flat['moved_extra[%s]' % f] = v
+    hot = dict((k, v) for k, v in flat.items() if v and k not in live)
+    return (not hot), hot
+
+
+# ── 45. the eight compared fields are named ONCE and split three ways, exactly
+# once each. `same_f` inside lab_selftest reads the same tuple; a second copy
+# is how a threshold diverges (inv. 20).
+ok('45. SAME_F still names exactly eight fields', len(bb.SAME_F) == 8,
+   bb.SAME_F)
+ok('45. FLIP/HOLD/conditional cover the eight exactly once',
+   set(bb.TGT_FLIP_F) | set(bb.TGT_HOLD_F) | set(bb.TGT_COND_F)
+   == set(bb.SAME_F)
+   and len(bb.TGT_FLIP_F) + len(bb.TGT_HOLD_F) + len(bb.TGT_COND_F) == 8,
+   (bb.TGT_FLIP_F, bb.TGT_HOLD_F, bb.TGT_COND_F))
+ok('45. the measurement leg is what may move',
+   set(bb.TGT_FLIP_F) == {'rr', 'tgtSig'}, bb.TGT_FLIP_F)
+ok('45. the shared reference leg is what may not',
+   set(bb.TGT_HOLD_F) == {'first', 'hit', 'p', 'a', 'b'}, bb.TGT_HOLD_F)
+
+# ── 46. a STILL row: all eight equal, and the HOLD side stays at zero.
+p = g_part(g_row(prod=g_arm(), ident=g_arm(), wait=False))
+ok('46. a still row is counted in n_still', p['n_still'] == 1, p['n_still'])
+ok('46. and never in n_moved', p['n_moved'] == 0, p['n_moved'])
+ok('46. the eight fields are compared, once each',
+   p['n_cmp'] == 8 and p['n_diff'] == 0, (p['n_cmp'], p['n_diff']))
+_c, _h = g_zero(p, 'n_still')
+ok('46. a clean still row raises no bucket at all', _c, _h)
+
+# ── 47. a STILL row with ONE field different: the HOLD side can go red. A
+# partition that could not fail here would have replaced a red with a hope.
+p = g_part(g_row(prod=g_arm(), ident=g_arm(p=0.4), wait=False))
+ok('47. still_diff rises on a still row that differs', p['still_diff'] == 1,
+   p['still_diff'])
+ok('47. and the total difference count sees it too', p['n_diff'] == 1,
+   p['n_diff'])
+_c, _h = g_zero(p, 'n_still', 'still_diff')
+ok('47. and nothing else moves', _c, _h)
+
+# ── 48. a MOVED row differing in exactly `rr` and `tgtSig` is CLEAN. This is
+# the shape ТЗ-33 legitimately produced: the measurement leg moved to the
+# anchor, the reference leg did not move at all.
+prod_m = g_arm(rr=4.0, tgtSig=1.2)
+p = g_part(g_row(prod=prod_m, ident=g_arm(), wait=True))
+ok('48. a moved row is counted in n_moved', p['n_moved'] == 1, p['n_moved'])
+ok('48. and never in n_still', p['n_still'] == 0, p['n_still'])
+ok('48. the two moved fields are seen as differences',
+   p['n_diff'] == 2 and p['n_cmp'] == 8, (p['n_cmp'], p['n_diff']))
+_c, _h = g_zero(p, 'n_moved')
+ok('48. and the canonical moved row raises NO bucket', _c, _h)
+
+# ── 49. the FLIP side. A field that must differ and did not is a `missing`.
+p = g_part(g_row(prod=g_arm(rr=3.0, tgtSig=1.2), ident=g_arm(), wait=True))
+ok("49. moved_missing['rr'] rises when rr did not move",
+   p['moved_missing']['rr'] == 1, p['moved_missing'])
+ok("49. and tgtSig, which did move, is not accused",
+   p['moved_missing']['tgtSig'] == 0, p['moved_missing'])
+_c, _h = g_zero(p, 'n_moved', 'moved_missing[rr]')
+ok('49. and nothing else moves', _c, _h)
+p = g_part(g_row(prod=g_arm(rr=4.0, tgtSig=1.0), ident=g_arm(), wait=True))
+ok("49. moved_missing['tgtSig'] rises independently of rr",
+   p['moved_missing']['tgtSig'] == 1 and p['moved_missing']['rr'] == 0,
+   p['moved_missing'])
+
+# ── 50. the HOLD side on a MOVED row — the case this control exists for. The
+# resolution leg is shared with every substituted arm, so a difference here is
+# `prod_anchor`'s additivity failing, which is what §3.10 promises in prose and
+# nothing checked until now.
+p = g_part(g_row(prod=g_arm(rr=4.0, tgtSig=1.2, first='tgt', R=4.0),
+                 ident=g_arm(), wait=True))
+ok("50. moved_extra['first'] rises when the reference leg moved",
+   p['moved_extra']['first'] == 1, p['moved_extra'])
+ok('50. and `first` being tgt on prod is counted, not asserted',
+   p['r_tgt'] == 1, p['r_tgt'])
+ok('50. R differing there is CORRECT and raises no r_bad', p['r_bad'] == 0,
+   p['r_bad'])
+_c, _h = g_zero(p, 'n_moved', 'moved_extra[first]', 'r_tgt')
+ok('50. and nothing else moves', _c, _h)
+for _f, _v in (('hit', True), ('p', 0.4), ('a', 0.16), ('b', 0.06)):
+    p = g_part(g_row(prod=g_arm(rr=4.0, tgtSig=1.2), ident=g_arm(**{_f: _v}),
+                     wait=True))
+    ok("50. moved_extra['%s'] rises when that leg moves" % _f,
+       p['moved_extra'][_f] == 1
+       and sum(p['moved_extra'].values()) == 1, p['moved_extra'])
+
+# ── 51. `R` differs if and ONLY if `first` is `tgt`: it IS `rr` there and is
+# the shared mark-to-market, the stop return or the tie return everywhere else.
+# Both directions of the biconditional are constructed, because a check of one
+# is a check of half a rule.
+p = g_part(g_row(prod=g_arm(rr=4.0, tgtSig=1.2, first='tgt', R=0.5),
+                 ident=g_arm(first='tgt', R=0.5), wait=True))
+ok('51. r_bad rises when first==tgt and R did NOT differ', p['r_bad'] == 1,
+   p['r_bad'])
+_c, _h = g_zero(p, 'n_moved', 'r_bad', 'r_tgt')
+ok('51. and it is not mistaken for a HOLD-side failure', _c, _h)
+p = g_part(g_row(prod=g_arm(rr=4.0, tgtSig=1.2, R=0.9), ident=g_arm(R=0.5),
+                 wait=True))
+ok('51. r_bad rises when first!=tgt and R DID differ', p['r_bad'] == 1,
+   p['r_bad'])
+ok('51. and that row is not counted as reaching the target',
+   p['r_tgt'] == 0, p['r_tgt'])
+_c, _h = g_zero(p, 'n_moved', 'r_bad')
+ok('51. and nothing else moves', _c, _h)
+p = g_part(g_row(prod=g_arm(rr=4.0, tgtSig=1.2, first='tgt', R=4.0),
+                 ident=g_arm(first='tgt', R=0.5), wait=True))
+ok('51. the clean tgt row — first==tgt on both, R differing — is clean',
+   p['r_bad'] == 0 and p['r_tgt'] == 1, (p['r_bad'], p['r_tgt']))
+
+# ── 52. PRESENCE mismatches carry a direction, and the direction is asserted
+# against the admission the row already records. The COUNTS carry no non-zero
+# requirement — a world in which the anchored pass changes no admission is a
+# legitimate world, and a bar on it would be a bar on the DATA (inv. 61).
+p = g_part(g_row(prod=g_arm(), wait=True, adm=True))
+ok('52. prod without ident is one comparison and one difference',
+   p['n_cmp'] == 1 and p['n_diff'] == 1, (p['n_cmp'], p['n_diff']))
+ok('52. prod without ident raises miss_prod', p['miss_prod'] == 1,
+   p['miss_prod'])
+ok('52. and with adm true the direction agrees, so miss_bad does not rise',
+   p['miss_bad'] == 0, p['miss_bad'])
+ok('52. a presence mismatch lands in NEITHER population',
+   p['n_still'] == 0 and p['n_moved'] == 0, (p['n_still'], p['n_moved']))
+_c, _h = g_zero(p, 'miss_prod')
+ok('52. and nothing else moves', _c, _h)
+p = g_part(g_row(prod=g_arm(), wait=True, adm=False))
+ok('52. prod present on a row adm says was refused raises miss_bad',
+   p['miss_bad'] == 1, p['miss_bad'])
+p = g_part(g_row(ident=g_arm(), wait=True, adm=False))
+ok('52. ident without prod raises miss_ident', p['miss_ident'] == 1,
+   p['miss_ident'])
+ok('52. and with adm false the direction agrees', p['miss_bad'] == 0,
+   p['miss_bad'])
+_c, _h = g_zero(p, 'miss_ident')
+ok('52. and nothing else moves', _c, _h)
+p = g_part(g_row(ident=g_arm(), wait=True, adm=True))
+ok('52. ident alone on a row adm says was admitted raises miss_bad',
+   p['miss_bad'] == 1 and p['miss_ident'] == 1,
+   (p['miss_bad'], p['miss_ident']))
+
+# ── 53. the population test is READ, never re-derived (inv. 21, 67). A matched
+# pair with no `prod_anchor` cannot be classified and is refused rather than
+# defaulted into either side, and the flag decides the population even where
+# the levels would suggest the other one.
+p = g_part(g_row(prod=g_arm(), ident=g_arm(), anchor=False))
+ok('53. a matched pair with no prod_anchor raises n_unclassed',
+   p['n_unclassed'] == 1, p['n_unclassed'])
+ok('53. and lands in NEITHER population',
+   p['n_still'] == 0 and p['n_moved'] == 0, (p['n_still'], p['n_moved']))
+ok('53. its eight fields are still compared', p['n_cmp'] == 8, p['n_cmp'])
+_c, _h = g_zero(p, 'n_unclassed')
+ok('53. and it raises no partition bucket', _c, _h)
+p = g_part(g_row(prod=g_arm(rr=4.0, tgtSig=1.2), ident=g_arm(), wait=True,
+                 entry=100.0))
+ok('53. `wait` decides the population, not the entry level',
+   p['n_moved'] == 1 and p['n_still'] == 0, (p['n_moved'], p['n_still']))
+p = g_part(g_row(prod=g_arm(), ident=g_arm(), wait=False, entry=95.0))
+ok('53. and a non-waiting row stays still whatever its entry reads',
+   p['n_still'] == 1 and p['n_moved'] == 0, (p['n_still'], p['n_moved']))
+
+# ── 54. the buckets COMPOSE: eleven fixtures in one call, each landing where
+# it landed alone. A classifier proven only one row at a time has not been
+# shown to keep its counters apart.
+allf = [g_row(prod=g_arm(), ident=g_arm(), wait=False),
+        g_row(prod=g_arm(), ident=g_arm(p=0.4), wait=False),
+        g_row(prod=g_arm(rr=4.0, tgtSig=1.2), ident=g_arm(), wait=True),
+        g_row(prod=g_arm(rr=3.0, tgtSig=1.2), ident=g_arm(), wait=True),
+        g_row(prod=g_arm(rr=4.0, tgtSig=1.2, first='tgt', R=4.0),
+              ident=g_arm(), wait=True),
+        g_row(prod=g_arm(rr=4.0, tgtSig=1.2, first='tgt', R=0.5),
+              ident=g_arm(first='tgt', R=0.5), wait=True),
+        g_row(prod=g_arm(rr=4.0, tgtSig=1.2, R=0.9), ident=g_arm(R=0.5),
+              wait=True),
+        g_row(prod=g_arm(), wait=True, adm=True),
+        g_row(prod=g_arm(), wait=True, adm=False),
+        g_row(ident=g_arm(), wait=True, adm=False),
+        g_row(prod=g_arm(), ident=g_arm(), anchor=False)]
+p = g_part(*allf)
+ok('54. the two populations and the refusal partition the matched pairs',
+   p['n_still'] + p['n_moved'] + p['n_unclassed'] == 8,
+   (p['n_still'], p['n_moved'], p['n_unclassed']))
+ok('54. n_still counts the two still rows', p['n_still'] == 2, p['n_still'])
+ok('54. n_moved counts the five moved rows', p['n_moved'] == 5, p['n_moved'])
+ok('54. n_unclassed counts the one unclassifiable pair',
+   p['n_unclassed'] == 1, p['n_unclassed'])
+ok('54. the presence mismatches keep their direction and their verdict',
+   (p['miss_prod'], p['miss_ident'], p['miss_bad']) == (2, 1, 1),
+   (p['miss_prod'], p['miss_ident'], p['miss_bad']))
+ok('54. still_diff carries only the still-row defect', p['still_diff'] == 1,
+   p['still_diff'])
+ok("54. moved_missing carries only the rr defect",
+   p['moved_missing'] == {'rr': 1, 'tgtSig': 0}, p['moved_missing'])
+ok("54. moved_extra carries only the first defect",
+   p['moved_extra'] == {'first': 1, 'hit': 0, 'p': 0, 'a': 0, 'b': 0},
+   p['moved_extra'])
+ok('54. r_bad carries exactly the two R defects', p['r_bad'] == 2, p['r_bad'])
+ok('54. and n_cmp counts every comparison it made',
+   p['n_cmp'] == 8 * 8 + 3, p['n_cmp'])
+
+# ── 55. a world of nothing but clean rows raises nothing at all. Without this
+# the section could be green because every fixture is red (inv. 45).
+p = g_part(g_row(prod=g_arm(), ident=g_arm(), wait=False),
+           g_row(prod=g_arm(rr=4.0, tgtSig=1.2), ident=g_arm(), wait=True),
+           g_row(prod=g_arm(rr=4.0, tgtSig=1.2, first='tgt', R=4.0),
+                 ident=g_arm(first='tgt', R=0.5), wait=True))
+_c, _h = g_zero(p, 'n_still', 'n_moved', 'r_tgt')
+ok('55. a clean world raises no defect bucket', _c, _h)
+ok('55. and both populations are non-empty in it',
+   p['n_still'] == 1 and p['n_moved'] == 2, (p['n_still'], p['n_moved']))
+ok('55. an empty world classifies nothing and asserts nothing',
+   bb.d4_partition([])['n_cmp'] == 0)
+
+# ── 56. §5.2.6 the section reports its own count and refuses to pass on zero.
+ok('56. section G compared something', checks[0] - g0 > 0, checks[0] - g0)
+print('G. D4 partition: %d comparisons' % (checks[0] - g0))
+
+# ═══════════════════════════════════════════════════════════════════════════
 shutil.rmtree(tmp, ignore_errors=True)
 for f in os.listdir(HERE):
     if f.startswith('_') and f.endswith('_bridge.js'):
