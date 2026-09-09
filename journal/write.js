@@ -365,7 +365,11 @@ function createJournal(opts) {
         const row  = { t: token, coin: coin, cd: cd, dec: dec, vd: vd,
                        sc: P.has(vd.score) ? { score: vd.score, reasons: vd.reasons } : null };
         const verdict = P.verdictNote(row);
+        // ТЗ-36. `iv` — подъём `dec.inv`, и `ivA` строится ТЕМ ЖЕ подъёмом с
+        // `decA`, чтобы запись осталась симметричной: второй вызов
+        // invalidationInfo здесь был бы вторым исполнением правила (инв. 21).
         const g = vd.geo, iv = dec.inv;
+        const dA = vd.decA, ivA = dA ? dA.inv : null;
         return {
             rel: P.sideRelevant(rp, isLong),
             score: fin(vd.score),
@@ -392,6 +396,29 @@ function createJournal(opts) {
             inv: iv ? { dist: fin(iv.dist), price: fin(iv.price), dStruct: fin(iv.dStruct),
                         capped: !!iv.capped, floored: !!iv.floored, sd: fin(iv.sd),
                         ref: fin(iv.ref), src: or(iv.src) } : null,
+            // ТЗ-36. Решение при ЦЕНЕ ПУБЛИКАЦИИ, рядом с решением при `cur`.
+            // С ТЗ-33 `geo` — это геометрия ЯКОРЯ, а `dec`/`inv` остались
+            // решением при `cur` (инв. 14, карта §3.13), и на строке ожидания
+            // в записи стоял стоп, которого доска не печатала. Ни одно из
+            // старых полей не переезжает: набор просто становится полным —
+            // `geo` + `anchor` + `decA` + `invA` при опубликованном входе,
+            // `dec` + `inv` при `cur`.
+            //
+            // `decA` пишется БЕЗУСЛОВНО, и дублирование намеренно. На строке
+            // «СЕЙЧАС» это тот же объект, что и `dec`, то есть копия не несёт
+            // новых сведений — но запись только там, где значения расходятся,
+            // положила бы правило второго прохода внутрь КАЖДОГО будущего
+            // читателя корпуса, а это ровно тот класс дефекта, который эта
+            // правка и закрывает. Поле, отсутствие которого значит «посмотри
+            // правило», записью не является (§3.13).
+            anchor: fin(vd.anchor),
+            decA: dA ? { ok: !!dA.ok, L: fin(dA.L), binding: or(dA.binding),
+                         moneyBelowMin: !!dA.moneyBelowMin,
+                         parts: dA.parts ? { struct: fin(dA.parts.struct), noise: fin(dA.parts.noise),
+                                             btc: fin(dA.parts.btc), money: fin(dA.parts.money) } : null } : null,
+            invA: ivA ? { dist: fin(ivA.dist), price: fin(ivA.price), dStruct: fin(ivA.dStruct),
+                          capped: !!ivA.capped, floored: !!ivA.floored, sd: fin(ivA.sd),
+                          ref: fin(ivA.ref), src: or(ivA.src) } : null,
             _rp: rp
         };
     }
@@ -583,10 +610,35 @@ function createJournal(opts) {
         return null;
     }
 
+    // ТЗ-36. КАКОЙ записанный стоп берёт резолвер — и это пишется на строке.
+    // С ТЗ-33 доска печатает `decA.inv.price`, поэтому касание стопа обязано
+    // отсчитываться от него, а не от решения при `cur`.
+    //
+    // Снимок, записанный ДО ТЗ-36, поля `decA` не несёт вовсе, и инв. 38
+    // делает те записи невосстановимыми: отказ по инв. 67 снял бы слой исхода
+    // с двух недель дат, которые уже никогда не будут переписаны. Существо
+    // инв. 67 в том, что ничто не записывается НИГДЕ, — и `ssrc` записывает
+    // источник на КАЖДОЙ строке, так что граница эпохи читается ИЗ ЗАПИСИ,
+    // чего инв. 66 и требует от смены смысла. Умолчание в тишине — дефект;
+    // умолчание, назвавшее себя, — раскрытие.
+    // Наличие `decA` — признак эпохи; сам уровень читается из `invA`, потому
+    // что `decA` кладётся БЕЗ `inv`: он поднят в `invA` тем же подъёмом, каким
+    // `dec.inv` поднят в `inv` (§3.13). Читать `decA.inv` было бы чтением
+    // поля, которого в записи нет ни на одной строке.
+    function stopUsed(side) {
+        if (side && side.decA) {
+            return { price: side.invA ? fin(side.invA.price) : null, src: 'decA' };
+        }
+        return { price: side && side.inv ? fin(side.inv.price) : null, src: 'dec' };
+    }
+
     function sideOutcome(ks, side, isLong) {
-        if (!side) return { tgt: null, stop: null, wait: null, first: null };
+        // Строка исхода без `ssrc` не пишется НИ В ОДНОЙ ветке, включая эту.
+        const su = stopUsed(side);
+        if (!side) return { tgt: null, stop: null, wait: null, first: null,
+                            sstop: su.price, ssrc: su.src };
         const tgtT  = firstTouch(ks, side.tgt, isLong);
-        const stopT = firstTouch(ks, side.inv ? side.inv.price : null, !isLong);
+        const stopT = firstTouch(ks, su.price, !isLong);
         const waitT = firstTouch(ks, side.wait, !isLong);
         let first = null;
         if (tgtT !== null && stopT !== null)      first = tgtT === stopT ? 'tie' : (tgtT < stopT ? 'tgt' : 'stop');
@@ -595,7 +647,8 @@ function createJournal(opts) {
         return { tgt: tgtT === null ? null : iso(tgtT),
                  stop: stopT === null ? null : iso(stopT),
                  wait: waitT === null ? null : iso(waitT),
-                 first: first };
+                 first: first,
+                 sstop: su.price, ssrc: su.src };
     }
 
     function windowOf(rows, startMs, endMs) {

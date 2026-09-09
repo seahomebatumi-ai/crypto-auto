@@ -193,6 +193,10 @@ async function section1() {
     const DAYS = 220;
     const seen = { mode: {}, action: {}, decOk: {}, geo: {}, rel: {} };
     let records = 0, cmps = 0;
+    // ТЗ-36, деление писателя (инв. 68). Считается ЗДЕСЬ, потому что и якорь,
+    // и оба решения уже в руках; популяции печатаются и обе обязаны быть
+    // непустыми — контроль на пустой популяции не утверждает ничего (инв. 22).
+    const part = { anch: 0, now: 0, wait: 0, stopMoved: 0 };
 
     for (let i = 0; i < DAYS; i++) {
         const mode = MODES[i % MODES.length];
@@ -279,6 +283,43 @@ async function section1() {
                                                     ref: dec.inv.ref, src: dec.inv.src } : null);
                 cmps += 2;
 
+                // ТЗ-36. Решение при ЦЕНЕ ПУБЛИКАЦИИ — против свежего вызова,
+                // ровно как и всё остальное в этом разделе.
+                const dA = vd.decA, ivA = dA ? dA.inv : null;
+                eq(tag + 'anchor', S.anchor, vd.anchor === null ? null : vd.anchor);
+                deq(tag + 'decA', S.decA, dA ? { ok: dA.ok, L: dA.L, binding: dA.binding,
+                                                 moneyBelowMin: dA.moneyBelowMin,
+                                                 parts: dA.parts ? { struct: dA.parts.struct, noise: dA.parts.noise,
+                                                                     btc: dA.parts.btc, money: dA.parts.money } : null } : null);
+                deq(tag + 'invA', S.invA, ivA ? { dist: ivA.dist, price: ivA.price,
+                                                  dStruct: ivA.dStruct, capped: ivA.capped,
+                                                  floored: ivA.floored, sd: ivA.sd,
+                                                  ref: ivA.ref, src: ivA.src } : null);
+                cmps += 3;
+
+                // Деление, написанное ПРАВИЛОМ, а не найденное по расхождению:
+                // якорь совпал с `cur` -> второго прохода не было и записи
+                // обязаны совпасть; якорь ушёл -> стоп записи обязан быть
+                // стопом ЯКОРЯ, а не решения при `cur`.
+                if (vd.anchor !== null && vd.anchor !== coin.lastPrice) {
+                    part.anch++;
+                    if (vd.wait !== null) part.wait++;
+                    const fresh = P.invalidationInfo(cd, vd.anchor, isLong);
+                    eq(tag + 'якорь: invA.price = invalidationInfo при якоре',
+                       S.invA ? S.invA.price : null, fresh ? fresh.price : null);
+                    ok(tag + 'якорь: decA — не тот объект, что dec', vd.decA !== dec);
+                    cmps += 2;
+                    if (S.invA && S.inv && S.invA.price !== S.inv.price) part.stopMoved++;
+                } else if (vd.anchor !== null) {
+                    part.now++;
+                    // «СЕЙЧАС»: продакшн отдаёт ТОТ ЖЕ объект, и запись обязана
+                    // это показывать — не «похожий», а тождественный.
+                    ok(tag + 'СЕЙЧАС: decA тождественен dec', vd.decA === dec);
+                    eq(tag + 'СЕЙЧАС: anchor = cur', S.anchor, coin.lastPrice);
+                    deq(tag + 'СЕЙЧАС: invA совпадает с inv', S.invA, S.inv);
+                    cmps += 3;
+                }
+
                 // Действовавший набор катализаторов — сверка с РЕШЕНИЕМ
                 // продакшн-функции, а не с повтором её фильтра.
                 const cc = P.catalystCheck(t.name, isLong, tsMs);
@@ -313,6 +354,16 @@ async function section1() {
     ok('rel true и false встретились', !!(seen.rel.true && seen.rel.false));
     console.log('  режимы: ' + Object.keys(seen.mode).join(', ')
                 + ' | действия: ' + Object.keys(seen.action).join(', '));
+    // ТЗ-36. Обе половины деления обязаны быть непустыми: контроль, который
+    // ничего не сдвинул, ничего не локализовал, а контроль, не исполнивший
+    // ветку, не является контролем (инв. 22, 68).
+    console.log('  ТЗ-36 деление: якорь ушёл ' + part.anch + ' (из них ожидание '
+                + part.wait + ', стоп сдвинулся ' + part.stopMoved + ')'
+                + ' · якорь = cur ' + part.now);
+    ok('ТЗ-36: строки со сдвинутым якорем встретились', part.anch > 0);
+    ok('ТЗ-36: строки «СЕЙЧАС» встретились', part.now > 0);
+    ok('ТЗ-36: ожидание встретилось', part.wait > 0);
+    ok('ТЗ-36: сдвинутый якорь сдвинул и стоп', part.stopMoved > 0);
     return root;
 }
 
@@ -339,12 +390,29 @@ async function section2() {
         ['k','d','ts','sym','pair','gen','age','px','reg','cd','btc','rp','long','short','cat','fp']);
     const first = JSON.parse(fs.readFileSync(fa, 'utf8').split('\n')[0]);
     deq('порядок ключей px', Object.keys(first.px), ['src','cur','p24','qv','hi','lo','cnt']);
+    // ТЗ-36: имена схемы идут первыми и в порядке схемы, `anchor`/`decA`/`invA`
+    // дописаны следом — та же конвенция, что писатель объявляет у себя.
     deq('порядок ключей стороны', Object.keys(first.long),
-        ['rel','score','tier','ch','action','why','note','verdict','wait','tgt','geo','dec','inv']);
+        ['rel','score','tier','ch','action','why','note','verdict','wait','tgt','geo','dec','inv',
+         'anchor','decA','invA']);
     deq('порядок ключей inv', Object.keys(first.long.inv),
         ['dist','price','dStruct','capped','floored','sd','ref','src']);
     deq('порядок ключей dec', Object.keys(first.long.dec), ['ok','L','binding','moneyBelowMin','parts']);
     deq('порядок ключей dec.parts', Object.keys(first.long.dec.parts), ['struct','noise','btc','money']);
+    // `decA`/`invA` держат ТОТ ЖЕ порядок, что `dec`/`inv`: читатель корпуса
+    // не должен различать, при какой цене снят набор, чтобы его разобрать.
+    const rowsA = fs.readFileSync(fa, 'utf8').split('\n').filter(function (x) { return x !== ''; })
+                    .map(JSON.parse).filter(function (L) { return L.k === 's'; });
+    const sideA = rowsA.map(function (L) { return L.long; })
+                       .concat(rowsA.map(function (L) { return L.short; }))
+                       .filter(function (S) { return S.decA && S.invA; })[0];
+    ok('нашлась сторона с непустым decA', !!sideA);
+    if (sideA) {
+        deq('порядок ключей decA', Object.keys(sideA.decA), ['ok','L','binding','moneyBelowMin','parts']);
+        deq('порядок ключей decA.parts', Object.keys(sideA.decA.parts), ['struct','noise','btc','money']);
+        deq('порядок ключей invA', Object.keys(sideA.invA),
+            ['dist','price','dStruct','capped','floored','sd','ref','src']);
+    }
     deq('порядок ключей reg', Object.keys(first.reg), ['mode','dir','eff','z','known']);
 }
 
@@ -724,7 +792,12 @@ function section7() {
                 [L.long, L.short].forEach(function (S, si) {
                     checks++;
                     if ([null, 'tgt', 'stop', 'tie'].indexOf(S.first) < 0) fail(f + ':' + (i + 1) + ' first вне словаря');
-                    deq(f + ':' + (i + 1) + ' ключи стороны ' + si, Object.keys(S), ['tgt', 'stop', 'wait', 'first']);
+                    // ТЗ-36: `sstop` и `ssrc` — часть строки исхода, а не
+                    // дополнение к ней. Ни одна строка без `ssrc` не проходит.
+                    deq(f + ':' + (i + 1) + ' ключи стороны ' + si, Object.keys(S),
+                        ['tgt', 'stop', 'wait', 'first', 'sstop', 'ssrc']);
+                    checks++;
+                    if (['decA', 'dec'].indexOf(S.ssrc) < 0) fail(f + ':' + (i + 1) + ' ssrc вне словаря: ' + S.ssrc);
                 });
             }
             walk(L, path.basename(f) + ':' + (i + 1));
@@ -758,14 +831,29 @@ function handSnapshot(root, d, tsMs, sides) {
     W.writeOnce(path.join(root, 'data', d + '.jsonl'), JSON.stringify(line) + '\n');
     return line;
 }
-function side(tgt, stop, wait) {
-    return { rel: true, score: 50, tier: 'Средний', ch: 'возврат', action: 'trade',
-             why: '', note: null, verdict: '', wait: wait, tgt: tgt,
-             geo: { rr: 2, reward: 0.1, risk: 0.05, tgtSig: 2, sd: 0.02, veto: [], wait: wait },
-             dec: { ok: true, L: 3, binding: 'структура', moneyBelowMin: false,
-                    parts: { struct: 3, noise: 4, btc: 5, money: 6 } },
-             inv: { dist: 0.05, price: stop, dStruct: 0.05, capped: false, floored: false,
-                    sd: 0.02, ref: 95, src: 'мин30' } };
+// ТЗ-36. `stopA` не задан -> сторона ЭПОХИ ДО ТЗ-36: полей `anchor`/`decA`/
+// `invA` на ней нет вовсе, ровно как в записях, которые инв. 38 запрещает
+// переписывать. Задан -> сторона новой эпохи, и стоп якоря отличается от
+// стопа при `cur`, чтобы «какой из двух взят» было видно по ответу.
+function side(tgt, stop, wait, stopA) {
+    const S = { rel: true, score: 50, tier: 'Средний', ch: 'возврат', action: 'trade',
+                why: '', note: null, verdict: '', wait: wait, tgt: tgt,
+                geo: { rr: 2, reward: 0.1, risk: 0.05, tgtSig: 2, sd: 0.02, veto: [], wait: wait },
+                dec: { ok: true, L: 3, binding: 'структура', moneyBelowMin: false,
+                       parts: { struct: 3, noise: 4, btc: 5, money: 6 } },
+                inv: { dist: 0.05, price: stop, dStruct: 0.05, capped: false, floored: false,
+                       sd: 0.02, ref: 95, src: 'мин30' } };
+    if (stopA !== undefined) {
+        S.anchor = wait === null ? 100 : wait;
+        // Фикстура повторяет ФОРМУ записи, а не удобную форму: `decA` идёт
+        // БЕЗ `inv`, ровно как его кладёт писатель, поэтому резолвер, который
+        // полез бы в `decA.inv`, здесь получил бы пусто и был бы пойман.
+        S.decA = { ok: true, L: 3, binding: 'структура', moneyBelowMin: false,
+                   parts: { struct: 3, noise: 4, btc: 5, money: 6 } };
+        S.invA = { dist: 0.05, price: stopA, dStruct: 0.05, capped: false,
+                   floored: false, sd: 0.02, ref: 95, src: 'мин30' };
+    }
+    return S;
 }
 
 // path(h) -> {o,h,l,c} для каждого часа окна.
@@ -836,8 +924,12 @@ async function section8() {
         const j = journal(root, null, tsMs + H * DAY, { klines: function () { return series; } });
         await j.resolve(W.dayOf(tsMs + H * DAY));
         const L = lines(path.join(root, 'out', '2026-02-01-h7.jsonl'));
-        deq('8c: лонг всё null', L[1].long, { tgt: null, stop: null, wait: null, first: null });
-        deq('8c: шорт всё null', L[1].short, { tgt: null, stop: null, wait: null, first: null });
+        // ТЗ-36. «Ничего не тронуто» — это по-прежнему четыре null, но строка
+        // всё равно НАЗЫВАЕТ уровень, против которого мерила, и его источник.
+        deq('8c: лонг всё null', L[1].long,
+            { tgt: null, stop: null, wait: null, first: null, sstop: 90, ssrc: 'dec' });
+        deq('8c: шорт всё null', L[1].short,
+            { tgt: null, stop: null, wait: null, first: null, sstop: 110, ssrc: 'dec' });
     }
 
     // 8d. Резолвер на настоящем снимке конвейера: уровни берутся из записи и
@@ -884,6 +976,61 @@ async function section8() {
              W.dayOf(base + DAY) + '-h7', W.dayOf(base + DAY) + '-h14']);
     }
 
+    // 8g. ТЗ-36. Граница эпохи: снимок С `decA` и снимок БЕЗ него, бок о бок.
+    //     Резолвер обязан взять стоп ЯКОРЯ там, где он записан, стоп при `cur`
+    //     там, где его нет, и НАЗВАТЬ источник на обеих строках. Умолчание,
+    //     назвавшее себя, — раскрытие; умолчание в тишине было бы дефектом.
+    {
+        const root = track(tmp('out-epoch'));
+        // Новая эпоха: стоп якоря 97 лежит МЕЖДУ ценой и стопом при `cur` (90),
+        // поэтому «какой из двух взят» видно по часу касания, а не по вере.
+        handSnapshot(root, '2026-02-01', tsMs,
+            { long: side(120, 90, 95, 97), short: side(80, 110, 105, 103) });
+        // Старая эпоха: те же уровни, полей якоря нет вовсе.
+        handSnapshot(root, '2026-02-02', tsMs + DAY,
+            { long: side(120, 90, 95), short: side(80, 110, 105) });
+        const series = function (st) {
+            return pathSeries(st, hours, function (h) {
+                if (h === 6) return { o: 100, h: 104, l: 96, c: 100 };   // 97 и 103 тронуты, 90 и 110 — нет
+                return { o: 100, h: 100.5, l: 99.5, c: 100 };
+            });
+        };
+        const j = journal(root, null, tsMs + (H + 1) * DAY,
+                          { klines: function (p, st) { return series(st); } });
+        await j.resolve(W.dayOf(tsMs + (H + 1) * DAY));
+
+        const A = lines(path.join(root, 'out', '2026-02-01-h7.jsonl'))[1];
+        eq('8g: с decA — источник назван decA (лонг)', A.long.ssrc, 'decA');
+        eq('8g: с decA — источник назван decA (шорт)', A.short.ssrc, 'decA');
+        eq('8g: с decA — уровень взят из invA (лонг)', A.long.sstop, 97);
+        eq('8g: с decA — уровень взят из invA (шорт)', A.short.sstop, 103);
+        eq('8g: стоп ЯКОРЯ выбит на 6-м часу (лонг)', A.long.stop, W.iso(tsMs + 6 * HOUR));
+        eq('8g: стоп ЯКОРЯ выбит на 6-м часу (шорт)', A.short.stop, W.iso(tsMs + 6 * HOUR));
+
+        const B = lines(path.join(root, 'out', '2026-02-02-h7.jsonl'))[1];
+        eq('8g: без decA — источник назван dec (лонг)', B.long.ssrc, 'dec');
+        eq('8g: без decA — источник назван dec (шорт)', B.short.ssrc, 'dec');
+        eq('8g: без decA — уровень взят из inv (лонг)', B.long.sstop, 90);
+        eq('8g: без decA — уровень взят из inv (шорт)', B.short.sstop, 110);
+        // Тот же путь, тот же час: стоп при `cur` НЕ выбит. Разница в исходе
+        // приходит от выбора уровня, а не от разных серий.
+        eq('8g: стоп при cur не тронут (лонг)', B.long.stop, null);
+        eq('8g: стоп при cur не тронут (шорт)', B.short.stop, null);
+        // И ни одна строка исхода не написана без `ssrc` — ни в одной ветке.
+        let noSrc = 0, oRows = 0;
+        ['2026-02-01', '2026-02-02'].forEach(function (d) {
+            lines(path.join(root, 'out', d + '-h7.jsonl')).forEach(function (L) {
+                if (L.k !== 'o') return;
+                oRows++;
+                [L.long, L.short].forEach(function (S) {
+                    if (!S || ['decA', 'dec'].indexOf(S.ssrc) < 0) noSrc++;
+                });
+            });
+        });
+        eq('8g: строк исхода проверено', oRows, 2);
+        eq('8g: строк исхода без ssrc', noSrc, 0);
+    }
+
     // 8f. Провал загрузки не оставляет частичного файла.
     {
         const root = track(tmp('out-fail'));
@@ -926,6 +1073,68 @@ async function section9() {
     eq('первое касание внутри окна', L.long.tgt, W.iso(tsMs + 20 * HOUR));
 }
 
+// ── 9a. Перепись ТЗ-36 · ПЕЧАТАЕТСЯ, НЕ СВЕРЯЕТСЯ ───────────────────────────
+//
+// Карта §0 несёт неатрибутированное падение шага 7 на −2 059 при ТЗ-33. Чтение,
+// которое его закрывает, — это перепись корпуса, который пишет ЭТОТ стенд, и
+// ТЗ-36 всё равно открывает журнал, так что оно ничего здесь не стоит.
+//
+// Инв. 43: величина, просто замеренная и напечатанная, проверкой не является.
+// Перепись поэтому НЕ ИМЕЕТ ПРАВА двинуть счётчик — иначе шаг 7 сдвинется ради
+// чтения, которое объясняет шаг 7, и атрибуция станет круговой. Нейтральность
+// стоит ровно одну сверку, и она здесь: свойство лучше проверять, чем обещать.
+function census36() {
+    console.log('=== 9a. Перепись ТЗ-36: печатается, в счётчик не идёт ===');
+    const before = checks;
+    let n_files = 0, n_rows = 0, n_side = 0, n_wait = 0, n_geonull = 0;
+    let n_anchor_moved = 0, n_decA_null = 0, n_invA_null_decA = 0, n_pre36 = 0;
+    function eat(f) {
+        n_files++;
+        fs.readFileSync(f, 'utf8').split('\n').filter(function (x) { return x !== ''; })
+          .forEach(function (line) {
+            n_rows++;
+            const L = JSON.parse(line);
+            if (L.k !== 's') return;
+            [L.long, L.short].forEach(function (S) {
+                n_side++;
+                if (S.wait !== null) n_wait++;
+                // «geo пуст, а решение при `cur` есть» — строка, которая при
+                // ТЗ-33 потеряла бы весь объект `geo`, а не один лист.
+                if (S.geo === null && S.inv) n_geonull++;
+                // ОТСУТСТВИЕ ключа и ЗАПИСАННЫЙ null — разные вещи, и
+                // `undefined !== null` истинно, поэтому проверка идёт по типу.
+                // Стороны эпохи ДО ТЗ-36 ключа `anchor` не несут вовсе; счесть
+                // их «сдвинутыми» значило бы приписать записи наблюдение,
+                // которого в ней нет.
+                if (!('anchor' in S)) n_pre36++;
+                else if (typeof S.anchor === 'number' && S.anchor !== L.px.cur) n_anchor_moved++;
+                if ('decA' in S) {
+                    if (S.decA === null) n_decA_null++;
+                    else if (S.invA === null) n_invA_null_decA++;
+                }
+            });
+        });
+    }
+    ROOTS.forEach(function (root) {
+        ['data', 'out'].forEach(function (sub) {
+            const dir = path.join(root, sub);
+            if (!fs.existsSync(dir)) return;
+            fs.readdirSync(dir).forEach(function (f) { eat(path.join(dir, f)); });
+        });
+        const runs = path.join(root, 'runs.jsonl');
+        if (fs.existsSync(runs)) eat(runs);
+    });
+    console.log('  n_files ' + n_files + ' · n_rows ' + n_rows
+                + ' · n_side ' + n_side);
+    console.log('  n_wait ' + n_wait + ' · n_geonull ' + n_geonull
+                + ' · якорь сдвинут ' + n_anchor_moved
+                + ' · decA пуст ' + n_decA_null
+                + ' · decA есть, invA пуст ' + n_invA_null_decA
+                + ' · сторон эпохи до ТЗ-36 ' + n_pre36);
+    // Единственная сверка раздела — и она о САМОМ разделе.
+    ok('перепись не двинула счётчик проверок', checks === before);
+}
+
 // ── 10. Закрытая на отказ проверка ──────────────────────────────────────────
 
 function section10() {
@@ -956,6 +1165,7 @@ function section10() {
     await section8();
     await section9();
     section7();
+    census36();
     section10();
 
     console.log('\n--- проверок: ' + checks + '  провалов: ' + fails + ' ---');

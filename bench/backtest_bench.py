@@ -2429,15 +2429,25 @@ for (var i = 0; i < job.length; i++) {
         // the board prints come from the pair below. When the chase rule did not
         // fire the anchor is E itself and no second call is made at all — the
         // same branch directionVerdict takes.
+        // ТЗ-36. `anchorOff` гасит правило погони на КАЖДОЙ строке — это
+        // мир контроля тождества D9 и ничего больше. Без флага ветка ровно
+        // та же, что и была, поэтому ни одно стоящее число не двигается.
+        var waiting = !!(g0 && g0.wait !== null) && !j.anchorOff;
         var decP = dec, gP = g0;
-        if (g0 && g0.wait !== null) {
+        if (waiting) {
             decP = leverageDecision(j.cd, g0.wait, j.isLong, j.btcStats);
             gP   = tradeGeometry(j.cd, g0.wait, j.isLong, decP, j.hi24, j.lo24);
         }
+        var anchor = waiting ? g0.wait : j.E;
         var vol = j.cd.volatility;
         var tgt0 = j.isLong ? j.cd.max_price : j.cd.min_price;
         var p0 = (has(vol) && vol > 0 && has(tgt0) && tgt0 > 0 && j.E > 0)
                  ? touchProb(vol, Math.abs(Math.log(tgt0 / j.E)), j.H) : null;
+        // Та же модельная вероятность, но от ЯКОРЯ: описательная калибровка
+        // второй руки не имеет права читаться с расстояния, которого эта рука
+        // не проходит.
+        var pA = (has(vol) && vol > 0 && has(tgt0) && tgt0 > 0 && anchor > 0)
+                 ? touchProb(vol, Math.abs(Math.log(tgt0 / anchor)), j.H) : null;
         var subs = {};
         for (var key in j.subs) {
             var lvl = j.subs[key], cdk = {};
@@ -2481,7 +2491,14 @@ for (var i = 0; i < job.length; i++) {
               dist: dec.inv ? dec.inv.dist : null,
               stop: dec.inv ? dec.inv.price : null,
               reg: marketRegime(j.btcStats).mode,
-              prod: { g: armOut(gP), p: p0, tgt: has(tgt0) ? tgt0 : null },
+              // ТЗ-36. Цена, при которой продакшн-рука ДОПУЩЕНА, и стоп с
+              // риск-ногой, измеренные ОТ НЕЁ. Кладётся внутрь `prod`, потому
+              // что это её собственный вход: ни один ключ верхнего уровня не
+              // добавлен и ни одно число выше не двинулось.
+              prod: { g: armOut(gP), p: p0, tgt: has(tgt0) ? tgt0 : null,
+                      anchor: anchor, waiting: waiting, pA: pA,
+                      anchorStop: decP.inv ? decP.inv.price : null,
+                      anchorDist: decP.inv ? decP.inv.dist : null },
               subs: subs };
     } catch (e) { r = null; }
     out.push(r);
@@ -2536,9 +2553,23 @@ def _touch_calc(hi, lo, j0, j1, tgt, stop, is_long):
     return ("tgt" if t_hit[k] else "stop"), tgt_any
 
 
+def _anchor_fill(hi, lo, j0, j1, anchor, is_long):
+    """Index of the first hour in [j0, j1) whose candle reaches the anchor.
+    A long waits for a PULLBACK, so the anchor sits below the current price and
+    the LOW is what reaches it; a short is the mirror. This is the journal's own
+    convention for its `wait` touch (§3.13), not a second rule.
+    None means the anchor was never reached inside the horizon: the setup was
+    never ENTERED, which is `unfilled` and is not «никуда»."""
+    seg_hi, seg_lo = hi[j0:j1], lo[j0:j1]
+    hit = seg_lo <= anchor if is_long else seg_hi >= anchor
+    if not hit.any():
+        return None
+    return j0 + int(np.argmax(hit))
+
+
 def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
                H_override=None, want_identity=False, rr_grid=None,
-               verbose=True):
+               anchor_off=False, verbose=True):
     """Per (date, coin, side): production's own geometry on the 90-day extremum
     against the same geometry on a continuation target, resolved by first touch
     on the forward window. Requires 'hl' in the cache — a close-based touch
@@ -2620,6 +2651,8 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
                 job = {"cd": cd, "E": E, "isLong": isL, "H": H,
                        "btcStats": btc_stats, "hi24": hi24, "lo24": lo24,
                        "subs": subs}
+                if anchor_off:
+                    job["anchorOff"] = True
                 if rrs:
                     job["rrGrid"] = rrs
                 jobs.append(job)
@@ -2639,7 +2672,11 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
             o = {"sym": s, "side": "long" if isL else "short", "reg": r["reg"],
                  "rr": pg["rr"] if pg else None,
                  "tgtSig": pg["tgtSig"] if pg else None,
-                 "adm": bool(pg and not pg["veto"]), "arms": {}}
+                 "adm": bool(pg and not pg["veto"]), "arms": {},
+                 # ТЗ-36. The reference arm's own entry and stop, recorded so
+                 # the anchored arm can be compared against them by a control
+                 # instead of by a second derivation of them.
+                 "E": E, "stop": r["stop"]}
             stop, dist = r["stop"], r["dist"]
             if stop is None or dist is None or not (dist > 0) or not (stop > 0):
                 obs.append(o)
@@ -2665,6 +2702,45 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
                     "R": (g["rr"] if first == "tgt" else
                           -1.0 if first == "stop" else
                           0.0 if first == "tie" else mtm)}
+            # ТЗ-36. The SECOND production arm — admitted AND resolved at the
+            # anchor. It is ADDITIVE: everything above keeps its numbers, because
+            # `stop`, `dist`, `b_log` and the window are the reference leg the
+            # substituted arms are scored against and moving them would move
+            # those arms (§3.10). This arm computes its own levels and calls the
+            # resolver a second time.
+            pa = r["prod"]
+            anch, stop_a = pa["anchor"], pa["anchorStop"]
+            dist_a, tgt_a = pa["anchorDist"], pa["tgt"]
+            if (pg is not None and not pg["veto"] and tgt_a is not None
+                    and tgt_a > 0 and stop_a is not None and stop_a > 0
+                    and anch is not None and anch > 0
+                    and dist_a is not None and dist_a > 0):
+                # The fill gate. A row the chase rule never fired on is entered
+                # AT ONCE — the anchor IS the current price and there is nothing
+                # to wait for; a waiting row exists only if the anchor is
+                # actually reached inside the horizon. The window then runs from
+                # the fill hour to the SAME horizon end: lengthening it would
+                # move the one quantity every standing result is truncated by
+                # (§3.10a D3).
+                jf = j0 if not pa["waiting"] else _anchor_fill(hi[s], lo[s], j0,
+                                                               j1, anch, isL)
+                if jf is None:
+                    first_a, hit_a, R_a = "unfilled", False, None
+                else:
+                    first_a, hit_a = _touch_calc(hi[s], lo[s], jf, j1,
+                                                 tgt_a, stop_a, isL)
+                    mtm_a = ((float(px[s][iF]) / anch - 1.0) if isL
+                             else (1.0 - float(px[s][iF]) / anch)) / dist_a
+                    R_a = (pg["rr"] if first_a == "tgt" else
+                           -1.0 if first_a == "stop" else
+                           0.0 if first_a == "tie" else mtm_a)
+                o["arms"]["prod_anchor"] = {
+                    "first": first_a, "hit": hit_a, "p": pa["pA"],
+                    "rr": pg["rr"], "tgtSig": pg["tgtSig"],
+                    "a": abs(math.log(tgt_a / anch)),
+                    "b": abs(math.log(stop_a / anch)), "R": R_a,
+                    "wait": bool(pa["waiting"]), "entry": anch, "stop": stop_a,
+                    "j": None if jf is None else jf - j0}
             obs.append(o)
         if obs:
             dates.append({"t": t, "obs": obs})
@@ -2734,6 +2810,52 @@ def _arm_pool(dates, arm, side, level=95.0, with_b=False):
     return out
 
 
+def _anchor_pool(dates, side, level=95.0):
+    """ТЗ-36. The anchored arm, pooled. Ω is `n_tgt / n_stop` over FILLED setups
+    ONLY: an unfilled setup was never entered, and counting it in either barrier
+    column would score a trade nobody took. P(unfilled) and P(никуда | filled)
+    are carried beside it so the fill gate can never hide inside the ratio
+    (inv. 22, 43). The resampling unit is the DATE, exactly as `_arm_pool` does
+    it — this is a second pool, never a second rule."""
+    rows = []
+    for d in dates:
+        r = [o["arms"]["prod_anchor"] for o in d["obs"]
+             if (side is None or o["side"] == side) and "prod_anchor" in o["arms"]]
+        if r:
+            rows.append(r)
+    if len(rows) < 5:
+        return None
+
+    def agg(rs):
+        f = [o for r in rs for o in r]
+        fl = [o for o in f if o["first"] != "unfilled"]
+        nt = sum(1 for o in fl if o["first"] == "tgt")
+        ns = sum(1 for o in fl if o["first"] == "stop")
+        return len(f), len(fl), nt, ns, (nt / ns) if ns else float("nan")
+
+    n, nf, nt, ns, om = agg(rows)
+    flat = [o for r in rows for o in r]
+    fl = [o for o in flat if o["first"] != "unfilled"]
+    rng = np.random.default_rng(17)
+    bo = [agg([rows[k] for k in rng.integers(0, len(rows), len(rows))])[4]
+          for _ in range(TGT_BOOT)]
+    a = (100.0 - level) / 2.0
+    rr_ = [o["R"] for o in fl if o["R"] is not None]
+    return {"n": n, "n_dates": len(rows), "n_fill": nf, "n_unfilled": n - nf,
+            "n_tgt": nt, "n_stop": ns,
+            "n_tie": sum(1 for o in fl if o["first"] == "tie"),
+            "n_none": sum(1 for o in fl if o["first"] == "none"),
+            "n_wait": sum(1 for o in flat if o["wait"]),
+            "omega": om,
+            "omega_ci": (float(np.nanpercentile(bo, a)),
+                         float(np.nanpercentile(bo, 100 - a))),
+            "p_unfilled": ((n - nf) / n) if n else None,
+            "p_none": (sum(1 for o in fl if o["first"] == "none") / nf)
+                      if nf else None,
+            "R": float(np.mean(rr_)) if rr_ else None,
+            "quorum": nf >= TGT_QUORUM_N and len(rows) >= TGT_QUORUM_D}
+
+
 def target_summary(dates, html, ks=None, H=None, level=95.0, excluded=None):
     """The registered primary, the descriptives and the continuation arm's
     reading. Every verdict below is produced by the rule fixed before the data,
@@ -2754,6 +2876,11 @@ def target_summary(dates, html, ks=None, H=None, level=95.0, excluded=None):
         out["arms"][arm] = {sd: _arm_pool(dates, arm, sd, level)
                             for sd in ("long", "short")}
         out["pooled"][arm] = _arm_pool(dates, arm, None, level)
+    # ТЗ-36. The anchored arm is pooled by its OWN function and lives under its
+    # own key: `arms` and `pooled` above are byte-for-byte what they were.
+    out["anchor"] = {sd: _anchor_pool(dates, sd, level)
+                     for sd in ("long", "short")}
+    out["anchor"]["pooled"] = _anchor_pool(dates, None, level)
     for sd in ("long", "short"):
         kstar = None
         for k in ks:                        # smallest k whose CI is not
@@ -2780,7 +2907,10 @@ def target_summary(dates, html, ks=None, H=None, level=95.0, excluded=None):
             e["d"].add(d["t"])
             if "prod" in o["arms"]:
                 e[o["side"]] += 1
-            e["cont"] += sum(1 for a in o["arms"] if a not in ("prod", "ident"))
+            # ТЗ-36: the anchored arm is not a continuation arm, and this
+            # descriptive must not move because a second production arm exists.
+            e["cont"] += sum(1 for a in o["arms"]
+                             if a not in ("prod", "ident", "prod_anchor"))
     out["symbols"] = sorted([{"sym": s, "dates": len(v["d"]), "long": v["long"],
                               "short": v["short"], "cont": v["cont"]}
                              for s, v in syms.items()], key=lambda r: r["sym"])
@@ -2911,6 +3041,40 @@ def report_target(sm):
                   % (bar, "нет такого k в сетке" if ks_ is None else "%.1f" % ks_))
         print("    k* — НАХОДКА, а не константа: в index.html она не "
               "переносится и продакшн-числом не становится.")
+    # ТЗ-36. The second production arm, printed as its own block. It is not a
+    # replacement for the primary above and does not move it: the arm above is
+    # admitted at the anchor and resolved at `cur`, this one is admitted AND
+    # resolved at the anchor, and the pair is what makes the difference
+    # readable instead of arguable.
+    print("\n" + "─" * 62)
+    print("ЯКОРНАЯ ПРОДАКШН-РУКА (ТЗ-36) · вход по ЦЕНЕ ПУБЛИКАЦИИ, стоп "
+          "decA.inv.price,\nта же цель и тот же конец горизонта. Заполнение "
+          "обязательно: сетап существует,\nтолько если якорь ТРОНУТ внутри "
+          "горизонта, и окно открывается часом заполнения.")
+    print("  Ω считается ТОЛЬКО по заполненным. Планка та же 1/RR_MIN = %.2f."
+          % bar)
+    for sd, nm in (("long", "ЛОНГ"), ("short", "ШОРТ"), ("pooled", "ОБЕ")):
+        a = sm.get("anchor", {}).get(sd)
+        if not a:
+            print("  %-6s · сетапов нет" % nm)
+            continue
+        print("  %-6s · сетапов %d (ожидание %d) · заполнено %d · НЕ заполнено "
+              "%d · дат %d" % (nm, a["n"], a["n_wait"], a["n_fill"],
+                               a["n_unfilled"], a["n_dates"]))
+        print("           цель %d / стоп %d / ничья %d / никуда %d"
+              % (a["n_tgt"], a["n_stop"], a["n_tie"], a["n_none"]))
+        if not a["quorum"]:
+            print("           НИЖЕ КВОРУМА — Ω не печатается")
+        elif not np.isfinite(a["omega"]):
+            print("           Ω не определена (стоп не выбит ни разу)")
+        else:
+            print("           Ω = %.3f  ДИ95 [%.3f; %.3f]"
+                  % (a["omega"], a["omega_ci"][0], a["omega_ci"][1]))
+        print("           P(не заполнено) %.1f%% · P(никуда | заполнено) "
+              "%.1f%% · R %s"
+              % (100 * (a["p_unfilled"] or 0), 100 * (a["p_none"] or 0),
+                 "—" if a["R"] is None else "%+.3f" % a["R"]))
+
     print("\n" + "─" * 62)
     print("ЧТО СРАВНИВАЛОСЬ (инв. 22) · допущено сетапов по монетам")
     print("  %-8s %5s %7s %7s %7s" % ("монета", "дат", "лонг", "шорт", "канал"))
@@ -3607,6 +3771,71 @@ def lab_selftest(html, bot, seeds=3):
           % ("—" if not ml else "%.3f" % ml["omega"],
              "—" if not ms else "%.3f" % ms["omega"], "ОК" if d6 else "СТОП"))
 
+    # ТЗ-36 · D8 and D9. The numbers are 8 and 9 because D7 is already taken by
+    # the regime-gate partition below; the two controls are the ones ТЗ-36 §5.3
+    # specifies as «D7 the partition» and «D8 identity», and only the labels
+    # moved, so nothing above or below them changes meaning.
+    #
+    # D8 · the PARTITION (inv. 68). Written here as a RULE, not discovered at
+    # run time: a row the chase rule never fired on must be bit-identical
+    # between the two production arms, and a row it fired on must differ in the
+    # entry, the stop or the hour the resolution starts. A control that flips
+    # everything has localised nothing; one that flips nothing has not run.
+    same_f = ("first", "hit", "R", "p", "rr", "tgtSig", "a", "b")
+    n_same, n_wait_rows, n_bad_same, n_no_flip = 0, 0, 0, 0
+    for d in dA:
+        for o in d["obs"]:
+            a1, a2 = o["arms"].get("prod"), o["arms"].get("prod_anchor")
+            if a1 is None or a2 is None:
+                continue
+            if a2["wait"]:
+                n_wait_rows += 1
+                flipped = (a2["entry"] != o["E"] or a2["stop"] != o["stop"]
+                           or a2["j"] != 0)
+                n_no_flip += int(not flipped)
+            else:
+                n_same += 1
+                n_bad_same += int(any(a1[f] != a2[f] for f in same_f)
+                                  or a2["entry"] != o["E"]
+                                  or a2["stop"] != o["stop"] or a2["j"] != 0)
+    d8 = (n_same > 0 and n_wait_rows > 0 and n_bad_same == 0 and n_no_flip == 0)
+    print("  D8 деление ТЗ-36: строк без погони %d (разошлись %d, должно 0) · "
+          "строк ожидания %d (не разошлись %d, должно 0) %s"
+          % (n_same, n_bad_same, n_wait_rows, n_no_flip,
+             "ОК" if d8 else "СТОП"))
+    if not (n_same > 0 and n_wait_rows > 0):
+        print("     D8 ПРЕДУСЛОВИЯ НЕ ВЫПОЛНЕНЫ — одна из популяций пуста, "
+              "контроль не утверждает ничего (инв. 22)")
+
+    # D9 · IDENTITY (inv. 45). With the chase rule forced off on every row the
+    # anchor IS the current price, so the anchored arm must reproduce the
+    # reference arm exactly — same fill hour, same window, same stop, same
+    # resolution. A comparator never proven on identity supports no claim about
+    # a real diff. The arm is NOT short-circuited under the flag: it runs its
+    # own fill gate and its own resolver call and has to land on prod's numbers.
+    dI = run_target(w, bot, html, btc, k_grid=K_GRID, anchor_off=True,
+                    verbose=False)
+    i_cmp, i_diff, i_wait = 0, 0, 0
+    for d in dI:
+        for o in d["obs"]:
+            a1, a2 = o["arms"].get("prod"), o["arms"].get("prod_anchor")
+            if (a1 is None) != (a2 is None):
+                i_cmp += 1
+                i_diff += 1
+                continue
+            if a1 is None:
+                continue
+            i_wait += int(a2["wait"])
+            for f in same_f:
+                i_cmp += 1
+                i_diff += int(a1[f] != a2[f])
+            i_cmp += 1
+            i_diff += int(a2["entry"] != o["E"] or a2["stop"] != o["stop"]
+                          or a2["j"] != 0)
+    d9 = i_cmp > 0 and i_diff == 0 and i_wait == 0
+    print("  D9 тождество ТЗ-36 (якорь погашен): сравнений %d, расхождений %d, "
+          "строк ожидания %d %s" % (i_cmp, i_diff, i_wait, "ОК" if d9 else "СТОП"))
+
     # D7 · the PARTITION, and its correct outcome is a REFUSAL. The world is
     # driftless, so it has no regime to find: `range` and `trend` are two names
     # for the same generator, and the two populations must NOT separate. An
@@ -3678,7 +3907,7 @@ def lab_selftest(html, bot, seeds=3):
         # чтение D7d ничего не стоит — в ЛЮБУЮ сторону.
         print("     D7 ПРЕДУСЛОВИЯ НЕ ВЫПОЛНЕНЫ — читать D7d нельзя ни в одну "
               "сторону: это дефект прибора, а не результат")
-    ok = ok and d1 and d2 and d3 and d4 and d5 and d6 and d7
+    ok = ok and d1 and d2 and d3 and d4 and d5 and d6 and d7 and d8 and d9
 
     print("\nВЕРДИКТ ЛАБОРАТОРИИ: %s"
           % ("измеряет то, что должна" if ok else "НЕИСПРАВНА — результатам не верить"))

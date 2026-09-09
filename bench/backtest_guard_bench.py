@@ -954,6 +954,175 @@ ok('39. section E compared something', checks[0] - e0 > 0, checks[0] - e0)
 print('E. venue-as-observation: %d comparisons' % (checks[0] - e0))
 
 # ═══════════════════════════════════════════════════════════════════════════
+# F. The anchored production arm  (ТЗ-36)
+# ═══════════════════════════════════════════════════════════════════════════
+# `--target` needs the archive, so the arm's CONSTRUCTION has no executing
+# control anywhere else. Three rules are asserted here on synthetic input:
+# the fill gate admits a touched anchor and refuses an untouched one, the
+# window ends at the ORIGINAL horizon, and `unfilled` is produced and counted
+# apart from «никуда». Every assertion calls the bench's own function by name;
+# `requests` stays stubbed and no socket is opened.
+import numpy as _np
+
+f0 = checks[0]
+
+
+def hl_flat(n, base=100.0):
+    """n hours that touch nothing: high and low pinned to the entry."""
+    return _np.full(n, base), _np.full(n, base)
+
+
+# ── 40. the fill gate. A long waits for a PULLBACK, so the LOW reaches the
+# anchor; a short is the mirror. The hour returned is the FIRST one.
+hi_a, lo_a = hl_flat(50)
+lo_a[7] = 95.0                      # the only hour that reaches a long anchor
+ok('40. an anchor the path reaches is filled, at the FIRST such hour',
+   bb._anchor_fill(hi_a, lo_a, 0, 50, 95.0, True) == 7,
+   bb._anchor_fill(hi_a, lo_a, 0, 50, 95.0, True))
+lo_a[20] = 94.0
+ok('40. a later, deeper touch does not move the fill hour',
+   bb._anchor_fill(hi_a, lo_a, 0, 50, 95.0, True) == 7)
+ok('40. an anchor the path never reaches is REFUSED, not defaulted to the start',
+   bb._anchor_fill(hi_a, lo_a, 0, 50, 90.0, True) is None,
+   bb._anchor_fill(hi_a, lo_a, 0, 50, 90.0, True))
+hi_s, lo_s = hl_flat(50)
+hi_s[11] = 105.0
+ok('40. the SHORT anchor is reached from above, off the high',
+   bb._anchor_fill(hi_s, lo_s, 0, 50, 105.0, False) == 11,
+   bb._anchor_fill(hi_s, lo_s, 0, 50, 105.0, False))
+# The two conventions read DIFFERENT extremes, and a path that only spikes up
+# proves it: it reaches a short's anchor and never reaches a long's.
+ok('40. the same upward path never reaches a long anchor below the price',
+   bb._anchor_fill(hi_s, lo_s, 0, 50, 95.0, True) is None,
+   bb._anchor_fill(hi_s, lo_s, 0, 50, 95.0, True))
+ok('40. and a short anchor below the price is reached at once, off the high',
+   bb._anchor_fill(hi_s, lo_s, 0, 50, 95.0, False) == 0,
+   bb._anchor_fill(hi_s, lo_s, 0, 50, 95.0, False))
+
+# ── 41. the window ends at the ORIGINAL horizon and is never extended: a touch
+# past j1 is a touch the arm may not see. This is the clause §3.10a D3 makes
+# binding — lengthening the horizon would move the one quantity every standing
+# result is truncated by.
+hi_w, lo_w = hl_flat(50)
+lo_w[40] = 95.0
+ok('41. a touch INSIDE the window fills', bb._anchor_fill(hi_w, lo_w, 0, 50, 95.0, True) == 40)
+ok('41. the SAME touch past the horizon end does not',
+   bb._anchor_fill(hi_w, lo_w, 0, 30, 95.0, True) is None,
+   bb._anchor_fill(hi_w, lo_w, 0, 30, 95.0, True))
+ok('41. and the offset is measured from j0, not from zero',
+   bb._anchor_fill(hi_w, lo_w, 35, 50, 95.0, True) == 40)
+# The resolution itself starts AT the fill hour and stops at the same end.
+hi_r, lo_r = hl_flat(50)
+hi_r[10] = 130.0                    # target 120 touched at hour 10
+lo_r[5] = 80.0                      # stop  90 touched at hour 5, BEFORE the fill
+ok('41. resolving from the fill hour ignores a stop hit before the fill',
+   bb._touch_calc(hi_r, lo_r, 8, 50, 120.0, 90.0, True) == ('tgt', True),
+   bb._touch_calc(hi_r, lo_r, 8, 50, 120.0, 90.0, True))
+ok('41. and resolving from j0 would have read that same path as a stop',
+   bb._touch_calc(hi_r, lo_r, 0, 50, 120.0, 90.0, True) == ('stop', True),
+   bb._touch_calc(hi_r, lo_r, 0, 50, 120.0, 90.0, True))
+
+
+def pa_obs(side, first, wait=True, rr=3.0):
+    """One observation carrying only the anchored arm, shaped as run_target
+    records it."""
+    return {'sym': 'X', 'side': side, 'reg': 'range', 'rr': rr, 'tgtSig': 1.0,
+            'adm': True, 'E': 100.0, 'stop': 90.0,
+            'arms': {'prod_anchor': {
+                'first': first, 'hit': first == 'tgt', 'p': 0.3, 'rr': rr,
+                'tgtSig': 1.0, 'a': 0.15, 'b': 0.05,
+                'R': None if first == 'unfilled' else
+                     (rr if first == 'tgt' else -1.0 if first == 'stop' else 0.0),
+                'wait': wait, 'entry': 95.0 if wait else 100.0,
+                'stop': 97.0 if wait else 90.0,
+                'j': None if first == 'unfilled' else (3 if wait else 0)}}}
+
+
+# ── 42. `unfilled` is a FIFTH class and is counted apart from «никуда». Ω is
+# over the filled setups only: a setup nobody entered may not land in either
+# barrier column, and P(unfilled) is printed beside Ω so the gate cannot hide
+# inside the ratio (инв. 22, 43).
+mix = [{'t': i, 'obs': [pa_obs('long', 'tgt'), pa_obs('long', 'tgt'),
+                        pa_obs('long', 'stop'), pa_obs('long', 'none'),
+                        pa_obs('long', 'unfilled'), pa_obs('long', 'unfilled')]}
+       for i in range(30)]
+pool = bb._anchor_pool(mix, 'long')
+ok('42. the pool was produced at all', pool is not None)
+if pool:
+    ok('42. every setup is counted once', pool['n'] == 180, pool['n'])
+    ok('42. filled and unfilled partition it exactly',
+       pool['n_fill'] + pool['n_unfilled'] == pool['n']
+       and pool['n_unfilled'] == 60, (pool['n_fill'], pool['n_unfilled']))
+    ok('42. «никуда» counts only FILLED setups and is not «unfilled»',
+       pool['n_none'] == 30 and pool['n_none'] != pool['n_unfilled'],
+       (pool['n_none'], pool['n_unfilled']))
+    ok('42. Ω is target/stop over the FILLED set alone',
+       pool['n_tgt'] == 60 and pool['n_stop'] == 30
+       and abs(pool['omega'] - 2.0) < 1e-12, (pool['n_tgt'], pool['n_stop'],
+                                              pool['omega']))
+    ok('42. P(unfilled) is the share of ALL setups',
+       abs(pool['p_unfilled'] - 60.0 / 180.0) < 1e-12, pool['p_unfilled'])
+    ok('42. P(никуда) is conditioned on FILLED, not on all',
+       abs(pool['p_none'] - 30.0 / 120.0) < 1e-12, pool['p_none'])
+    ok('42. an unfilled setup contributes no R', pool['R'] is not None
+       and abs(pool['R'] - (2 * 3.0 - 1.0 + 0.0) / 4.0) < 1e-12, pool['R'])
+    ok('42. the waiting count is carried, not inferred', pool['n_wait'] == 180,
+       pool['n_wait'])
+# A world of nothing but unfilled setups has no Ω, and must say so rather than
+# print one: quorum is over the FILLED set (инв. 22).
+allu = [{'t': i, 'obs': [pa_obs('long', 'unfilled') for _ in range(6)]}
+        for i in range(30)]
+pu = bb._anchor_pool(allu, 'long')
+ok('42. an arm that never filled reaches no quorum',
+   pu is not None and pu['n_fill'] == 0 and not pu['quorum'],
+   None if pu is None else (pu['n_fill'], pu['quorum']))
+ok('42. and its Ω is not a number', pu is not None and not _np.isfinite(pu['omega']),
+   None if pu is None else pu['omega'])
+
+# ── 43. the driver emits the anchor PAIR, and `anchorOff` gases the chase rule.
+# This is a BUILD and a CALL through the real bridge, not a reading of the text.
+volf = bb._read_js_num(HTML, 'VOL_STOP') * (1 - 1e-9)
+Hf = int(bb._read_js_num(HTML, 'H_NOISE'))
+Ef = 1.0
+# hi24 well above E makes the 24h anchor far, so the chase rule has room to fire.
+a_job = {'cd': {'volatility': volf, 'min30': Ef * 0.5, 'max30': Ef * 2.0,
+                'min_price': Ef * 0.5, 'max_price': Ef * 2.0},
+         'E': Ef, 'isLong': True, 'H': Hf,
+         'btcStats': {'volatility': volf, 'r7': 0.0, 'r14': 0.0},
+         'hi24': Ef * 1.5, 'lo24': Ef * 0.5, 'subs': {}}
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    brf = bb.JsBridge(HTML, bb.TARGET_JS_FUNCS, bb.TARGET_JS_VARS,
+                      bb.TARGET_DRIVER, '_tgt_bridge.js')
+    r_on = brf.call([a_job])[0]
+    r_off = brf.call([dict(a_job, anchorOff=True)])[0]
+ok('43. the driver answered with the anchor pair', r_on is not None
+   and all(k in r_on['prod'] for k in ('anchor', 'waiting', 'anchorStop',
+                                       'anchorDist', 'pA')),
+   None if r_on is None else sorted(r_on['prod']))
+if r_on and r_off:
+    ok('43. `anchorOff` puts the anchor back on the current price and clears '
+       'the waiting flag',
+       r_off['prod']['anchor'] == Ef and r_off['prod']['waiting'] is False,
+       (r_off['prod']['anchor'], r_off['prod']['waiting']))
+    ok('43. with the chase rule off the anchored stop IS the reference stop',
+       r_off['prod']['anchorStop'] == r_off['stop'],
+       (r_off['prod']['anchorStop'], r_off['stop']))
+    ok('43. and the reference leg the substituted arms share never moved',
+       r_on['stop'] == r_off['stop'] and r_on['dist'] == r_off['dist'],
+       (r_on['stop'], r_off['stop']))
+    if r_on['prod']['waiting']:
+        ok('43. a waiting row anchors AWAY from the current price',
+           r_on['prod']['anchor'] != Ef, r_on['prod']['anchor'])
+        ok('43. and its stop is the one measured FROM the anchor',
+           r_on['prod']['anchorStop'] != r_on['stop'],
+           (r_on['prod']['anchorStop'], r_on['stop']))
+
+# ── 44. §5.2.6 the section reports its own count and refuses to pass on zero.
+ok('44. section F compared something', checks[0] - f0 > 0, checks[0] - f0)
+print('F. anchored production arm: %d comparisons' % (checks[0] - f0))
+
+# ═══════════════════════════════════════════════════════════════════════════
 shutil.rmtree(tmp, ignore_errors=True)
 for f in os.listdir(HERE):
     if f.startswith('_') and f.endswith('_bridge.js'):
