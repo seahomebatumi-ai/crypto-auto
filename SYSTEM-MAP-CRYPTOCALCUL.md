@@ -14,7 +14,33 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-08-b.** Baseline: TZ-34 and TZ-35 on the benches — the venue actually
+**Revision 2026-09-09-a.** Baseline: TZ-36 on the recorders — the journal now stores the
+anchored decision beside the current-price one, the outcome layer resolves against the level
+the card actually printed, and `--target` gained a SECOND production arm admitted AND
+resolved at the anchor. Report `CryptoReports/TZ-36-anchored-recorders-report.md`, accepted;
+merged by the Boss. **The file table's hashes are the pin and every hash in this section was
+read on `main` after that merge** — a commit hash copied out of a report is the report's word
+rather than a reading (inv. 55).
+
+**No production file moves at this revision.** `index.html` and `main.py` appear in no diff
+at all; what changed is four recorders. `journal/write.js` writes `anchor`, `decA` and `invA`
+on every side block and `sstop`/`ssrc` on every outcome line; `bench/journal_bench.js` asserts
+the partition that separates a moved anchor from a `СЕЙЧАС` row; `bench/backtest_bench.py`
+carries `prod_anchor` beside `prod`; `bench/backtest_guard_bench.py` asserts that arm offline
+at step 14. **Inv. 66's two sites are CLOSED** (§3.13, §3.10), and §0's own open attribution
+is closed below by a measurement that refuted the arithmetic which opened it.
+
+**The same work exposed a THIRD site, and it is why this revision carries a new invariant.**
+`--lab-selftest`'s **D4 has been red since TZ-33 and no push could say so.** It asserts that a
+substituted arm handed production's own target reproduces production's arm — true of a
+single-pass instrument, false on every waiting row of a two-pass one — so the lab has printed
+«НЕИСПРАВНА — результатам не верить» on every dispatch since TZ-33 merged, while
+`--lab-selftest` sits outside `bench.yml` and the only thing that would complain runs when a
+human asks (inv. 62). The magnitude is ATTRIBUTED in §3.10a rather than carried open, the
+repair is reserved as TZ-37 (§10), and **inv. 69 is new**.
+
+**The revision before this one recorded TZ-34 and TZ-35, and its text is retained below.**
+Baseline: the benches — the venue actually
 fetched is recorded as an OBSERVATION and the reconciliation reads it — merged together as
 pull request **#31**, merge commit **`a76cecf`**, implementation commits `a73359d` (TZ-34)
 and `b13fb71` (TZ-35). Reports `CryptoReports/TZ-34-fetched-venue-observed-report.md` and
@@ -24,15 +50,16 @@ here.** This revision was authored from delivered files rather than from a check
 a commit hash copied out of a report is the report's word rather than a reading
 (inv. 55). Content is what this block pins and MD5 pins it either way.
 
-**No production file moves at this revision and none of the four in the table below changed.**
+**No production file moved at THAT revision and none of the four in the table below changed.**
 TZ-34 and TZ-35 touched three benches and nothing else: what came into service is a
 measuring instrument, not a behaviour. `bench/backtest_bench.py` now records `cov["venue"]`
 from the leg that actually answered and grants the `venue-basis` licence off that observation
 instead of off the `fut:true` declaration; `bench/verify_bench.py` asserts the new rule
 end-to-end in three lanes; `bench/backtest_guard_bench.py` asserts the fetch side offline.
 Inv. 41 is unchanged and inv. 67 states the distinction it turned out to need; inv. 68 is new.
-**The `--target` production arm still mixes two prices and the journal still records a stop
-the card did not print** — one cause, two sites, now reserved as TZ-36 (§3.13, §3.10, §10).
+**At that revision the `--target` production arm still mixed two prices and the journal still
+recorded a stop the card did not print** — one cause, two sites, reserved there as TZ-36 and
+closed by it above (§3.13, §3.10, §10).
 
 **The revision before this one recorded TZ-33, and its text is retained below.** What moved
 there was production's own PUBLICATION PRICE, and two instruments did not move with it.** `tradeGeometry` and `leverageDecision` now run a SECOND time at the anchor and
@@ -64,10 +91,14 @@ bench moves — the argument §11 already makes for `live-gate.sh`. A TZ needing
 states it in its own `§0`, as TZ-28, TZ-29 and TZ-30 all did (2544 → 2768 → 3216 → **3240
 lines**, `fb9464afba2e87450bd3fd11877da9f1` → `9357c2bc4e71542c21068be79f8691f9` →
 `1b921e88fdae5c1c404fbf9fbcee8b2c` → `d2dad0f80afa2c191c2faf1d40081a88`), TZ-33 moved
-it again to 3724 lines, and TZ-34 to **3881 lines**, `45e2294c5fc82f96a7e66b84c2a094c2`. Two
-more benches carry figures for the same reason and for the first time here:
-`bench/backtest_guard_bench.py` **971 lines**, `19427e79133d48870d76eb0c908c69f6`, and
-`bench/verify_bench.py` **388 lines**, `06036d8c3d39ccec6be21d2158ef3ce1`.
+it again to 3724 lines, TZ-34 to 3881 lines and TZ-36 to **4110 lines**,
+`8cca251ee28c5c9332c44405558cc339`. Four more benches carry figures for the same reason:
+`bench/backtest_guard_bench.py` **1140 lines**, `3b6ef587dd5e066c615300e530524aa9`,
+`bench/verify_bench.py` **388 lines**, `06036d8c3d39ccec6be21d2158ef3ce1`,
+`journal/write.js` **849 lines**, `19722fb53d75b6d25a8f957f74f97422`, and
+`bench/journal_bench.js` **1177 lines**, `993271f44995c8ae21c54935a3f80adf`. The last two
+carried no pin anywhere until TZ-36 measured them, which is the difference between a baseline
+and a declaration.
 
 **`bench/backtest_guard_bench.py` gets no row either, and for the stronger reason:
 its control is being a gate step.** It executes on every push at step 14, so a hash in a TZ
@@ -95,15 +126,23 @@ Every TZ header quotes this block IN FULL — all seven anchors and the file tab
 never a subset. The Executor matches each anchor as an exact substring against the
 repository copy before any work (contract §5); any mismatch is BLOCKED.
 
+**An anchor is a string COPIED out of this file, never one recalled from the rule it names,
+and it is verified as a literal substring before this block is published.** The inv. 68 anchor
+carried at `2026-09-08-b` read «must flip and which must not» while the invariant itself reads
+«must FLIP and which must NOT», so no exact-substring matcher could satisfy it — and TZ-36's
+report recorded all seven anchors as present as exact substrings anyway. **An anchor nobody
+can match does not fail loudly**: it fails in whichever direction the matcher happens to be
+written, and a blocking gate is the one control that may not have such a direction.
+
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-08-b.**` |
+| revision | `**Revision 2026-09-09-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `68. **A negative control names which items must flip and which must not.**` |
+| newest invariant | `69. **An identity control names the WORLD in which the identity holds.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -127,10 +166,16 @@ Rewriting the header would make the description of one sample describe a differe
 which is inv. 46 read backwards — the constant would then agree with a record that no
 longer names the run behind it. It goes stale by design; the reader is told so here.
 
-Gate at this revision: `bench.yml`, **14 steps, 1 253 521 checks**, hosted `Bench gate`
-**#145** green on `main` at merge commit `a76cecf`, three of its steps read off the RUN PAGE
-and not from a report: **step 4 = 40**, **step 7 = 691 836**, **step 14 = 174**, each
-`FAIL 0`.
+Gate at this revision: `bench.yml`, **14 steps, 1 335 844 checks**, hosted `Bench gate`
+**#146** green at `6c21e98`, **and its per-step counts could not be read**: the logs endpoint
+answers `403 Must have admin rights to Repository` to a session holding no token (inv. 44), so
+the conclusion is the runner's and the counts are not. The two moved terms are therefore LOCAL
+readings — **step 7 = 774 130**, **step 14 = 203**, each `FAIL 0` — and they are admitted here
+on a RECONCILIATION rather than on their own word. Excluding steps 5 and 7, a full local
+replay sums to **305 803**, which is exactly this map's own `1 253 347 − 255 708 − 691 836`
+for the same subset: every step but 7 reads what the map already records, so the terms that
+moved are the two TZ-36 touched and nothing else drifted. **Step 4 holds at 40** on its runner
+standing from #145.
 
 **The total is carried forward with two terms replaced, and one term in it has never been
 read.** Steps 1–13 move from 1 255 401 to **1 253 347** by step 4 `+5` and step 7 `−2 059`;
@@ -140,15 +185,44 @@ the whole +80 lands here unattributed rather than in the revisions that caused i
 own count has never been recorded in this map**: it is the residual that makes the recorded
 total add up (255 708) and it is arithmetic, not a reading.
 
+**This revision moves two of those terms and the arithmetic closes without a residual.** Step
+7 rises 691 836 → **774 130**, `+82 294`; step 14 rises 174 → **203**, `+29`; the other twelve
+read delta zero on a replay of both trees. `1 253 521 + 82 294 + 29 = 1 335 844`, and step 5
+is carried at the same 255 708 it has always been carried at — still never read. **Step 14's
+«was» now exists**: the row below said the number to compare against arrives the first time
+something moves it, and section F of the garrison is what moved it, reporting its own count so
+the delta is attributed by the section rather than by arithmetic here.
+
 **Step 7's predicted fall is now MEASURED, and the local-versus-runner objection is closed.**
 `-a` predicted that `journal_bench.js` would lose one numeric leaf per waiting row, because
 `vd.geo` became the ANCHORED geometry at TZ-33 and its `wait` is null on every such row by
 the termination property (§3.12). The counter fell 693 895 → 691 836, **−2 059**, and the
 runner reads the same figure the local replay did — so it is content and not environment,
 and nothing but TZ-33 touched what the journal records between the two readings. **The
-MAGNITUDE is still unattributed and is not assumed benign.** The reading that closes it is
-the count of side blocks carrying `wait !== null` in the corpus that bench writes — 303 files,
-8 481 rows at this run — and TZ-36 opens the journal anyway, so it costs nothing there.
+MAGNITUDE was unattributed for one revision and is now CLOSED — by a measurement that refuted
+the arithmetic which opened it.** The population this map named was wrong twice over.
+`n_wait`, the count of side blocks carrying `wait !== null`, ROSE 606 → 765 across TZ-33 and
+predicts `−606`; `n_geonull` contributes exactly ZERO, because no row in this corpus lost its
+`geo` object at all. The population that actually lost a leaf is every row whose FIRST pass
+carried `geo.wait` — **2 218 production rows, 3.7× `n_wait`** — and that count is not readable
+from a post-TZ-33 record at all, which is why the census had to be taken on both trees and why
+Stage A restoring `anchor` is what makes it readable again. Measured by JSON path, closing
+exactly: `s.long.geo.wait` 870 → 4 (`−866`) · `s.short.geo.wait` 1 356 → 4 (`−1 352`) ·
+`s.long.wait` 229 → 294 (`+65`) · `s.short.wait` 377 → 471 (`+94`) · total **−2 059**, and the
+whole numeric-leaf census moves 464 270 → 462 211 by the same figure. **`side.wait` is set at
+the END of the cascade and `geo.wait` at the start of it**, so a coin whose chase rule fired
+and whose verdict then refused carried the second and never the first; and since TZ-33 the
+veto is evaluated once, on the anchored geometry, so a coin refused at `cur` now reaches the
+anchor before it can be refused and `n_wait` ROSE while `geo.wait` collapsed. **A population
+named in a map is a hypothesis until someone reads the paths** (inv. 43).
+
+**The `+82 294` this revision adds is attributed term by term in TZ-36's report and is not
+restated here** (inv. 20). What belongs in this map is the shape of the attribution: the
+largest term is one field-identity assertion per new field per side per record, the second is
+the numeric leaves the three new side-block fields and `sstop` add, and the census that
+EXPLAINS step 7 increments no counter of its own — enforced by a guard that captures the
+counter before it walks the corpus and asserts it unchanged after, so step 7 does not move for
+the reading that explains step 7 (inv. 43).
 
 **What the fourteenth step changes is the class of decay the gate can see.** Until it landed,
 the only thread from `backtest_bench.py` into these gates was step 4 — `verify_bench.py`
@@ -680,9 +754,22 @@ would move those arms too. **The production arm is therefore ADMITTED at the anc
 RESOLVED at `cur`**, so on a waiting row it counts the outcome of an entry production would
 not have taken, and its `R` pairs an anchored `rr` with a barrier pair measured somewhere
 else. The decision is right for the substituted arms and wrong for the production one, and
-the repair is a SECOND arm rather than a moved leg (TZ-35, §10). **Every `--target` figure
-standing in this map was taken on the single-pass instrument and predates TZ-33**; the next
-dispatch is not comparable to them until that arm exists.
+the repair is a SECOND arm rather than a moved leg. **TZ-36 built it.** `prod_anchor`
+is ADDITIVE — `stop`, `dist`, `b_log` and the `E`-based first-touch resolution are
+byte-identical, so every arm already measured keeps its numbers — and it computes its own
+levels and calls the resolver a second time: entry at the anchor, stop at the anchored
+`inv.price`, target the same 90-day extremum, plus a FILL GATE, because an arm admitted at the
+anchor and resolved from `cur` counts trades production would not have taken while an arm
+resolved at the anchor with no fill gate counts trades that were never entered — both are
+fictions and only the pair repairs it. The window runs from the fill hour to the SAME horizon
+end, since lengthening it would move the one quantity every standing result is truncated by
+(§3.10a D3), and a fifth outcome class `unfilled` is counted apart from «никуда». `Ω` is taken
+over FILLED setups only, with `P(unfilled)` and `P(никуда | filled)` beside it, and the bar is
+`1 / RR_MIN` read from `index.html` at run time (inv. 65). **Every `--target` figure standing
+in this map was taken on the single-pass instrument and predates TZ-33, and no figure exists
+for the new arm at all**: that reading is a `backtest_bench.yml` dispatch, and TZ-36 correctly
+built the arm, self-tested it offline and forecast nothing about what it will say (§10,
+inv. 44).
 
 **Since TZ-30 the failing set has ONE definition site — `HARD_CLASSES` — and two readers.**
 `verify_against_live` decides the exit code from it and the module-level `target_gate`
@@ -802,9 +889,13 @@ res-reversion worlds → 0 / strongly positive; uncoupled / coupled funding worl
 the 2σ floor pushes the stops ratio BELOW 1 (errs safe), and symmetric diffusive
 jumps stay inside the estimated σ — only wick-like moves can push the ratio above 1.
 
-**Section D (`--target`) is six controls rather than a world**, added by TZ-27 and
-re-registered by TZ-28: D1 target calibration, D2 monotonicity of `Ω(k)`, D3 the limit as
-the window grows, D4 an identity differ, D5 truncation invariance, D6 a side swap. **D2 and
+**Section D (`--target`) is nine controls rather than a world, and the count is stated here
+because a stale one has already cost a cycle**: TZ-36 specified «two new controls beside
+D1–D6» while D7 was already taken by TZ-32, and the Executor had to renumber its own controls
+to avoid two D7s in one output. The nine: D1 target calibration, D2 monotonicity of `Ω(k)`,
+D3 the limit as the window grows, D4 an identity differ, D5 truncation invariance, D6 a side
+swap (TZ-27, re-registered by TZ-28) · D7 the regime-word partition (TZ-32) · D8 the anchor
+partition and D9 the anchor-off identity of `prod_anchor` (TZ-36). **D2 and
 D3 shipped red, and the reason is inv. 61 — both bars named an object the author had
 assumed rather than derived.** D2 required `Ω(k)` to fall across five grid points when
 production's own `RR_MIN` can never admit the first one, so the claim was unevaluable
@@ -826,6 +917,39 @@ fire, because an identity differ and a truncation check both run the inverted re
 each side of their own comparison. Under the OLD bars D2 and D3 were red before the
 inversion and unchanged by it — they could not tell a broken resolver from a healthy one,
 which is the whole cost of a bar written rather than derived.
+
+**D4 has been RED since TZ-33 and the lab has said so to nobody.** It compares the `prod` arm
+against `ident` — a substituted arm handed production's own 90-day extremum, which must
+therefore reproduce `prod` exactly — and TZ-33 made `prod`'s geometry the ANCHORED one while
+`ident` stays at `E`. **The control is CORRECT to refuse**; what is wrong is that it asserted
+an identity without naming the world that makes it one (inv. 69), and `--lab-selftest` runs
+only under `backtest_bench.yml`, so the verdict «НЕИСПРАВНА» has been the lab's answer on
+every dispatch across two TZs with no push able to surface it (inv. 62).
+
+**Measured here 09.09.2026 on the merged tree, offline and reproducible by anyone holding the
+repository** — `--lab-selftest` prints the line, and the decomposition is `run_target` on the
+same seeded world, so this is a computation over repository content and not a fetch (inv. 44).
+**The 1 165 closes exactly and every difference is on a row the chase rule fired on.** Of
+7 926 comparisons, 118 are presence mismatches and 1 047 are field differences:
+
+- **455 rows the chase rule never fired on** — bit-identical across all eight compared fields,
+  both arms present, zero differences.
+- **521 waiting rows** — `rr` and `tgtSig` differ on EVERY one; `first`, `hit`, `p`, `a` and
+  `b` differ on NONE; `R` differs on exactly those whose `first` is `tgt`, because `R` is `rr`
+  there while the mark-to-market, the stop return and the tie return are shared.
+- **118 presence mismatches, and they carry a direction.** 113 are `prod` present with `ident`
+  absent, all anchored-admitted — the anchored pass admits setups the R:R veto refused at
+  `cur`, which is the defect TZ-33 exists to repair — and 5 run the other way, refused at the
+  anchor and admitted at `E`.
+- **With the anchor forced off**, the same run reads 7 848 comparisons, **zero** differences
+  and **zero** presence mismatches.
+
+**That the resolution leg did not move is the strongest thing in this reading**, and nothing
+currently checks it: §3.10 asserts it in prose, and the partition above is the measurement.
+**The repair is therefore a partition, never a narrower field set** — deleting `rr` and
+`tgtSig` from the comparison would be an assertion removed to make a bench pass (hard floor
+item 2) and would stop checking the very leg the prose promises. Reserved as TZ-37 (§10,
+inv. 69).
 
 **Capital-efficiency question, answered by identity.** P&L per dollar of margin =
 `L · move`, and the engine sets `L ≈ risk_budget / dist`, so ranking by capital EV
@@ -1151,30 +1275,52 @@ every unjournaled day is lost permanently.
 
 **Snapshot fields.** `d · ts · sym · pair · gen · age · px{src,cur,p24,qv,hi,lo,cnt}
 · reg · cd (analysis_data row verbatim) · btc (coeffs.btc verbatim) · rp ·
-long{…} · short{…} · cat{acting,hash} · fp{script,commit}`. Side block:
-`rel · score · tier · ch · action · why · note · verdict · wait · tgt · geo · dec · inv`.
-Objects returned by production functions are stored WHOLE and unrounded: a field not
-written today cannot be recovered from a year-old record, and it costs bytes. **Their
-members are deliberately NOT enumerated here** — an enumeration of a production return is a
-second copy of a shape this map does not own, and every such copy in this document has gone
-stale (inv. 20, 60); the authority is the function. Outcome line: `p0 · p1 · hi ·
-lo` plus, per side, the ISO hour of first touch of `tgt` / `stop` / `wait` and
-`first ∈ tgt|stop|tie|null`. `tie` means both levels fell inside one hourly candle
+long{…} · short{…} · cat{acting,hash} · fp{script,commit}`. Side block, since TZ-36:
+`rel · score · tier · ch · action · why · note · verdict · wait · tgt · geo · dec · inv ·
+anchor · decA · invA`.
+**A production return is stored as a NAMED PROJECTION, unrounded — and this map said WHOLE
+for four revisions.** «Whole» was the intent and is not the code: the writer lists the members
+it keeps, and `inv` is not a member of `dec` in the record at all, it is hoisted to a sibling.
+That is why the anchored stop lives in `invA` and never in `decA.inv`, and the distinction is
+load-bearing rather than pedantic — a reader written against the old sentence looks for
+`decA.inv`, finds nothing, and silently resolves against the other price; TZ-36 caught exactly
+that in its own Stage B before commit, and only because its fixture mirrored the record's real
+shape instead of a convenient one. Unrounded still holds and is the part the corpus depends
+on: a field not written today cannot be recovered from a year-old record, and it costs bytes.
+**The members are deliberately NOT enumerated here** — an enumeration of a production return
+is a second copy of a shape this map does not own, and every such copy in this document has
+gone stale (inv. 20, 60). The authority is the WRITER rather than the function, and the
+projection is precisely why. Outcome line: `p0 · p1 · hi ·
+lo` plus, per side, the ISO hour of first touch of `tgt` / `stop` / `wait`,
+`first ∈ tgt|stop|tie|null`, and since TZ-36 `sstop` — the level the resolution actually used
+— beside `ssrc ∈ decA|dec`, which names the recorded object that level was read from. `tie` means both levels fell inside one hourly candle
 and the order is genuinely unresolvable — recorded, not guessed.
 
-**Since TZ-33 the side block has the same SHAPE and a different MEANING, and no schema check
-can see the difference (inv. 66).** `geo` is now the ANCHORED geometry: `rr`, `reward` and
-`tgtSig` are measured at the price the card published, and `geo.wait` is null on every
-waiting row by the termination property (§3.12) — the wait price itself is unaffected, it
-lives in the side block's own `wait`. `dec` and `inv` are still the decision taken at `cur`,
-so on a waiting row **the journal records a stop the board did not print** while `planLine`
-printed `decA.inv.price`, and the outcome layer then times its `stop` touch against that
-recorded level — against a stop no card ever named. **Records are immutable (inv. 38), so
-the boundary is disclosed rather than repaired:** `fp{script,commit}` dates every record and
-the epoch is recoverable from it, which is the only reason this change is survivable at all.
-The repair is additive and is reserved as TZ-35 (§10); the first thing that TZ reads is
-whether the writer passes `btcStats` into `directionVerdict`'s fourteenth parameter, because
-a thirteen-argument call drops the BTC ceiling out of the anchored decision.
+**Since TZ-33 `geo` is the ANCHORED geometry** — `rr`, `reward` and `tgtSig` measured at the
+price the card published, `geo.wait` null on every waiting row by the termination property
+(§3.12), the wait price itself unaffected because it lives in the side block's own `wait`.
+For one revision `dec` and `inv` stood beside it still describing `cur`, so a waiting row
+recorded a stop the board did not print while `planLine` printed the anchored one, and the
+outcome layer timed its touch against a stop no card ever named: the same SHAPE, a different
+MEANING, invisible to every schema check (inv. 66).
+
+**Since TZ-36 the record carries a complete set at EACH price, and the epoch boundary is
+readable from the record itself.** `geo` + `anchor` + `decA` + `invA` describe the published
+entry; `dec` + `inv` describe `cur` and did NOT move, because the board, the card and every
+leverage control derive from the current-price decision (inv. 14) and the record must keep it.
+`decA` is written UNCONDITIONALLY, including on a `СЕЙЧАС` row where it is `dec`
+object-identically: storing it only where it differs would put production's pass-2 rule inside
+every future reader of the corpus, and a field whose absence means «look up the rule» is not a
+record. The outcome layer resolves against `invA.price` where the snapshot carries `decA` and
+against `inv.price` where it does not, and `ssrc` records which on EVERY line — a default in
+silence is the defect, a default that names itself is the disclosure (inv. 67). **Records are
+immutable (inv. 38), so the fourteen days written between TZ-33 and this merge are disclosed
+and never repaired**: they carry no `decA`, resolve through `ssrc:'dec'`, and any analysis
+pooling outcome lines across the boundary splits on that field, which is what it is for. The
+writer's call to `directionVerdict` already passed `btcStats` as the fourteenth argument —
+TZ-33 added it in the same commit that created the second pass — so the failure that would
+have dropped the BTC ceiling out of the anchored decision on waiting rows alone never existed
+in this tree.
 
 **Three standing decisions.**
 
@@ -2003,6 +2149,27 @@ cite them, so an invariant is rewritten in place and never renumbered.
     has not run (inv. 45), and a control whose partition is not written into the TZ is not a
     control but a hope. This is inv. 23's known answer applied to a set rather than a value.
 
+69. **An identity control names the WORLD in which the identity holds.**
+    Where production made that identity false, the repair is a PARTITION and never a narrower
+    comparison. Inv. 45 says a comparator is proven on identity before it is trusted on a
+    diff. This says the identity has PRECONDITIONS, that they are part of the control, and
+    that a control stating an unconditional identity converts the next legitimate production
+    change into a report about itself. `--lab-selftest`'s D4 asserted that a substituted arm handed
+    production's own target reproduces production's arm; TZ-33 gave production a second pass,
+    `prod`'s geometry became the anchored one while the substituted arm stayed at `E`, and the
+    claim became false on every waiting row — correctly, and with nothing to say about which
+    of the two facts had changed. **The two repairs a red identity invites are both wrong.**
+    Deleting the fields that moved is an assertion removed to make a bench pass (hard floor
+    item 2), and it silently stops checking the leg that did NOT move — here the resolution
+    leg, whose immobility is the whole claim `--target`'s additivity rests on. Retreating to
+    the flag alone is weaker than what the run can prove: the live path still has a knowable
+    answer. **The repaired form is a pair** — the identity re-asserted in the world where it
+    holds, and a partition on the live path naming field by field what must differ and what
+    must not, both populations non-zero (inv. 22, 68). The cost of leaving it red is set by
+    inv. 62 rather than by the control: D4 stood red across two TZs because the only trigger
+    that reaches it is a manual dispatch, so the repair also puts the control's CONSTRUCTION
+    where something already runs.
+
 ---
 
 ## 5. Limits
@@ -2156,7 +2323,12 @@ until someone re-runs the command.
 
 | Item | State | Trigger to act |
 |---|---|---|
-| TZ-33 moved the publication price and two recorders did not follow | **open — reserved as TZ-36** | nothing; TZ-34 and TZ-35 took the numbers 34 and 35 and this work moves to 36. One cause, two sites (inv. 66). `journal/write.js` records `geo` as the anchored object while `dec`/`inv` stay at `cur`, so a waiting row's stored stop is not the stop the card printed and the outcome layer times its touch against it — and the record is immutable, so **every 13:00 UTC run adds another one while this waits**. `bench/backtest_bench.py`'s `--target` production arm is admitted at the anchor and resolved at `E`; the repair there is a second arm, never a moved reference leg, because that leg is shared with the substituted arms. The journal is the primary and the arm is additive. **First read of that TZ:** whether the writer passes `btcStats` into `directionVerdict`'s fourteenth parameter — a thirteen-argument call drops the BTC ceiling out of the anchored decision only, which is invisible on every `СЕЙЧАС` row. **It also closes §0's open attribution for free:** it opens the journal, so it can count the side blocks carrying `wait !== null` and say whether that number is the 2 059 leaves step 7 lost |
+| TZ-33 moved the publication price and two recorders did not follow | **closed by TZ-36, merged** | nothing. Both sites moved and inv. 66 is satisfied: the journal records `anchor`/`decA`/`invA` beside `dec`/`inv` and resolves outcomes through `ssrc`, and `--target` carries `prod_anchor` beside `prod`. **The `prod_anchor` archive reading is OUTSTANDING and is its own row.** Original entry: One cause, two sites (inv. 66). `journal/write.js` records `geo` as the anchored object while `dec`/`inv` stay at `cur`, so a waiting row's stored stop is not the stop the card printed and the outcome layer times its touch against it — and the record is immutable, so **every 13:00 UTC run adds another one while this waits**. `bench/backtest_bench.py`'s `--target` production arm is admitted at the anchor and resolved at `E`; the repair there is a second arm, never a moved reference leg, because that leg is shared with the substituted arms. The journal is the primary and the arm is additive. **First read of that TZ:** whether the writer passes `btcStats` into `directionVerdict`'s fourteenth parameter — a thirteen-argument call drops the BTC ceiling out of the anchored decision only, which is invisible on every `СЕЙЧАС` row. **It also closes §0's open attribution for free:** it opens the journal, so it can count the side blocks carrying `wait !== null` and say whether that number is the 2 059 leaves step 7 lost |
+| `--lab-selftest`'s D4 has been red since TZ-33 | **open — reserved as TZ-37**, measured 09.09.2026 on the merged tree | nothing; the reading is taken and the repair is specified. The control asserts an unconditional identity between `prod` and `ident`, TZ-33 made `prod` two-pass, and the claim is now false on every waiting row and true on every other (§3.10a, inv. 69). **The lab has printed «НЕИСПРАВНА — результатам не верить» on every dispatch for two TZs and no push could say so**, because `--lab-selftest` runs only under `backtest_bench.yml` — inv. 62 with the trigger correct and the decay arriving from upstream. TZ-37 re-registers D4 as an anchor-off identity plus a live partition and puts the partition's CONSTRUCTION into gate step 14, where something already runs. **A red control is indistinguishable from a product defect inside an immutable report** (inv. 61), and this one has been quoted as «the lab is broken» once already |
+| `prod_anchor` has no archive figure | **built, unmeasured** | a `backtest_bench.yml` dispatch — `--fetch`, then `--target`. The arm exists, is self-tested offline in `--lab-selftest` D8/D9 and in gate step 14 section F, and **nothing is known or forecast about what it says on the archive** (inv. 43, 44). Until it is taken, the `--target` figures in §3.10a are the pre-TZ-33 single-pass arm's and the two are not comparable. The dispatch also carries the `unexplained` reading in the row below, so one dispatch answers both |
+| A §0 anchor could not match, and was reported as matched | **closed on the Architect side by the anchor rule in §0** | the next contract edit, for the Executor side. The inv. 68 anchor at `2026-09-08-b` differed from the invariant in case alone (`flip`/`FLIP`, `not`/`NOT`), so an exact-substring match was impossible, and TZ-36's report nevertheless recorded all seven as present as exact substrings. **Either the comparison was case-insensitive or it was not performed, and both are worse than a mismatch**, because the fingerprint gate is the one control that runs BEFORE any work and its whole value is that it blocks. Anchors are now copied and verified as literal substrings here before publication; what is not yet written anywhere is that the Executor must report the MATCHED SUBSTRING and not the verdict |
+| `bench/backtest_guard_bench.py` has TWO sections lettered `E` | watched, deliberate | any TZ adding a section there, which chooses its letter from the FILE and never by counting. TZ-32's regime-gate section and TZ-34's venue-observation section share `E`, and only the second prints a section line, so the first is unlabelled in the gate's output. **Renaming is refused for the reason invariant numbers are never renumbered**: a section letter appears in the immutable report of the TZ that created it, and moving it makes that report unreadable against the file. Same class as the D7 collision TZ-36 hit in `--lab-selftest`, and the same repair — the next section is chosen deliberately and the collision is stated |
+| `journal/write.js` cites `§4.1` four times and no document has a §4.1 | open, unowned | any TZ opening that file. The reference is to a superseded specification's own numbering, and `§` means this map everywhere else in the tree. Same class as `index.html:799` and `.gitignore`'s comment, and the same repair — **name the map section or delete the citation**, never invent a §4.1 to satisfy it |
 | UNI, XLM and ZEC class `unexplained` | **open — a MECHANISM was found and repaired; whether it is THE cause is unread** | before any figure from a post-run-#16 dispatch is cited. TZ-34 found a path in the source that produces this exact outcome — an undeclared coin cached on the perpetual, its venue recorded nowhere, its basis measured against a spot index — and closed it. **A mechanism that could produce an outcome is not the outcome's cause**, and the reading that decides it is `backtest_bench.yml` dispatched, `--fetch` then `--verify`, on a cache that now carries `venue`. Both answers are informative: perp means the class was wrong and the arms return to 30, spot means this mechanism is refuted for them and one candidate is eliminated by measurement rather than by argument. The per-field output that would name one is a runner artifact and a session may not fetch it (inv. 44), so this is a dispatch and a reading, not an authored hypothesis — and until it is taken, `--target`, `--regime-gate` and every mode behind the same gate measure 27 coins and say so through `excluded` |
 | Gate counters unread at revision `2026-09-08-a` | **closed 08.09.2026 — read on the runner** | nothing. Run #145 on `main` at `a76cecf` gave steps 4, 7 and 14 off the run page; §0 carries the new total and the two replaced terms. **The row closed on its own trigger — the next push — which is what a trigger costing nothing is for.** What it did NOT close is the attribution of step 7's −2 059, which moves to the TZ-36 row: a figure read is not a figure explained |
 | The number TZ-34 was issued under had been used once already | **closed — recorded so the history reads** | nothing. `13ebbaf` added `CryptoTZ/TZ-34-futures-archive-census.md`, `96c88ab` deleted it and `b5757f9` added `TZ-34-fetched-venue-observed.md`: a different specification under the same number. No report ever carried the first, so it never executed and the number was free to reuse. **The reuse was legitimate and invisible**, which is the reason for this row — a reader finding `13ebbaf` in the log has nothing else to tell them why |
@@ -2178,7 +2350,7 @@ until someone re-runs the command.
 | D3b compares the first ladder rung to the last, and the ladder overshoots | watched | a growth of section D, or an archive short enough to thin the last rung. Measured gap 89.5 % → 41.1 % → 14.5 % → **0.0 %** → 17.2 %: convergence is at `m = 16` and `m = 32` walks back out as its sample falls to 622 setups over 51 dates. D3c is what locates the limit and it selects `m = 16`, so the bar holds comfortably today; the clause a shorter history could break is D3b, not the ladder |
 | The closure check's blind spots | **open, unowned — the standing claim was falsified 05.09.2026** | an Architect judgement on widening the scan, which is a call about false positives and belongs in a TZ. It recognises three declaration forms — `function NAME(`, `var NAME`, declared parameters — and collects references in two, `NAME(` and an ALL-CAPS token. This row used to close on «no such name exists in any of the four bundles today», and TZ-30 measured otherwise: `JS_DRIVER` declares `var cachedFunding` and the score bundle genuinely reads it, but as `cachedFunding[sym]`, a property access neither pattern collects. **The real instance of the thing the check exists to catch is invisible to it**, and the direction is the unsafe one: an unrecognised DECLARATION raises loudly, an unrecognised REFERENCE passes silently. The same run measured `resolved ONLY by driver: []` on all four bundles — 45, 23, 14 and 116 references seen — so the driver half of the `known` set is load-bearing for nothing today and the check's driver arm has never fired |
 | `_skip_to_matching_brace` could rewind on an unterminated block comment | **closed by TZ-28**, as a consequence rather than a request | nothing. `str.find("*/", …)` returns `−1`, so the scanner jumped to index 1 and rescanned the file from the top. A single shared description of string and comment traversal (inv. 20) cannot rewind or the stripper loops, so the factoring had to fix it; unreachable on any well-formed `index.html`, and the direction of the change is a stop where the old code could loop |
-| `journal_bench.js` count is content-sensitive (§0) | watched; held at 691 109 through TZ-15 | the first step-7 delta that cannot be attributed field by field, or any TZ touching `journal/write.js` |
+| `journal_bench.js` count is content-sensitive (§0) | watched; **774 130 since TZ-36**, and every delta attributed | the first step-7 delta that cannot be attributed field by field, or any TZ touching `journal/write.js`. The −2 059 that opened at TZ-33 is closed (§0) and it is the cautionary case: the map named a population, the population was wrong twice over, and only a per-path census closed it |
 | `NaN% от входа` at `E ≤ 0` in «ГРАНИЦЫ СДЕЛКИ» | pre-existing, unreachable live | any TZ touching that block. `Math.abs(liqSel / E - 1)` at `E = 0` is `0/0`; entry price is never zero on a live board, so it buys a diff and no safety |
 | Raw Cyrillic literal at `bench/prot_bench.js:177` | pre-existing, bench-only | any TZ editing that bench. It violates the ES5/escape rule the frontend keeps, in a file no browser loads |
 | `prot_bench.js` optional baseline suite | repaired in TZ-11 — neither side stripped, unconditional identity run inside the default suite, comparison counter with a zero-comparison guard | nothing; inv. 45 is satisfied by the gate itself |
