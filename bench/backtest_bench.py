@@ -804,9 +804,9 @@ def _fetch_best(legs, attempt, pair, t_ref):
     `legs` is the sequence of `is_fut` values to attempt — `(True,)` for a coin
     declared `fut:true`, `(False, True)` otherwise. The order is the caller's and
     does not move here (TZ-34 §3.2). `attempt(is_fut)` performs one leg and
-    returns `(rows, why, ticker, note)`; it is a parameter because it is the only
-    part that touches the network, which leaves the rule below testable offline
-    against synthetic legs (inv. 21).
+    returns `(rows, why, ticker, note, tx)`; it is a parameter because it is the
+    only part that touches the network, which leaves the rule below testable
+    offline against synthetic legs (inv. 21).
 
     The census reports the BEST attempt, not the last one. A spot coin whose
     post-rename leg is real but short falls through to the futures leg, which
@@ -817,20 +817,39 @@ def _fetch_best(legs, attempt, pair, t_ref):
     A tie keeps the leg attempted FIRST, which is what the strict `>` has always
     done: spot, for a coin not declared. The declaration is not an argument of
     this function and cannot reach the answer.
+
+    ONE rule is added by ТЗ-38 §5.1: A LEG THAT SUFFERED EXHAUSTION IS NOT
+    ELIGIBLE TO WIN. It is not compared on length and it does not trigger the
+    `>= 2600` early break. Because a PARTIAL leg can be LONGER than a complete
+    one, and «keep the longest» would then prefer the damaged series over the
+    sound one — inv. 70's single arithmetic clause, and the mechanism by which
+    a naive repair truncates silently.
+
+    The returned `tx` aggregates the legs ATTEMPTED and carries `won_clean`, the
+    key the caller branches on. A coin whose spot leg died on transport and
+    whose futures leg answered in full is therefore USABLE, and the census line
+    still NAMES the dead leg — a fact discarded in silence is what ТЗ-38
+    removes.
     """
-    best, best_fut = ([], "", pair, ""), None
+    best, best_fut, best_tx = ([], "", pair, "", _tx()), None, None
+    agg = _tx()
     for is_fut in legs:
         cand = attempt(is_fut)
+        ctx = cand[4]
+        _tx_merge(agg, ctx)
+        if ctx["exhausted"]:
+            continue                    # not compared, and no early break
         if len(cand[0]) > len(best[0]):
-            best, best_fut = cand, is_fut
+            best, best_fut, best_tx = cand, is_fut, ctx
         if len(cand[0]) >= 2600:
             break
-    rows, why, ticker, note = best
+    rows, why, ticker, note = best[0], best[1], best[2], best[3]
     P, V, HL = _series_from_rows(rows) if rows else ({}, {}, {})
     cov = census(P, t_ref)
     cov["ticker"] = ticker
     cov["venue"] = _venue_name(best_fut)
-    return rows, why, ticker, note, P, V, HL, cov
+    agg["won_clean"] = bool(rows) and best_tx is not None and best_tx["exhausted"] == 0
+    return rows, why, ticker, note, P, V, HL, cov, agg
 
 
 def print_census(sym, ticker, cov, verdict):
@@ -895,22 +914,210 @@ HOSTS = [
 ]
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# TRANSPORT — the ONE place this file touches the network (ТЗ-38 §3)
+# ─────────────────────────────────────────────────────────────────────────────
+# Run #19 died at «Закачка истории» on one `Connection reset by peer`: six of
+# the seven `requests.get` sites carried no handler at all, so a reset on one
+# month of one coin ended the download of thirty-one.
+#
+# The OBVIOUS repair is worse than the crash. Catching the exception and
+# counting the month absent writes a series short by exactly the hours the
+# reset covered, and inv. 63 records what a short series does: it raises
+# nothing, because it is a smaller sample that still ANSWERS. Inv. 70 therefore
+# requires THREE outcomes where the code had two — answered, absent, exhausted —
+# with exhaustion failing the COIN, naming itself in the census, and never
+# reaching `_save`.
+#
+# These four constants judge the NETWORK, not the market, so inv. 32 does not
+# reach them. What does reach them is that a constant whose consequence nobody
+# can see is a constant nobody can move, so `--fetch` PRINTS the budget it
+# consumed.
+HTTP_TRIES    = 3                  # one attempt plus two retries
+HTTP_BACKOFF  = (2.0, 8.0)         # seconds slept before retry 1 and retry 2
+HTTP_RETRY_ST = (408, 418, 425, 429, 500, 502, 503, 504)
+HTTP_BUDGET_S = 600.0              # retry sleep allowed across the whole process
+#
+# Why 600. backtest_bench.yml carries `timeout-minutes: 120` for a job of
+# thirteen bench steps; 600 s is 8.3 % of it, so a host that black-holes every
+# request cannot consume the dispatch — it fails the coins it touches and the
+# run reaches the modes that do not need them. Worst case per URL is 10 s of
+# sleep plus three times the caller's own timeout (190 s against the archive's
+# timeout=60), and the budget bounds the total however many URLs reach it.
+#
+# No jitter. Jitter spreads a HERD; this is one sequential client with no herd
+# to spread, and determinism lets the garrison assert the ladder exactly rather
+# than bound it. Alternative discarded: full jitter U(0.5, 1.0)·base.
+
+_SLEEP = time.sleep      # rebindable: the garrison asserts the ladder without
+                         # spending 10 s per fixture (§3.1 rule 5)
+_HTTP_SPENT = [0.0]      # seconds of BACKOFF spent, process-wide and monotone
+_SESSION = [None, None]  # (the `requests` module object, its Session)
+
+
+def _http_spent():
+    """Backoff seconds consumed so far. Read by `--fetch` to print what the
+    budget above actually cost, because a constant nobody can see is a constant
+    nobody can move."""
+    return _HTTP_SPENT[0]
+
+
+def _session():
+    """One `requests.Session`, created on first use and reused thereafter:
+    connection reuse across the hundreds of ZIPs one `--fetch` asks of one host
+    is the whole point.
+
+    The cache is keyed on the `requests` MODULE OBJECT and rebuilt when that
+    object changes. `backtest_guard_bench.py` installs a fresh fake `requests`
+    several times in one process and pops it in between; a session cached across
+    installs would keep recording into a dead stub, and a control that measures
+    the wrong recorder is worse than no control (inv. 22).
+
+    Returns None where the module carries no `Session` at all. `verify_bench.py`
+    stubs `requests` with a bare `get` and is NOT in this ТЗ's scope, so the
+    helper degrades to the module-level call rather than requiring every stub in
+    the repository to grow an interface it does not exercise. Reuse is an
+    OPTIMISATION; refusing to run without it would be a new coupling."""
+    import requests
+    if getattr(requests, "Session", None) is None:
+        return None
+    if _SESSION[0] is not requests or _SESSION[1] is None:
+        _SESSION[0] = requests
+        _SESSION[1] = requests.Session()
+    return _SESSION[1]
+
+
+def _http(url, timeout, params=None, tries=HTTP_TRIES, want_json=False,
+          session=None, headers=None):
+    """Fetch one URL and return a RECORD, never a `requests.Response`, so that
+    no caller can read a status off an object that may not exist.
+
+        {"ok": bool,        # a reply arrived — ANY status, 404 included
+         "status": int|None,
+         "content": bytes,  # b"" when not ok
+         "json": obj|None,  # only when want_json and ok
+         "tries": int,      # attempts actually made
+         "slept": float,    # seconds THIS call spent in backoff
+         "why": str}        # "" when ok; else the exception type or "HTTP 503 ×3"
+
+    `ok` means A REPLY ARRIVED. `404` is `ok: True, status: 404` — the month is
+    not published, and that is DATA (inv. 70). Only a request that never
+    completed is a fact about the network.
+
+    Retry only on transport and only on `HTTP_RETRY_ST`. A `404`, `403` or `451`
+    returns on the first attempt with `tries == 1`: retrying an ANSWER spends the
+    budget the real failures need, and the daily-refill loop legitimately
+    produces hundreds of 404s.
+
+    The caught set is `(requests.exceptions.RequestException, OSError)` and
+    nothing wider — `ConnectionResetError` and `socket.timeout` are `OSError`.
+    A bare `except Exception` would convert a `TypeError` in a URL builder into
+    a network verdict, which is this repair's own defect committed one level up.
+    A non-matching exception PROPAGATES.
+
+    The body read is INSIDE the retried block: a reset arriving while the ZIP is
+    read is the failure that killed run #19, and a helper that retried only the
+    connect would not catch it."""
+    import requests
+    # `getattr` rather than attribute access for the same reason `_session`
+    # degrades: a stub carrying only `get` has no `exceptions` namespace. The
+    # fallback is STRICTLY NARROWER — never wider — so a code defect still
+    # propagates and never becomes a network verdict (§3.3 rule 3).
+    _exc = getattr(requests, "exceptions", None)
+    _rexc = getattr(_exc, "RequestException", None) if _exc is not None else None
+    caught = (_rexc, OSError) if _rexc is not None else (OSError,)
+    if _HTTP_SPENT[0] >= HTTP_BUDGET_S:
+        # Budget spent: every later call makes exactly one attempt and sleeps
+        # not at all. The run still reaches the modes that need no network.
+        tries = 1
+    s = session if session is not None else _session()
+    rec = {"ok": False, "status": None, "content": b"", "json": None,
+           "tries": 0, "slept": 0.0, "why": ""}
+    kw = {"timeout": timeout}
+    if params is not None:
+        kw["params"] = params
+    if headers is not None:
+        kw["headers"] = headers
+    for n in range(max(1, int(tries))):
+        rec["tries"] = n + 1
+        try:
+            r = s.get(url, **kw) if s is not None else requests.get(url, **kw)
+            rec["status"] = r.status_code
+            # `getattr`: a JSON-only response stub carries no body, and the
+            # body is not what a `want_json` caller reads. Production's own
+            # Response always has it.
+            rec["content"] = getattr(r, "content", b"") or b""
+            if r.status_code not in HTTP_RETRY_ST:
+                rec["ok"] = True
+                rec["why"] = ""
+                if want_json:
+                    rec["json"] = r.json()
+                return rec
+            rec["why"] = "HTTP %s ×%d" % (r.status_code, rec["tries"])
+        except caught as e:
+            rec["status"] = None
+            rec["content"] = b""
+            rec["why"] = type(e).__name__
+        if n + 1 < max(1, int(tries)):
+            d = float(HTTP_BACKOFF[min(n, len(HTTP_BACKOFF) - 1)])
+            _HTTP_SPENT[0] += d
+            rec["slept"] += d
+            _SLEEP(d)
+    # Not ok: the record carries no body, whether the attempts ended on a
+    # transport failure or on a retry status that never cleared. A caller that
+    # cannot get a status off a Response must not get a half-body either.
+    rec["content"] = b""
+    return rec
+
+
+def _tx():
+    """The zero transport record. `exhausted` counts requests that never got a
+    reply after their budget; `url` and `why` name the FIRST such request."""
+    return {"exhausted": 0, "url": None, "why": "", "slept": 0.0}
+
+
+def _tx_add(tx, url, r):
+    """Fold one `_http` result into `tx`. Backoff is accumulated whatever the
+    outcome — it was spent either way — and `exhausted` moves ONLY on a request
+    that never got a reply."""
+    tx["slept"] += r["slept"]
+    if not r["ok"]:
+        tx["exhausted"] += 1
+        if tx["url"] is None:
+            tx["url"], tx["why"] = url, r["why"]
+    return tx
+
+
+def _tx_merge(tx, other):
+    """Fold a callee's transport record into the caller's. One definition site
+    for the fold, rather than the same four lines at each call (inv. 20)."""
+    tx["slept"] += other["slept"]
+    tx["exhausted"] += other["exhausted"]
+    if tx["url"] is None and other["url"] is not None:
+        tx["url"], tx["why"] = other["url"], other["why"]
+    return tx
+
+
 def probe(verbose=True):
     """20 секунд на диагноз. Binance закрывает публичные данные для США (HTTP 451),
     а раннеры GitHub стоят именно там — прогон 10.08 умер ровно на этом и не сказал
-    об этом ни слова, потому что код глотал код ответа. Больше не глотает."""
-    import requests
+    об этом ни слова, потому что код глотал код ответа. Больше не глотает.
+
+    `tries=1`: one attempt is the point of a twenty-second diagnosis, and a
+    probe that retried would report the network it eventually got rather than
+    the one the run is about to meet."""
     alive = []
     for key, name, url in HOSTS:
-        try:
-            r = requests.get(url, timeout=20)
-            code, note = r.status_code, ""
+        r = _http(url, timeout=20, tries=1)
+        if r["ok"]:
+            code, note = r["status"], ""
             if code == 451:
                 note = " — доступ закрыт по географии (раннер в США)"
             elif code == 200:
                 alive.append(key)
-        except Exception as e:
-            code, note = "нет связи", " — " + type(e).__name__
+        else:
+            # The same exception type name this line has always printed.
+            code, note = "нет связи", " — " + r["why"]
         if verbose:
             print("  %-32s %s%s" % (name, code, note))
     return alive
@@ -970,8 +1177,16 @@ def _vision_rows(pair, is_fut, t_beg, t_end):
 
     Months absent BEFORE the pair's first archived month are pre-listing and
     have no daily files either, so they are not refilled: the fill window is
-    read off the data (the first month that answered 200), never declared."""
-    import requests
+    read off the data (the first month that answered 200), never declared.
+
+    Returns `(rows, gone, note, tx)`. `gone` counts ONLY answered-and-absent
+    months: an exhausted request never increments it, and that single line is
+    what inv. 70 is about — merging «the month is not published» with «the
+    network never answered» is how a loud failure becomes a silent one.
+
+    The leg ABORTS on the first exhaustion, monthly loop or daily loop, and
+    returns with what it has. The coin has already failed; spending the run's
+    budget on its remaining months buys a series that will be discarded."""
     base = ("https://data.binance.vision/data/futures/um" if is_fut
             else "https://data.binance.vision/data/spot")
     beg = time.gmtime(t_beg / 1000)
@@ -981,11 +1196,15 @@ def _vision_rows(pair, is_fut, t_beg, t_end):
         months.append("%04d-%02d" % (y, m))
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
     rows, gone, have = [], [], []
+    tx = _tx()
     for mo in months:
         u = "%s/monthly/klines/%s/1h/%s-1h-%s.zip" % (base, pair, pair, mo)
-        r = requests.get(u, timeout=60)
-        if r.status_code == 200:
-            rows += _rows_from_zip(r.content)
+        r = _http(u, timeout=60)
+        _tx_add(tx, u, r)
+        if not r["ok"]:
+            return rows, len(gone), "СВЯЗЬ ИСЧЕРПАНА на месячном файле: %s" % r["why"], tx
+        if r["status"] == 200:
+            rows += _rows_from_zip(r["content"])
             have.append(mo)
         else:
             gone.append(mo)
@@ -994,9 +1213,12 @@ def _vision_rows(pair, is_fut, t_beg, t_end):
             continue
         for day in _month_days(mo, t_beg, t_end):
             u = "%s/daily/klines/%s/1h/%s-1h-%s.zip" % (base, pair, pair, day)
-            r = requests.get(u, timeout=60)
-            if r.status_code == 200:
-                rows += _rows_from_zip(r.content)
+            r = _http(u, timeout=60)
+            _tx_add(tx, u, r)
+            if not r["ok"]:
+                return rows, len(gone), "СВЯЗЬ ИСЧЕРПАНА на дневном файле: %s" % r["why"], tx
+            if r["status"] == 200:
+                rows += _rows_from_zip(r["content"])
     note = ""
     lch = (int(t_end) // HOUR_MS) * HOUR_MS      # close of the last complete hour
     if rows:
@@ -1011,37 +1233,55 @@ def _vision_rows(pair, is_fut, t_beg, t_end):
                 # archive's own lag is REPORTED by the census instead.
                 note = "хвост перпа не добирается: зеркала фьючерсов нет"
             else:
-                add, code = _rest_rows("https://data-api.binance.vision",
-                                       "/api/v3/klines", pair, tail, lch)
+                add, code, atx = _rest_rows("https://data-api.binance.vision",
+                                            "/api/v3/klines", pair, tail, lch)
+                _tx_merge(tx, atx)
                 # The hour in progress is not a closed candle: a partial bar
                 # would enter the series as an hourly close and be wrong in the
                 # only place the whole run reads.
                 add = [k for k in (add or []) if int(k[0]) < lch]
                 if add:
                     rows += add
+                elif atx["exhausted"]:
+                    # NOT «HTTP None»: the mirror never answered, which is a
+                    # fact about the network and not about the archive.
+                    note = "хвост НЕ ДОБРАН — связь исчерпана (%s)" % atx["why"]
                 else:
                     note = "хвост не добран (HTTP %s)" % code
-    return rows, len(gone), note
+    return rows, len(gone), note, tx
 
 
 def _rest_rows(host, path, pair, t_beg, t_end):
-    import requests
+    """Pages of klines from a REST mirror. Returns `(rows, code, tx)`; on
+    exhaustion `(None, None, tx)`.
+
+    The old unbounded branch that slept thirty seconds on 429/418 and retried
+    forever is GONE, its work now being the helper's — both codes are in
+    `HTTP_RETRY_ST`.
+    That is a deliberate NARROWING: the old branch looped without bound, and a
+    run that never ends reports nothing at all. Three bounded attempts and a
+    named failure are strictly more informative.
+
+    The `time.sleep(0.25)` pacing between pages stays. It is not a retry."""
     rows, cur = [], t_beg
+    tx = _tx()
+    u = host + path
     while cur < t_end:
-        r = requests.get(host + path, timeout=30, params={
+        r = _http(u, timeout=30, want_json=True, params={
             "symbol": pair, "interval": "1h",
             "startTime": cur, "endTime": t_end, "limit": 1000})
-        if r.status_code in (429, 418):
-            time.sleep(30); continue
-        if r.status_code != 200:
-            return None, r.status_code
-        j = r.json()
+        _tx_add(tx, u, r)
+        if not r["ok"]:
+            return None, None, tx
+        if r["status"] != 200:
+            return None, r["status"], tx
+        j = r["json"]
         if not j:
             break
         rows += [[int(k[0]), k[1], k[2], k[3], k[4], k[5], 0, k[7]] for k in j]
         cur = int(j[-1][0]) + HOUR_MS
         time.sleep(0.25)
-    return rows, 200
+    return rows, 200, tx
 
 
 def _series_from_rows(rows):
@@ -1137,9 +1377,21 @@ def _splice(old_rows, new_rows):
 
 
 def _try_alias(pair, is_fut, t_beg, t_end, new_rows):
-    """One candidate, fetched and judged at run time. Returns (rows, ticker)."""
+    """One candidate, fetched and judged at run time. Returns (rows, ticker).
+
+    `_splice`'s bar is DERIVED from the two legs' own hourly extremes (inv. 49,
+    63). A leg cut short by a reset would move that bar with it, and the splice
+    would then be admitted or refused by an accident of the network — so a
+    truncated old leg is not spliced at all. The symbol enters by its
+    post-rename leg alone, exactly as a REFUSED splice does; the wording differs
+    because a refusal is an arithmetic verdict and this is not one (ТЗ-38 §4.4)."""
     old = ALIAS[pair]
-    orows, _m, _n = _vision_rows(old, is_fut, t_beg, t_end)
+    orows, _m, _n, otx = _vision_rows(old, is_fut, t_beg, t_end)
+    if otx["exhausted"]:
+        print("    СКЛЕЙКА %s -> %s · старое плечо НЕ ПРОЧИТАНО: связь исчерпана "
+              "(%s) — склейка не выполнялась, монета входит поздним плечом"
+              % (old, pair, otx["why"]))
+        return new_rows, pair
     sp = _splice(orows, new_rows)
     print("    СКЛЕЙКА %s -> %s · стык %s · плечо до %d ч · доходность стыка "
           "%s за %d ч"
@@ -1172,6 +1424,10 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
           % ("монета", "тикер", "площадка", "начало", "конец", "часов", "хвост",
              "дыр", "ч дыр", "дыра с", "дыра по", "вердикт"))
     ok = 0
+    # `dead` is the coins the NETWORK cost this run. They are named at the end
+    # because a universe of twenty-eight of thirty-one is a universe that must
+    # be STATED (§3.10b), not silently smaller.
+    dead = []
     for t in toks:
         sym, pair, fut = t["name"], t["s"], bool(t.get("fut"))
         cf = os.path.join(CACHE, sym + ".json")
@@ -1198,30 +1454,39 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
 
         def attempt(is_fut, pair=pair):
             """One leg. Returns what the census compares: (rows, why, ticker,
-            note). The venue of this leg is `is_fut`, and `_fetch_best` is the
-            only thing that records it."""
+            note, tx). The venue of this leg is `is_fut`, and `_fetch_best` is
+            the only thing that records it."""
             ticker, note = pair, ""
             if source == "vision":
-                rows, miss, note = _vision_rows(pair, is_fut, t_beg, t_end)
+                rows, miss, note, tx = _vision_rows(pair, is_fut, t_beg, t_end)
                 why = "нет %d месячных файлов" % miss + ((", " + note) if note else "")
-                if pair in ALIAS:
+                if pair in ALIAS and not tx["exhausted"]:
                     rows, ticker = _try_alias(pair, is_fut, t_beg, t_end, rows)
             else:
                 host = (("https://fapi.binance.com", "/fapi/v1/klines") if is_fut else
                         (("https://data-api.binance.vision", "/api/v3/klines")
                          if source == "dataapi" else
                          ("https://api.binance.com", "/api/v3/klines")))
-                rows, code = _rest_rows(host[0], host[1], pair, t_beg, t_end)
+                rows, code, tx = _rest_rows(host[0], host[1], pair, t_beg, t_end)
                 rows, why = rows or [], "HTTP %s" % code
-            return rows, why, ticker, note
+            return rows, why, ticker, note, tx
 
         # The leg ORDER is decided here, by the declaration, and is unchanged:
         # a declared perpetual attempts futures only, everything else attempts
         # spot and then futures (§3.2). What the declaration does NOT decide is
         # which leg won — that is `_fetch_best`'s answer and it writes it into
         # `cov["venue"]`.
-        rows, why, ticker, note, P, V, HL, cov = _fetch_best(
+        rows, why, ticker, note, P, V, HL, cov, tx = _fetch_best(
             (True,) if fut else (False, True), attempt, pair, t_end)
+        # ORDER IS LOAD-BEARING (ТЗ-38 §5.2). A partial series can clear 2 600
+        # hours and a 5 % hole fraction and be saved as a healthy coin. The
+        # transport verdict runs FIRST and there is no path from it to `_save`.
+        if not tx["won_clean"]:
+            print_census(sym, ticker, cov,
+                         "СВЯЗЬ ИСЧЕРПАНА: %d запрос(ов) без ответа (%s) — монета НЕ сохранена"
+                         % (tx["exhausted"], tx["why"]))
+            dead.append(sym)
+            continue
         if len(rows) < 2600:
             # «no data» and «a real leg the skip rule refused» are two facts and
             # the line says which one it is.
@@ -1237,6 +1502,10 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
         if good:
             ok += 1
     print("монет в кэше: %d из %d" % (ok, len(toks)))
+    if dead:
+        print("связь исчерпана на %d монет(ах): %s — ретраи потратили %.1f с из %.0f"
+              % (len(dead), ", ".join(dead), _http_spent(), HTTP_BUDGET_S))
+    # The exit code does NOT change: a coin fails, not the run.
     if ok < 8:
         sys.exit("СТОП: монет меньше восьми — прогон бессмыслен.")
 
@@ -1245,7 +1514,6 @@ def fetch_cg(bot_path, years=1):
     """ЗАПАСНОЙ источник — бесплатный тариф Demo (10 000 вызовов/мес, история
     365 дней, часовой шаг только кусками ≤90 дней). Годится для сверки с ботом,
     не для основного прогона: 365 дней = ~39 дат, а этого мало (см. мощность)."""
-    import requests
     src = open(bot_path, encoding="utf-8").read()
     tokens = ast.literal_eval(re.search(r"TOKENS\s*=\s*(\{.*?\n\})", src, re.S).group(1))
     tokens["BTC"] = "bitcoin"
@@ -1267,16 +1535,22 @@ def fetch_cg(bot_path, years=1):
                          "площадка не записана — перекачка")
         P, V = {}, {}
         for (a, b) in chunks:
-            r = requests.get(
+            r = _http(
                 "https://api.coingecko.com/api/v3/coins/%s/market_chart/range" % cid,
                 params={"vs_currency": "usd", "from": a, "to": b},
-                headers=({"x-cg-demo-api-key": key} if key else {}), timeout=30)
+                headers=({"x-cg-demo-api-key": key} if key else {}), timeout=30,
+                want_json=True)
             calls += 1
-            if r.status_code == 429:
-                time.sleep(65); continue
-            if r.status_code != 200:
-                print("  %-7s чанк -> %d" % (sym, r.status_code)); time.sleep(2); continue
-            j = r.json()
+            # The explicit 429 branch is GONE the way `_rest_rows`'s did: 429 is
+            # in HTTP_RETRY_ST and the helper's bounded ladder replaces an
+            # unbounded `sleep(65); continue`. An exhausted chunk is reported
+            # and the next chunk is attempted, exactly as a non-200 already was.
+            if not r["ok"]:
+                print("  %-7s чанк -> связь исчерпана (%s)" % (sym, r["why"]))
+                time.sleep(2); continue
+            if r["status"] != 200:
+                print("  %-7s чанк -> %d" % (sym, r["status"])); time.sleep(2); continue
+            j = r["json"]
             for ts, p in j.get("prices", []):
                 P[int(ts) // HOUR_MS] = [int(ts), float(p)]
             for ts, v in j.get("total_volumes", []):
@@ -1397,8 +1671,13 @@ def reconcile(bot_path, html_path=None):
     поэтому красную сверку приходилось читать человеку. Теперь каждая ячейка за
     порогом получает класс, и класс решает: `venue-basis` — справочно (§3.14),
     `coverage` и `unexplained` — ненулевой код возврата с названной причиной."""
-    import requests
-    live = requests.get(GIST_LIVE, timeout=30).json()
+    _r = _http(GIST_LIVE, timeout=30, want_json=True)
+    if not _r["ok"]:
+        # Printing a failure is not returning one (contract §9): `sys.exit`
+        # with a message returns 1 and says why on one line, instead of the
+        # traceback an unhandled reset used to produce here.
+        sys.exit("СТОП: живой coeffs.json не получен: %s" % _r["why"])
+    live = _r["json"]
     ref = {d["symbol"]: d for d in live["analysis_data"]} if isinstance(
         live.get("analysis_data"), list) else live["analysis_data"]
     gen = live.get("generated_at", "")
@@ -2249,7 +2528,10 @@ def _fund_rows_from_zip(blob):
 
 
 def fetch_funding(html_path, years=3):
-    import requests
+    """The same defect as `fetch_prices` and the same repair (ТЗ-38 §5.3):
+    `miss` counts answered-absent months ONLY, an exhausted request aborts that
+    coin's funding leg, and no `_fund_<SYM>.json` is written for it. The
+    `ok < 8` exit is unchanged — a coin fails, not the run."""
     os.makedirs(CACHE, exist_ok=True)
     toks = tokens_from_html(html_path)
     t_end = int(time.time() * 1000)
@@ -2261,6 +2543,7 @@ def fetch_funding(html_path, years=3):
         months.append("%04d-%02d" % (y, m))
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
     ok = 0
+    dead = []
     for t in toks:
         sym, pair = t["name"], t["s"]
         f = os.path.join(CACHE, "_fund_%s.json" % sym)
@@ -2268,15 +2551,26 @@ def fetch_funding(html_path, years=3):
             print("  %-7s funding уже в кэше" % sym)
             ok += 1
             continue
-        rows, miss = [], 0
+        rows, miss, tx = [], 0, _tx()
         for mo in months:
             u = ("https://data.binance.vision/data/futures/um/monthly/"
                  "fundingRate/%s/%s-fundingRate-%s.zip" % (pair, pair, mo))
-            r = requests.get(u, timeout=60)
-            if r.status_code == 200:
-                rows += _fund_rows_from_zip(r.content)
+            r = _http(u, timeout=60)
+            _tx_add(tx, u, r)
+            if not r["ok"]:
+                break                       # this coin's leg is over
+            if r["status"] == 200:
+                rows += _fund_rows_from_zip(r["content"])
             else:
                 miss += 1
+        if tx["exhausted"]:
+            # Ordered before the «МАЛО» bar for the same reason `fetch_prices`
+            # orders its verdict first: a truncated funding leg can clear 200
+            # prints and be written as a healthy one.
+            print("  %-7s funding СВЯЗЬ ИСЧЕРПАНА: %d запрос(ов) без ответа (%s) — не сохранено"
+                  % (sym, tx["exhausted"], tx["why"]))
+            dead.append(sym)
+            continue
         rows.sort()
         if len(rows) < 200:                 # < ~67 days of 8h prints
             print("  %-7s funding МАЛО (%d выплат, нет %d мес.)"
@@ -2286,6 +2580,9 @@ def fetch_funding(html_path, years=3):
         print("  %-7s funding ok  %5d выплат" % (sym, len(rows)))
         ok += 1
     print("funding в кэше: %d из %d" % (ok, len(toks)))
+    if dead:
+        print("связь исчерпана на %d монет(ах): %s — ретраи потратили %.1f с из %.0f"
+              % (len(dead), ", ".join(dead), _http_spent(), HTTP_BUDGET_S))
     if ok < 8:
         sys.exit("СТОП: funding меньше чем у восьми монет — тест бессмыслен.")
 

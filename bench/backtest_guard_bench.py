@@ -205,21 +205,63 @@ def month_hours(mo):
     return calendar.monthrange(y, m)[1] * 24
 
 
+class _FakeRequestException(Exception):
+    """The stub's transport failure. Defined ONCE at module level so its class
+    identity survives every `install()`: `_http` builds its caught set from
+    `requests.exceptions.RequestException`, and a class rebuilt per install
+    would not be the one it catches."""
+
+
+_FAKE_EXCEPTIONS = types.ModuleType('requests.exceptions')
+_FAKE_EXCEPTIONS.RequestException = _FakeRequestException
+
+
 class Archive(object):
     """A synthetic data.binance.vision that RECORDS every URL it was asked for.
 
     Half the rules below are about a request that must NOT be made, and a row
     count cannot tell «not fetched» from «fetched and empty» (inv. 22). Only
-    the recorded list can, so it is the assertion target."""
+    the recorded list can, so it is the assertion target.
 
-    def __init__(self, monthly=None, daily=None, rest=None):
+    ТЗ-38 §7.1. The stub carries `Session` and `exceptions` because production
+    now uses both, and a stub that does not model the interface production uses
+    is a control measuring something else (inv. 22). `faults={"substring": n}`
+    raises a transport exception the first `n` times a matching URL is asked
+    for and RECORDS the attempt either way; `codes={"substring": st}` answers a
+    matching URL with status `st`."""
+
+    def __init__(self, monthly=None, daily=None, rest=None, faults=None,
+                 codes=None, exc=None):
         self.monthly = monthly or {}          # "YYYY-MM"    -> rows | None=404
         self.daily = daily or {}              # "YYYY-MM-DD" -> rows | None=404
         self.rest = rest or []                # klines the mirror offers
+        self.faults = dict(faults or {})      # url substring -> raises left
+        self.codes = dict(codes or {})        # url substring -> status
+        self.exc = exc or _FakeRequestException
         self.urls = []
 
+    def session(self):
+        """`requests.Session()`. Its `get` IS this archive's recorder, so reuse
+        is exercised rather than bypassed."""
+        arch = self
+
+        class _Session(object):
+            def get(self, url, **kw):
+                return arch.get(url, **kw)
+
+        return _Session()
+
     def get(self, url, **kw):
+        # Recorded BEFORE any fault fires: an attempt that raised is still an
+        # attempt, and item H5 reads the abort off this list.
         self.urls.append(url)
+        for sub in sorted(self.faults):
+            if sub in url and self.faults[sub] > 0:
+                self.faults[sub] -= 1
+                raise self.exc('Connection reset by peer')
+        for sub in sorted(self.codes):
+            if sub in url:
+                return _Resp(self.codes[sub])
         m = re.search(r'-1h-(\d{4}-\d{2}-\d{2})\.zip$', url)
         if m:
             rows = self.daily.get(m.group(1))
@@ -238,6 +280,8 @@ class Archive(object):
     def install(self):
         fake = types.ModuleType('requests')
         fake.get = self.get
+        fake.Session = self.session
+        fake.exceptions = _FAKE_EXCEPTIONS
         sys.modules['requests'] = fake
         return self
 
@@ -276,7 +320,7 @@ arch = Archive(
                for d in range(month_hours(GAPMO) // 24)),
 ).install()
 
-rows, gone, note = bb._vision_rows('AAAUSDT', False, t_beg, t_end)
+rows, gone, note, _tx1 = bb._vision_rows('AAAUSDT', False, t_beg, t_end)
 got = set(int(r[0]) for r in rows)
 gap_hours = set(month_start(GAPMO) + i * HOUR for i in range(month_hours(GAPMO)))
 ok('1. the interior absent month is refilled from its dailies',
@@ -308,7 +352,7 @@ mirror = [kline(month_start(SHORT) + i * HOUR)
           for i in range(20 * 24, month_hours(SHORT))]
 
 arch = Archive(monthly={SHORT: short_rows}, rest=mirror).install()
-rows_f, gone_f, note_f = bb._vision_rows('AAAUSDT', True, t_beg2, t_end2)
+rows_f, gone_f, note_f, _tx2 = bb._vision_rows('AAAUSDT', True, t_beg2, t_end2)
 ok('4. a perp tail is not topped up from the spot mirror (inv. 64)',
    not any('data-api.binance.vision' in u for u in arch.urls),
    [u for u in arch.urls if 'data-api' in u][:2])
@@ -323,7 +367,7 @@ ok('4. the fixture really was short of the last complete hour',
    '%d rows' % len(rows_f))
 
 arch = Archive(monthly={SHORT: short_rows}, rest=mirror).install()
-rows_s, gone_s, note_s = bb._vision_rows('AAAUSDT', False, t_beg2, t_end2)
+rows_s, gone_s, note_s, _tx3 = bb._vision_rows('AAAUSDT', False, t_beg2, t_end2)
 ok('5. a spot tail IS topped up, from data-api.binance.vision',
    any(u.startswith('https://data-api.binance.vision/api/v3/klines')
        for u in arch.urls), arch.urls[-2:])
@@ -340,7 +384,7 @@ t_end3 = (t_end2 // HOUR) * HOUR + 1800 * 1000
 lch3 = (t_end3 // HOUR) * HOUR
 mirror3 = mirror + [kline(lch3)]
 arch = Archive(monthly={SHORT: short_rows}, rest=mirror3).install()
-rows_h, _g, _n = bb._vision_rows('AAAUSDT', False, t_beg2, t_end3)
+rows_h, _g, _n, _tx4 = bb._vision_rows('AAAUSDT', False, t_beg2, t_end3)
 ok('6. the fixture offered the hour in progress',
    any(int(k[0]) == lch3 for k in mirror3))
 ok('6. no returned row is stamped at or after the last complete hour',
@@ -835,9 +879,12 @@ def leg_rows(n):
 
 
 def legs(n_spot, n_fut):
-    """A stub for `_fetch_best`'s `attempt`: one leg, keyed by its venue."""
+    """A stub for `_fetch_best`'s `attempt`: one leg, keyed by its venue. The
+    fifth member is the transport record ТЗ-38 §5.1 added; these legs are all
+    transport-CLEAN, which is what keeps section E measuring length and venue
+    and nothing else."""
     def attempt(is_fut):
-        return leg_rows(n_fut if is_fut else n_spot), '', 'XUSDT', ''
+        return leg_rows(n_fut if is_fut else n_spot), '', 'XUSDT', '', bb._tx()
     return attempt
 
 
@@ -1406,6 +1453,260 @@ ok('55. an empty world classifies nothing and asserts nothing',
 # ── 56. §5.2.6 the section reports its own count and refuses to pass on zero.
 ok('56. section G compared something', checks[0] - g0 > 0, checks[0] - g0)
 print('G. D4 partition: %d comparisons' % (checks[0] - g0))
+
+# ═══════════════════════════════════════════════════════════════════════════
+# H. TRANSPORT: answered, absent, exhausted  (ТЗ-38)
+# ═══════════════════════════════════════════════════════════════════════════
+# Run #19 ended the download of thirty-one coins on one reset. The repair is
+# NOT «survive the reset»: catching it and counting the month absent writes a
+# series short by exactly the hours the reset covered, and inv. 63 records what
+# a short series does — it raises nothing, because it is a smaller sample that
+# still ANSWERS. So there are three outcomes where the code had two, and this
+# section asserts all three and the arithmetic that separates them.
+#
+# The section letter is H: the file carries A, B, C, D, E, E, F, G, and the
+# letter is read off the FILE rather than counted (the duplicate E is left
+# alone, map §10). No socket is opened; `_SLEEP` is rebound to a recorder, so
+# the ladder is ASSERTED and none of it is slept.
+h0 = checks[0]
+
+H_ARCHES = []
+_slept = []
+_real_sleep = bb._SLEEP
+
+
+def h_sleep(d):
+    _slept.append(d)
+
+
+bb._SLEEP = h_sleep
+
+
+def h_reset(arch):
+    """Zero the process-wide backoff budget and the sleep recorder before a
+    fixture, and keep the archive so item H12 can audit every host the section
+    ever touched.
+
+    `bb._SESSION` is deliberately NOT cleared: the session cache is keyed on the
+    `requests` module object, and letting that keying do its own work is what
+    makes the reuse assertions below mean something."""
+    H_ARCHES.append(arch)
+    del _slept[:]
+    bb._HTTP_SPENT[0] = 0.0
+    return arch
+
+
+def h_month(mo):
+    return [kline(month_start(mo) + i * HOUR) for i in range(month_hours(mo))]
+
+
+H_MO = '2026-06'
+H_URL = ('https://data.binance.vision/data/spot/monthly/klines/'
+         'AAAUSDT/1h/AAAUSDT-1h-%s.zip' % H_MO)
+
+# ── H1. the ladder: two faults, then an answer ─────────────────────────────
+arch = h_reset(Archive(monthly={H_MO: h_month(H_MO)},
+                       faults={'AAAUSDT-1h-%s.zip' % H_MO: 2}).install())
+r = bb._http(H_URL, timeout=60)
+ok('H1. two faults then an answer: the call succeeds', r['ok'], r['why'])
+ok('H1. three attempts were made', r['tries'] == 3, r['tries'])
+ok('H1. the backoff ladder is EXACTLY (2.0, 8.0), not merely bounded',
+   _slept == [2.0, 8.0], _slept)
+ok('H1. and the record carries what it slept', r['slept'] == 10.0, r['slept'])
+ok('H1. every attempt reached the archive, the retried ones included',
+   len([u for u in arch.urls if H_MO in u]) == 3, arch.urls)
+ok('H1. the body arrived on the attempt that answered', len(r['content']) > 0)
+
+# ── H2. faults throughout: exhausted, and named ────────────────────────────
+arch = h_reset(Archive(monthly={H_MO: h_month(H_MO)},
+                       faults={'AAAUSDT': 99}).install())
+r_x = bb._http(H_URL, timeout=60)
+ok('H2. a request that never got a reply is NOT ok', not r_x['ok'], r_x['ok'])
+ok('H2. it made exactly HTTP_TRIES attempts', r_x['tries'] == bb.HTTP_TRIES,
+   r_x['tries'])
+ok('H2. `why` names the exception TYPE', r_x['why'] == '_FakeRequestException',
+   r_x['why'])
+ok('H2. and carries no status and no body', r_x['status'] is None
+   and r_x['content'] == b'', (r_x['status'], r_x['content'][:20]))
+
+# ── H3. a 404 is DATA and is not retried (inv. 70) ─────────────────────────
+arch = h_reset(Archive().install())          # nothing published: every ZIP 404
+r_404 = bb._http(H_URL, timeout=60)
+ok('H3. a 404 is a REPLY, so `ok` is true (inv. 70)', r_404['ok'], r_404['why'])
+ok('H3. and it is reported as 404', r_404['status'] == 404, r_404['status'])
+ok('H3. an ANSWER is never retried', r_404['tries'] == 1, r_404['tries'])
+ok('H3. and spends none of the budget the real failures need',
+   _slept == [] and r_404['slept'] == 0.0, (_slept, r_404['slept']))
+
+# ── H4. the retry set is the registered one, and only it ───────────────────
+arch = h_reset(Archive(codes={'AAAUSDT': 503}).install())
+r_503 = bb._http(H_URL, timeout=60)
+ok('H4. a 503 is retried to the limit', r_503['tries'] == bb.HTTP_TRIES,
+   r_503['tries'])
+ok('H4. and exhausts rather than answering', not r_503['ok'], r_503['ok'])
+ok('H4. `why` names the status and the count', r_503['why'] == 'HTTP 503 ×3',
+   r_503['why'])
+
+arch = h_reset(Archive(codes={'AAAUSDT': 403}).install())
+r_403 = bb._http(H_URL, timeout=60)
+ok('H4. a 403 is an ANSWER and is not retried',
+   r_403['ok'] and r_403['tries'] == 1, (r_403['ok'], r_403['tries']))
+ok('H4. because 403 is not in the registered retry set',
+   403 not in bb.HTTP_RETRY_ST and 503 in bb.HTTP_RETRY_ST, bb.HTTP_RETRY_ST)
+
+# ── the session is reused, and rebuilt when the module under it changes ────
+arch = h_reset(Archive(monthly={H_MO: h_month(H_MO)}).install())
+s1 = bb._session()
+ok('H. the session is created once and reused', bb._session() is s1)
+arch = h_reset(Archive(monthly={H_MO: h_month(H_MO)}).install())
+ok('H. and REBUILT when `requests` is replaced, so it never records into a '
+   'dead stub (inv. 22)', bb._session() is not s1)
+
+# ── H5. an exhausted month is not an absent month, and the leg ABORTS ──────
+M1, M2, M3, M4 = '2026-05', '2026-06', '2026-07', '2026-08'
+V_BEG = month_start(M1)
+V_END = month_start(M4) + (month_hours(M4) - 1) * HOUR
+
+arch = h_reset(Archive(monthly=dict((m, h_month(m)) for m in (M1, M2, M3, M4)),
+                       faults={'-1h-%s.zip' % M2: 99}).install())
+rows_x, gone_x, note_x, tx_x = bb._vision_rows('AAAUSDT', False, V_BEG, V_END)
+ok('H5. the exhausted month is NOT counted absent (inv. 70)', gone_x == 0,
+   gone_x)
+ok('H5. the transport record carries the exhaustion', tx_x['exhausted'] >= 1,
+   tx_x)
+ok('H5. and names the FIRST dead URL', tx_x['url'] and M2 in tx_x['url'],
+   tx_x['url'])
+ok('H5. the leg ABORTED: the later months were never requested',
+   not any((M3 in u) or (M4 in u) for u in arch.urls),
+   [u for u in arch.urls if (M3 in u) or (M4 in u)][:2])
+ok('H5. the abort is read off the URL RECORD, not the row count (inv. 22)',
+   len([u for u in arch.urls if '/monthly/' in u]) == 1 + bb.HTTP_TRIES,
+   [u for u in arch.urls if '/monthly/' in u])
+ok('H5. no daily refill was attempted for a month nobody answered for',
+   not any('/daily/' in u for u in arch.urls),
+   [u for u in arch.urls if '/daily/' in u][:2])
+ok('H5. the note says exhaustion in WORDS, and never «HTTP None»',
+   ('ИСЧЕРПАНА' in note_x) and ('HTTP None' not in note_x), note_x)
+
+# ── H6. an absent month IS counted, and the dailies refill it ──────────────
+arch = h_reset(Archive(
+    monthly=dict((m, h_month(m)) for m in (M1, M2, M4)),
+    daily=dict(('%s-%02d' % (M3, d + 1),
+                [kline(month_start(M3) + (d * 24 + h) * HOUR) for h in range(24)])
+               for d in range(month_hours(M3) // 24))).install())
+rows_a, gone_a, note_a, tx_a = bb._vision_rows('AAAUSDT', False, V_BEG, V_END)
+ok('H6. an ABSENT month is transport-clean', tx_a['exhausted'] == 0, tx_a)
+ok('H6. `gone` counts it', gone_a == 1, gone_a)
+ok('H6. and its dailies refilled every hour of it',
+   set(month_start(M3) + i * HOUR for i in range(month_hours(M3)))
+   <= set(int(k[0]) for k in rows_a),
+   len(rows_a))
+ok('H6. H5 and H6 TOGETHER are inv. 70: neither fact reads off the other',
+   gone_x == 0 and tx_x['exhausted'] >= 1
+   and gone_a == 1 and tx_a['exhausted'] == 0,
+   (gone_x, tx_x['exhausted'], gone_a, tx_a['exhausted']))
+
+
+def h_legs(n_spot, n_fut, dead_spot=False, dead_fut=False):
+    """`_fetch_best`'s `attempt`, with a leg allowed to be transport-DEAD. The
+    lengths and the deaths are the only things that vary."""
+    def attempt(is_fut):
+        tx = bb._tx()
+        if (dead_fut and is_fut) or (dead_spot and not is_fut):
+            tx['exhausted'] = 1
+            tx['url'] = 'https://data.binance.vision/dead'
+            tx['why'] = 'ConnectionResetError'
+        return leg_rows(n_fut if is_fut else n_spot), '', 'XUSDT', '', tx
+    return attempt
+
+
+# ── H7. a damaged leg is not eligible to win, however long it is ───────────
+# This is inv. 70's single arithmetic clause: a PARTIAL leg can be LONGER than
+# a complete one, and «keep the longest» would prefer the damaged series.
+res = bb._fetch_best(UNDECLARED, h_legs(10, 3000, dead_fut=True), 'XUSDT', E_TREF)
+ok('H7. the exhausted LONG leg loses to the clean SHORT one',
+   len(res[0]) == 10, len(res[0]))
+ok('H7. and `won_clean` is true — the coin is usable', res[8]['won_clean'],
+   res[8])
+ok('H7. the census venue is the CLEAN leg\'s', res[7]['venue'] == bb.VENUE_SPOT,
+   res[7]['venue'])
+ok('H7. the dead leg is still NAMED rather than discarded in silence',
+   res[8]['exhausted'] == 1 and res[8]['why'] == 'ConnectionResetError',
+   res[8])
+
+res_r = bb._fetch_best(UNDECLARED, h_legs(3000, 10, dead_spot=True), 'XUSDT',
+                       E_TREF)
+ok('H7. and the same holds when the DEAD leg is attempted first',
+   len(res_r[0]) == 10 and res_r[8]['won_clean'], (len(res_r[0]), res_r[8]))
+ok('H7. a long dead leg does not trigger the >= 2600 early break either',
+   res_r[7]['venue'] == bb.VENUE_PERP, res_r[7]['venue'])
+
+# ── H8. every leg dead: no rows, and no clean winner ───────────────────────
+res0 = bb._fetch_best(UNDECLARED, h_legs(3000, 3000, dead_spot=True,
+                                         dead_fut=True), 'XUSDT', E_TREF)
+ok('H8. every leg exhausted returns NO rows', res0[0] == [], len(res0[0]))
+ok('H8. and `won_clean` is false', not res0[8]['won_clean'], res0[8])
+ok('H8. the venue is NOTHING, which is not the word «spot»',
+   res0[7]['venue'] is None, res0[7]['venue'])
+ok('H8. both dead legs are counted in the aggregate', res0[8]['exhausted'] == 2,
+   res0[8])
+
+# ── H9. the budget is global, monotone, and it bites ───────────────────────
+arch = h_reset(Archive(faults={'AAAUSDT': 99}).install())
+bb._HTTP_SPENT[0] = bb.HTTP_BUDGET_S
+del _slept[:]
+r_b = bb._http(H_URL, timeout=60)
+ok('H9. with the budget spent a call makes exactly ONE attempt',
+   r_b['tries'] == 1, r_b['tries'])
+ok('H9. and sleeps not at all', _slept == [] and r_b['slept'] == 0.0,
+   (_slept, r_b['slept']))
+ok('H9. `_http_spent` reports the consumption the census prints',
+   bb._http_spent() >= bb.HTTP_BUDGET_S, bb._http_spent())
+
+# ── H10. NEGATIVE CONTROL: a code defect is not a network verdict ──────────
+# The caught set is `(RequestException, OSError)` and nothing wider. A bare
+# `except Exception` would convert a TypeError in a URL builder into an
+# «exhausted» verdict — this repair's own defect, committed one level up.
+arch = h_reset(Archive(faults={'AAAUSDT': 99}, exc=TypeError).install())
+h_exc, _h_msg = caught(lambda: bb._http(H_URL, timeout=60))
+ok('H10. NEGATIVE CONTROL: a TypeError PROPAGATES out of `_http`',
+   h_exc == 'TypeError', h_exc)
+
+# ── H11. ZERO CONTROL: a healthy world moves no transport counter ──────────
+# Without this the section could be green because every fixture is red.
+arch = h_reset(Archive(monthly=dict((m, h_month(m))
+                                    for m in (M1, M2, M3, M4))).install())
+rows_z, gone_z, note_z, tx_z = bb._vision_rows('AAAUSDT', False, V_BEG, V_END)
+ok('H11. a healthy world exhausts nothing', tx_z['exhausted'] == 0, tx_z)
+ok('H11. spends no backoff at all', tx_z['slept'] == 0.0 and _slept == [],
+   (tx_z['slept'], _slept))
+ok('H11. counts no month absent', gone_z == 0, gone_z)
+ok('H11. names no dead URL and gives no reason', tx_z['url'] is None
+   and tx_z['why'] == '', tx_z)
+ok('H11. reports no note', note_z == '', repr(note_z))
+ok('H11. and returns the whole series',
+   len(rows_z) == sum(month_hours(m) for m in (M1, M2, M3, M4)), len(rows_z))
+res_z = bb._fetch_best(UNDECLARED, h_legs(10, 20), 'XUSDT', E_TREF)
+ok('H11. a clean `_fetch_best` still wins on LENGTH, unchanged by ТЗ-38',
+   res_z[8]['won_clean'] and res_z[7]['venue'] == bb.VENUE_PERP
+   and res_z[7]['hours'] == 20,
+   (res_z[8]['won_clean'], res_z[7]['venue'], res_z[7]['hours']))
+ok('H11. and the zero transport record is genuinely zero',
+   bb._tx() == {'exhausted': 0, 'url': None, 'why': '', 'slept': 0.0}, bb._tx())
+
+# ── H12. host discipline over the WHOLE section ────────────────────────────
+H_URLS = [u for a in H_ARCHES for u in a.urls]
+ok('H12. the section touched no host outside the two its fixtures name',
+   hostset(H_URLS) <= set(['data.binance.vision', 'data-api.binance.vision']),
+   sorted(hostset(H_URLS)))
+ok('H12. and it did request something', len(H_URLS) > 0, len(H_URLS))
+
+bb._SLEEP = _real_sleep
+sys.modules.pop('requests', None)
+
+# ── §5.2.6 the section reports its own count and refuses to pass on zero.
+ok('H. section H compared something', checks[0] - h0 > 0, checks[0] - h0)
+print('H. transport: %d comparisons' % (checks[0] - h0))
 
 # ═══════════════════════════════════════════════════════════════════════════
 shutil.rmtree(tmp, ignore_errors=True)
