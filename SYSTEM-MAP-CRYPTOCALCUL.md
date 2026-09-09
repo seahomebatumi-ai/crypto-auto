@@ -14,7 +14,42 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-09-a.** Baseline: TZ-36 on the recorders — the journal now stores the
+**Revision 2026-09-09-b.** Baseline: TZ-37 on the lab's identity control. D4 is now a PAIR —
+the identity re-asserted in the world where it holds, with the chase rule forced off, and a
+field-by-field partition on the live path naming what must differ and what must not — and the
+partition's CONSTRUCTION runs in the gate at step 14, section G, 63 comparisons. The
+construction is `d4_partition`, a module-level function of `bench/backtest_bench.py`, and every
+one of those comparisons calls it by name (inv. 21). Report
+`CryptoReports/TZ-37-lab-identity-partition-report.md`, accepted; merged by the Boss as pull
+request **#33**, merge commit **`0c26a56`**. Inv. 69 is satisfied at its only site and §10's D4
+row closes.
+
+**No production file moves at this revision either.** `index.html`, `main.py` and
+`catalysts.json` appear in no diff; the whole change is two benches, and `bench/verify_bench.py`,
+`journal/write.js` and `bench/journal_bench.js` are byte-identical to the previous revision, so
+their figures below stand on a reading rather than on inheritance.
+
+**The dispatch this map has been waiting on ran, and it died before it could answer anything.**
+Run **#19** of `backtest_bench.yml` (09.09.2026T17:42Z, `f7fad89`) concluded `failure` at step 9
+«Закачка истории», and steps 10–18 are `skipped` — so `prod_anchor` still has no archive figure
+and the `unexplained` reading is still not taken (§10). **Steps 6, 7 and 8 concluded `success`**,
+which is the first independent confirmation this map holds that TZ-37 did what it was written to
+do: the lab's own self-test passes on a runner for the first time since TZ-33. **The cause is
+TRANSPORT and not the archive.** `_vision_rows` calls `requests.get` with no handler at both of
+its sites, `_rest_rows` at its own, and `fetch_funding`, `fetch_cg` and the live-`coeffs` reader
+at three more, so one reset ends the download of thirty-one coins. Reserved as TZ-38, and
+**inv. 70 states the shape the repair must take**, because the obvious catch-and-count is worse
+than the crash it removes (inv. 63).
+
+**Step 14's count stood at `94` in two other sections while the step itself ran 174, then 203,
+then 266.** §3.10 and §10 both carried the figure TZ-30 measured, and neither moved when the
+step did. **The count now lives in this section only** and both sites point here: a count
+carried in three places goes stale in silence (inv. 20), and the calibration record is the one
+exception in this tree only because gate step 12 compares its two copies on every push
+(inv. 46).
+
+**The revision before this one recorded TZ-36, and its text is retained below.** Baseline:
+TZ-36 on the recorders — the journal now stores the
 anchored decision beside the current-price one, the outcome layer resolves against the level
 the card actually printed, and `--target` gained a SECOND production arm admitted AND
 resolved at the anchor. Report `CryptoReports/TZ-36-anchored-recorders-report.md`, accepted;
@@ -22,7 +57,7 @@ merged by the Boss. **The file table's hashes are the pin and every hash in this
 read on `main` after that merge** — a commit hash copied out of a report is the report's word
 rather than a reading (inv. 55).
 
-**No production file moves at this revision.** `index.html` and `main.py` appear in no diff
+**No production file moved at THAT revision.** `index.html` and `main.py` appear in no diff
 at all; what changed is four recorders. `journal/write.js` writes `anchor`, `decA` and `invA`
 on every side block and `sstop`/`ssrc` on every outcome line; `bench/journal_bench.js` asserts
 the partition that separates a moved anchor from a `СЕЙЧАС` row; `bench/backtest_bench.py`
@@ -91,9 +126,9 @@ bench moves — the argument §11 already makes for `live-gate.sh`. A TZ needing
 states it in its own `§0`, as TZ-28, TZ-29 and TZ-30 all did (2544 → 2768 → 3216 → **3240
 lines**, `fb9464afba2e87450bd3fd11877da9f1` → `9357c2bc4e71542c21068be79f8691f9` →
 `1b921e88fdae5c1c404fbf9fbcee8b2c` → `d2dad0f80afa2c191c2faf1d40081a88`), TZ-33 moved
-it again to 3724 lines, TZ-34 to 3881 lines and TZ-36 to **4110 lines**,
-`8cca251ee28c5c9332c44405558cc339`. Four more benches carry figures for the same reason:
-`bench/backtest_guard_bench.py` **1140 lines**, `3b6ef587dd5e066c615300e530524aa9`,
+it again to 3724 lines, TZ-34 to 3881 lines, TZ-36 to 4110 lines and TZ-37 to **4258 lines**,
+`11654488e2e5637c00fc9ae1f1880916`. Four more benches carry figures for the same reason:
+`bench/backtest_guard_bench.py` **1425 lines**, `b42b660d3ede3196ba6c1c694d8f7fde`,
 `bench/verify_bench.py` **388 lines**, `06036d8c3d39ccec6be21d2158ef3ce1`,
 `journal/write.js` **849 lines**, `19722fb53d75b6d25a8f957f74f97422`, and
 `bench/journal_bench.js` **1177 lines**, `993271f44995c8ae21c54935a3f80adf`. The last two
@@ -136,13 +171,13 @@ written, and a blocking gate is the one control that may not have such a directi
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-09-a.**` |
+| revision | `**Revision 2026-09-09-b.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `69. **An identity control names the WORLD in which the identity holds.**` |
+| newest invariant | `70. **A transport failure is NOT an absence of data.**` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -166,8 +201,9 @@ Rewriting the header would make the description of one sample describe a differe
 which is inv. 46 read backwards — the constant would then agree with a record that no
 longer names the run behind it. It goes stale by design; the reader is told so here.
 
-Gate at this revision: `bench.yml`, **14 steps, 1 335 844 checks**, hosted `Bench gate`
-**#146** green at `6c21e98`, **and its per-step counts could not be read**: the logs endpoint
+Gate at this revision: `bench.yml`, **14 steps, 1 335 907 checks**. The last HOSTED reading
+is a revision old — `Bench gate` **#146** green at `6c21e98`, **and its per-step counts could
+not be read**: the logs endpoint
 answers `403 Must have admin rights to Repository` to a session holding no token (inv. 44), so
 the conclusion is the runner's and the counts are not. The two moved terms are therefore LOCAL
 readings — **step 7 = 774 130**, **step 14 = 203**, each `FAIL 0` — and they are admitted here
@@ -185,8 +221,18 @@ the whole +80 lands here unattributed rather than in the revisions that caused i
 own count has never been recorded in this map**: it is the residual that makes the recorded
 total add up (255 708) and it is arithmetic, not a reading.
 
-**This revision moves two of those terms and the arithmetic closes without a residual.** Step
-7 rises 691 836 → **774 130**, `+82 294`; step 14 rises 174 → **203**, `+29`; the other twelve
+**This revision moves ONE term and the section that moved it reports its own count.** Step 14
+rises 203 → **266**, `+63`, which is section G of the garrison; `1 335 844 + 63 = 1 335 907`.
+The other thirteen steps read files byte-identical to the previous revision, so their delta is
+**file identity and not a replay** — a stronger statement than «read zero», and available only
+because TZ-37 touched two benches and nothing else. **Step 14 was replayed locally at
+`0c26a56`: 266, `FAIL 0`. Step 4 was replayed with it: 40, `FAIL 0`** — `verify_bench.py`
+imports `backtest_bench.py` at scope and is the only other step whose input moved. **The hosted
+gate on the merge commit is NOT read here**: the runs API answered this session a rate limit,
+and an unread run is stated rather than assumed in either direction (inv. 44).
+
+**The revision before this one moved two terms and its arithmetic closed without a residual.**
+Step 7 rises 691 836 → **774 130**, `+82 294`; step 14 rises 174 → **203**, `+29`; the other twelve
 read delta zero on a replay of both trees. `1 253 521 + 82 294 + 29 = 1 335 844`, and step 5
 is carried at the same 255 708 it has always been carried at — still never read. **Step 14's
 «was» now exists**: the row below said the number to compare against arrives the first time
@@ -806,14 +852,16 @@ output. What made the destruction invisible is the TRIGGER rather than the defec
 production TZ while the only thing that would complain waits to be asked. It was dead at
 step 2 of its own job, under `bash -euo pipefail`, until TZ-27 tripped over it.
 
-**Since TZ-30 the garrison is `bench/backtest_guard_bench.py`, gate step 14, 94 checks,
-offline.** It loads this module by path and never re-implements a rule it checks (inv. 21):
-every assertion calls a production function by name and compares its return, and every
-fixture is synthetic input to that function. Four sections — the four bundles build, close
-and pass `node --check`, with three negative controls · `_vision_rows` offline, including
-the refill, the pre-listing window, inv. 64 and the last-complete-hour stop · the coverage
-census on hand-built buckets · `_splice`'s arithmetic, admission and refusal · what
-`target_gate` does with a class. `requests` is stubbed and every assertion about a host that
+**Since TZ-30 the garrison is `bench/backtest_guard_bench.py`, gate step 14, offline; its
+check count is §0's and is not restated here** (inv. 20). It loads this module by path and
+never re-implements a rule it checks (inv. 21): every assertion calls a production function by
+name and compares its return, and every fixture is synthetic input to that function. Seven
+sections under six letters — the four bundles build, close and pass `node --check`, with three
+negative controls · `_vision_rows` offline, including the refill, the pre-listing window,
+inv. 64 and the last-complete-hour stop · the coverage census on hand-built buckets ·
+`_splice`'s arithmetic, admission and refusal · what `target_gate` does with a class · the
+venue recorded as an OBSERVATION · the anchored production arm · and `d4_partition` on
+hand-built dates (TZ-37). Two sections share the letter `E` and §10 carries why. `requests` is stubbed and every assertion about a host that
 must not be contacted reads that stub's record, so the step opens no socket — **asserted by
 construction, which is its own limit**: a future reach to the network through something
 other than `requests` would be invisible to it.
@@ -949,7 +997,14 @@ currently checks it: §3.10 asserts it in prose, and the partition above is the 
 **The repair is therefore a partition, never a narrower field set** — deleting `rr` and
 `tgtSig` from the comparison would be an assertion removed to make a bench pass (hard floor
 item 2) and would stop checking the very leg the prose promises. Reserved as TZ-37 (§10,
-inv. 69).
+inv. 69). **Closed by TZ-37, merged.** D4 is now the pair inv. 69 requires: `D4a`, the identity
+re-asserted with the chase rule forced off — 7 848 comparisons, zero differences, zero presence
+mismatches — and `D4b`, the partition on the live path over the same 7 926, with both
+populations non-zero and every defect bucket at zero. The reading above is what `D4b` now
+asserts field by field rather than what a session measured once. **Its construction is a named
+function and gate step 14 calls it**, so the partition cannot rot between dispatches the way the
+identity it replaced did (inv. 62), and both of the wrong repairs inv. 69 names stayed refused:
+no field was dropped from the comparison and the flag alone was not accepted as the answer.
 
 **Capital-efficiency question, answered by identity.** P&L per dollar of margin =
 `L · move`, and the engine sets `L ≈ risk_budget / dist`, so ranking by capital EV
@@ -2170,6 +2225,27 @@ cite them, so an invariant is rewritten in place and never renumbered.
     that reaches it is a manual dispatch, so the repair also puts the control's CONSTRUCTION
     where something already runs.
 
+70. **A transport failure is NOT an absence of data.**
+    A reply is data whatever its status: `404` on a monthly ZIP means that month is not
+    published, and the census counts it, refills from the dailies and says so. A request that
+    never completed is a fact about the NETWORK, and merging the two is how a loud failure
+    becomes a silent one. **Measured 09.09.2026**: `backtest_bench.yml` run #19 died at
+    `--fetch` because `_vision_rows` calls `requests.get` with no handler, and one reset ended
+    the download of thirty-one coins — loud, attributable, and it cost a dispatch.
+    **The obvious repair is worse than the crash.** Catching the exception and counting the
+    month absent writes a series short by exactly the hours the reset covered, and inv. 63
+    already records what a short series does: it raises nothing, because it is a smaller sample
+    that still answers. The repair is therefore THREE outcomes where the code has two —
+    answered, absent, exhausted — with exhaustion failing the COIN, naming itself in the census,
+    never reaching `_save` and never incrementing the counter that means «not in the archive».
+    **Retries are bounded, the bound is stated where a reader meets it, and the seconds spent
+    are printed**: an unbounded retry turns a black-holed host into a job that times out with
+    nothing to show, and a policy nobody can see turns a slow host into an unexplained runtime.
+    **A leg that never answered is evidence about nothing** (inv. 44), so it may not win a
+    comparison against a leg that did — the one place this rule reaches arithmetic rather than
+    reporting, and the place where a naive repair would silently truncate a series that
+    production then measures.
+
 ---
 
 ## 5. Limits
@@ -2324,8 +2400,9 @@ until someone re-runs the command.
 | Item | State | Trigger to act |
 |---|---|---|
 | TZ-33 moved the publication price and two recorders did not follow | **closed by TZ-36, merged** | nothing. Both sites moved and inv. 66 is satisfied: the journal records `anchor`/`decA`/`invA` beside `dec`/`inv` and resolves outcomes through `ssrc`, and `--target` carries `prod_anchor` beside `prod`. **The `prod_anchor` archive reading is OUTSTANDING and is its own row.** Original entry: One cause, two sites (inv. 66). `journal/write.js` records `geo` as the anchored object while `dec`/`inv` stay at `cur`, so a waiting row's stored stop is not the stop the card printed and the outcome layer times its touch against it — and the record is immutable, so **every 13:00 UTC run adds another one while this waits**. `bench/backtest_bench.py`'s `--target` production arm is admitted at the anchor and resolved at `E`; the repair there is a second arm, never a moved reference leg, because that leg is shared with the substituted arms. The journal is the primary and the arm is additive. **First read of that TZ:** whether the writer passes `btcStats` into `directionVerdict`'s fourteenth parameter — a thirteen-argument call drops the BTC ceiling out of the anchored decision only, which is invisible on every `СЕЙЧАС` row. **It also closes §0's open attribution for free:** it opens the journal, so it can count the side blocks carrying `wait !== null` and say whether that number is the 2 059 leaves step 7 lost |
-| `--lab-selftest`'s D4 has been red since TZ-33 | **open — reserved as TZ-37**, measured 09.09.2026 on the merged tree | nothing; the reading is taken and the repair is specified. The control asserts an unconditional identity between `prod` and `ident`, TZ-33 made `prod` two-pass, and the claim is now false on every waiting row and true on every other (§3.10a, inv. 69). **The lab has printed «НЕИСПРАВНА — результатам не верить» on every dispatch for two TZs and no push could say so**, because `--lab-selftest` runs only under `backtest_bench.yml` — inv. 62 with the trigger correct and the decay arriving from upstream. TZ-37 re-registers D4 as an anchor-off identity plus a live partition and puts the partition's CONSTRUCTION into gate step 14, where something already runs. **A red control is indistinguishable from a product defect inside an immutable report** (inv. 61), and this one has been quoted as «the lab is broken» once already |
-| `prod_anchor` has no archive figure | **built, unmeasured** | a `backtest_bench.yml` dispatch — `--fetch`, then `--target`. The arm exists, is self-tested offline in `--lab-selftest` D8/D9 and in gate step 14 section F, and **nothing is known or forecast about what it says on the archive** (inv. 43, 44). Until it is taken, the `--target` figures in §3.10a are the pre-TZ-33 single-pass arm's and the two are not comparable. The dispatch also carries the `unexplained` reading in the row below, so one dispatch answers both |
+| `--lab-selftest`'s D4 has been red since TZ-33 | **closed by TZ-37, merged** | nothing. D4 is the pair `D4a`/`D4b`, its construction is the named `d4_partition` and gate step 14 section G calls it on every push; run #19's step 8 read the lab GREEN on a runner, which is the first push-independent confirmation (§3.10a). Original entry: the reading is taken and the repair is specified. The control asserts an unconditional identity between `prod` and `ident`, TZ-33 made `prod` two-pass, and the claim is now false on every waiting row and true on every other (§3.10a, inv. 69). **The lab has printed «НЕИСПРАВНА — результатам не верить» on every dispatch for two TZs and no push could say so**, because `--lab-selftest` runs only under `backtest_bench.yml` — inv. 62 with the trigger correct and the decay arriving from upstream. TZ-37 re-registers D4 as an anchor-off identity plus a live partition and puts the partition's CONSTRUCTION into gate step 14, where something already runs. **A red control is indistinguishable from a product defect inside an immutable report** (inv. 61), and this one has been quoted as «the lab is broken» once already |
+| `prod_anchor` has no archive figure | **built, unmeasured** | a `backtest_bench.yml` dispatch — `--fetch`, then `--target`. The arm exists, is self-tested offline in `--lab-selftest` D8/D9 and in gate step 14 section F, and **nothing is known or forecast about what it says on the archive** (inv. 43, 44). Until it is taken, the `--target` figures in §3.10a are the pre-TZ-33 single-pass arm's and the two are not comparable. The dispatch also carries the `unexplained` reading in the row below, so one dispatch answers both. **It was attempted and did not reach this mode**: run #19 (09.09.2026) failed at `--fetch` and skipped steps 10–18, so this row now waits on TZ-38 — repeating the dispatch before the transport repair lands would spend an hour to fail in the same place |
+| The bench's fetch layer has no transport handling | **open — reserved as TZ-38**, measured 09.09.2026 on run #19 | nothing; the reading is taken and the repair is specified. Six of the seven `requests.get` call sites in `bench/backtest_bench.py` have no handler at all — `_vision_rows` at two, `_rest_rows`, `fetch_funding`, `fetch_cg` and the live-`coeffs` reader; the seventh, in `probe`, carries its own and is the only one a reset does not end. Counted 09.09.2026 on `0c26a56`. **The defect is one class and the repair is one helper**: retry with a bounded, stated backoff, connection reuse, and a THIRD outcome beside answered and absent — exhausted, which fails the COIN with its own census verdict and never merges into «нет N месячных файлов» (inv. 70). `fetch_funding` merges the same two facts into its own `miss` counter and is in scope for that reason, not for symmetry |
 | A §0 anchor could not match, and was reported as matched | **closed on the Architect side by the anchor rule in §0** | the next contract edit, for the Executor side. The inv. 68 anchor at `2026-09-08-b` differed from the invariant in case alone (`flip`/`FLIP`, `not`/`NOT`), so an exact-substring match was impossible, and TZ-36's report nevertheless recorded all seven as present as exact substrings. **Either the comparison was case-insensitive or it was not performed, and both are worse than a mismatch**, because the fingerprint gate is the one control that runs BEFORE any work and its whole value is that it blocks. Anchors are now copied and verified as literal substrings here before publication; what is not yet written anywhere is that the Executor must report the MATCHED SUBSTRING and not the verdict |
 | `bench/backtest_guard_bench.py` has TWO sections lettered `E` | watched, deliberate | any TZ adding a section there, which chooses its letter from the FILE and never by counting. TZ-32's regime-gate section and TZ-34's venue-observation section share `E`, and only the second prints a section line, so the first is unlabelled in the gate's output. **Renaming is refused for the reason invariant numbers are never renumbered**: a section letter appears in the immutable report of the TZ that created it, and moving it makes that report unreadable against the file. Same class as the D7 collision TZ-36 hit in `--lab-selftest`, and the same repair — the next section is chosen deliberately and the collision is stated |
 | `journal/write.js` cites `§4.1` four times and no document has a §4.1 | open, unowned | any TZ opening that file. The reference is to a superseded specification's own numbering, and `§` means this map everywhere else in the tree. Same class as `index.html:799` and `.gitignore`'s comment, and the same repair — **name the map section or delete the citation**, never invent a §4.1 to satisfy it |
@@ -2344,7 +2421,7 @@ until someone re-runs the command.
 | Re-running the calibration | frozen, deliberately | nothing at present. `calib.yml`'s paths filter names `calib.yml` itself, so ANY edit to that workflow re-fires the whole 3-year run on the branch and commits a fresh record on a longer archive, which can move the p90 away from the adopted constant and turn the inv. 46 bench red. Editing it is a re-calibration, never a touch-up; the stale `(TZ-11 stage B)` in its hardcoded commit message stays until a TZ genuinely needs a new run |
 | `calib.yml` commits the record only on a PASS | correct by design | nothing. The commit step has no `if: always()`, so a refused run leaves no repository record and only an artifact — a record pinning no constant would look authoritative and pin nothing |
 | `badge_bench.js`, `clean_bench.py` unwired | deliberate, documented in `bench.yml`'s own header | nothing. Both are two-input differs needing a `before` file the repository does not carry: manual tools, not controls (inv. 37) |
-| The closure check does not run inside `bench.yml` | **closed by TZ-30 — narrowed, not retired** | nothing on the cut; a dispatch is still what tests the result. Gate step 14 (`bench/backtest_guard_bench.py`, 94 checks) builds all four bundles on every push and asserts zero missing identifiers, so `_assert_js_closed` — the one check that catches a stale cut — now fires where something already runs. **TZ-29's wider gap is closed in the same step:** the coverage census, the derived splice rule and the `--target` arm gate were locked only by validation-time controls and by a harness that lived OUTSIDE the repository, and a harness not in the tree is not evidence for the next session (inv. 37); it is in the tree now. The residual is stated in inv. 62 and in §3.10 and is not this row: a stale RESULT still decays silently |
+| The closure check does not run inside `bench.yml` | **closed by TZ-30 — narrowed, not retired** | nothing on the cut; a dispatch is still what tests the result. Gate step 14 (`bench/backtest_guard_bench.py`, whose count is §0's) builds all four bundles on every push and asserts zero missing identifiers, so `_assert_js_closed` — the one check that catches a stale cut — now fires where something already runs. **TZ-29's wider gap is closed in the same step:** the coverage census, the derived splice rule and the `--target` arm gate were locked only by validation-time controls and by a harness that lived OUTSIDE the repository, and a harness not in the tree is not evidence for the next session (inv. 37); it is in the tree now. The residual is stated in inv. 62 and in §3.10 and is not this row: a stale RESULT still decays silently |
 | `.gitignore`'s comment enumerates the bridge files | open, unowned | any TZ opening `.gitignore`. The RULE is the prefix `bench/_*` and covers `bench/_tgt_bridge.js` correctly; only the explanatory list is one name short. Same class as `index.html:799` and the same repair — **delete the enumeration**, do not synchronise it, or one list lives in two files (inv. 20) |
 | `target_raw.json` can carry bare `NaN` | watched | nothing. Emitted when a pooled arm records zero stop touches; Python's `json` reads it back and strict parsers do not. It mirrors `stops_raw.json` exactly, so repairing one alone would create two artifact conventions where there is currently one defect |
 | D3b compares the first ladder rung to the last, and the ladder overshoots | watched | a growth of section D, or an archive short enough to thin the last rung. Measured gap 89.5 % → 41.1 % → 14.5 % → **0.0 %** → 17.2 %: convergence is at `m = 16` and `m = 32` walks back out as its sample falls to 622 setups over 51 dates. D3c is what locates the limit and it selects `m = 16`, so the bar holds comfortably today; the clause a shorter history could break is D3b, not the ladder |
