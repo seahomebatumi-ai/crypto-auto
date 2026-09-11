@@ -995,7 +995,7 @@ def _http(url, timeout, params=None, tries=HTTP_TRIES, want_json=False,
         {"ok": bool,        # a reply arrived — ANY status, 404 included
          "status": int|None,
          "content": bytes,  # b"" when not ok
-         "json": obj|None,  # only when want_json and ok
+         "json": obj|None,  # only when want_json, ok and status 200
          "tries": int,      # attempts actually made
          "slept": float,    # seconds THIS call spent in backoff
          "why": str}        # "" when ok; else the exception type or "HTTP 503 ×3"
@@ -1003,6 +1003,18 @@ def _http(url, timeout, params=None, tries=HTTP_TRIES, want_json=False,
     `ok` means A REPLY ARRIVED. `404` is `ok: True, status: 404` — the month is
     not published, and that is DATA (inv. 70). Only a request that never
     completed is a fact about the network.
+
+    `ok` is decided after the LAST step that can fail (ТЗ-39 §3). A `want_json`
+    body that does not parse is a failed ATTEMPT and is retried like a reset;
+    set before the parse, the flag returned a reply the helper could not READ
+    as one that ARRIVED, and `_tx_add` folded an exhausted request as
+    answered. The parse runs only where the status says a payload is there —
+    200, the one status every `want_json` caller reads `json` under — so a
+    `404` page served as text stays an answer and never becomes an exhaustion.
+    Both exits write every per-attempt field (`ok`, `status`, `content`,
+    `json`, `why`): no value from an earlier attempt, or from an earlier stage
+    of the same one, can stand beside the outcome. `tries` and `slept` describe
+    the CALL and are current at every exit.
 
     Retry only on transport and only on `HTTP_RETRY_ST`. A `404`, `403` or `451`
     returns on the first attempt with `tries == 1`: retrying an ANSWER spends the
@@ -1042,31 +1054,32 @@ def _http(url, timeout, params=None, tries=HTTP_TRIES, want_json=False,
         rec["tries"] = n + 1
         try:
             r = s.get(url, **kw) if s is not None else requests.get(url, **kw)
-            rec["status"] = r.status_code
-            # `getattr`: a JSON-only response stub carries no body, and the
-            # body is not what a `want_json` caller reads. Production's own
-            # Response always has it.
-            rec["content"] = getattr(r, "content", b"") or b""
-            if r.status_code not in HTTP_RETRY_ST:
-                rec["ok"] = True
-                rec["why"] = ""
-                if want_json:
-                    rec["json"] = r.json()
+            status = r.status_code
+            if status not in HTTP_RETRY_ST:
+                # `getattr`: a JSON-only response stub carries no body, and the
+                # body is not what a `want_json` caller reads. Production's own
+                # Response always has it.
+                body = getattr(r, "content", b"") or b""
+                doc = r.json() if want_json and status == 200 else None
+                # Every step that can fail has run: the outcome is decided here.
+                rec["ok"], rec["status"], rec["content"] = True, status, body
+                rec["json"], rec["why"] = doc, ""
                 return rec
-            rec["why"] = "HTTP %s ×%d" % (r.status_code, rec["tries"])
+            why = "HTTP %s ×%d" % (status, rec["tries"])
         except caught as e:
-            rec["status"] = None
-            rec["content"] = b""
-            rec["why"] = type(e).__name__
+            status, why = None, type(e).__name__
         if n + 1 < max(1, int(tries)):
             d = float(HTTP_BACKOFF[min(n, len(HTTP_BACKOFF) - 1)])
             _HTTP_SPENT[0] += d
             rec["slept"] += d
             _SLEEP(d)
-    # Not ok: the record carries no body, whether the attempts ended on a
-    # transport failure or on a retry status that never cleared. A caller that
-    # cannot get a status off a Response must not get a half-body either.
-    rec["content"] = b""
+    # Not ok: the record carries no body and no payload, whether the attempts
+    # ended on a transport failure, a body that did not parse, or a retry
+    # status that never cleared. `status` and `why` are the LAST attempt's. A
+    # caller that cannot get a status off a Response must not get a half-body
+    # either.
+    rec["ok"], rec["status"], rec["content"] = False, status, b""
+    rec["json"], rec["why"] = None, why
     return rec
 
 
@@ -1502,9 +1515,12 @@ def fetch_prices(html_path, bot_path, years=3, source="auto"):
         if good:
             ok += 1
     print("монет в кэше: %d из %d" % (ok, len(toks)))
-    if dead:
-        print("связь исчерпана на %d монет(ах): %s — ретраи потратили %.1f с из %.0f"
-              % (len(dead), ", ".join(dead), _http_spent(), HTTP_BUDGET_S))
+    # Printed on EVERY pass, zero included (ТЗ-39 §4). «0.0 с» is the reading
+    # that says the transport served one attempt per URL; a line printed only
+    # when a coin died left `HTTP_BUDGET_S` invisible on every run that
+    # succeeded, and a constant nobody can see is a constant nobody can move.
+    print("связь исчерпана на %d монет(ах): %s — ретраи потратили %.1f с из %.0f"
+          % (len(dead), ", ".join(dead), _http_spent(), HTTP_BUDGET_S))
     # The exit code does NOT change: a coin fails, not the run.
     if ok < 8:
         sys.exit("СТОП: монет меньше восьми — прогон бессмыслен.")
@@ -2580,9 +2596,10 @@ def fetch_funding(html_path, years=3):
         print("  %-7s funding ok  %5d выплат" % (sym, len(rows)))
         ok += 1
     print("funding в кэше: %d из %d" % (ok, len(toks)))
-    if dead:
-        print("связь исчерпана на %d монет(ах): %s — ретраи потратили %.1f с из %.0f"
-              % (len(dead), ", ".join(dead), _http_spent(), HTTP_BUDGET_S))
+    # Every pass, zero included — the same line and the same reason as
+    # `fetch_prices` (ТЗ-39 §4 B4).
+    print("связь исчерпана на %d монет(ах): %s — ретраи потратили %.1f с из %.0f"
+          % (len(dead), ", ".join(dead), _http_spent(), HTTP_BUDGET_S))
     if ok < 8:
         sys.exit("СТОП: funding меньше чем у восьми монет — тест бессмыслен.")
 

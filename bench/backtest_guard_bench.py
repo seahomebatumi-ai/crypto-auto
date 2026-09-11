@@ -30,7 +30,7 @@ real builders write land in the scratch tree and leave with it.
 
   python3 bench/backtest_guard_bench.py [path/to/backtest_bench.py] [path/to/index.html]
 """
-import io, os, re, sys, math, types, shutil, zipfile, calendar, tempfile
+import io, os, re, sys, json, math, types, shutil, zipfile, calendar, tempfile
 import contextlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -216,6 +216,16 @@ _FAKE_EXCEPTIONS = types.ModuleType('requests.exceptions')
 _FAKE_EXCEPTIONS.RequestException = _FakeRequestException
 
 
+class _FakeJSONDecodeError(_FakeRequestException, ValueError):
+    """The stub's body-parse failure (ТЗ-39 §5 C1). Production's
+    `requests.exceptions.JSONDecodeError` is a `RequestException` AND a
+    `ValueError`; this carries the same two bases, so `_http` meets a parse
+    failure in the branch it meets it in on a runner."""
+
+
+_FAKE_EXCEPTIONS.JSONDecodeError = _FakeJSONDecodeError
+
+
 class Archive(object):
     """A synthetic data.binance.vision that RECORDS every URL it was asked for.
 
@@ -228,16 +238,22 @@ class Archive(object):
     is a control measuring something else (inv. 22). `faults={"substring": n}`
     raises a transport exception the first `n` times a matching URL is asked
     for and RECORDS the attempt either way; `codes={"substring": st}` answers a
-    matching URL with status `st`."""
+    matching URL with status `st`.
+
+    ТЗ-39 §5 C1. `bodies={"substring": [(st, raw), ...]}` answers a matching
+    URL with status `st` and the RAW body `raw`, one pair per request in order,
+    the last one repeating. Its `json()` PARSES that body, so the parse step can
+    fail here the way it fails on a runner."""
 
     def __init__(self, monthly=None, daily=None, rest=None, faults=None,
-                 codes=None, exc=None):
+                 codes=None, exc=None, bodies=None):
         self.monthly = monthly or {}          # "YYYY-MM"    -> rows | None=404
         self.daily = daily or {}              # "YYYY-MM-DD" -> rows | None=404
         self.rest = rest or []                # klines the mirror offers
         self.faults = dict(faults or {})      # url substring -> raises left
         self.codes = dict(codes or {})        # url substring -> status
         self.exc = exc or _FakeRequestException
+        self.bodies = dict((k, list(v)) for k, v in (bodies or {}).items())
         self.urls = []
 
     def session(self):
@@ -259,6 +275,11 @@ class Archive(object):
             if sub in url and self.faults[sub] > 0:
                 self.faults[sub] -= 1
                 raise self.exc('Connection reset by peer')
+        for sub in sorted(self.bodies):
+            if sub in url:
+                seq = self.bodies[sub]
+                st, raw = seq.pop(0) if len(seq) > 1 else seq[0]
+                return _RawResp(st, raw)
         for sub in sorted(self.codes):
             if sub in url:
                 return _Resp(self.codes[sub])
@@ -294,6 +315,22 @@ class _Resp(object):
 
     def json(self):
         return self._payload
+
+
+class _RawResp(_Resp):
+    """A response whose `json()` PARSES its body, as production's does.
+    `_Resp.json()` returns a stored payload and never raises, and a control
+    built on it cannot see a reply `_http` could not read (ТЗ-39 §5 C1,
+    inv. 22). A zero-length, truncated or non-JSON body raises here."""
+
+    def __init__(self, status, raw):
+        _Resp.__init__(self, status, content=raw)
+
+    def json(self):
+        try:
+            return json.loads(self.content.decode('utf-8'))
+        except ValueError as e:
+            raise _FakeJSONDecodeError(str(e))
 
 
 def hostset(urls):
@@ -1700,6 +1737,229 @@ ok('H12. the section touched no host outside the two its fixtures name',
    hostset(H_URLS) <= set(['data.binance.vision', 'data-api.binance.vision']),
    sorted(hostset(H_URLS)))
 ok('H12. and it did request something', len(H_URLS) > 0, len(H_URLS))
+
+# ── ТЗ-39: the outcome is decided after the LAST step that can fail ────────
+# ТЗ-38's `_http` set `ok` BEFORE it parsed the body, so a reply it could not
+# READ came back as one that ARRIVED: `_tx_add` folded an exhausted request as
+# answered and `won_clean` stayed true. H1-H12 could not see it, because
+# `_Resp.json()` returns a stored payload and never raises — a control that
+# stubs the parse so that it cannot fail is not a control over this rule
+# (inv. 22, 70). `_RawResp` parses its body the way production's Response
+# does. The letter stays H: the subject is H's own (ТЗ-39 §5 C3). H12 above
+# audits the ТЗ-38 fixtures and keeps its expectation; `fetch_cg` and
+# `reconcile` name two more hosts, so this block audits its own record in H13.
+HP0 = len(H_ARCHES)
+HP_URL = 'https://data-api.binance.vision/api/v3/klines'
+HP_ROWS = [[1780272000000, '100.0', '100.5', '99.5', '100.2', '1.0',
+            1780275599999, '1000.0', 10, '0.5', '500.0', '0']]
+HP_ROWS_B = [[1780275600000, '100.2', '101.0', '100.1', '100.9', '2.0',
+              1780279199999, '2000.0', 20, '1.0', '1000.0', '0']]
+HP_GOOD = json.dumps(HP_ROWS).encode('utf-8')
+HP_GOOD_B = json.dumps(HP_ROWS_B).encode('utf-8')
+HP_TRUNC = HP_GOOD[:len(HP_GOOD) // 2]                    # a reset mid-body
+HP_TEXT = b'<html><body>502 Bad Gateway</body></html>'    # a page, not JSON
+HP_404 = b'<html><body>404 Not Found</body></html>'
+
+
+def hp_stub(*seq):
+    """An archive answering `HP_URL` with `seq`, one (status, raw body) per
+    request in order, the last repeating."""
+    return h_reset(Archive(bodies={'/api/v3/klines': list(seq)}).install())
+
+
+def hp_leg(url):
+    """`_fetch_best`'s `attempt` whose one request is the REAL `_http`, folded
+    by the REAL `_tx_add`. The rows are synthetic and long, so `won_clean` is
+    decided by the transport record and by nothing else."""
+    def attempt(is_fut):
+        tx = bb._tx()
+        bb._tx_add(tx, url, bb._http(url, timeout=30, want_json=True))
+        return leg_rows(3000), '', 'XUSDT', '', tx
+    return attempt
+
+
+# ── H-p1. a payload status whose body does not parse is NOT answered ──────
+for hp_label, hp_raw in (('truncated', HP_TRUNC), ('non-JSON', HP_TEXT)):
+    arch = hp_stub((200, hp_raw))
+    r_p1 = bb._http(HP_URL, timeout=30, want_json=True)
+    ok('H-p1. a 200 whose %s body does not parse is NOT answered' % hp_label,
+       not r_p1['ok'], r_p1)
+    ok('H-p1. %s: `json` is None' % hp_label, r_p1['json'] is None,
+       r_p1['json'])
+    ok('H-p1. %s: `why` names the parse failure' % hp_label,
+       'JSONDecodeError' in r_p1['why'], r_p1['why'])
+    ok('H-p1. %s: no earlier stage survives — no status, no body' % hp_label,
+       r_p1['status'] is None and r_p1['content'] == b'',
+       (r_p1['status'], r_p1['content'][:20]))
+    ok('H-p1. %s: a failed ATTEMPT, retried on the existing ladder' % hp_label,
+       r_p1['tries'] == bb.HTTP_TRIES and _slept == [2.0, 8.0],
+       (r_p1['tries'], _slept))
+    tx_p1 = bb._tx_add(bb._tx(), HP_URL, r_p1)
+    ok('H-p1. %s: `_tx_add` folds it as exhausted and names it' % hp_label,
+       tx_p1['exhausted'] == 1 and tx_p1['url'] == HP_URL, tx_p1)
+    arch = hp_stub((200, hp_raw))
+    res_p1 = bb._fetch_best((False,), hp_leg(HP_URL), 'XUSDT', E_TREF)
+    ok('H-p1. %s: the leg may not win, and `won_clean` is false' % hp_label,
+       not res_p1[8]['won_clean'] and res_p1[8]['exhausted'] == 1
+       and res_p1[0] == [], (res_p1[8], len(res_p1[0])))
+
+# ── H-p2. a payload status whose body parses: unchanged ────────────────────
+arch = hp_stub((200, HP_GOOD))
+r_p2 = bb._http(HP_URL, timeout=30, want_json=True)
+ok('H-p2. a 200 whose body parses is answered on the first attempt',
+   r_p2['ok'] and r_p2['tries'] == 1 and _slept == [], (r_p2['tries'], _slept))
+ok('H-p2. it carries its status, its body and the parsed payload',
+   r_p2['status'] == 200 and r_p2['content'] == HP_GOOD
+   and r_p2['json'] == HP_ROWS and r_p2['why'] == '', r_p2)
+ok('H-p2. `_tx_add` folds it as answered',
+   bb._tx_add(bb._tx(), HP_URL, r_p2)['exhausted'] == 0)
+
+# ── H-p3. a 404 served as text is an ANSWER, and stays one (§3 A3) ─────────
+arch = hp_stub((404, HP_404))
+r_p3 = bb._http(HP_URL, timeout=30, want_json=True)
+ok('H-p3. a 404 served as text is answered (inv. 70)', r_p3['ok'], r_p3)
+ok('H-p3. its status is preserved', r_p3['status'] == 404, r_p3['status'])
+ok('H-p3. its body is not parsed: no payload, no reason',
+   r_p3['json'] is None and r_p3['why'] == '', (r_p3['json'], r_p3['why']))
+ok('H-p3. it is not retried and spends nothing',
+   r_p3['tries'] == 1 and _slept == [] and r_p3['slept'] == 0.0,
+   (r_p3['tries'], _slept))
+ok('H-p3. `_tx_add` does not fold it as exhausted',
+   bb._tx_add(bb._tx(), HP_URL, r_p3)['exhausted'] == 0)
+# The census half: H6's world, with the absent month's 404 served as TEXT.
+arch = h_reset(Archive(
+    monthly=dict((m, h_month(m)) for m in (M1, M2, M4)),
+    daily=dict(('%s-%02d' % (M3, d + 1),
+                [kline(month_start(M3) + (d * 24 + h) * HOUR) for h in range(24)])
+               for d in range(month_hours(M3) // 24)),
+    bodies={'-1h-%s.zip' % M3: [(404, HP_404)]}).install())
+rows_t, gone_t, note_t, tx_t = bb._vision_rows('AAAUSDT', False, V_BEG, V_END)
+ok('H-p3. the census: a month absent as text is transport-clean',
+   tx_t['exhausted'] == 0, tx_t)
+ok('H-p3. `gone` counts it', gone_t == 1, gone_t)
+ok('H-p3. and its dailies refilled every hour of it',
+   set(month_start(M3) + i * HOUR for i in range(month_hours(M3)))
+   <= set(int(k[0]) for k in rows_t), len(rows_t))
+
+# ── H-p4. no reply at all: the exhausted behaviour, unchanged ──────────────
+arch = h_reset(Archive(faults={'/api/v3/klines': 99}).install())
+r_p4 = bb._http(HP_URL, timeout=30, want_json=True)
+ok('H-p4. no reply at all is not answered, after the full ladder',
+   not r_p4['ok'] and r_p4['tries'] == bb.HTTP_TRIES and _slept == [2.0, 8.0],
+   (r_p4['ok'], r_p4['tries'], _slept))
+ok('H-p4. no status, no body, no payload; `why` names the transport exception',
+   r_p4['status'] is None and r_p4['content'] == b'' and r_p4['json'] is None
+   and r_p4['why'] == '_FakeRequestException', r_p4)
+ok('H-p4. `_tx_add` folds it as exhausted',
+   bb._tx_add(bb._tx(), HP_URL, r_p4)['exhausted'] == 1)
+
+# ── H-p5. a parse failure, then a reply that parses ────────────────────────
+arch = hp_stub((200, HP_TEXT), (200, HP_GOOD))
+r_p5 = bb._http(HP_URL, timeout=30, want_json=True)
+ok('H-p5. answered on the second attempt, after one rung of the ladder',
+   r_p5['ok'] and r_p5['tries'] == 2 and _slept == [2.0],
+   (r_p5['ok'], r_p5['tries'], _slept))
+ok("H-p5. `why` does not carry the failed attempt's parse error",
+   r_p5['why'] == '', r_p5['why'])
+ok("H-p5. `content` is the second attempt's body, not the page",
+   r_p5['content'] == HP_GOOD, r_p5['content'][:40])
+ok("H-p5. `json` and `status` are the second attempt's",
+   r_p5['json'] == HP_ROWS and r_p5['status'] == 200, r_p5)
+
+# ── ТЗ-39 §8 item 7: the extremes, each on its own assertion ──────────────
+arch = hp_stub((200, b''))
+r_x1 = bb._http(HP_URL, timeout=30, want_json=True)
+ok('H-x1. a zero-length body on a 200 is NOT answered, and says why',
+   not r_x1['ok'] and r_x1['json'] is None and 'JSONDecodeError' in r_x1['why']
+   and r_x1['tries'] == bb.HTTP_TRIES, r_x1)
+
+HP_SHAPE = {'code': 0, 'msg': 'an object where a kline list was expected'}
+arch = hp_stub((200, json.dumps(HP_SHAPE).encode('utf-8')))
+r_x2 = bb._http(HP_URL, timeout=30, want_json=True)
+ok('H-x2. valid JSON of the wrong shape is DATA: answered, first attempt, '
+   'returned as it came', r_x2['ok'] and r_x2['tries'] == 1
+   and r_x2['json'] == HP_SHAPE and r_x2['why'] == '', r_x2)
+ok('H-x2. and it is no transport failure: the caller owns its shape',
+   bb._tx_add(bb._tx(), HP_URL, r_x2)['exhausted'] == 0)
+
+arch = hp_stub((200, HP_TRUNC), (200, HP_GOOD_B))
+r_x3 = bb._http(HP_URL, timeout=30, want_json=True)
+ok("H-x3. a truncated first reply, then a DIFFERENT second: the record is "
+   "the second attempt's, whole",
+   r_x3 == {'ok': True, 'status': 200, 'content': HP_GOOD_B,
+            'json': HP_ROWS_B, 'tries': 2, 'slept': 2.0, 'why': ''}, r_x3)
+
+arch = hp_stub((404, json.dumps({'code': 404, 'msg': 'Not Found'}).encode('utf-8')))
+r_x4 = bb._http(HP_URL, timeout=30, want_json=True)
+ok('H-x4. a 404 whose body happens to be JSON is answered, not retried and '
+   'NOT parsed — a 404 carries no payload',
+   r_x4['ok'] and r_x4['status'] == 404 and r_x4['tries'] == 1
+   and r_x4['json'] is None, r_x4)
+
+# ── H-c1..c3. the three callers, VERIFIED and not rewritten (§3 A5) ───────
+# Each is driven with H-p1's stub and must take the exhaustion path it already
+# has. Under ТЗ-38's ordering `_rest_rows` returned an EMPTY transport record,
+# `fetch_cg` raised TypeError on «%d» % None and `reconcile` dereferenced None.
+HC = {}
+arch = hp_stub((200, HP_TRUNC))
+t_c1, m_c1 = caught(lambda: HC.__setitem__('c1', bb._rest_rows(
+    'https://data-api.binance.vision', '/api/v3/klines', 'AAAUSDT', V_BEG, V_END)))
+ok('H-c1. `_rest_rows` does not raise', t_c1 is None,
+   '%s: %s' % (t_c1, m_c1[:160]))
+rows_c1, code_c1, tx_c1 = HC.get('c1', (0, 0, bb._tx()))
+ok('H-c1. it takes its exhaustion path: no rows, no status',
+   rows_c1 is None and code_c1 is None, (rows_c1, code_c1))
+ok('H-c1. its transport record is POPULATED: one exhausted request, its URL '
+   'and the parse failure', tx_c1['exhausted'] == 1 and tx_c1['url'] == HP_URL
+   and 'JSONDecodeError' in tx_c1['why'], tx_c1)
+ok('H-c1. the first page was the last: HTTP_TRIES requests, no second page',
+   len(arch.urls) == bb.HTTP_TRIES, len(arch.urls))
+
+HC_CACHE = os.path.join(tmp, 'cache_tz39')
+HC_BOT = os.path.join(tmp, 'bot_tz39.py')
+with open(HC_BOT, 'w') as fh:
+    fh.write('TOKENS = {\n    "AAA": "aaa-coin",\n}\n')
+# `fetch_cg` paces with `time.sleep` itself, 2 s per failed chunk: rebound for
+# this one call so the gate spends none of it, and restored whatever happens.
+# `bb.CACHE` is redirected so no document can reach the real cache.
+_hc_cache, _hc_sleep, _hc_pace = bb.CACHE, bb.time.sleep, []
+bb.CACHE, bb.time.sleep = HC_CACHE, _hc_pace.append
+try:
+    arch = h_reset(Archive(bodies={'/market_chart/': [(200, HP_TRUNC)]}).install())
+    t_c2, m_c2 = caught(lambda: bb.fetch_cg(HC_BOT, years=0.1))
+finally:
+    bb.CACHE, bb.time.sleep = _hc_cache, _hc_sleep
+ok('H-c2. `fetch_cg` does not raise', t_c2 is None,
+   '%s: %s' % (t_c2, m_c2[:160]))
+ok('H-c2. both chunks took the exhaustion path, and say so in words',
+   m_c2.count('чанк -> связь исчерпана (_FakeJSONDecodeError)') == 2,
+   m_c2[-300:])
+ok('H-c2. each chunk was retried under the existing bound and no further',
+   len(arch.urls) == 2 * bb.HTTP_TRIES, len(arch.urls))
+hc_docs = [f for f in (os.listdir(HC_CACHE) if os.path.isdir(HC_CACHE) else [])
+           if f.endswith('.json')]
+ok('H-c2. and nothing reached the cache', hc_docs == [], hc_docs)
+
+arch = h_reset(Archive(bodies={'coeffs.json': [(200, HP_TRUNC)]}).install())
+try:
+    t_c3, m_c3 = caught(lambda: bb.reconcile(HC_BOT))
+except SystemExit as e:              # `caught` reads Exception; this is not one
+    t_c3, m_c3 = 'SystemExit', str(e.code)
+ok("H-c3. `reconcile`'s own `ok` check refuses: it EXITS, no traceback",
+   t_c3 == 'SystemExit', '%s: %s' % (t_c3, m_c3[:160]))
+ok('H-c3. and the exit names the payload and the parse failure',
+   'coeffs.json' in m_c3 and 'JSONDecodeError' in m_c3, m_c3[:160])
+ok('H-c3. one request, retried under the bound, and nothing after it',
+   len(arch.urls) == bb.HTTP_TRIES and set(arch.urls) == set([bb.GIST_LIVE]),
+   arch.urls)
+
+# ── H13. host discipline over the ТЗ-39 fixtures ──────────────────────────
+HP_URLS = [u for a in H_ARCHES[HP0:] for u in a.urls]
+ok('H13. the ТЗ-39 fixtures reached exactly the hosts their callers name',
+   hostset(HP_URLS) == set(['data.binance.vision', 'data-api.binance.vision',
+                            'api.coingecko.com', 'gist.githubusercontent.com']),
+   sorted(hostset(HP_URLS)))
+ok('H13. and they did request something', len(HP_URLS) > 0, len(HP_URLS))
 
 bb._SLEEP = _real_sleep
 sys.modules.pop('requests', None)
