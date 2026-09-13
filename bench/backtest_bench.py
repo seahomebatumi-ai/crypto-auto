@@ -319,6 +319,45 @@ def bot_field_expr(bot_path, field):
     return None
 
 
+def bot_field_stmt(bot_path, field):
+    """Production's OWN construction of one coeffs.json field, cut out of
+    `get_token_betas` by AST so a caller can EXECUTE it on inputs of its
+    choosing instead of restating it (inv. 21, 38): every top-level statement of
+    the metric block that binds the field's local.
+
+    Returns (code, inputs, loc). `inputs` maps each coeffs.json field the
+    statements READ to its local name, derived from the statements' own free
+    names and never written down here. A free name that is not a coeffs.json
+    field raises: such a statement cannot be fed from a record, and feeding it
+    anything else would be a guess."""
+    import builtins
+    loc = CD_FIELDS.get(field, field)
+    lines = open(bot_path, encoding="utf-8").read().splitlines()
+    tryn = next(n for n in _gtb_node(bot_path).body if isinstance(n, ast.Try))
+
+    def binds(st):
+        return any(isinstance(nd, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == loc for t in _assign_targets(nd))
+            for nd in ast.walk(st))
+
+    picked = [st for st in tryn.body if binds(st)]
+    if not picked:
+        raise ValueError("main.py builds no local %r for field %r" % (loc, field))
+    names = [nd for st in picked for nd in ast.walk(st) if isinstance(nd, ast.Name)]
+    stored = set(nd.id for nd in names if isinstance(nd.ctx, ast.Store))
+    free = sorted(set(nd.id for nd in names if isinstance(nd.ctx, ast.Load))
+                  - stored - set(["np"]) - set(dir(builtins)))
+    back = dict((v, k) for k, v in CD_FIELDS.items())
+    alien = [n for n in free if n not in back]
+    if alien:
+        raise ValueError("the construction of %r reads %s, which no coeffs.json "
+                         "field carries" % (field, ", ".join(alien)))
+    src = textwrap.dedent("\n".join("\n".join(lines[st.lineno - 1:st.end_lineno])
+                                    for st in picked))
+    return (compile(src, "<bot-%s>" % field, "exec"),
+            dict((back[n], n) for n in free), loc)
+
+
 class CdBuilder:
     """Собирает запись coeffs.json на момент t тем же кодом, что и бот."""
 
@@ -1657,6 +1696,40 @@ def _cell_class(cov, win_d, t_last):
     return ("coverage" if why else "unexplained"), why
 
 
+def _gap_hours(gen, ends):
+    """Hours from the newest archive stamp in `ends` to production's
+    `generated_at` — the gap --verify prints and its comparison window reads.
+    Positive: production was built AFTER the archive's last hour. None where the
+    stamp does not parse or there is no archive.
+
+    The one derivation of the gap. reconcile() calls it with every cached end,
+    --attrib calls it per coin with that coin's own last stamp (TZ-40 §3), so
+    the two cannot drift apart (inv. 20)."""
+    try:
+        g = time.mktime(time.strptime(gen[:19], "%Y-%m-%dT%H:%M:%S"))
+        g -= time.timezone
+    except Exception:
+        g = None
+    if g and ends:
+        return (g - max(ends) / 1000.0) / 3600.0
+    return None
+
+
+def _cell_dv(kind, a, b):
+    """The reconciliation's comparison site: `a` measured against `b` in the
+    measure the field's class takes — returns in percentage POINTS, `eff14` in
+    its own units, levels (and `info`) relative to `b` in %. Signed.
+
+    reconcile() calls it as (archive, production). --attrib calls it as
+    (production, archive) and as (moved, baseline), so every term it prints is
+    in the measure --verify applies and none of them restates it (TZ-40 §3)."""
+    if kind == "pp":
+        return (a - b) * 100.0
+    if kind == "abs":
+        return a - b
+    return 100.0 * (a - b) / max(1e-12, abs(b))              # rel and info alike
+
+
 def reconcile(bot_path, html_path=None):
     """The comparison itself — it prints nothing and returns no exit code.
 
@@ -1697,11 +1770,6 @@ def reconcile(bot_path, html_path=None):
     ref = {d["symbol"]: d for d in live["analysis_data"]} if isinstance(
         live.get("analysis_data"), list) else live["analysis_data"]
     gen = live.get("generated_at", "")
-    try:
-        g = time.mktime(time.strptime(gen[:19], "%Y-%m-%dT%H:%M:%S"))
-        g -= time.timezone
-    except Exception:
-        g = None
     cdb = CdBuilder(bot_path)
     windows = bot_field_windows(bot_path)
     fut, fut_note = set(), ""
@@ -1727,14 +1795,13 @@ def reconcile(bot_path, html_path=None):
     ends = [json.load(open(os.path.join(CACHE, f)))["prices"][-1][0]
             for f in os.listdir(CACHE)
             if f.endswith(".json") and not f.startswith("_")]
-    gap = None
-    if g and ends:
-        gap = (g - max(ends) / 1000.0) / 3600.0
+    gap = _gap_hours(gen, ends)
     ser_all = load_cache()
     worst = dict((k, 0.0) for k, _, _ in SPEC)
     seen = dict((k, 0) for k, _, _ in SPEC)
     basis, rows, cmp_n = [], [], 0
     no_venue = set()          # cached documents carrying no observed venue
+    no_build = []             # in production and cached, but too short for f
     classes = dict((c, []) for c in CLASSES)
     sym_class = {}
     for sym, ser in sorted(ser_all.items()):
@@ -1743,6 +1810,7 @@ def reconcile(bot_path, html_path=None):
             continue
         cd = cdb.build(ser["prices"], ser["volumes"], len(ser["prices"]) - 1)
         if cd is None:
+            no_build.append(sym)
             continue
         cmp_n += 1
         cov = ser.get("cov")
@@ -1753,12 +1821,7 @@ def reconcile(bot_path, html_path=None):
             if a is None or b is None or not isinstance(b, (int, float)):
                 cells[k] = None
                 continue
-            if kind == "pp":
-                dv = (a - b) * 100.0
-            elif kind == "abs":
-                dv = a - b
-            else:                                   # rel and info alike
-                dv = 100.0 * (a - b) / max(1e-12, abs(b))
+            dv = _cell_dv(kind, a, b)
             seen[k] += 1
             if abs(dv) > abs(worst[k]):
                 worst[k] = dv
@@ -1805,7 +1868,7 @@ def reconcile(bot_path, html_path=None):
             "seen": seen, "worst": worst, "basis": basis, "classes": classes,
             "sym_class": sym_class, "never": never, "cmp_n": cmp_n,
             "windows": windows, "fut": sorted(fut), "fut_note": fut_note,
-            "ends": ends,
+            "ends": ends, "ref": ref, "no_build": no_build,
             "vr_expr": bot_field_expr(bot_path, "vol_ratio"),
             "vr_parts": dict((f, bot_field_expr(bot_path, f))
                              for f in ("vol7", "volatility"))}
@@ -1919,6 +1982,377 @@ def target_gate(sym_class, symbols):
     unrec = sorted(sy for sy in keep
                    if sy not in sym_class and sy not in excluded)
     return excluded, unrec
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# --attrib (TZ-40): the production/archive return gap, split by instant
+# ─────────────────────────────────────────────────────────────────────────────
+# A MEASUREMENT, not a control: it exits non-zero on an internal failure and on
+# zero cells compared, never on the size of anything it measured (inv. 22, 49).
+# Per coin and per return field:
+#   Δ       = r_prod − r_arch, at the reconciliation's own comparison site;
+#   T_end   = f with the window's END instant moved to production's, − r_arch;
+#   T_start = f with the window's START instant moved by the same offset, the
+#             end left at the baseline's, − r_arch;
+#   T_resid = Δ − T_end − T_start, attributed to nothing.
+# `f` is production's block, CALLED through CdBuilder (inv. 21, 38). Each
+# instant term moves exactly ONE instant: the archive keeps its own time grid and
+# the price at the window's end (or start) bar is replaced by the price the
+# archive holds at the moved instant. Cutting the series short instead would
+# move BOTH instants, because production derives the start from the end
+# (`window_stats`), and the start would then be counted in two terms.
+ATTR_H_LADDER = (1, 2, 3, 6, 12, 24)   # hours; registered by TZ-40 §3 before data
+# The probe scale. A power of two changes no mantissa bit, so every probed price
+# is exact and "did the field move" is an exact comparison, never a tolerance.
+ATTR_PROBE = 2.0
+ATTR_EFF = "eff14"     # the return-family field TZ-40 §3 reproduces, not splits
+
+
+def _attr_num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _attr_asof(pts, t):
+    """Index of the bar whose price the archive KNOWS at instant `t`: the last
+    stamp at or before it, because a price is stamped at the END of its hour
+    (`_series_from_rows`). None where the archive cannot say — `t` before the
+    first stamp, or the bar that would carry `t` absent: a bar's width or more
+    past the last stamp, or inside an interior hole."""
+    j = bisect.bisect_right(pts, t) - 1
+    if j < 0 or t - pts[j] >= HOUR_MS:
+        return None
+    return j
+
+
+def _attr_swap(P, moves):
+    """A copy of `P` in which bar k carries the PRICE of bar moves[k]. Every
+    stamp stays where it was, so the window `f` cuts is the baseline's own."""
+    Q = list(P)
+    for k, j in moves.items():
+        Q[k] = [P[k][0], P[j][1]]
+    return Q
+
+
+def attrib_start(fn, P, V, i, field):
+    """The first bar `fn` reads for `field` when its window ends at bar `i`,
+    located by EXECUTING `fn` and never by restating its cutoff (inv. 21, 61).
+
+    Every bar up to and including `j` is scaled by ATTR_PROBE and the field is
+    read again. Bars before the window are not read, so the field stays put;
+    from the window's first bar on, it moves. The predicate is monotone in `j`
+    and is bisected. The end bar `i` is never scaled. None where the field is
+    absent, or where no bar before `i` moves it."""
+    base = fn(P, V, i)
+    if not base or base.get(field) is None:
+        return None
+    b0 = base[field]
+
+    def moved(j):
+        Q = [[p[0], p[1] * ATTR_PROBE] for p in P[:j + 1]] + P[j + 1:]
+        r = fn(Q, V, i)
+        return r is None or r.get(field) != b0
+
+    if i < 1 or not moved(i - 1):
+        return None
+    lo, hi = -1, i - 1               # moved(lo) is False by construction
+    while hi - lo > 1:
+        mid = (lo + hi) // 2
+        if moved(mid):
+            hi = mid
+        else:
+            lo = mid
+    return hi
+
+
+def attrib_two_point(fn, P, V, i, field, start=None):
+    """Does `field` read only its window's END bar and START bar? DERIVED by
+    execution, never assumed (TZ-40 §3, inv. 61): `fn` runs on the archive and
+    again with ONE interior hour — the window's middle bar — scaled by
+    ATTR_PROBE. A field that does not move ignored its interior on this input.
+
+    Returns {"start", "interior", "two_point", "base", "probed"}, or None where
+    no start is located or the window has no interior bar."""
+    s = attrib_start(fn, P, V, i, field) if start is None else start
+    if s is None or i - s < 2:
+        return None
+    k = (s + i) // 2
+    base = fn(P, V, i)[field]
+    Q = list(P)
+    Q[k] = [P[k][0], P[k][1] * ATTR_PROBE]
+    probed = fn(Q, V, i)[field]
+    return {"start": s, "interior": k, "two_point": probed == base,
+            "base": base, "probed": probed}
+
+
+def _attr_eval(code, inputs, loc, rec):
+    """Production's own construction of a field (`bot_field_stmt`) executed on
+    the inputs `rec` carries. None where an input is not a number, or where
+    production's construction itself yields none."""
+    g = {"np": np}
+    for fld, nm in inputs.items():
+        if not _attr_num(rec.get(fld)):
+            return None
+        g[nm] = rec[fld]
+    exec(code, g)
+    return g.get(loc)
+
+
+def _attr_pop(sym, R, cov):
+    """The population a coin is reported in (TZ-40 §4). A `fut:true`
+    DECLARATION, or a series the fetcher OBSERVED on the perpetual, puts it in
+    the reference set: §4 names the declaration, and the `venue-basis` licence
+    its cells carry is read off the observation (TZ-34), so either one keeps
+    those cells out of the spot pool. Every other coin is spot, split by the
+    class reconcile() gave it."""
+    if sym in R["fut"]:
+        return "ref", "declared fut:true"
+    if _venue_licence(cov):
+        return "ref", "series on the perpetual"
+    cls = R["sym_class"].get(sym, "clean")
+    return ("fail" if cls in HARD_CLASSES else "pass"), cls
+
+
+def attrib_run(bot_path, html_path=None):
+    """Everything --attrib measures, returned rather than printed.
+
+    Production's output arrives through reconcile() — --verify's own
+    acquisition path, never a file another step wrote (inv. 62) — and the
+    archive is `bench/cache/`, read the way reconcile() reads it. --verify's
+    comparison-window skip is NOT applied: every cell is attributed and `g` is
+    carried per coin, because a gap wide enough to skip a cell is exactly where
+    the mechanism would otherwise be invisible (TZ-40 §5)."""
+    R = reconcile(bot_path, html_path)
+    kinds = dict((k, kind) for k, kind, _ in R["spec"])
+    fields = [k for k, kind, _ in R["spec"] if kind == "pp"]
+    eff_code, eff_in, eff_loc = bot_field_stmt(bot_path, ATTR_EFF)
+    cdb = CdBuilder(bot_path)
+    ser_all = load_cache()
+    rows = dict((row["sym"], row) for row in R["rows"])
+    ref = R["ref"]
+    cells, effs, coins = [], [], []
+    two = dict((k, [0, 0]) for k in fields)       # [two-point, derived] per field
+    for sym in sorted(ser_all):
+        if sym not in rows:
+            continue                 # named below: absent from production, or too short
+        r, ser = ref[sym], ser_all[sym]
+        P, V = ser["prices"], ser["volumes"]
+        pts = [p[0] for p in P]
+        vts = [v[0] for v in V] if V else None
+
+        def fn(Q, W, i, pts=pts, vts=vts):
+            return cdb.build(Q, W, i, pts, vts)
+
+        i0 = len(P) - 1
+        cd0 = fn(P, V, i0)
+        t_last = int(P[i0][0])
+        g = _gap_hours(R["gen"], [t_last])
+        gms = None if g is None else g * HOUR_MS
+        j_e = None if gms is None else _attr_asof(pts, t_last + gms)
+        cov = ser.get("cov")
+        pop, pwhy = _attr_pop(sym, R, cov)
+        coins.append({"sym": sym, "pop": pop, "pwhy": pwhy, "g": g,
+                      "venue": (cov or {}).get("venue")})
+        for k in fields:
+            a, b = cd0.get(k), r.get(k)
+            rc = rows[sym]["cells"].get(k)
+            if rc is not None and rc["a"] != a:
+                # One f on one input: a disagreement is this mode's own defect.
+                raise RuntimeError("--attrib: %s %s — archive value %r differs from "
+                                   "reconcile()'s %r" % (sym, k, a, rc["a"]))
+            c = {"sym": sym, "pop": pop, "field": k, "g": g, "d": None,
+                 "end": None, "start": None, "resid": None, "dstart": None,
+                 "interior": None, "ladder": None, "tp": None, "why": None}
+            cells.append(c)
+            if not _attr_num(b):
+                c["why"] = "no production value"
+                continue
+            if a is None:
+                c["why"] = "no archive value"
+                continue
+            c["d"] = _cell_dv(kinds[k], b, a)
+            s = attrib_start(fn, P, V, i0, k)
+            if s is None:
+                c["why"] = "window start not located"
+                continue
+            tp = attrib_two_point(fn, P, V, i0, k, start=s)
+            if tp is not None:
+                two[k][1] += 1
+                two[k][0] += 1 if tp["two_point"] else 0
+                c["tp"] = tp["two_point"]
+                if not tp["two_point"]:
+                    c["interior"] = _cell_dv(kinds[k], tp["probed"], tp["base"])
+            if s == 0:
+                c["why"] = "window reaches the archive's first bar"
+                continue
+            if gms is None:
+                c["why"] = "g unknown: generated_at does not parse"
+                continue
+            j_s = _attr_asof(pts, pts[s] + gms)
+            if j_e is not None:
+                c["end"] = _cell_dv(kinds[k], fn(_attr_swap(P, {i0: j_e}), V, i0)[k], a)
+            if j_s is not None:
+                c["start"] = _cell_dv(kinds[k], fn(_attr_swap(P, {s: j_s}), V, i0)[k], a)
+                p0, lad = P[j_s][1], []
+                for h in list(ATTR_H_LADDER) + [g]:
+                    j = _attr_asof(pts, pts[j_s] + h * HOUR_MS)
+                    lad.append(None if j is None or not (P[j][1] > 0 and p0 > 0)
+                               else 100.0 * abs(math.log(P[j][1]) - math.log(p0)))
+                c["ladder"] = lad
+            if j_e is None:
+                c["why"] = "production's end instant is outside the archive"
+                continue
+            if j_s is None:
+                c["why"] = "the moved start instant is outside the archive"
+                continue
+            c["resid"] = c["d"] - c["end"] - c["start"]
+            if c["tp"]:
+                # log(1+r) = ln P(end) − ln P(start) holds for a two-point field,
+                # so the residual is read as a START-level deviation (TZ-40 §3).
+                r_al = fn(_attr_swap(P, {i0: j_e, s: j_s}), V, i0)[k]
+                if r_al > -1.0 and b > -1.0:
+                    c["dstart"] = 100.0 * (math.log1p(r_al) - math.log1p(b))
+        ea, eb = cd0.get(ATTR_EFF), r.get(ATTR_EFF)
+        pin = dict((f, r.get(f)) for f in eff_in)
+        ain = dict((f, cd0.get(f)) for f in eff_in)
+        e = {"sym": sym, "pop": pop, "why": None, "rep": None, "parts": [],
+             "d": _cell_dv(kinds[ATTR_EFF], eb, ea)
+             if _attr_num(eb) and _attr_num(ea) else None,
+             "inputs": [(f, _cell_dv(kinds[f], pin[f], ain[f])
+                         if _attr_num(pin[f]) and _attr_num(ain[f]) else None)
+                        for f in sorted(eff_in)]}
+        effs.append(e)
+        rep = _attr_eval(eff_code, eff_in, eff_loc, pin)
+        if not all(_attr_num(pin[f]) for f in eff_in):
+            e["why"] = "an input is missing from production's record"
+        elif rep is None:
+            e["why"] = "production's construction yields no value at production's inputs"
+        elif not _attr_num(eb):
+            e["why"] = "no production value"
+        else:
+            e["rep"] = _cell_dv(kinds[ATTR_EFF], rep, eb)
+        # Δeff14 split by substituting production's inputs for the archive's
+        # one at a time, in field order; each part is production's construction
+        # before and after that one substitution.
+        cur = dict(ain)
+        prev = _attr_eval(eff_code, eff_in, eff_loc, cur)
+        for f in sorted(eff_in):
+            cur[f] = pin[f]
+            nxt = _attr_eval(eff_code, eff_in, eff_loc, cur)
+            e["parts"].append((f, _cell_dv(kinds[ATTR_EFF], nxt, prev)
+                               if nxt is not None and prev is not None else None))
+            prev = nxt
+    reasons = {}
+    for c in cells:
+        if c["why"]:
+            reasons[c["why"]] = reasons.get(c["why"], 0) + 1
+    return {"gen": R["gen"], "gap": R["gap"], "skip": R["skip"],
+            "fields": fields, "kinds": kinds, "cells": cells, "effs": effs,
+            "coins": coins, "two": two, "eff_in": sorted(eff_in),
+            "reasons": reasons,
+            "cached_not_prod": sorted(s for s in ser_all if s not in ref),
+            "prod_not_cached": sorted(s for s in ref if s not in ser_all),
+            "no_build": list(R["no_build"]),
+            "n_cmp": sum(1 for c in cells if c["d"] is not None),
+            "n_attr": sum(1 for c in cells if c["resid"] is not None)}
+
+
+def _attr_f(v, fmt="%+8.3f"):
+    return ("%8s" % "—") if v is None else fmt % v
+
+
+ATTR_POPS = (("pass", "spot, passing"), ("fail", "spot, failing"),
+             ("ref", "reference (perpetual)"))
+
+
+def report_attrib(A):
+    """Print what attrib_run measured. Names no cause (TZ-40 §1)."""
+    u = dict((k, {"rel": "%", "pp": " pp", "abs": "", "info": "%"}[kind])
+             for k, kind in A["kinds"].items())
+    print("ATTRIB — production vs archive, return family: end instant · start "
+          "instant · residual (TZ-40)")
+    print("coeffs.json built %s · gap to the newest archive hour %s h · "
+          "--verify's comparison-window skip is NOT applied here"
+          % (A["gen"][:19] or "?", "?" if A["gap"] is None else "%+.1f" % A["gap"]))
+    print("sign: Δ = production − archive (--verify prints archive − production); "
+          "Δ, T_end, T_start, T_resid in pp, the reconciliation's own measure; "
+          "d_start_implied and the ladder in log-% (100·|Δ ln P|)")
+    print("d_end: NOT AVAILABLE — reconcile() compares no `cur` cell and "
+          "coeffs.json carries no end-of-window price. d_start_implied is the "
+          "residual read as a start-instant level deviation, NOT net of d_end")
+    for k in A["fields"]:
+        n2, nd = A["two"][k]
+        print("f two-point for %-4s %d of %d coins (one interior hour probed, "
+              "field unchanged)" % (k, n2, nd))
+    print("%-4s %-7s %-4s %7s %8s %8s %8s %8s %8s  ladder h=%s,g"
+          % ("pop", "coin", "fld", "g h", "Δ", "T_end", "T_start", "T_resid",
+             "d_start", ",".join(str(h) for h in ATTR_H_LADDER)))
+    for pop, _ in ATTR_POPS:
+        for c in (x for x in A["cells"] if x["pop"] == pop):
+            lad = ("—" if c["ladder"] is None else
+                   " ".join("—" if v is None else "%.2f" % v for v in c["ladder"]))
+            note = []
+            if c["interior"] is not None:
+                note.append("not two-point: interior hour moves f by %+.3f pp"
+                            % c["interior"])
+            if c["why"]:
+                note.append(c["why"])
+            print("%-4s %-7s %-4s %7s %s %s %s %s %s  %s%s"
+                  % (pop, c["sym"], c["field"],
+                     "—" if c["g"] is None else "%+.1f" % c["g"],
+                     _attr_f(c["d"]), _attr_f(c["end"]), _attr_f(c["start"]),
+                     _attr_f(c["resid"]), _attr_f(c["dstart"]), lad,
+                     ("  · " + "; ".join(note)) if note else ""))
+    print("eff14 — production's own construction (main.py, cut by AST) re-run at "
+          "production's %s; Δ split by substituting %s in that order"
+          % (" and ".join(A["eff_in"]), " then ".join(A["eff_in"])))
+    for pop, _ in ATTR_POPS:
+        for e in (x for x in A["effs"] if x["pop"] == pop):
+            print("%-4s %-7s eff14 Δ %s · reproduction %s · %s · inputs %s%s"
+                  % (pop, e["sym"], _attr_f(e["d"], "%+.4f"),
+                     _attr_f(e["rep"], "%+.4f"),
+                     " · ".join("from %s %s" % (f, "—" if v is None else "%+.4f" % v)
+                                for f, v in e["parts"]),
+                     " · ".join("%s %s" % (f, "—" if v is None else
+                                           "%+.3f%s" % (v, u[f]))
+                                for f, v in e["inputs"]),
+                     ("  · " + e["why"]) if e["why"] else ""))
+    pops = {}
+    for c in A["coins"]:
+        pops[c["pop"]] = pops.get(c["pop"], 0) + 1
+    print("")
+    print("coins by population: " + " · ".join(
+        "%s %d" % (label, pops.get(p, 0)) for p, label in ATTR_POPS))
+    for p, label in ATTR_POPS[:2]:
+        if not pops.get(p):
+            print("POPULATION EMPTY: %s — a term cannot be compared across "
+                  "the two spot populations on this run" % label)
+    print("cells compared (Δ formed): %d · attributed (all three terms): %d"
+          % (A["n_cmp"], A["n_attr"]))
+    for w, n in sorted(A["reasons"].items()):
+        print("  not attributed · %-50s %d" % (w, n))
+    n_eff = sum(1 for e in A["effs"] if e["rep"] is not None)
+    print("eff14 reproduced exactly (residual 0): %d of %d coins where it "
+          "could be evaluated" % (sum(1 for e in A["effs"] if e["rep"] == 0.0), n_eff))
+    for ttl, key in (("cached, absent from production's output", "cached_not_prod"),
+                     ("in production's output, not cached", "prod_not_cached"),
+                     ("cached and in production, too short for f", "no_build")):
+        print("%s: %s" % (ttl, ", ".join(A[key]) or "none"))
+
+
+def attrib_mode(bot_path, html_path=None):
+    """--attrib. Exits non-zero only on an internal failure — which propagates
+    as an exception — or on zero cells compared (TZ-40 §5, inv. 22).
+
+    A cell is compared once Δ is formed. Zero cells ATTRIBUTED is not a refusal:
+    where production was built after the archive's last bar, its end instant is
+    one the archive does not hold, T_end is named rather than read, and that is
+    what the run measured (inv. 49)."""
+    A = attrib_run(bot_path, html_path)
+    report_attrib(A)
+    if A["n_cmp"] == 0:
+        sys.exit("STOP: --attrib compared zero cells. Nothing was measured, "
+                 "and that is not a finding (inv. 22).")
+    return 0
 
 
 def load_cache(keep_btc=False):
@@ -4382,6 +4816,7 @@ def main():
     ap.add_argument("--fetch", action="store_true")
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--verify", action="store_true")
+    ap.add_argument("--attrib", action="store_true")
     ap.add_argument("--probe", action="store_true")
     ap.add_argument("--regimes", action="store_true")
     ap.add_argument("--stops", action="store_true")
@@ -4546,6 +4981,8 @@ def main():
         return fetch_prices(a.html, a.bot, a.years, a.source)
     if a.verify:
         return verify_against_live(a.bot, a.html)
+    if a.attrib:
+        return attrib_mode(a.bot, a.html)
     if a.selftest:
         return selftest(a.html, a.bot, a.seeds)
     if a.run:
