@@ -2358,6 +2358,69 @@ ok('I. section I compared something', checks[0] - i0 > 0, checks[0] - i0)
 print('I. attribution: %d comparisons' % (checks[0] - i0))
 
 # ═══════════════════════════════════════════════════════════════════════════
+# J. `_gap_hours` reads the stamp in UTC  (ТЗ-41)
+# ═══════════════════════════════════════════════════════════════════════════
+# The letter is J, read off the FILE: the last section it carries is I, and two
+# sections already share E, so counting sections would say K (ТЗ-41 §4).
+#
+# `generated_at` is UTC and carries no offset. Read through local time and
+# corrected by `time.timezone`, it is exact only where local time keeps no
+# daylight saving: in daylight time `mktime` applies the DST offset, the
+# correction removes the standard one, and the gap moves by their difference.
+# So one known answer is asserted under a zone IN daylight time at the
+# constructed instant and again under UTC. The zone is a POSIX rule string,
+# which libc parses without tzdata, so a runner lacking the zone file cannot
+# quietly turn the first reading into a second UTC one — and J1 asserts the
+# zone really is in daylight time, because a probe outside it proves nothing.
+#
+# The stamp is formatted from a whole second by gmtime, as i_live formats it,
+# the ends are whole hours before it, and the answer is a whole number of
+# hours: every equality below is exact and no tolerance appears (inv. 45).
+j0 = checks[0]
+J_ZONE = 'EST+05EDT,M3.2.0,M11.1.0'
+J_T = 1784116800000                       # 2026-07-15T12:00:00Z, inside EDT
+J_GEN = bb.time.strftime('%Y-%m-%dT%H:%M:%S', bb.time.gmtime(J_T / 1000.0))
+J_ENDS = [J_T - 30 * HOUR, J_T - 5 * HOUR, J_T - 9 * HOUR]
+J_GAP = 5.0                               # hours from the newest end to J_T
+J_SAVED = (os.environ.get('TZ'), bb.time.tzname, bb.time.timezone, bb.time.altzone)
+
+
+def j_under(zone):
+    """_gap_hours on the constructed stamp with the process in `zone`, and
+    whether `zone` keeps daylight time at J_T."""
+    os.environ['TZ'] = zone
+    bb.time.tzset()
+    return bb._gap_hours(J_GEN, J_ENDS), bb.time.localtime(J_T / 1000.0).tm_isdst
+
+
+try:
+    J_DST, J_ISDST = j_under(J_ZONE)
+    J_UTC, _ = j_under('UTC')
+finally:
+    if J_SAVED[0] is None:
+        os.environ.pop('TZ', None)
+    else:
+        os.environ['TZ'] = J_SAVED[0]
+    bb.time.tzset()
+
+ok('J1. the DST zone is in daylight time at the constructed instant',
+   J_ISDST == 1, J_ISDST)
+ok('J2. %s: the gap is the constructed %r hours' % (J_ZONE, J_GAP),
+   J_DST == J_GAP, J_DST)
+ok('J2. UTC: the gap is the constructed %r hours' % J_GAP, J_UTC == J_GAP, J_UTC)
+ok('J3. the two zones read the same gap', J_DST == J_UTC, (J_DST, J_UTC))
+ok('J4. the previous time zone environment is restored',
+   (os.environ.get('TZ'), bb.time.tzname, bb.time.timezone, bb.time.altzone)
+   == J_SAVED, J_SAVED)
+ok('J5. a generated_at that does not parse returns None',
+   bb._gap_hours('not a stamp', J_ENDS) is None)
+ok('J5. an empty ends returns None', bb._gap_hours(J_GEN, []) is None)
+
+# ── §5.2.6 the section reports its own count and refuses to pass on zero.
+ok('J. section J compared something', checks[0] - j0 > 0, checks[0] - j0)
+print('J. gap in UTC: %d comparisons' % (checks[0] - j0))
+
+# ═══════════════════════════════════════════════════════════════════════════
 shutil.rmtree(tmp, ignore_errors=True)
 for f in os.listdir(HERE):
     if f.startswith('_') and f.endswith('_bridge.js'):

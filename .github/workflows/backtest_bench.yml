@@ -134,10 +134,11 @@ jobs:
         run: |
           cd bench
           python backtest_bench.py --attrib --bot ../main.py \
-            --html ../index.html
+            --html ../index.html 2>&1 | tee attrib.txt
 
       # Артефакт нужен именно тогда, когда что-то упало.
       - name: Деление по режиму BTC
+        if: ${{ !cancelled() }}
         run: |
           cd bench
           python backtest_bench.py --regimes --horizon 7 --step 7 \
@@ -152,6 +153,7 @@ jobs:
             bench/selftest.txt
             bench/fetch.txt
             bench/verify.txt
+            bench/attrib.txt
             bench/report.txt
             bench/regimes.txt
             bench/regimes.json
