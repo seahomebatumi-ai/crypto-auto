@@ -14,36 +14,39 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-13-b.** Baseline: three TZs on the bench's MEASUREMENT layer, merged in
-order. **TZ-39** finished what inv. 70's first implementation left open — `_http` decides its
-outcome after the last step that can fail, and the retry budget prints on every pass instead
-of only where a coin died. **TZ-40** added `--attrib`, which splits the production/archive
-return gap into an end-instant term, a start-instant term and a residual. **TZ-41** kept that
-split alive: its output is written into the artifact, the steps after `--verify` carry their
-own condition, and the reconciliation's gap is read in UTC. Reports
-`CryptoReports/TZ-39-transport-outcome-and-budget-report.md`,
-`CryptoReports/TZ-40-return-attribution-report-2.md` and
-`CryptoReports/TZ-41-attrib-retained-and-utc-gap-report.md`, all accepted; merged by the Boss
-as pull requests **#35**, **#37** and **#38** — merge commits `9174fbb`, `f122bd7` and
-**`d88593e`**, implementation commits `396f961`, `805d5e3` and `dc42e4e`. TZ-40 carries a
-second report under its own number, `TZ-40-return-attribution-report.md`, BLOCKED because
-TZ-39 was not yet merged when it ran; both are immutable and the re-run's `-2` suffix is the
-contract's own naming, not a correction.
+**Revision 2026-09-14-a.** Baseline: one TZ merged, one blocked, both on `--verify`.
+**TZ-44** decided comparability per SYMBOL and per FIELD, BEFORE the class: a cell whose two
+sides were built over different windows carries no class, no threshold verdict, no
+contribution to any count of agreement and no exclusion from `--target` (§3.10). Guard I9 was
+re-registered as a PAIR — the identity re-asserted over both structures `--attrib` writes,
+plus a partition asserting the split between them (inv. 69) — and the garrison gained
+section **K** on `_cell_comparable`. **TZ-43 carried the same specification and was correctly
+BLOCKED**: its own §4 asserted a set relation between two structures built from two different
+field sets, unsatisfiable by construction, and it committed no code. Reports
+`CryptoReports/TZ-43-verify-comparability-corrected-report.md`, BLOCKED, and
+`CryptoReports/TZ-44-verify-comparability-i9-union-report.md`, accepted; merged by the Boss as
+pull request **#39**, implementation commit **`99e4b0a`**. **The merge commit is not recorded
+here**: the baseline names the implementation commit, which is the one carrying content
+(contract §5).
 
-**No production file moves at this revision either** — the fifth in a row. `index.html`,
+**No production file moves at this revision either** — the sixth in a row. `index.html`,
 `main.py`, `catalysts.json` and `bench/exhaustion-calibration.txt` appear in no diff, and
-every figure in the file table below was read on `main` at `d88593e`. The whole change is two
-benches and one workflow: `bench/backtest_bench.py` 4555 → **5008 lines**,
-`c7fedd64bce7c27c07803325b1f807d3`; `bench/backtest_guard_bench.py` 1726 → **2438 lines**,
-`85ea609882ac3761fd526b3ebff2fe5f`; `.github/workflows/backtest_bench.yml` 156 → **171
-lines**, `703330829c377a15fc0df71e25df92a7`. `bench/verify_bench.py`, `journal/write.js` and
+every figure in the file table below is unchanged from the previous revision. The whole change
+is three benches: `bench/backtest_bench.py` 5008 → **5102 lines**,
+`ba633202f43845ba0fdafbc1b92d9c04`; `bench/verify_bench.py` 388 → **540 lines**,
+`28eb1949f21d0afadb062303108f7101`; `bench/backtest_guard_bench.py` 2438 → **2503 lines**,
+`bfc984b1d22ec1ad89cf536a1a47c529`. No workflow moved, and `journal/write.js` and
 `bench/journal_bench.js` are byte-identical to the previous revision, so their figures stand
-on a reading rather than on inheritance.
+on a reading rather than on inheritance. **Every bench figure at this revision was measured on
+the IMPLEMENTATION commit `99e4b0a`, not on `main` after the merge** — the merge was clean and
+those blobs are what it carried, but the reading itself is the implementation session's
+(contract §5).
 
-**`-b` adds no code: it is the DISPATCH those three TZs were built for**, taken
-13.09.2026T09:50–10:28Z and read here from the `backtest-report` artifact the Boss forwarded.
-No file moved at this revision, the gate stands where TZ-41 left it, and the map is the only
-artifact `-b` touches. **The run was RETAINED**: `attrib.txt` is in the artifact, which is the
+**The latest DISPATCH is still 13.09.2026's**, recorded at revision `2026-09-13-b`, taken
+13.09.2026T09:50–10:28Z and read from the `backtest-report` artifact the Boss forwarded. It
+carried no code and moved no file. **Every dispatch figure below therefore predates TZ-44**
+and was taken on the cache-wide window it retired: the next dispatch is the first reading of
+`--verify` under per-symbol comparability. **The run was RETAINED**: `attrib.txt` is in the artifact, which is the
 reading inv. 71's first half asked for and the first time an `--attrib` figure has existed
 outside a job log. Its second half is still unread — `--verify` exited 0 on this run, so no
 step ever stood in the shadow the conditioning repair exists to lift (§10).
@@ -96,13 +99,15 @@ spent only inside its `dead` branch, so a run that slept 599 s and a run that ma
 attempt per URL print the same output.
 
 **Step 14's count stood at `94` in two other sections while the step itself ran 174, then
-203, 266, 323, 373, 467 and now 475.** §3.10 and §10 both carried the figure TZ-30 measured, and neither
+203, 266, 323, 373, 467, 475 and now 487.** §3.10 and §10 both carried the figure TZ-30 measured, and neither
 moved when the step did. **The count lives in this section only** and both sites point here:
 a count carried in three places goes stale in silence (inv. 20), and the calibration record
 is the one exception in this tree only because gate step 12 compares its two copies on every
 push (inv. 46).
 
-**The revisions before this one, in one line each.** `2026-09-13-a` recorded TZ-39, TZ-40
+**The revisions before this one, in one line each.** `2026-09-13-b` recorded no code at
+all — the dispatch the three TZs before it were built for, read from the artifact;
+`2026-09-13-a` recorded TZ-39, TZ-40
 and TZ-41 — the transport outcome decided after the last failing step, the return gap split
 into instants and residual, and that split retained and conditioned; `2026-09-10-a` recorded
 TZ-38, the
@@ -120,19 +125,19 @@ each one's attribution lives in its own immutable report rather than here.
 Contract **v20** — 814 lines, MD5 `9a257890e9db663eb0fc74129f4841e0` — is unchanged at this
 revision.
 
-**`bench/backtest_bench.py` has no row in the file table, and five consecutive TZs have now
+**`bench/backtest_bench.py` has no row in the file table, and six consecutive TZs have now
 had to explain the absence.** The table pins the four files a TZ header fingerprints: three
 production artifacts plus the calibration record, and the record is there only because it is
 one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists (inv. 46). A bench in that table
 would put a hash in every TZ header for a file that moves whenever a bench moves — the
 argument §11 already makes for `live-gate.sh`. A TZ needing the figure states it in its own
-`§0`, as TZ-28 through TZ-41 all did: 2544 → 2768 → 3216 → 3240 → 3724 → 3881 → 4110 → 4258 →
-4555 → 4572 → 5009 → **5008 lines**, `c7fedd64bce7c27c07803325b1f807d3`. **The one fall in
+`§0`, as TZ-28 through TZ-44 all did: 2544 → 2768 → 3216 → 3240 → 3724 → 3881 → 4110 → 4258 →
+4555 → 4572 → 5009 → 5008 → **5102 lines**, `ba633202f43845ba0fdafbc1b92d9c04`. **The one fall in
 that ladder is a repair**: TZ-41 replaced two lines of local-clock arithmetic with one call to
 `calendar.timegm`. Four more benches carry figures for the same reason:
-`bench/backtest_guard_bench.py` **2438 lines**,
-`85ea609882ac3761fd526b3ebff2fe5f`, `bench/verify_bench.py` **388 lines**,
-`06036d8c3d39ccec6be21d2158ef3ce1`, `journal/write.js` **849 lines**,
+`bench/backtest_guard_bench.py` **2503 lines**,
+`bfc984b1d22ec1ad89cf536a1a47c529`, `bench/verify_bench.py` **540 lines**,
+`28eb1949f21d0afadb062303108f7101`, `journal/write.js` **849 lines**,
 `19722fb53d75b6d25a8f957f74f97422`, and `bench/journal_bench.js` **1177 lines**,
 `993271f44995c8ae21c54935a3f80adf`.
 
@@ -156,7 +161,7 @@ written, and a blocking gate is the one control that may not have such a directi
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-13-b.**` |
+| revision | `**Revision 2026-09-14-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -186,21 +191,23 @@ Rewriting the header would make the description of one sample describe a differe
 which is inv. 46 read backwards — the constant would then agree with a record that no
 longer names the run behind it. It goes stale by design; the reader is told so here.
 
-Gate at this revision: `bench.yml`, **14 steps, 1 336 116 checks**. **Three TZs moved ONE
-term and each reported its own section's count.** Step 14 rises 323 → 373 (TZ-39, `+50`,
-section H) → 467 (TZ-40, `+94`, section I) → **475** (TZ-41, `+8`, section J);
-`1 335 964 + 50 + 94 + 8 = 1 336 116`. Twelve of the other thirteen steps read files
-byte-identical to the previous revision; step 4 is the exception, because `verify_bench.py`
-imports `backtest_bench.py` at scope and that file moved three times.
+Gate at this revision: `bench.yml`, **14 steps, 1 336 147 checks**. **TZ-44 moved TWO steps,
+which no single TZ before it did.** Step 14 rises 475 → **487** — section I 94 → 95, where the
+I9 pair puts two checks where one stood, plus the new section K at **11** — and step 4 rises
+40 → **59**, the nineteen lane assertions added to `verify_bench.py`;
+`1 336 116 + 12 + 19 = 1 336 147`. The other twelve steps read files byte-identical to the
+previous revision.
 
-**Steps 4 and 14 were replayed by the ARCHITECT on the merge commit `d88593e`: step 14 = 475,
-`FAIL 0` — sections E 32, F 29, G 63, H 107, I 94, J 8 — and step 4 = 40, `FAIL 0`.** That is
-a reading of `main` taken here, not the reports' word, which is the standing inv. 55 gives the
-audit. **The hosted gate on the merge commit is NOT read**: the runs API answered this session
-a rate limit (inv. 44). The six hosted runs the three reports name — `34657215614` and
-`34657291190` for TZ-39, `34744917873` and `34744919491` for TZ-40, `34749013673` and
-`34749017673` for TZ-41, all `success` on all 19 job steps — were taken against the
-implementation commits and are admitted as evidence, never as a reading. **Step 5's own count
+**Steps 4 and 14 were NOT replayed by the Architect at this revision**, and the two figures
+above are the implementation session's LOCAL readings: `59` and `487`, both `FAIL 0`, sections
+E 32, F 29, G 63, H 107, I 95, J 8, K 11. What the audit verified independently is the
+ARITHMETIC — the unprinted term is 142 before and after, `475 + 1 + 11 = 487`, `40 + 19 = 59` —
+and the committed I9 pair, diffed character for character against the specification.
+**The hosted gate WAS read this time, by the session that produced it**: two `Bench gate` runs
+on the implementation commit `99e4b0a`, `34786159289` (push) and `34786168232`
+(pull_request), both `success` on every job step, read with `gh run view`. **What nobody has
+read is the runner's own per-step COUNTS** — a conclusion is a measurement and a count is a
+different one, and neither substitutes for the other (inv. 22, 43). **Step 5's own count
 has never been recorded in this map**: it is the residual that makes the recorded total add up
 (255 708) and it is arithmetic, not a reading.
 
@@ -698,6 +705,27 @@ the perpetual measured its basis against CoinGecko's spot index and fell into `u
 read side refuses and names every affected symbol, because a default in the reading direction
 reproduces the same defect one layer down where nothing would report it (inv. 67).
 
+**Since TZ-44 comparability is decided per SYMBOL and per FIELD, before the class.** The old
+window was derived once for the whole cache, from the newest last bar anywhere in it, so the
+symbols that needed it — the perpetuals, whose own bar is never the newest (inv. 64) — were
+exactly the ones it never described; and a cell announced as not compared was classed anyway,
+because `over` was computed with no reference to the announcement. Now each symbol's OWN end
+instant is measured against production's `generated_at`, and `_cell_comparable` decides the
+cell from that gap alone — reading no venue, no census and no threshold, because comparability
+is a fact about instants. **The window is TWO-SIDED** at `CMP_GAP_H = 3.0`, one module
+constant, with the sign carried into the printed reason and never into the decision; before
+this, an archive LATER than production was compared at any distance with nothing announced.
+**An incomparable cell carries no class, no threshold verdict, no contribution to any count of
+agreement and no exclusion from `--target`** — it is read, printed and named in `nocmp`. A
+symbol holding one is `unverified`, a class in neither `CLASSES` nor `HARD_CLASSES`, ranked
+after any hard class and ahead of `venue-basis`: **`clean` may never mean «nothing was
+compared»**, which is this mode's dangerous direction written as a class. `never` reads
+PRESENCE, not comparisons — a field absent from the live `coeffs.json` still fails the run, a
+field present everywhere and comparable nowhere is an operational state and is named — and the
+agreement line lists only fields with a comparison behind them, each printing `сверок N из M`.
+**`--attrib` is deliberately NOT filtered by comparability**, which is precisely why it can
+attribute the cells `--verify` declines; its return carries `nocmp` where it carried `skip`.
+
 **Since TZ-33 the `--target` PRODUCTION arm mixes two prices, deliberately and at a cost
 that has to be named.** Production's own call sequence changed, so the driver takes the
 second pass too and `prod.g` is the ANCHORED geometry — a driver still making one call would
@@ -767,13 +795,17 @@ step 2 of its own job, under `bash -euo pipefail`, until TZ-27 tripped over it.
 **Since TZ-30 the garrison is `bench/backtest_guard_bench.py`, gate step 14, offline; its
 check count is §0's and is not restated here** (inv. 20). It loads this module by path and
 never re-implements a rule it checks (inv. 21): every assertion calls a production function by
-name and compares its return, and every fixture is synthetic input to that function. Seven
-sections under six letters — the four bundles build, close and pass `node --check`, with three
+name and compares its return, and every fixture is synthetic input to that function. **Its sections
+are not enumerated with a count here** (inv. 20): the authority is the file's own `# X.`
+headers, and the next letter is READ from them and never counted — two sections share the
+letter `E`, so counting gives the wrong one, and §10 carries why. That count went stale
+between TZ-30 and TZ-41 while it stood in this paragraph. What the garrison covers today: the
+four bundles build, close and pass `node --check`, with three
 negative controls · `_vision_rows` offline, including the refill, the pre-listing window,
 inv. 64 and the last-complete-hour stop · the coverage census on hand-built buckets ·
 `_splice`'s arithmetic, admission and refusal · what `target_gate` does with a class · the
-venue recorded as an OBSERVATION · the anchored production arm · and `d4_partition` on
-hand-built dates (TZ-37). Two sections share the letter `E` and §10 carries why. `requests` is stubbed and every assertion about a host that
+venue recorded as an OBSERVATION · the anchored production arm · `d4_partition` on
+hand-built dates (TZ-37) · and `_cell_comparable`'s decision, section K (TZ-44). `requests` is stubbed and every assertion about a host that
 must not be contacted reads that stub's record, so the step opens no socket — **asserted by
 construction, which is its own limit**: a future reach to the network through something
 other than `requests` would be invisible to it.
@@ -2302,7 +2334,7 @@ Any production edit → the full `bench.yml` gate, 14 steps.
 - Liquidation probability (§3.3) assumes normality and constant volatility. Crypto tails are fatter and volatility clustering is unmodelled → **the true probability is higher than computed**; the figure is a LOWER BOUND. Measured at 7d and typical 2σ–6σ distances the same touch formula is honest and even conservative (measured/model 0.88, CI95 covers 1 on both sides); beyond the 6σ clip the far tail confirms the prior (3.5 % measured vs 0.9 % model on the long side). **Crediting the 0.88 into the calculation is REJECTED:** the CI covers 1, the understatement is explained by clustering (so the correction would break exactly in an expansion regime), and `touchProb` does not enter leverage at all — all four ceilings are distance-based.
 - The backtest reconstructs 82.5 % of the long score and 86 % of the short: market-cap rank and Binance turnover are historically unavailable, so the quality block runs on `vol_ratio` alone, through production's own missing-field path (inv. 9). Both inputs move slowly across the list, so their contribution is close to a constant tilt. **`vol_ratio` itself has NO ARCHIVE ANALOGUE and therefore carries no threshold — it is reference-only in `--verify`.** Production builds it as `volume_expansion(c_data['total_volumes'])`, CoinGecko's composite turnover across every venue; the bench builds it from the archive's own Binance quote turnover. Two different turnover series, each divided by its own 90d median, give one scale-free ratio that is not a function of the other — so no bound derived from any price field can constrain it. Measured 05.09.2026: worst cell XMR **+317 %**, while `vol7` and `volatility` on the same coins sit under 3 %, and on synthetic data with identical prices and a substituted turnover series the derived bound is identically 0.000 % against a deviation of 134 %. **It is NOT `vol7 / volatility`** — that quotient is `volRegime` in the frontend, the §3.2 leverage cap, and is not a `coeffs.json` field at all. A TZ attaching a threshold here is attaching one to a quantity the archive cannot reproduce (inv. 49).
 - **Backtest vs production reconciles on 30 of 30 coins — measured 13.09.2026, and the reading below it is SUPERSEDED as current state (inv. 56).** `--verify` returned `unexplained` 0 and `coverage` 0 on 30 coins: 25 spot `clean`, five perpetuals `venue-basis`. Worst cells: levels ≤ 0.73 % against 2 %, `volatility` 2.30 % against 10 %, `vol7` 16.2 % against 25 %, returns ≤ 1.18 pp on spot against 1.50 / 2.00 / 3.00 pp. `--target` ran on 30 coins with none excluded, so the twelve-coin universe is retired. **The 09.09 reading below is not withdrawn — it happened — and it is no longer a description of the system**, because a phenomenon measured once is a property of that run until a second run reproduces it. What differs between the two is not separable here: the transport repair of TZ-39, a gap of −0.2 h against +0.8 h, and four days of market. The record of 09.09 follows, unaltered.
-- **[SUPERSEDED 13.09.2026] Backtest vs production reconciles on 12 of 30 coins — measured 09.09.2026, and the mechanism TZ-34 repaired is REFUTED as the cause.** 35 cells on **eighteen** coins class `unexplained`, and that class removes a SYMBOL from `--target`'s arms rather than removing the run (§3.10), so every gated mode measured twelve; the ungated modes — `--run`, `--stops`, `--res7`, `--funding` — read the whole cache and measured thirty, which is why their figures are comparable to run #16's and `--target`'s is not (§3.10a). **Every one of the 35 cells is in the return family — `r7`, `r14`, `r30`, `eff14` — and not one is a level or a volatility.** Across the 25 spot coins the levels agree to **0.47 %** worst against a 2 % bar and `volatility` to 2.4 % against 10 %, while the returns miss by up to **+5.15 pp** and the sign is POSITIVE on 24 of 25. `eff14` is not a second cause: it is `r14 / (volatility·√336)`, and on the 23 spot cells where `eff14` moved enough to divide, the ratio Δ`r14`/Δ`eff14` reproduces that coin's own `volatility·√336` to within 2 % on sixteen, 3 % on nineteen and 11 % on all twenty-three — the residual being the quotient's second term, since `volatility` itself differs by up to 2.4 %. So 35 cells are **one quantity at four horizons**. The one spot coin whose return cells are all inside their thresholds is TRX, whose returns over every window are themselves near zero; what that implies about the cause is the specification's to establish, not this map's. The time gap was 0.8 h, inside the 3 h window, so the returns were compared rather than skipped. **The clause that stood here — that a larger gap would have hidden this — is FALSE, measured false 12.09.2026 by TZ-40 on a three-coin world**: `reconcile()` computes `over` with no reference to `skip`, so at a 30 h gap the run prints «НЕ СВЕРЯЛОСЬ» for the return fields and classes the same cells `unexplained` in the same output, exits 1 and removes the symbols from `--target`'s arms. The skip reaches the printed line and `never`, never the verdict, and it is one-sided at `gap > 3` (§10). A systematic sign is not noise and «everything else» is not a diagnosis; the attribution is reserved as a specification (§10). The superseded readings are run #16 — 30 of 30, zero `unexplained` — and 08.09's three coins. The 20 `venue-basis` cells stand and are reference: ARB `r7` +24.8 pp and `r30` +20.5 pp, LIT `r7` +13.0 pp and `r30` +11.5 pp, XMR `r14` −3.2 pp — all perpetuals, all reference by §3.14. **The archive is no longer the limiting factor**: 31 of 31 symbols cached with nothing lost to the network, 26 spot pairs at zero tail, five perpetuals at 21 h of tail because there is no futures mirror to top up from (inv. 64), and two interior gaps in the whole set — GRAM's 53 h at the rename joint and LIT's 17 h. The MKR → SKY splice was REFUSED on its own hourly extremes and SKY entered on its post-rename leg alone, which is inv. 63 working as specified.
+- **[SUPERSEDED 13.09.2026] Backtest vs production reconciles on 12 of 30 coins — measured 09.09.2026, and the mechanism TZ-34 repaired is REFUTED as the cause.** 35 cells on **eighteen** coins class `unexplained`, and that class removes a SYMBOL from `--target`'s arms rather than removing the run (§3.10), so every gated mode measured twelve; the ungated modes — `--run`, `--stops`, `--res7`, `--funding` — read the whole cache and measured thirty, which is why their figures are comparable to run #16's and `--target`'s is not (§3.10a). **Every one of the 35 cells is in the return family — `r7`, `r14`, `r30`, `eff14` — and not one is a level or a volatility.** Across the 25 spot coins the levels agree to **0.47 %** worst against a 2 % bar and `volatility` to 2.4 % against 10 %, while the returns miss by up to **+5.15 pp** and the sign is POSITIVE on 24 of 25. `eff14` is not a second cause: it is `r14 / (volatility·√336)`, and on the 23 spot cells where `eff14` moved enough to divide, the ratio Δ`r14`/Δ`eff14` reproduces that coin's own `volatility·√336` to within 2 % on sixteen, 3 % on nineteen and 11 % on all twenty-three — the residual being the quotient's second term, since `volatility` itself differs by up to 2.4 %. So 35 cells are **one quantity at four horizons**. The one spot coin whose return cells are all inside their thresholds is TRX, whose returns over every window are themselves near zero; what that implies about the cause is the specification's to establish, not this map's. The time gap was 0.8 h, inside the 3 h window, so the returns were compared rather than skipped. **The clause that stood here — that a larger gap would have hidden this — is FALSE, measured false 12.09.2026 by TZ-40 on a three-coin world**: `reconcile()` computes `over` with no reference to `skip`, so at a 30 h gap the run prints «НЕ СВЕРЯЛОСЬ» for the return fields and classes the same cells `unexplained` in the same output, exits 1 and removes the symbols from `--target`'s arms. The skip reaches the printed line and `never`, never the verdict, and it is one-sided at `gap > 3` (§10). **Both of those are retired by TZ-44** (§3.10): the refusal now reaches the verdict and the window is two-sided. A systematic sign is not noise and «everything else» is not a diagnosis; the attribution is reserved as a specification (§10). The superseded readings are run #16 — 30 of 30, zero `unexplained` — and 08.09's three coins. The 20 `venue-basis` cells stand and are reference: ARB `r7` +24.8 pp and `r30` +20.5 pp, LIT `r7` +13.0 pp and `r30` +11.5 pp, XMR `r14` −3.2 pp — all perpetuals, all reference by §3.14. **The archive is no longer the limiting factor**: 31 of 31 symbols cached with nothing lost to the network, 26 spot pairs at zero tail, five perpetuals at 21 h of tail because there is no futures mirror to top up from (inv. 64), and two interior gaps in the whole set — GRAM's 53 h at the rename joint and LIT's 17 h. The MKR → SKY splice was REFUSED on its own hourly extremes and SKY entered on its post-rename leg alone, which is inv. 63 working as specified.
 
 ---
 
@@ -2379,12 +2411,12 @@ until someone re-runs the command.
 | `_http` reports a reply it could not READ as answered | **closed by TZ-39, merged** | nothing on the shape; two residuals below carry their own rows. `_http` set `ok` before `r.json()`, so a `want_json` call whose body did not parse returned `ok: True, status: None, json: None` after retrying to exhaustion, and `_tx_add` — which folds on `not ok` — counted an exhausted request as an answered one. The repair is an ORDERING and no new constant: each attempt holds `status` and `why` in locals, and only two exits write the record — success after the parse, failure after the ladder. A parse failure is now a failed ATTEMPT and rides the existing retry ladder; the body is parsed at `status == 200` alone, which is the status all three `want_json` callers already read `json` under, so a `404` served as text is answered once as a 404 instead of retried three times into `status: None`. Section H holds 107 comparisons over every body a parse can meet, and the negative control that restores TZ-38's ordering turns 13 of them red. **`fetch_cg`'s `TypeError` and `reconcile`'s `AttributeError` — the tracebacks TZ-38 §6 was written to remove — are gone by consequence**, each caller taking the exhaustion path it already had with no line added to any of them |
 | `--fetch` prints its retry budget only when a coin died | **closed by TZ-39, merged** | the next `backtest_bench.yml` dispatch, which is what reads it. `fetch_prices` and `fetch_funding` now print the existing `связь исчерпана на N монет(ах): … — ретраи потратили S с из BUDGET` line once per pass, outside `if dead:` and before the `ok < 8` exit; the string, its arguments and `_http_spent()` are verbatim, so the edit is a dedent and moved no check count. **The dispatch of 09.09 is what this closes**: 31 of 31 with no line printed, and whether the transport layer spent one attempt per URL or three hundred seconds was unknowable — a constant whose consumption nobody can see is a constant nobody can move. **The wording is now wrong on the happy path and deliberately unchanged**: a clean pass prints «связь исчерпана на 0 монет(ах):  — ретраи потратили 0.0 с из 600», an alarm word over an empty list, and rewording it is a decision this map records rather than a defect TZ-39 was free to fix. **It also carries the TZ-38 row's residual**: the first dispatch to print a non-zero S is the first evidence that any of the transport layer has ever executed |
 | The return family disagrees with production and the levels do not | **did not reproduce — measured 13.09.2026 on 30 coins, `unexplained` 0** | the next dispatch, and nothing before it. The instrument this row asked for exists and ran; the phenomenon did not. **Both readings stand and neither explains the other**: 09.09 gave 35 cells on eighteen coins, one quantity at four horizons, up to +5.15 pp, positive on 24 of 25; 13.09 gave zero failing cells with the same fields, the same thresholds and the same archive source. Three candidates separate the runs and one dispatch cannot rank them — TZ-39 closed the path where a leg that could not be READ still won a comparison as clean (a series short by the pages that did not parse is the classic silent truncation, inv. 63, 64); the gap ran +0.8 h then and −0.2 h now, and one hour of common market move lands on every coin with the same sign; and four days passed. **The consequence that DOES follow is a state change**: `--target` ran on 30 coins with none excluded, so every gated figure is now taken on the full universe and the twelve-coin description is retired (§7, §3.10a, §3.10b) |
-| `venue-basis` holds a mixture the licence cannot separate | **open — measured 13.09.2026** | the next TZ on `--verify`'s classifier; it belongs with the skip row below, because both are the same question about what a class is allowed to forgive. Nine cells took the licence and the attribution splits them differently one from another: ARB `r7` is Δ −8.241 pp with `T_start` −7.500, so the START INSTANT carries 91 % of the biggest cell of the run, while HYPE `r14` is Δ −2.035 with `T_start` −0.003 and ARB `r14` has a start term of +2.449 against a Δ of −1.220 — larger than the gap and the other way. **The licence is granted per SERIES and the deviation is per CELL**, so a cell whose gap is the perp's 9.8 h tail is forgiven under a name that says «basis». **No perp cell can be fully attributed until the tail closes**: `T_end` needs an archive bar at production's end instant and there is no futures mirror to top up from (inv. 64), which is why all 15 sit in the unattributed count |
+| `venue-basis` holds a mixture the licence cannot separate | **open — measured 13.09.2026** | **TZ-44 removed one of the two mixtures and the row survives it**: a 20 h tail is a WINDOW fact and is no longer forgiven as a price-level one, proven by the L3 pair — the licence now keeps the LEVEL and loses the RETURN. What stays open is the mixture INSIDE the licence, which is per CELL while the licence is per SERIES, and no re-measurement of it exists after the merge. Original entry: the next TZ on `--verify`'s classifier; it belongs with the skip row below, because both are the same question about what a class is allowed to forgive. Nine cells took the licence and the attribution splits them differently one from another: ARB `r7` is Δ −8.241 pp with `T_start` −7.500, so the START INSTANT carries 91 % of the biggest cell of the run, while HYPE `r14` is Δ −2.035 with `T_start` −0.003 and ARB `r14` has a start term of +2.449 against a Δ of −1.220 — larger than the gap and the other way. **The licence is granted per SERIES and the deviation is per CELL**, so a cell whose gap is the perp's 9.8 h tail is forgiven under a name that says «basis». **No perp cell can be fully attributed until the tail closes**: `T_end` needs an archive bar at production's end instant and there is no futures mirror to top up from (inv. 64), which is why all 15 sit in the unattributed count |
 | The retry ladder has still never been seen to fire | watched — **measured 13.09.2026: 0.0 s of 600 on both passes** | the first dispatch that prints a non-zero figure. TZ-39's line now prints on every pass — `связь исчерпана на 0 монет(ах):  — ретраи потратили 0.0 с из 600` on `--fetch` and on `--fetch-funding`, 31 of 31 coins cached, nothing lost — so the budget is visible and the reading is a zero. **A visible zero is worth more than the invisible number it replaced and is still not evidence that `_http`'s ladder has ever executed**: the same output follows from a run that needed no retry and from one whose retries the code never reaches. `HTTP_BUDGET_S` stays where TZ-38 derived it until a run spends some of it |
 | The dispatch cache is frozen at 05.09 and every run refetches the universe | **open — measured 13.09.2026** | any TZ opening `backtest_bench.yml`. `actions/cache@v4` is keyed `bench-${{ inputs.source }}-${{ inputs.years }}y-v4`, and a cache is saved only when its key MISSES; the key has hit since the run that created it, so `bench/cache` is restored at documents ending **2026-09-05T20** on every dispatch and the run's own fetch is thrown away at the end of the job. Two consequences, both visible in this artifact: every coin prints «площадка не записана — перекачка» and pays a full history download, which is TZ-34's venue observation being re-derived and re-discarded on every run; and the map's reading of 09.09 — «every cached document was refetched because none carried an observed venue» — was the same freeze rather than a one-off. **The freeze is not a correctness defect**: each run measures on the archive it just fetched. It costs a full refetch per dispatch and makes a permanent line look like a finding |
 | Inv. 71's conditioning half has no reading | **open** | the first dispatch on which `--verify` exits non-zero. `attrib.txt` and `regimes.txt` are both in the 13.09 artifact, but that run's `--verify` was GREEN, so neither step ever stood behind a failure and the `if: ${{ !cancelled() }}` on them was never load-bearing. **A repair whose evidence is the absence of the failure it prevents has no reading of its own** (inv. 22, 43) — the same standing TZ-38's transport carried for two revisions. Retention is read; conditioning is reserved |
 | `--attrib` has never met the archive | **closed — measured 13.09.2026** | nothing on the instrument; what it found opens the two rows below. 90 cells compared, 75 attributed, and the 15 unattributed are the perpetuals, whose end instant sits outside their own archive. **The instrument certified itself on the archive**: `eff14` reproduces with residual 0 on 30 of 30 coins and `f` derives two-point on 30 of 30 for `r7`, `r14` and `r30`, so it is executing production's own construction and not an imitation (inv. 21, 38). **Its first reading is a null and a sensitivity.** Δ on the spot set is under 1.2 pp everywhere, so there was nothing to attribute; the end-instant and start-instant terms nevertheless reach ±5.5 pp and cancel against the residual, which is the field's response to ONE bar of window shift and is the same order as the field's own threshold. `d_end` is still unavailable, so `d_start_implied` is still not net of it |
-| `--verify` announces a skip and classes the same cells anyway | **open — measured 12.09.2026 offline** | an Architect decision first, then a TZ; it is the one item between the attribution and a clean reading of it. `reconcile()` computes `over` with no reference to `skip` — `skip` feeds `never` and the printed line and nothing else. Measured on a three-coin world with BBB `r7` +5 pp: at −24 h and +0.5 h the cell classes `unexplained` and the run exits 1 with no skip announced; at +30 h the run prints «НЕ СВЕРЯЛОСЬ (разрыв во времени 30.0 ч): r7, r14, r30, eff14» **and classes BBB's `r7` `unexplained` in the same output**, exits 1, and removes the symbol from `--target`'s arms. `verify_bench.py` case 5 («big gap still exits 0») passes only because its big-gap world carries no disagreeing return — inv. 22, one layer inside a control that reads correct. **The skip is also one-sided**: it reads `gap > 3`, so an archive LATER than production is compared at any distance with no announcement at all. Two coherent behaviours exist — a skip that reaches the verdict, or an announcement that admits it is cosmetic — and which one is intended is not the Executor's to choose |
+| `--verify` announces a skip and classes the same cells anyway | **closed by TZ-44, merged** | a READING, on the first dispatch after the merge: the decision was taken and shipped — comparability per symbol and per field before the class, `unverified` where nothing was compared, a two-sided window (§3.10) — and every figure the row rests on was taken under the retired behaviour. Pull request #39, implementation commit `99e4b0a`. The lane that proves the repair is L1: exit 1 with all three symbols out of the arms before, exit 0 with all three `unverified` after. **Original entry:** an Architect decision first, then a TZ; it is the one item between the attribution and a clean reading of it. `reconcile()` computes `over` with no reference to `skip` — `skip` feeds `never` and the printed line and nothing else. Measured on a three-coin world with BBB `r7` +5 pp: at −24 h and +0.5 h the cell classes `unexplained` and the run exits 1 with no skip announced; at +30 h the run prints «НЕ СВЕРЯЛОСЬ (разрыв во времени 30.0 ч): r7, r14, r30, eff14» **and classes BBB's `r7` `unexplained` in the same output**, exits 1, and removes the symbol from `--target`'s arms. `verify_bench.py` case 5 («big gap still exits 0») passes only because its big-gap world carries no disagreeing return — inv. 22, one layer inside a control that reads correct. **The skip is also one-sided**: it reads `gap > 3`, so an archive LATER than production is compared at any distance with no announcement at all. Two coherent behaviours exist — a skip that reaches the verdict, or an announcement that admits it is cosmetic — and which one is intended is not the Executor's to choose |
 | A coin whose legs all ANSWER with no rows is reported as exhausted | **open — measured 12.09.2026 offline** | the next TZ on the fetch layer, or the first dispatch that prints it. `_fetch_best` sets `won_clean = bool(rows) and … exhausted == 0`, so an empty winner is «not clean» at zero exhausted requests; `fetch_prices` then takes the transport branch and prints «СВЯЗЬ ИСЧЕРПАНА: 0 запрос(ов) без ответа () — монета НЕ сохранена», appending the coin to `dead`. **This is inv. 70 merged in the OTHER direction** — an absence reported as a network failure — and the `НЕТ ДАННЫХ` branch below it is unreachable for `rows == []`. It did not fire on 09.09 (31 of 31); a newly listed or delisted pair fires it. TZ-39 left it deliberately, its own §7 closing that session to any caller that already had an exhaustion path, and TZ-39's budget line now puts it in a line every pass prints |
 | Two `_http` callers read an ANSWER as a valid payload | open — measured 12.09.2026 offline | any TZ opening the fetch layer. `reconcile` checks `ok` and never `status`, so an answered non-200 gist reaches `live.get(...)` on `None` and raises `AttributeError`; `_rest_rows` validates no shape, so a 200 whose body is valid JSON of the wrong type raises `ValueError` inside its comprehension. Both are **the correct side of inv. 70** — a code error rather than a network verdict — and both end the fetch. Measured before and after TZ-39: the traceback is identical, and what its repair changed is that the 404 arrives as a 404 in one attempt instead of as `status: None` after three |
 | `coeffs.json` publishes no end-of-window level | **open, unowned — measured 12.09.2026** | any TZ opening `main.py`; it is one field, not a project. `--attrib`'s `d_start_implied` follows from `log(1+r) = ln P(end) − ln P(start)` and is therefore `d_start − d_end`, printed as such with the absence on its own line rather than read as zero. `cur` is computed by the AST-cut block (§3.10), is in neither `CD_FIELDS` nor the published row, and recovering it inside the bench as `min + price_pos·(max − min)/100` is a second implementation of a production formula (inv. 21, 38). **The specification that needed it named it as an existing cell** — a specification is written against the repository, and this one was written against the map's own field list, which had carried `cur` since before it stopped being published |
