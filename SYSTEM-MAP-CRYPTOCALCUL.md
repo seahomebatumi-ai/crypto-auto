@@ -14,20 +14,39 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-10-a.** Baseline: TZ-38 on the bench's transport — one helper at one
-site, three outcomes where the code had two, and exhaustion failing the COIN rather than the
-run. Report `CryptoReports/TZ-38-fetch-transport-report.md`, accepted; merged by the Boss as
-pull request **#34**, merge commit **`fab9ca5`**, implementation commit `ddd53d7`. Inv. 70 is
-satisfied at every site but one, and that one is a new row in §10 rather than a retraction:
-the defect is in the helper's own success flag, not in the shape TZ-38 gave the layer.
+**Revision 2026-09-13-a.** Baseline: three TZs on the bench's MEASUREMENT layer, merged in
+order. **TZ-39** finished what inv. 70's first implementation left open — `_http` decides its
+outcome after the last step that can fail, and the retry budget prints on every pass instead
+of only where a coin died. **TZ-40** added `--attrib`, which splits the production/archive
+return gap into an end-instant term, a start-instant term and a residual. **TZ-41** kept that
+split alive: its output is written into the artifact, the steps after `--verify` carry their
+own condition, and the reconciliation's gap is read in UTC. Reports
+`CryptoReports/TZ-39-transport-outcome-and-budget-report.md`,
+`CryptoReports/TZ-40-return-attribution-report-2.md` and
+`CryptoReports/TZ-41-attrib-retained-and-utc-gap-report.md`, all accepted; merged by the Boss
+as pull requests **#35**, **#37** and **#38** — merge commits `9174fbb`, `f122bd7` and
+**`d88593e`**, implementation commits `396f961`, `805d5e3` and `dc42e4e`. TZ-40 carries a
+second report under its own number, `TZ-40-return-attribution-report.md`, BLOCKED because
+TZ-39 was not yet merged when it ran; both are immutable and the re-run's `-2` suffix is the
+contract's own naming, not a correction.
 
-**No production file moves at this revision either.** `index.html`, `main.py`,
-`catalysts.json` and `bench/exhaustion-calibration.txt` appear in no diff, and every figure in
-the file table below was read on `main` at `fab9ca5`. The whole change is two benches:
-`bench/backtest_bench.py` 4258 → **4555 lines**, `deac9dd8a53f2047c25c2d6fb24f09b4`;
-`bench/backtest_guard_bench.py` 1425 → **1726 lines**, `ce08dd99edebfa90d8fce3dd6b7ba472`.
-`bench/verify_bench.py`, `journal/write.js` and `bench/journal_bench.js` are byte-identical to
-the previous revision, so their figures stand on a reading rather than on inheritance.
+**No production file moves at this revision either** — the fifth in a row. `index.html`,
+`main.py`, `catalysts.json` and `bench/exhaustion-calibration.txt` appear in no diff, and
+every figure in the file table below was read on `main` at `d88593e`. The whole change is two
+benches and one workflow: `bench/backtest_bench.py` 4555 → **5008 lines**,
+`c7fedd64bce7c27c07803325b1f807d3`; `bench/backtest_guard_bench.py` 1726 → **2438 lines**,
+`85ea609882ac3761fd526b3ebff2fe5f`; `.github/workflows/backtest_bench.yml` 156 → **171
+lines**, `703330829c377a15fc0df71e25df92a7`. `bench/verify_bench.py`, `journal/write.js` and
+`bench/journal_bench.js` are byte-identical to the previous revision, so their figures stand
+on a reading rather than on inheritance.
+
+**Nothing this revision built has an archive reading, and that is a STATE rather than an
+omission.** `--attrib` is self-tested offline — gate step 14 section I, 94 comparisons over
+six constructed worlds — and has never met the archive; TZ-39's budget line and TZ-41's three
+workflow edits have never executed on a runner either, because `backtest_bench.yml` is
+`workflow_dispatch` only and none has been dispatched since 09.09. §10's vocabulary carries
+`built, unmeasured` for exactly this, and one dispatch moves all three rows at once. **That
+dispatch is also the first that RETAINS what it measures** (inv. 71).
 
 **The dispatch this map has waited on since TZ-36 ran, and it answered.** Taken
 09.09.2026T21:44–22:07Z, twenty-one minutes after the merge, and read here from the
@@ -49,20 +68,22 @@ spent only inside its `dead` branch, so a run that slept 599 s and a run that ma
 attempt per URL print the same output.
 
 **Step 14's count stood at `94` in two other sections while the step itself ran 174, then
-203, then 266, then 323.** §3.10 and §10 both carried the figure TZ-30 measured, and neither
+203, 266, 323, 373, 467 and now 475.** §3.10 and §10 both carried the figure TZ-30 measured, and neither
 moved when the step did. **The count lives in this section only** and both sites point here:
 a count carried in three places goes stale in silence (inv. 20), and the calibration record
 is the one exception in this tree only because gate step 12 compares its two copies on every
 push (inv. 46).
 
-**The revisions before this one, in one line each.** `2026-09-09-b` recorded TZ-37 —
+**The revisions before this one, in one line each.** `2026-09-10-a` recorded TZ-38, the
+bench's transport layer — one helper `_http` at one site, three outcomes where the code had
+two, and exhaustion failing the COIN rather than the run; `2026-09-09-b` recorded TZ-37 —
 `--lab-selftest`'s D4 re-registered as an anchor-off identity plus a live partition, its
 construction named `d4_partition` and running in gate step 14 section G; `2026-09-09-a`
 recorded TZ-36, the anchored recorders — `anchor`/`decA`/`invA` and `ssrc` in the journal,
 `prod_anchor` beside `prod` in `--target` — which closed inv. 66 at both its sites;
 `2026-09-08-b` recorded TZ-34 and TZ-35, the venue actually fetched recorded as an
 OBSERVATION and the reconciliation reading it (inv. 67, 68); `2026-09-08-a` recorded TZ-33,
-the anchored publication price. **None of the four moved a production file either**, and
+the anchored publication price. **None of the five moved a production file either**, and
 each one's attribution lives in its own immutable report rather than here.
 
 Contract **v20** — 814 lines, MD5 `9a257890e9db663eb0fc74129f4841e0` — is unchanged at this
@@ -74,10 +95,12 @@ production artifacts plus the calibration record, and the record is there only b
 one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists (inv. 46). A bench in that table
 would put a hash in every TZ header for a file that moves whenever a bench moves — the
 argument §11 already makes for `live-gate.sh`. A TZ needing the figure states it in its own
-`§0`, as TZ-28 through TZ-38 all did: 2544 → 2768 → 3216 → 3240 → 3724 → 3881 → 4110 → 4258 →
-**4555 lines**, `deac9dd8a53f2047c25c2d6fb24f09b4`. Four more benches carry figures for the
-same reason: `bench/backtest_guard_bench.py` **1726 lines**,
-`ce08dd99edebfa90d8fce3dd6b7ba472`, `bench/verify_bench.py` **388 lines**,
+`§0`, as TZ-28 through TZ-41 all did: 2544 → 2768 → 3216 → 3240 → 3724 → 3881 → 4110 → 4258 →
+4555 → 4572 → 5009 → **5008 lines**, `c7fedd64bce7c27c07803325b1f807d3`. **The one fall in
+that ladder is a repair**: TZ-41 replaced two lines of local-clock arithmetic with one call to
+`calendar.timegm`. Four more benches carry figures for the same reason:
+`bench/backtest_guard_bench.py` **2438 lines**,
+`85ea609882ac3761fd526b3ebff2fe5f`, `bench/verify_bench.py` **388 lines**,
 `06036d8c3d39ccec6be21d2158ef3ce1`, `journal/write.js` **849 lines**,
 `19722fb53d75b6d25a8f957f74f97422`, and `bench/journal_bench.js` **1177 lines**,
 `993271f44995c8ae21c54935a3f80adf`.
@@ -102,13 +125,13 @@ written, and a blocking gate is the one control that may not have such a directi
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-10-a.**` |
+| revision | `**Revision 2026-09-13-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
 | analytical engine | `## 11. Analytical engine` |
 | squeeze block | `### 3.17 «РИСК ВЫНОСА» — the day's own risk` |
-| newest invariant | `70. **A transport failure is NOT an absence of data.**` |
+| newest invariant | `71. **A measurement that is not RETAINED was not taken,` |
 
 Live files at this revision — the set every TZ header and every report fingerprints:
 
@@ -132,22 +155,23 @@ Rewriting the header would make the description of one sample describe a differe
 which is inv. 46 read backwards — the constant would then agree with a record that no
 longer names the run behind it. It goes stale by design; the reader is told so here.
 
-Gate at this revision: `bench.yml`, **14 steps, 1 335 964 checks**. **This revision moves ONE
-term and the section that moved it reports its own count.** Step 14 rises 266 → **323**,
-`+57`, which is section H of the garrison; `1 335 907 + 57 = 1 335 964`. The other thirteen
-steps read files byte-identical to the previous revision, so their delta is **file identity
-and not a replay** — a stronger statement than «read zero», and available only because TZ-38
-touched two benches and nothing else.
+Gate at this revision: `bench.yml`, **14 steps, 1 336 116 checks**. **Three TZs moved ONE
+term and each reported its own section's count.** Step 14 rises 323 → 373 (TZ-39, `+50`,
+section H) → 467 (TZ-40, `+94`, section I) → **475** (TZ-41, `+8`, section J);
+`1 335 964 + 50 + 94 + 8 = 1 336 116`. Twelve of the other thirteen steps read files
+byte-identical to the previous revision; step 4 is the exception, because `verify_bench.py`
+imports `backtest_bench.py` at scope and that file moved three times.
 
-**Steps 4 and 14 were replayed locally on the MERGE commit `fab9ca5`: step 14 = 323, `FAIL
-0`; step 4 = 40, `FAIL 0`.** `verify_bench.py` imports `backtest_bench.py` at scope and is
-the only other step whose input moved. **The hosted gate on the merge commit is NOT read
-here**: the runs API answered this session a rate limit (inv. 44). The hosted runs TZ-38's
-report names — `34405177810` on `push` and `34405278088` on `pull_request`, both `success` —
-were taken against the implementation commit `ddd53d7` and are **the report's word, admitted
-as evidence and not as a reading**, which is the standing distinction of inv. 55. **Step 5's
-own count has never been recorded in this map**: it is the residual that makes the recorded
-total add up (255 708) and it is arithmetic, not a reading.
+**Steps 4 and 14 were replayed by the ARCHITECT on the merge commit `d88593e`: step 14 = 475,
+`FAIL 0` — sections E 32, F 29, G 63, H 107, I 94, J 8 — and step 4 = 40, `FAIL 0`.** That is
+a reading of `main` taken here, not the reports' word, which is the standing inv. 55 gives the
+audit. **The hosted gate on the merge commit is NOT read**: the runs API answered this session
+a rate limit (inv. 44). The six hosted runs the three reports name — `34657215614` and
+`34657291190` for TZ-39, `34744917873` and `34744919491` for TZ-40, `34749013673` and
+`34749017673` for TZ-41, all `success` on all 19 job steps — were taken against the
+implementation commits and are admitted as evidence, never as a reading. **Step 5's own count
+has never been recorded in this map**: it is the residual that makes the recorded total add up
+(255 708) and it is arithmetic, not a reading.
 
 **Step 7 (`journal_bench.js`) moves with verdict CONTENT, not only with control
 volume.** It counts numeric leaves of the records it writes, and a verdict that
@@ -557,7 +581,11 @@ functions and the constants they read out of `index.html`, assembles them into o
 and executes it with node; the fields
 `cur/min/max/volatility/r7/r14/r30/vol7/eff14/vol_ratio` come from a block cut by
 AST from `get_token_betas` in `main.py`. Editing either production file changes
-the bench automatically.
+the bench automatically. **`cur` is computed by that block and published nowhere** — it is in
+neither `CD_FIELDS` nor the row `main.py` writes — so the reconciliation compares no
+end-of-window level and `--attrib` has nothing to net its start-instant term against
+(§10). Measured 12.09.2026 by TZ-40, which had been specified against a `cur` cell that does
+not exist.
 
 **The extraction MANIFEST is deliberately not enumerated here, and the omission is the
 repair (inv. 60).** This paragraph used to list the five names `JS_FUNCS` carried, which
@@ -600,8 +628,12 @@ per date, averaged, CI by block bootstrap; plus top-3 vs mean, worst drawdown by
 score tercile, and three controls (shuffled score, «proximity to min90 only»,
 «r7 only»).
 
-**Modes:** `--probe` · `--selftest` · `--fetch` · `--verify` · `--run` ·
-`--regimes` · `--stops` · `--res7` · `--funding` · `--target` · `--lab-selftest`.
+**Modes:** `--probe` · `--selftest` · `--fetch` · `--fetch-funding` · `--verify` ·
+`--attrib` · `--run` · `--regimes` · `--regime-gate` · `--stops` · `--res7` · `--funding` ·
+`--target` · `--lab-selftest`. **This list has no producer and was stale in three places at
+once**: `--fetch-funding` and `--regime-gate` had never been in it and were found by TZ-39,
+`--attrib` arrived with TZ-40. The authority is `main()`'s own argparse block; a mode missing
+here is a defect in this map and never in the bench (inv. 20, 58).
 
 **`--verify` is the only mode that can fail in the DANGEROUS direction** — print
 «matches» where nothing matched. Its rules are locked by `bench/verify_bench.py`
@@ -2126,7 +2158,32 @@ cite them, so an invariant is rewritten in place and never renumbered.
     fold that counts exhaustion reads exactly that flag. The rule therefore has a shape, not
     just a statement: **the outcome is decided after the LAST thing that can fail**, and a
     control that stubs the parse step so that it cannot fail is not a control over this rule
-    (inv. 22). Measured 10.09.2026 offline, reserved as TZ-39 (§10).
+    (inv. 22). Measured 10.09.2026 offline; **closed by TZ-39, merged** — the outcome is now
+    written at exactly two exits, success after the parse and failure after the ladder, and
+    section H holds a fixture for every body a parse can meet. The parse failure joins the
+    caught set by INHERITANCE (`JSONDecodeError` is a `RequestException` since `requests`
+    2.27, unpinned in both workflows), which is a dependency nothing asserts (§10).
+
+71. **A measurement that is not RETAINED was not taken, and a step that is not CONDITIONED
+    does not run on the day it matters.**
+    Two halves of one class, both measured on `backtest_bench.yml`, both invisible to every
+    offline control. **Retention:** TZ-40's `--attrib` printed its whole reading into the job
+    log while the artifact carried eighteen other files, so a measurement built over one TZ
+    would have lived as long as a log page and then stopped existing. An instrument's output
+    PATH is part of the instrument — the standing inv. 37 gives a harness, applied to a
+    reading. **Conditioning:** a step placed after one that legitimately exits non-zero is
+    SKIPPED by default, and `--verify` exits 1 on every `coverage` or `unexplained` class,
+    which is precisely the run on which there is something to attribute. TZ-40 saw that for
+    its own step and wrote `if: ${{ !cancelled() }}`; TZ-41 found `Деление по режиму BTC`
+    in the same shadow, where it has sat directly behind `--verify` since before TZ-40 put
+    `--attrib` between the two — so every run with something to attribute skipped the regime
+    split as well, and no report ever said so. **`if:
+    ${{ !cancelled() }}` is not `continue-on-error`**: the job still fails, which is the
+    difference between taking a measurement and forgiving a failure. **This is upstream of
+    inv. 62 rather than a case of it** — inv. 62 asks whether a control fires at all, this
+    asks whether the run that fired it kept the answer, and whether the steps downstream of a
+    legitimate red ever execute. Neither half can be caught by a bench: both live in the
+    workflow, and the only instrument that reads them is a dispatch.
 
 ---
 
@@ -2211,7 +2268,7 @@ Any production edit → the full `bench.yml` gate, 14 steps.
 - Unlocks are deliberately NOT automated.
 - Liquidation probability (§3.3) assumes normality and constant volatility. Crypto tails are fatter and volatility clustering is unmodelled → **the true probability is higher than computed**; the figure is a LOWER BOUND. Measured at 7d and typical 2σ–6σ distances the same touch formula is honest and even conservative (measured/model 0.88, CI95 covers 1 on both sides); beyond the 6σ clip the far tail confirms the prior (3.5 % measured vs 0.9 % model on the long side). **Crediting the 0.88 into the calculation is REJECTED:** the CI covers 1, the understatement is explained by clustering (so the correction would break exactly in an expansion regime), and `touchProb` does not enter leverage at all — all four ceilings are distance-based.
 - The backtest reconstructs 82.5 % of the long score and 86 % of the short: market-cap rank and Binance turnover are historically unavailable, so the quality block runs on `vol_ratio` alone, through production's own missing-field path (inv. 9). Both inputs move slowly across the list, so their contribution is close to a constant tilt. **`vol_ratio` itself has NO ARCHIVE ANALOGUE and therefore carries no threshold — it is reference-only in `--verify`.** Production builds it as `volume_expansion(c_data['total_volumes'])`, CoinGecko's composite turnover across every venue; the bench builds it from the archive's own Binance quote turnover. Two different turnover series, each divided by its own 90d median, give one scale-free ratio that is not a function of the other — so no bound derived from any price field can constrain it. Measured 05.09.2026: worst cell XMR **+317 %**, while `vol7` and `volatility` on the same coins sit under 3 %, and on synthetic data with identical prices and a substituted turnover series the derived bound is identically 0.000 % against a deviation of 134 %. **It is NOT `vol7 / volatility`** — that quotient is `volRegime` in the frontend, the §3.2 leverage cap, and is not a `coeffs.json` field at all. A TZ attaching a threshold here is attaching one to a quantity the archive cannot reproduce (inv. 49).
-- **Backtest vs production reconciles on 12 of 30 coins — measured 09.09.2026, and the mechanism TZ-34 repaired is REFUTED as the cause.** 35 cells on **eighteen** coins class `unexplained`, and that class removes a SYMBOL from `--target`'s arms rather than removing the run (§3.10), so every gated mode measured twelve; the ungated modes — `--run`, `--stops`, `--res7`, `--funding` — read the whole cache and measured thirty, which is why their figures are comparable to run #16's and `--target`'s is not (§3.10a). **Every one of the 35 cells is in the return family — `r7`, `r14`, `r30`, `eff14` — and not one is a level or a volatility.** Across the 25 spot coins the levels agree to **0.47 %** worst against a 2 % bar and `volatility` to 2.4 % against 10 %, while the returns miss by up to **+5.15 pp** and the sign is POSITIVE on 24 of 25. `eff14` is not a second cause: it is `r14 / (volatility·√336)`, and on the 23 spot cells where `eff14` moved enough to divide, the ratio Δ`r14`/Δ`eff14` reproduces that coin's own `volatility·√336` to within 2 % on sixteen, 3 % on nineteen and 11 % on all twenty-three — the residual being the quotient's second term, since `volatility` itself differs by up to 2.4 %. So 35 cells are **one quantity at four horizons**. The one spot coin whose return cells are all inside their thresholds is TRX, whose returns over every window are themselves near zero; what that implies about the cause is the specification's to establish, not this map's. The time gap was 0.8 h, inside the 3 h window, so the returns were compared rather than skipped — a gap large enough to skip them would have hidden this entirely. A systematic sign is not noise and «everything else» is not a diagnosis; the attribution is reserved as a specification (§10). The superseded readings are run #16 — 30 of 30, zero `unexplained` — and 08.09's three coins. The 20 `venue-basis` cells stand and are reference: ARB `r7` +24.8 pp and `r30` +20.5 pp, LIT `r7` +13.0 pp and `r30` +11.5 pp, XMR `r14` −3.2 pp — all perpetuals, all reference by §3.14. **The archive is no longer the limiting factor**: 31 of 31 symbols cached with nothing lost to the network, 26 spot pairs at zero tail, five perpetuals at 21 h of tail because there is no futures mirror to top up from (inv. 64), and two interior gaps in the whole set — GRAM's 53 h at the rename joint and LIT's 17 h. The MKR → SKY splice was REFUSED on its own hourly extremes and SKY entered on its post-rename leg alone, which is inv. 63 working as specified.
+- **Backtest vs production reconciles on 12 of 30 coins — measured 09.09.2026, and the mechanism TZ-34 repaired is REFUTED as the cause.** 35 cells on **eighteen** coins class `unexplained`, and that class removes a SYMBOL from `--target`'s arms rather than removing the run (§3.10), so every gated mode measured twelve; the ungated modes — `--run`, `--stops`, `--res7`, `--funding` — read the whole cache and measured thirty, which is why their figures are comparable to run #16's and `--target`'s is not (§3.10a). **Every one of the 35 cells is in the return family — `r7`, `r14`, `r30`, `eff14` — and not one is a level or a volatility.** Across the 25 spot coins the levels agree to **0.47 %** worst against a 2 % bar and `volatility` to 2.4 % against 10 %, while the returns miss by up to **+5.15 pp** and the sign is POSITIVE on 24 of 25. `eff14` is not a second cause: it is `r14 / (volatility·√336)`, and on the 23 spot cells where `eff14` moved enough to divide, the ratio Δ`r14`/Δ`eff14` reproduces that coin's own `volatility·√336` to within 2 % on sixteen, 3 % on nineteen and 11 % on all twenty-three — the residual being the quotient's second term, since `volatility` itself differs by up to 2.4 %. So 35 cells are **one quantity at four horizons**. The one spot coin whose return cells are all inside their thresholds is TRX, whose returns over every window are themselves near zero; what that implies about the cause is the specification's to establish, not this map's. The time gap was 0.8 h, inside the 3 h window, so the returns were compared rather than skipped. **The clause that stood here — that a larger gap would have hidden this — is FALSE, measured false 12.09.2026 by TZ-40 on a three-coin world**: `reconcile()` computes `over` with no reference to `skip`, so at a 30 h gap the run prints «НЕ СВЕРЯЛОСЬ» for the return fields and classes the same cells `unexplained` in the same output, exits 1 and removes the symbols from `--target`'s arms. The skip reaches the printed line and `never`, never the verdict, and it is one-sided at `gap > 3` (§10). A systematic sign is not noise and «everything else» is not a diagnosis; the attribution is reserved as a specification (§10). The superseded readings are run #16 — 30 of 30, zero `unexplained` — and 08.09's three coins. The 20 `venue-basis` cells stand and are reference: ARB `r7` +24.8 pp and `r30` +20.5 pp, LIT `r7` +13.0 pp and `r30` +11.5 pp, XMR `r14` −3.2 pp — all perpetuals, all reference by §3.14. **The archive is no longer the limiting factor**: 31 of 31 symbols cached with nothing lost to the network, 26 spot pairs at zero tail, five perpetuals at 21 h of tail because there is no futures mirror to top up from (inv. 64), and two interior gaps in the whole set — GRAM's 53 h at the rename joint and LIT's 17 h. The MKR → SKY splice was REFUSED on its own hourly extremes and SKY entered on its post-rename leg alone, which is inv. 63 working as specified.
 
 ---
 
@@ -2285,9 +2342,15 @@ until someone re-runs the command.
 | `--lab-selftest`'s D4 has been red since TZ-33 | **closed by TZ-37, merged** | nothing. D4 is the pair `D4a`/`D4b`, its construction is the named `d4_partition` and gate step 14 section G calls it on every push; run #19's step 8 read the lab GREEN on a runner, which is the first push-independent confirmation (§3.10a). Original entry: the reading is taken and the repair is specified. The control asserts an unconditional identity between `prod` and `ident`, TZ-33 made `prod` two-pass, and the claim is now false on every waiting row and true on every other (§3.10a, inv. 69). **The lab has printed «НЕИСПРАВНА — результатам не верить» on every dispatch for two TZs and no push could say so**, because `--lab-selftest` runs only under `backtest_bench.yml` — inv. 62 with the trigger correct and the decay arriving from upstream. TZ-37 re-registers D4 as an anchor-off identity plus a live partition and puts the partition's CONSTRUCTION into gate step 14, where something already runs. **A red control is indistinguishable from a product defect inside an immutable report** (inv. 61), and this one has been quoted as «the lab is broken» once already |
 | `prod_anchor` has no archive figure | **closed — measured 09.09.2026** | nothing on the figure; the universe it was taken on is the row two below. The arm read LONG `Ω` 0.036 [0.010; 0.074] on 619 filled of 714, SHORT 0.006 [0.000; 0.020] on 428 of 502, pooled 0.022 [0.008; 0.041] — every CI95 entirely below 0.50, and **the anchored arm is the WORSE of the two on both sides** (§3.10, §3.10a). Filling costs 13-15 % of the setups and two thirds of those that fill go nowhere inside the horizon. **The direction is the finding**: the arm admitted at the anchor and resolved at `cur` was counting entries production would not have taken, and counting them favourably, so TZ-36's pair repaired a bias and not a rounding. Original entry: the arm exists, is self-tested offline in `--lab-selftest` D8/D9 and in gate step 14 section F, and nothing is known or forecast about what it says on the archive (inv. 43, 44) |
 | The bench's fetch layer has no transport handling | **closed by TZ-38, merged** | nothing on the shape; two residuals carry their own rows below. Six of seven `requests.get` sites had no handler and one reset ended the download of thirty-one coins; the repair is one helper `_http` returning a record, three outcomes where the code had two, a leg that aborts on first exhaustion, an exhausted leg that may not win a comparison, and a transport verdict that runs before `_save`. Gate step 14 section H asserts all three outcomes offline, 57 comparisons. **What is NOT closed is whether any of it has ever executed**: the dispatch of 09.09 lost no coin, and a repair whose only evidence is the absence of a failure has no reading of its own |
-| `_http` reports a reply it could not READ as answered | **open — reserved as TZ-39**, measured 10.09.2026 offline on `fab9ca5` | nothing; the reading is taken and the repair is one line's worth of ordering. `_http` sets `rec["ok"] = True` **before** `rec["json"] = r.json()`, so a `want_json` call whose body does not parse — a reset arriving mid-body, a truncated reply, a `404` page served as text — raises into `except caught`, which sets `status: None`, `content: b""` and `why`, and **never clears `ok`**. The call then retries to exhaustion and returns `ok: True, status: None, json: None`. **That is inv. 70 inverted at the one place it may not be**: `_tx_add` moves `exhausted` only on `not ok`, so an exhausted request is folded in as an answered one and `won_clean` stays true. Three callers reach it — `_rest_rows` returns `(None, None, tx)` with an EMPTY transport record, `fetch_cg` raises `TypeError` on `"%d" % None`, and `reconcile` passes its own `ok` check and then dereferences `None`, which is the traceback TZ-38 §6 was written to remove. **Section H cannot see it**: the guard stub's `json()` returns a stored payload and never raises, so the fixture that would fail does not exist — inv. 22, one layer inside a control that was otherwise correct |
-| `--fetch` prints its retry budget only when a coin died | **open — reserved as TZ-39** | nothing. The `ретраи потратили S с из BUDGET` line sits inside `if dead:`, so the one number that makes `HTTP_BUDGET_S` movable is invisible on every run that succeeds — and inv. 70 requires the seconds spent to be PRINTED, on the argument TZ-38 §3.1 derives all four constants from: a constant whose consumption nobody can see is a constant nobody can move. The dispatch of 09.09 is the case in point — 31 of 31, no line, and whether the transport layer served one attempt per URL or three hundred is unknown. `fetch_funding` carries the identical shape. **The repair is not a new counter**: `_http_spent()` already exists and is already read; what is missing is a call site that runs when nothing went wrong |
-| The return family disagrees with production and the levels do not | **open — reserved as TZ-40**, measured 09.09.2026 | before any `--target`, `--regime-gate` or other gated figure is cited on more than twelve coins. 35 cells on eighteen coins, **every one of them `r7`, `r14`, `r30` or `eff14`, and not one a level or a volatility**. Across 25 spot coins the levels agree to 0.47 % worst against a 2 % bar and `volatility` to 2.4 % against 10 %, while the returns miss by up to **+5.15 pp with a POSITIVE sign on 24 of 25** (§7). `eff14` is `r14` divided by the same coin's `volatility·√336` and reproduces it cell by cell, so this is one quantity at four horizons, not four findings. The time gap was 0.8 h — inside the 3 h window, so the returns were compared; **a larger gap would have skipped them and hidden this**. **A systematic sign is not noise, and `unexplained` names no cause** (§3.10). What the specification must produce is an ATTRIBUTION that separates the two series' end instants, their start instants and the path between — each measured against the archive the bench already holds, never argued (inv. 43, 44). Until it lands, `--target`'s universe is twelve and is described as such (§3.10a, §3.10b) |
+| `_http` reports a reply it could not READ as answered | **closed by TZ-39, merged** | nothing on the shape; two residuals below carry their own rows. `_http` set `ok` before `r.json()`, so a `want_json` call whose body did not parse returned `ok: True, status: None, json: None` after retrying to exhaustion, and `_tx_add` — which folds on `not ok` — counted an exhausted request as an answered one. The repair is an ORDERING and no new constant: each attempt holds `status` and `why` in locals, and only two exits write the record — success after the parse, failure after the ladder. A parse failure is now a failed ATTEMPT and rides the existing retry ladder; the body is parsed at `status == 200` alone, which is the status all three `want_json` callers already read `json` under, so a `404` served as text is answered once as a 404 instead of retried three times into `status: None`. Section H holds 107 comparisons over every body a parse can meet, and the negative control that restores TZ-38's ordering turns 13 of them red. **`fetch_cg`'s `TypeError` and `reconcile`'s `AttributeError` — the tracebacks TZ-38 §6 was written to remove — are gone by consequence**, each caller taking the exhaustion path it already had with no line added to any of them |
+| `--fetch` prints its retry budget only when a coin died | **closed by TZ-39, merged** | the next `backtest_bench.yml` dispatch, which is what reads it. `fetch_prices` and `fetch_funding` now print the existing `связь исчерпана на N монет(ах): … — ретраи потратили S с из BUDGET` line once per pass, outside `if dead:` and before the `ok < 8` exit; the string, its arguments and `_http_spent()` are verbatim, so the edit is a dedent and moved no check count. **The dispatch of 09.09 is what this closes**: 31 of 31 with no line printed, and whether the transport layer spent one attempt per URL or three hundred seconds was unknowable — a constant whose consumption nobody can see is a constant nobody can move. **The wording is now wrong on the happy path and deliberately unchanged**: a clean pass prints «связь исчерпана на 0 монет(ах):  — ретраи потратили 0.0 с из 600», an alarm word over an empty list, and rewording it is a decision this map records rather than a defect TZ-39 was free to fix. **It also carries the TZ-38 row's residual**: the first dispatch to print a non-zero S is the first evidence that any of the transport layer has ever executed |
+| The return family disagrees with production and the levels do not | **instrument built by TZ-40, merged — the reading is OUTSTANDING and is the row below** | unchanged: before any `--target`, `--regime-gate` or other gated figure is cited on more than twelve coins. 35 cells on eighteen coins, **every one of them `r7`, `r14`, `r30` or `eff14`, and not one a level or a volatility**. Across 25 spot coins the levels agree to 0.47 % worst against a 2 % bar and `volatility` to 2.4 % against 10 %, while the returns miss by up to **+5.15 pp with a POSITIVE sign on 24 of 25** (§7). `eff14` is `r14` divided by the same coin's `volatility·√336` and reproduces it cell by cell, so this is one quantity at four horizons, not four findings. **A systematic sign is not noise, and `unexplained` names no cause** (§3.10). What TZ-40 delivers is the ATTRIBUTION this row asked for — end instant, start instant, residual, each measured against the archive the bench already holds and none of them argued (inv. 43, 44) — and what it does NOT deliver is a number: that needs a dispatch. Until one lands, `--target`'s universe is twelve and is described as such (§3.10a, §3.10b) |
+| `--attrib` has never met the archive | **built, unmeasured** | one `backtest_bench.yml` dispatch, whose artifact now carries `attrib.txt` (inv. 71). The mode is self-tested offline in gate step 14 section I — 94 comparisons over six worlds: identity at zero difference, one planted cell seen exactly once, and each instant term isolated by flattening the other end's stretch — and it executes production's own `f` and `eff14` construction by AST cut rather than restating either (inv. 21, 38). What it will say is unknown and is not forecast here (inv. 43, 44). **Two properties of the instrument bound the reading before it is taken.** Below one bar of gap both instant terms are exactly zero by construction — an hourly archive holds no price between two stamps, and the 09.09 gap was 0.8 h — so Δ would sit whole in the residual and the hour-scale ladder beside it is what carries the sensitivity. At one bar or more of POSITIVE gap production's end instant lies outside the archive, so `T_end` is NAMED rather than measured and never read as zero |
+| `--verify` announces a skip and classes the same cells anyway | **open — measured 12.09.2026 offline** | an Architect decision first, then a TZ; it is the one item between the attribution and a clean reading of it. `reconcile()` computes `over` with no reference to `skip` — `skip` feeds `never` and the printed line and nothing else. Measured on a three-coin world with BBB `r7` +5 pp: at −24 h and +0.5 h the cell classes `unexplained` and the run exits 1 with no skip announced; at +30 h the run prints «НЕ СВЕРЯЛОСЬ (разрыв во времени 30.0 ч): r7, r14, r30, eff14» **and classes BBB's `r7` `unexplained` in the same output**, exits 1, and removes the symbol from `--target`'s arms. `verify_bench.py` case 5 («big gap still exits 0») passes only because its big-gap world carries no disagreeing return — inv. 22, one layer inside a control that reads correct. **The skip is also one-sided**: it reads `gap > 3`, so an archive LATER than production is compared at any distance with no announcement at all. Two coherent behaviours exist — a skip that reaches the verdict, or an announcement that admits it is cosmetic — and which one is intended is not the Executor's to choose |
+| A coin whose legs all ANSWER with no rows is reported as exhausted | **open — measured 12.09.2026 offline** | the next TZ on the fetch layer, or the first dispatch that prints it. `_fetch_best` sets `won_clean = bool(rows) and … exhausted == 0`, so an empty winner is «not clean» at zero exhausted requests; `fetch_prices` then takes the transport branch and prints «СВЯЗЬ ИСЧЕРПАНА: 0 запрос(ов) без ответа () — монета НЕ сохранена», appending the coin to `dead`. **This is inv. 70 merged in the OTHER direction** — an absence reported as a network failure — and the `НЕТ ДАННЫХ` branch below it is unreachable for `rows == []`. It did not fire on 09.09 (31 of 31); a newly listed or delisted pair fires it. TZ-39 left it deliberately, its own §7 closing that session to any caller that already had an exhaustion path, and TZ-39's budget line now puts it in a line every pass prints |
+| Two `_http` callers read an ANSWER as a valid payload | open — measured 12.09.2026 offline | any TZ opening the fetch layer. `reconcile` checks `ok` and never `status`, so an answered non-200 gist reaches `live.get(...)` on `None` and raises `AttributeError`; `_rest_rows` validates no shape, so a 200 whose body is valid JSON of the wrong type raises `ValueError` inside its comprehension. Both are **the correct side of inv. 70** — a code error rather than a network verdict — and both end the fetch. Measured before and after TZ-39: the traceback is identical, and what its repair changed is that the 404 arrives as a 404 in one attempt instead of as `status: None` after three |
+| `coeffs.json` publishes no end-of-window level | **open, unowned — measured 12.09.2026** | any TZ opening `main.py`; it is one field, not a project. `--attrib`'s `d_start_implied` follows from `log(1+r) = ln P(end) − ln P(start)` and is therefore `d_start − d_end`, printed as such with the absence on its own line rather than read as zero. `cur` is computed by the AST-cut block (§3.10), is in neither `CD_FIELDS` nor the published row, and recovering it inside the bench as `min + price_pos·(max − min)/100` is a second implementation of a production formula (inv. 21, 38). **The specification that needed it named it as an existing cell** — a specification is written against the repository, and this one was written against the map's own field list, which had carried `cur` since before it stopped being published |
+| `backtest_bench.yml` carries a comment above the wrong step | open, unowned | any TZ opening that workflow. «Артефакт нужен именно тогда, когда что-то упало.» stands immediately above `Деление по режиму BTC` and describes the `upload-artifact` step's `if: always()` two steps below it. Same class as `index.html:799` and `.gitignore`'s enumeration, and the same repair — move it or delete it, never a second copy (inv. 20) |
 | A §0 anchor could not match, and was reported as matched | **closed on the Architect side by the anchor rule in §0** | the next contract edit, for the Executor side. The inv. 68 anchor at `2026-09-08-b` differed from the invariant in case alone (`flip`/`FLIP`, `not`/`NOT`), so an exact-substring match was impossible, and TZ-36's report nevertheless recorded all seven as present as exact substrings. **Either the comparison was case-insensitive or it was not performed, and both are worse than a mismatch**, because the fingerprint gate is the one control that runs BEFORE any work and its whole value is that it blocks. Anchors are now copied and verified as literal substrings here before publication; what is not yet written anywhere is that the Executor must report the MATCHED SUBSTRING and not the verdict |
 | `bench/backtest_guard_bench.py` has TWO sections lettered `E` | watched, deliberate | any TZ adding a section there, which chooses its letter from the FILE and never by counting. TZ-32's regime-gate section and TZ-34's venue-observation section share `E`, and only the second prints a section line, so the first is unlabelled in the gate's output. **Renaming is refused for the reason invariant numbers are never renumbered**: a section letter appears in the immutable report of the TZ that created it, and moving it makes that report unreadable against the file. Same class as the D7 collision TZ-36 hit in `--lab-selftest`, and the same repair — the next section is chosen deliberately and the collision is stated |
 | `journal/write.js` cites `§4.1` four times and no document has a §4.1 | open, unowned | any TZ opening that file. The reference is to a superseded specification's own numbering, and `§` means this map everywhere else in the tree. Same class as `index.html:799` and `.gitignore`'s comment, and the same repair — **name the map section or delete the citation**, never invent a §4.1 to satisfy it |
