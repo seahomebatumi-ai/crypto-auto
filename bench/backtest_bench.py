@@ -1706,8 +1706,7 @@ def _gap_hours(gen, ends):
     --attrib calls it per coin with that coin's own last stamp (TZ-40 §3), so
     the two cannot drift apart (inv. 20)."""
     try:
-        g = time.mktime(time.strptime(gen[:19], "%Y-%m-%dT%H:%M:%S"))
-        g -= time.timezone
+        g = calendar.timegm(time.strptime(gen[:19], "%Y-%m-%dT%H:%M:%S"))
     except Exception:
         g = None
     if g and ends:
