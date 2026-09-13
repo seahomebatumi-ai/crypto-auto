@@ -1969,6 +1969,395 @@ ok('H. section H compared something', checks[0] - h0 > 0, checks[0] - h0)
 print('H. transport: %d comparisons' % (checks[0] - h0))
 
 # ═══════════════════════════════════════════════════════════════════════════
+# I. `--attrib`: the return gap split into end instant, start instant and
+#    residual  (ТЗ-40)
+# ═══════════════════════════════════════════════════════════════════════════
+# The letter is I, read off the FILE: the last section it carries is H, and two
+# sections already share E, so counting sections would say J (ТЗ-40 §5).
+#
+# `--attrib` runs only under `backtest_bench.yml`, which is dispatch-only, so
+# its known-answer worlds live in gate step 14, where every push runs them
+# (inv. 62). Each world is built by construction and asserts what the
+# constructed disagreement must produce (inv. 23, 45). A world's production rows
+# are made by production's own `f` (CdBuilder on main.py) run on a moved or
+# rescaled copy of the archive. Where the construction makes two values equal
+# they are the same floating-point expression on the same operands, so EXACT
+# equality is asserted and this section uses no tolerance at all: offsets are
+# whole bars, a flattened stretch carries copies of one float, and the rescale
+# is by a power of two, which moves no mantissa bit.
+#
+# `requests` is stubbed with a bare `get`, the stub verify_bench installs, and
+# I10 audits every URL the section requested.
+i0 = checks[0]
+I_BOT = os.path.join(HERE, '..', 'main.py')
+I_CDB = bb.CdBuilder(I_BOT)
+I_WIN = bb.bot_field_windows(I_BOT)      # production's windows, read off its AST
+I_SHIFT = DAY // HOUR                     # the worlds' offset: one day of bars
+I_N = 2600                                # bars per archive: f's 90 days and room
+I_T0 = (1700000000000 // HOUR) * HOUR
+I_URLS = []
+
+
+def i_series(n, seed):
+    """Deterministic hourly closes, stamped at the END of each hour as
+    `_series_from_rows` stamps them. No RNG: the same bytes on every machine."""
+    px, p, s = [], 100.0, seed
+    for k in range(n):
+        s = (s * 1103515245 + 12345) % 2147483648
+        p *= math.exp(0.004 * ((s / 2147483648.0) - 0.5))
+        px.append([I_T0 + (k + 1) * HOUR, p])
+    return px
+
+
+def i_vol(px):
+    return [[t, 1e7] for t, _ in px]
+
+
+def i_flat(px, lo_t, hi_t):
+    """A copy of `px` whose bars stamped in [lo_t, hi_t] all carry ONE price —
+    the first of them — so any two instants inside read the same float."""
+    v = next(p[1] for p in px if lo_t <= p[0] <= hi_t)
+    return [[p[0], v] if lo_t <= p[0] <= hi_t else p for p in px]
+
+
+def i_cache(docs, venues=None):
+    """A cache directory as `_save` leaves one. The census is built by
+    PRODUCTION (`census_of_doc`) and the venue is declared per symbol, as
+    verify_bench's `make_cache` does it."""
+    d = tempfile.mkdtemp(prefix='attrib_', dir=tmp)
+    for sym, px in docs.items():
+        doc = {'prices': px, 'volumes': i_vol(px), 'src': 'synthetic'}
+        cov = bb.census_of_doc(doc, px[-1][0])
+        cov['venue'] = (venues or {}).get(sym, bb.VENUE_SPOT)
+        doc['cov'] = cov
+        json.dump(doc, open(os.path.join(d, sym + '.json'), 'w'))
+    return d
+
+
+def i_rec(sym, px):
+    """The coeffs.json row production WOULD write for series `px`, built by
+    production's own block (inv. 21). A world plants its disagreement after."""
+    cd = I_CDB.build(px, i_vol(px), len(px) - 1)
+    rec = {'symbol': sym, 'error': None}
+    for k in bb.CD_FIELDS:
+        rec[k] = cd[k]
+    return rec
+
+
+def i_live(recs, t_gen):
+    return {'generated_at': bb.time.strftime(
+        '%Y-%m-%dT%H:%M:%S', bb.time.gmtime(t_gen / 1000.0)), 'analysis_data': recs}
+
+
+class I_Resp(object):
+    status_code = 200
+
+    def __init__(self, payload):
+        self._p = payload
+
+    def json(self):
+        return self._p
+
+
+def i_run(cache, live, html=None, mode=False):
+    """Run --attrib offline. `mode=False` returns attrib_run()'s record;
+    `mode=True` runs the whole CLI path through main() and returns its exit
+    code. Returns (result, printed text, exit message)."""
+    fake = types.ModuleType('requests')
+
+    def get(url, **kw):
+        I_URLS.append(url)
+        return I_Resp(live)
+
+    fake.get = get
+    sys.modules['requests'] = fake
+    old, bb.CACHE = bb.CACHE, cache
+    buf, out, msg = io.StringIO(), None, ''
+    try:
+        with contextlib.redirect_stdout(buf):
+            if mode:
+                argv = sys.argv
+                sys.argv = ['backtest_bench.py', '--attrib', '--bot', I_BOT] + (
+                    ['--html', html] if html else [])
+                try:
+                    out = bb.main() or 0
+                finally:
+                    sys.argv = argv
+            else:
+                out = bb.attrib_run(I_BOT, html)
+    except SystemExit as e:
+        out = e.code if isinstance(e.code, int) else 1
+        msg = str(e.code)
+    finally:
+        bb.CACHE = old
+        sys.modules.pop('requests', None)
+    return out, buf.getvalue(), msg
+
+
+def i_cells(A, sym):
+    return dict((c['field'], c) for c in A['cells'] if c['sym'] == sym)
+
+
+def i_terms(c):
+    return (c['d'], c['end'], c['start'], c['resid'])
+
+
+def i_nonzero(A):
+    return [(c['sym'], c['field']) for c in A['cells']
+            if any(v for v in i_terms(c))]
+
+
+# ── W1. the two series identical: every term zero ─────────────────────────
+I_W1 = dict((s, i_series(I_N, seed))
+            for s, seed in (('AAA', 5), ('BBB', 9), ('CCC', 17)))
+I_TA = I_W1['AAA'][-1][0]
+I_C1 = i_cache(I_W1)
+A1, _t, _m = i_run(I_C1, i_live([i_rec(s, px) for s, px in sorted(I_W1.items())],
+                                I_TA))
+I_F = A1['fields']        # the return fields, as the reconciliation's SPEC types them
+ok('I1. identity: every cell is attributed',
+   A1['n_attr'] == len(I_W1) * len(I_F) and len(I_F) > 0, (A1['n_attr'], I_F))
+for c in A1['cells']:
+    ok('I1. identity: %s %s reads zero on all four terms' % (c['sym'], c['field']),
+       i_terms(c) == (0.0, 0.0, 0.0, 0.0), c)
+ok('I1. identity: the instrument saw 0 non-zero cells', i_nonzero(A1) == [],
+   i_nonzero(A1))
+ok('I1. identity: g is zero on every coin',
+   [c['g'] for c in A1['coins']] == [0.0] * len(I_W1), A1['coins'])
+for e in A1['effs']:
+    ok('I1. identity: eff14 of %s reproduces exactly' % e['sym'], e['rep'] == 0.0, e)
+ok('I1. the two-point derivation ran on every coin and every field',
+   all(A1['two'][k][1] == len(I_W1) for k in I_F), A1['two'])
+
+# ── W1, planted: ONE disagreement, and the instrument must see exactly it ──
+_recs = dict((s, i_rec(s, px)) for s, px in I_W1.items())
+_recs['BBB']['r7'] = _recs['BBB']['r7'] + 0.05
+_recs['CCC']['eff14'] = _recs['CCC']['eff14'] + 0.5    # not what its inputs give
+A1p, _t, _m = i_run(I_C1, i_live([_recs[s] for s in sorted(_recs)], I_TA))
+ok('I2. planted: the instrument saw exactly 1 non-zero cell',
+   len(i_nonzero(A1p)) == 1, i_nonzero(A1p))
+ok('I2. planted: and it is the planted cell', i_nonzero(A1p) == [('BBB', 'r7')],
+   i_nonzero(A1p))
+_pc = i_cells(A1p, 'BBB')['r7']
+ok('I2. planted: Δ is non-zero', _pc['d'] not in (None, 0.0), _pc)
+ok('I2. planted: both instant terms read zero',
+   (_pc['end'], _pc['start']) == (0.0, 0.0), _pc)
+ok('I2. planted: the residual carries all of Δ', _pc['resid'] == _pc['d'], _pc)
+_pe = dict((e['sym'], e) for e in A1p['effs'])
+ok('I2. planted eff14 is NOT reproduced by its own inputs',
+   _pe['CCC']['rep'] not in (None, 0.0), _pe['CCC'])
+ok('I2. the unplanted eff14 still reproduce exactly',
+   _pe['AAA']['rep'] == 0.0 and _pe['BBB']['rep'] == 0.0, (_pe['AAA'], _pe['BBB']))
+
+# ── W2. the windows differ only in where they END ─────────────────────────
+# Production's series ends I_SHIFT bars before the archive's. Every field's
+# start stretch is flat across the shift, so the start instant makes no
+# difference and only the end does.
+_S = i_series(I_N, 23)
+for _k in I_F:
+    _ts = _S[-1][0] - I_WIN[_k] * DAY
+    _S = i_flat(_S, _ts - (I_SHIFT + 1) * HOUR, _ts + HOUR)
+_ip = len(_S) - 1 - I_SHIFT
+A2, _t, _m = i_run(i_cache({'END': _S}), i_live([i_rec('END', _S[:_ip + 1])],
+                                                _S[_ip][0]))
+for _k in I_F:
+    c = i_cells(A2, 'END')[_k]
+    ok('I3. end only, %s: Δ is non-zero' % _k, c['d'] not in (None, 0.0), c)
+    ok('I3. end only, %s: T_end carries Δ' % _k, c['end'] == c['d'], c)
+    ok('I3. end only, %s: T_start reads zero' % _k, c['start'] == 0.0, c)
+    ok('I3. end only, %s: T_resid reads zero' % _k, c['resid'] == 0.0, c)
+
+# ── W3. the windows differ only in where they START ───────────────────────
+# The same shift, but now the END stretch is flat across it: production's end
+# bar and the archive's carry one float, and only the start instant differs.
+_S = i_series(I_N, 29)
+_ip = len(_S) - 1 - I_SHIFT
+_S = i_flat(_S, _S[_ip - 1][0], _S[-1][0])
+A3, _t, _m = i_run(i_cache({'BEG': _S}), i_live([i_rec('BEG', _S[:_ip + 1])],
+                                                _S[_ip][0]))
+for _k in I_F:
+    c = i_cells(A3, 'BEG')[_k]
+    ok('I4. start only, %s: Δ is non-zero' % _k, c['d'] not in (None, 0.0), c)
+    ok('I4. start only, %s: T_start carries Δ' % _k, c['start'] == c['d'], c)
+    ok('I4. start only, %s: T_end reads zero' % _k, c['end'] == 0.0, c)
+    ok('I4. start only, %s: T_resid reads zero' % _k, c['resid'] == 0.0, c)
+
+# ── W4. identical instants, one series scaled ─────────────────────────────
+# Scaled WHOLE, every return is unchanged — a return is a ratio, and a factor
+# of two is exact — so the known answer is zero on all four terms. Scaled from
+# half the shortest window on, the end bar moves and no start bar does: same
+# instants, different price, and the residual must carry all of Δ.
+_S = i_series(I_N, 31)
+A4a, _t, _m = i_run(i_cache({'SCL': _S}),
+                    i_live([i_rec('SCL', [[t, p * 2.0] for t, p in _S])], _S[-1][0]))
+for _k in I_F:
+    ok('I5. scaled whole, %s: all four terms read zero' % _k,
+       i_terms(i_cells(A4a, 'SCL')[_k]) == (0.0, 0.0, 0.0, 0.0),
+       i_cells(A4a, 'SCL')[_k])
+_S = i_series(I_N, 37)
+_cut = _S[-1][0] - min(I_WIN[k] for k in I_F) * DAY / 2
+A4b, _t, _m = i_run(i_cache({'LVL': _S}), i_live([i_rec('LVL', [
+    [t, p * 2.0] if t > _cut else [t, p] for t, p in _S])], _S[-1][0]))
+for _k in I_F:
+    c = i_cells(A4b, 'LVL')[_k]
+    ok('I5. scaled tail, %s: Δ is non-zero' % _k, c['d'] not in (None, 0.0), c)
+    ok('I5. scaled tail, %s: both instant terms read zero' % _k,
+       (c['end'], c['start']) == (0.0, 0.0), c)
+    ok('I5. scaled tail, %s: T_resid carries Δ' % _k, c['resid'] == c['d'], c)
+ok('I5. scaled tail: eff14 still reproduces from its own inputs',
+   A4b['effs'][0]['rep'] == 0.0, A4b['effs'][0])
+
+# ── W5. empty cache: non-zero exit, no result printed (inv. 22) ───────────
+_code, _text, _msg = i_run(i_cache({}), i_live([], I_TA), mode=True)
+ok('I6. empty cache: --attrib exits non-zero', _code not in (0, None), (_code, _msg))
+ok('I6. empty cache: no result is printed',
+   'ATTRIB' not in _text and 'attributed' not in _text, _text[-200:])
+
+# ── W6. the §3 derivation, on a two-point and a path-dependent callable ───
+_P = i_series(I_N, 41)
+_V = i_vol(_P)
+_j = len(_P) - 1
+_L = I_SHIFT
+
+
+def i_two(P, V, i):
+    return {'x': P[i][1] / P[i - _L][1] - 1.0}
+
+
+def i_path(P, V, i):
+    return {'x': sum(p[1] for p in P[i - _L:i + 1]) / (_L + 1) / P[i - _L][1] - 1.0}
+
+
+def i_blind(P, V, i):
+    return {'x': P[i][1]}
+
+
+_d2 = bb.attrib_two_point(i_two, _P, _V, _j, 'x')
+_dp = bb.attrib_two_point(i_path, _P, _V, _j, 'x')
+ok('I7. two-point callable: its first bar is located',
+   _d2 is not None and _d2['start'] == _j - _L, _d2)
+ok('I7. two-point callable: derived two-point',
+   _d2 is not None and _d2['two_point'] is True, _d2)
+ok('I7. path-dependent callable: its first bar is located',
+   _dp is not None and _dp['start'] == _j - _L, _dp)
+ok('I7. path-dependent callable: derived NOT two-point',
+   _dp is not None and _dp['two_point'] is False, _dp)
+ok('I7. a callable reading no earlier bar has no start',
+   bb.attrib_start(i_blind, _P, _V, _j, 'x') is None)
+
+# ── Extremes (ТЗ-40 §8 item 9) and both populations, end to end ───────────
+# PAS passes · FAI fails on a planted r7 · FUT is declared fut:true and cached
+# on the perpetual · SHO is shorter than the longest window · TIN is shorter
+# than f accepts · MIS has no production r14 · VZ0 has production volatility 0,
+# which the eff14 reproduction divides by · NOP is cached and absent from
+# production · NOC is in production and not cached · LAT's archive ends one day
+# before production was built, so production's end instant lies past it.
+_wmax = max(I_WIN[k] for k in I_F)
+XS = dict((s, i_series(I_N, seed)) for s, seed in (
+    ('PAS', 43), ('FAI', 47), ('FUT', 53), ('MIS', 59), ('VZ0', 61), ('NOP', 67)))
+XS['SHO'] = i_series(I_N, 71)[-(int(_wmax * DAY // HOUR) - I_SHIFT):]
+XS['TIN'] = i_series(I_N, 73)[-I_SHIFT:]
+XS['LAT'] = i_series(I_N, 79)[:-I_SHIFT]
+_rows = dict((s, i_rec(s, px)) for s, px in XS.items() if s not in ('NOP', 'TIN'))
+_rows['TIN'] = i_rec('TIN', i_series(I_N, 73))    # production holds all 90 days
+_rows['NOC'] = i_rec('NOC', i_series(I_N, 83))
+_rows['FAI']['r7'] = _rows['FAI']['r7'] + 0.05
+del _rows['MIS']['r14']
+_rows['VZ0']['volatility'] = 0.0
+I_HTML = os.path.join(tmp, 'attrib_tokens.html')
+open(I_HTML, 'w').write('x\nvar tokens = [{name:"FUT", s:"FUTUSDT", fut:true},'
+                        '{name:"PAS", s:"PASUSDT"}];\n')
+_cX = i_cache(XS, venues={'FUT': bb.VENUE_PERP})
+_lX = i_live([_rows[s] for s in sorted(_rows)], I_TA)
+AX, _t, _m = i_run(_cX, _lX, html=I_HTML)
+_pops = {}
+for c in AX['coins']:
+    _pops.setdefault(c['pop'], []).append(c['sym'])
+ok('I8. population: spot passing', sorted(_pops.get('pass', [])) ==
+   ['LAT', 'MIS', 'PAS', 'SHO'], _pops)
+ok('I8. population: spot failing', sorted(_pops.get('fail', [])) == ['FAI', 'VZ0'],
+   _pops)
+ok('I8. population: reference, never pooled with spot',
+   _pops.get('ref') == ['FUT'], _pops)
+_code, _text, _msg = i_run(_cX, _lX, html=I_HTML, mode=True)
+ok('I8. end to end: --attrib exits 0', _code == 0, (_code, _msg))
+ok('I8. end to end: the populations are printed with their counts',
+   'coins by population: spot, passing 4 · spot, failing 2 · reference '
+   '(perpetual) 1' in _text, _text[-600:])
+ok('I8. end to end: the cell counts are printed as measured',
+   'cells compared (Δ formed): %d · attributed (all three terms): %d'
+   % (AX['n_cmp'], AX['n_attr']) in _text and AX['n_attr'] > 0,
+   (AX['n_cmp'], AX['n_attr']))
+ok('I8. end to end: d_end is printed as NOT AVAILABLE',
+   'd_end: NOT AVAILABLE' in _text, _text[:600])
+_sho = i_cells(AX, 'SHO')
+ok('I9. shorter than the longest window: that cell is named, not attributed',
+   all(_sho[k]['why'] == "window reaches the archive's first bar"
+       and _sho[k]['resid'] is None for k in I_F if I_WIN[k] == _wmax), _sho)
+ok('I9. shorter than the longest window: the shorter windows are attributed',
+   all(_sho[k]['resid'] is not None for k in I_F if I_WIN[k] < _wmax), _sho)
+ok('I9. shorter than f accepts: named, and no cell is invented',
+   AX['no_build'] == ['TIN'] and i_cells(AX, 'TIN') == {}, AX['no_build'])
+ok('I9. production value missing: named, not attributed',
+   i_cells(AX, 'MIS')['r14']['why'] == 'no production value'
+   and i_cells(AX, 'MIS')['r14']['d'] is None, i_cells(AX, 'MIS')['r14'])
+_ex = dict((e['sym'], e) for e in AX['effs'])
+ok('I9. production value missing: the eff14 reproduction names the input',
+   _ex['MIS']['rep'] is None and 'input is missing' in (_ex['MIS']['why'] or ''),
+   _ex['MIS'])
+ok('I9. volatility zero: the eff14 reproduction divides by nothing and says so',
+   _ex['VZ0']['rep'] is None and 'yields no value' in (_ex['VZ0']['why'] or ''),
+   _ex['VZ0'])
+ok('I9. cached, absent from production: named', AX['cached_not_prod'] == ['NOP'],
+   AX['cached_not_prod'])
+ok('I9. in production, not cached: named', AX['prod_not_cached'] == ['NOC'],
+   AX['prod_not_cached'])
+_lat = i_cells(AX, 'LAT')
+ok('I9. production built past the archive: g is carried per coin',
+   [c['g'] for c in AX['coins'] if c['sym'] == 'LAT'] == [float(I_SHIFT)],
+   AX['coins'])
+ok('I9. production built past the archive: T_end is named, never read as zero',
+   all(_lat[k]['end'] is None and _lat[k]['start'] is not None and _lat[k]['why']
+       == "production's end instant is outside the archive" for k in I_F), _lat)
+ok('I9. archive later than production by a day: every cell attributed, g carried',
+   A2['n_attr'] == len(I_F) and [c['g'] for c in A2['coins']] == [-float(I_SHIFT)],
+   (A2['n_attr'], A2['coins']))
+# Production built a day AFTER the archive's newest bar: --verify's window is
+# exceeded and it skips the return fields. --attrib must still compare every
+# cell, carry g, move the start instant, and NAME the end term — the archive
+# holds no bar at production's end instant — rather than skip or read it as 0.
+_XG = dict((s, i_series(I_N, seed)) for s, seed in (('GPA', 89), ('GPB', 97)))
+_cG = i_cache(_XG)
+_lG = i_live([i_rec(s, _XG[s]) for s in sorted(_XG)], I_TA + I_SHIFT * HOUR)
+AG, _t, _m = i_run(_cG, _lG)
+ok('I9. g beyond --verify\'s window: --verify skips the return fields',
+   len(AG['skip']) > 0, AG['skip'])
+ok('I9. g beyond --verify\'s window: every cell is still compared, g carried',
+   AG['n_cmp'] == len(_XG) * len(I_F)
+   and [c['g'] for c in AG['coins']] == [float(I_SHIFT)] * len(_XG),
+   (AG['n_cmp'], AG['coins']))
+ok('I9. g beyond --verify\'s window: the start term is measured on every cell',
+   all(c['start'] is not None for c in AG['cells']), AG['cells'][:1])
+ok('I9. g beyond --verify\'s window: the end term is named, never read as zero',
+   all(c['end'] is None and c['why'] == "production's end instant is outside the "
+       "archive" for c in AG['cells']), AG['cells'][:1])
+_code, _text, _msg = i_run(_cG, _lG, mode=True)
+ok('I9. g beyond --verify\'s window: a measurement, so --attrib exits 0',
+   _code == 0, (_code, _msg))
+_fai = i_cells(AX, 'FAI')['r7']
+ok('I9. the failing coin: its planted Δ sits whole in the residual',
+   _fai['d'] not in (None, 0.0) and _fai['resid'] == _fai['d'], _fai)
+
+# ── I10. host discipline over the whole section ───────────────────────────
+ok('I10. the section requested production\'s output and nothing else',
+   sorted(hostset(I_URLS)) == ['gist.githubusercontent.com'], sorted(hostset(I_URLS)))
+ok('I10. and it did request it', len(I_URLS) > 0, len(I_URLS))
+
+# ── §5.2.6 the section reports its own count and refuses to pass on zero.
+ok('I. section I compared something', checks[0] - i0 > 0, checks[0] - i0)
+print('I. attribution: %d comparisons' % (checks[0] - i0))
+
+# ═══════════════════════════════════════════════════════════════════════════
 shutil.rmtree(tmp, ignore_errors=True)
 for f in os.listdir(HERE):
     if f.startswith('_') and f.endswith('_bridge.js'):
