@@ -373,6 +373,158 @@ ok('lane B: the cell is unexplained and no basis note is printed',
 code, out = run_verify(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_level))
 ok('systemic breach (all coins) still fails after v3', code != 0, 'exit=%s' % code)
 
+# 11. Comparability per SYMBOL and before the class (ТЗ-43 §5). A cell is
+#     compared only where both sides were built over one window, decided from
+#     the symbol's OWN end instant against production's stamp — never from the
+#     cache-wide gap and never after the threshold. An incomparable cell is
+#     printed and named, and carries no class, no count of agreement and no
+#     exclusion from --target. Lane L5 is retired and keeps its number, so this
+#     block reads against ТЗ-42's report.
+RET = bb.RET_FIELDS
+LEVELS = ('min_price', 'max_price', 'min30', 'max30', 'volatility', 'vol7')
+
+
+def run_lane(cache_dir, live, html=None):
+    """--verify's exit and text, and the reconciliation behind them on the same
+    stubbed input: (exit, text, R, class sets, symbol classes, excluded)."""
+    code, out = run_verify(cache_dir, live, html)
+    fake = types.ModuleType('requests')
+    fake.get = lambda *a, **k: FakeResp(live)
+    sys.modules['requests'] = fake
+    old_cache, bb.CACHE = bb.CACHE, cache_dir
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            R = bb.reconcile(BOT, html)
+    except (Exception, SystemExit):                       # noqa: BLE001
+        return code, out, {'nocmp': [], 'seen': {}}, {}, {}, {}
+    finally:
+        bb.CACHE = old_cache
+    cls = dict((c, sorted((s, k) for s, k, _, _ in R['classes'][c]))
+               for c in bb.CLASSES)
+    excl = bb.target_gate(R['sym_class'], sorted(R['sym_class']))[0]
+    return code, out, R, cls, dict(R['sym_class']), excl
+
+
+def nocmp_set(R):
+    return set((s, k) for s, k, _, _ in R['nocmp'])
+
+
+def agreed(text):
+    """The fields the agreement line names; None where it is not printed."""
+    for ln in text.splitlines():
+        if ln.startswith('совпадает с продакшном по сверенным полям:'):
+            return [f.strip() for f in ln.split(':', 1)[1].split(',') if f.strip()]
+    return None
+
+
+def not_compared(text):
+    """The «НЕ СВЕРЯЛОСЬ (окно не совпадает)» line and the coin lines under it."""
+    lines = text.splitlines()
+    for i, ln in enumerate(lines):
+        if ln.startswith('НЕ СВЕРЯЛОСЬ (окно не совпадает)'):
+            j = i + 1
+            while j < len(lines) and lines[j].startswith('  '):
+                j += 1
+            return lines[i:j]
+    return []
+
+
+def bump_aaa_ret(rec):
+    if rec['symbol'] == 'AAA':
+        rec['r7'] = (rec['r7'] or 0) + 0.05            # 5 pp
+
+
+# ── L1 · L2: ±30 h, r7 over the bar on every coin ───────────────────────────
+make_cache(tmp, coins)
+L1 = run_lane(tmp, live_from_cache(coins, cdb, gap_h=30, mutate=bump_ret))
+L2 = run_lane(tmp, live_from_cache(coins, cdb, gap_h=-30, mutate=bump_ret))
+ok('L1. +30 h, r7 over the bar on every coin: exits 0', L1[0] == 0, 'exit=%s' % L1[0])
+ok('L1. every class list is empty',
+   len(L1[3]) == len(bb.CLASSES) and all(v == [] for v in L1[3].values()), L1[3])
+_blk = not_compared(L1[1])
+ok('L1. «НЕ СВЕРЯЛОСЬ» names every return field and every coin',
+   len(_blk) == 1 + len(coins) and all(f in _blk[0] for f in RET)
+   and sorted(ln.split()[0] for ln in _blk[1:]) == sorted(coins), _blk)
+ok('L1. no symbol is excluded from --target, and each reads unverified',
+   L1[5] == {} and L1[4] == dict((s, bb.UNVERIFIED) for s in coins), (L1[5], L1[4]))
+ok('L2. -30 h: L1\'s exit and L1\'s class sets exactly — the sign decides nothing',
+   (L2[0], L2[3], L2[4], L2[5]) == (L1[0], L1[3], L1[4], L1[5])
+   and len(L1[4]) == len(coins), (L2[0], L2[3], L2[4], L2[5]))
+ok('L2. the -30 h gap is announced',
+   'РАЗРЫВ БОЛЬШЕ ТРЁХ ЧАСОВ у 3 монет из 3' in L2[1], last_line(L2[1]))
+
+# ── L3 · L4: 0.5 h cache-wide, AAA's own series ending 20 h earlier ─────────
+# The shortening is BUILT, never written into a census: make_cache runs
+# production's census_of_doc on the short series, so its `tail` stays 0 and the
+# lane proves the decision is taken on the INSTANT, not on `cov`.
+short = dict(coins)
+short['AAA'] = coins['AAA'][:-20]
+make_cache(tmp, short, venues={'AAA': bb.VENUE_PERP})
+L3a = run_lane(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_aaa_ret))
+L3b = run_lane(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_fut_level))
+ok('L3a. the perp coin 20 h short: its return is not compared',
+   ('AAA', 'r7') in nocmp_set(L3a[2])
+   and set(s for s, _ in nocmp_set(L3a[2])) == {'AAA'}, sorted(nocmp_set(L3a[2])))
+ok('L3a. not venue-basis, not in the basis note, exits 0, AAA reads unverified',
+   L3a[0] == 0 and L3a[3].get('venue-basis') == [] and 'БАЗИС ПЕРП/СПОТ' not in L3a[1]
+   and L3a[4] == {'AAA': bb.UNVERIFIED, 'BBB': 'clean', 'CCC': 'clean'},
+   (L3a[0], L3a[3], L3a[4]))
+ok('L3b. its LEVEL over the bar: still venue-basis, named in the basis note, exits 0',
+   L3b[0] == 0 and basis_sets(L3b[1])[0] == basis_sets(L3b[1])[1]
+   == {('AAA', 'min_price')}, (L3b[0], basis_sets(L3b[1])))
+ok('L3. the pair: the licence keeps the level and loses the return',
+   (L3a[0], L3b[0]) == (0, 0)
+   and (basis_sets(L3a[1])[0], basis_sets(L3b[1])[0]) == (set(), {('AAA', 'min_price')}),
+   (basis_sets(L3a[1]), basis_sets(L3b[1])))
+make_cache(tmp, short)
+L4 = run_lane(tmp, live_from_cache(coins, cdb, 0.5, mutate=bump_aaa_ret))
+ok('L4. the same coin on SPOT: L3a\'s exit and class sets exactly — no venue is read',
+   (L4[0], L4[3], L4[4], L4[5]) == (L3a[0], L3a[3], L3a[4], L3a[5])
+   and L4[4].get('AAA') == bb.UNVERIFIED, (L4[0], L4[3], L4[4]))
+
+# ── L6: the boundary, stated ────────────────────────────────────────────────
+make_cache(tmp, coins)
+L6 = [run_lane(tmp, live_from_cache(coins, cdb, gap_h=g, mutate=bump_ret))
+      for g in (3.0, -3.0, 3.1)]
+_r7 = [('AAA', 'r7'), ('BBB', 'r7'), ('CCC', 'r7')]
+ok('L6. +3.0 h, -3.0 h, +3.1 h: compared, compared, not compared',
+   [L[2]['seen'].get('r7') for L in L6] == [3, 3, 0]
+   and [('AAA', 'r7') in nocmp_set(L[2]) for L in L6] == [False, False, True],
+   [L[2]['seen'].get('r7') for L in L6])
+ok('L6. the compared boundary meets the threshold; the other carries no class',
+   [L[0] for L in L6] == [1, 1, 0] and L6[0][3].get('unexplained') == _r7
+   and L6[1][3].get('unexplained') == _r7 and L6[2][3].get('unexplained') == [],
+   [(L[0], L[3].get('unexplained')) for L in L6])
+
+# ── L7 · L7b: generated_at unparseable ─────────────────────────────────────
+_lv7 = live_from_cache(coins, cdb, 0.5)
+_lv7['generated_at'] = 'not a stamp'
+L7 = run_lane(tmp, _lv7)
+ok('L7. an unparseable stamp: every return cell is not compared, for an unknown gap',
+   len(L7[2]['nocmp']) == len(coins) * len(RET)
+   and all(w == 'разрыв во времени неизвестен' and g is None
+           for _, _, w, g in L7[2]['nocmp']), L7[2]['nocmp'][:2])
+ok('L7. the unknown-gap announcement is printed and «БОЛЬШЕ ТРЁХ ЧАСОВ» is absent',
+   'РАЗРЫВ ВО ВРЕМЕНИ НЕИЗВЕСТЕН у 3 монет из 3' in L7[1]
+   and 'БОЛЬШЕ ТРЁХ ЧАСОВ' not in L7[1], last_line(L7[1]))
+ok('L7. the levels are still compared, and the run exits 0',
+   L7[0] == 0 and all(L7[2]['seen'].get(k) == len(coins) for k in LEVELS),
+   (L7[0], L7[2]['seen']))
+_lv7b = live_from_cache(coins, cdb, 0.5, mutate=bump_fut_level)
+_lv7b['generated_at'] = 'not a stamp'
+L7b = run_lane(tmp, _lv7b)
+ok('L7b. an unknown gap does not excuse a level: exit 1, unexplained, AAA excluded',
+   L7b[0] == 1 and L7b[3].get('unexplained') == [('AAA', 'min_price')]
+   and L7b[5] == {'AAA': 'unexplained'}, (L7b[0], L7b[3], L7b[5]))
+
+# ── L8: the claim that must not be made, asserted directly (L1's world) ─────
+_ag = agreed(L1[1])
+ok('L8. the agreement line names no return field',
+   _ag is not None and len(_ag) > 0 and not (set(_ag) & set(RET)), _ag)
+ok('L8. each return field reads «сверок 0 из 3»',
+   all(_re.search(r'^\s+%s\s+сверок\s+0 из\s+%d\b' % (f, len(coins)), L1[1], _re.M)
+       for f in RET), last_line(L1[1]))
+
 shutil.rmtree(tmp, ignore_errors=True)
 shutil.rmtree(tmp_in, ignore_errors=True)
 
