@@ -2322,16 +2322,28 @@ ok('I9. production built past the archive: T_end is named, never read as zero',
 ok('I9. archive later than production by a day: every cell attributed, g carried',
    A2['n_attr'] == len(I_F) and [c['g'] for c in A2['coins']] == [-float(I_SHIFT)],
    (A2['n_attr'], A2['coins']))
-# Production built a day AFTER the archive's newest bar: --verify's window is
-# exceeded and it skips the return fields. --attrib must still compare every
-# cell, carry g, move the start instant, and NAME the end term — the archive
-# holds no bar at production's end instant — rather than skip or read it as 0.
+# Production built a day AFTER the archive's newest bar: each coin's OWN gap is
+# beyond --verify's window, so the reconciliation declines those return cells
+# and names each one in `nocmp` (ТЗ-43 §3). --attrib writes two structures —
+# the pp fields per cell in `cells`, eff14 in its own `effs` — and between them
+# it must measure every cell --verify declines (ТЗ-44 §2). It must also carry g,
+# move the start instant, and NAME the end term — the archive holds no bar at
+# production's end instant — rather than skip or read it as 0.
 _XG = dict((s, i_series(I_N, seed)) for s, seed in (('GPA', 89), ('GPB', 97)))
 _cG = i_cache(_XG)
 _lG = i_live([i_rec(s, _XG[s]) for s in sorted(_XG)], I_TA + I_SHIFT * HOUR)
 AG, _t, _m = i_run(_cG, _lG)
-ok('I9. g beyond --verify\'s window: --verify skips the return fields',
-   len(AG['skip']) > 0, AG['skip'])
+_EFF = 'eff14'
+_AG_pp = set((c['sym'], c['field']) for c in AG['cells'] if c['d'] is not None)
+_AG_eff = set((e['sym'], _EFF) for e in AG['effs'] if e['d'] is not None)
+_AG_nc = set((s, f) for s, f, _, _ in AG['nocmp'])
+ok('I9. g beyond --verify\'s window: --attrib measures every cell --verify declines',
+   len(AG['nocmp']) > 0 and (_AG_pp | _AG_eff) >= _AG_nc,
+   (len(AG['nocmp']), sorted(_AG_nc - (_AG_pp | _AG_eff))))
+_AG_ppf = set(c['field'] for c in AG['cells'])
+ok('I9b. --attrib splits the return family in two: the per-cell fields, and eff14 in its own structure',
+   len(AG['cells']) > 0 and len(AG['effs']) > 0 and _AG_ppf == set(bb.RET_FIELDS) - set([_EFF]),
+   (sorted(_AG_ppf), len(AG['cells']), len(AG['effs'])))
 ok('I9. g beyond --verify\'s window: every cell is still compared, g carried',
    AG['n_cmp'] == len(_XG) * len(I_F)
    and [c['g'] for c in AG['coins']] == [float(I_SHIFT)] * len(_XG),
@@ -2419,6 +2431,59 @@ ok('J5. an empty ends returns None', bb._gap_hours(J_GEN, []) is None)
 # ── §5.2.6 the section reports its own count and refuses to pass on zero.
 ok('J. section J compared something', checks[0] - j0 > 0, checks[0] - j0)
 print('J. gap in UTC: %d comparisons' % (checks[0] - j0))
+
+# ═══════════════════════════════════════════════════════════════════════════
+# K. `_cell_comparable` — comparability per symbol, before the class  (ТЗ-43)
+# ═══════════════════════════════════════════════════════════════════════════
+# The letter is K, read off the FILE: the last section it carries is J, and two
+# sections already share E, so counting sections would say L (ТЗ-43 §5).
+#
+# Known answers on the function alone. The worlds that reach it through
+# --verify are verify_bench's lanes L1–L8: which class a cell earns is that
+# bench's, not this one's (inv. 20). Every gap below is a literal whose
+# comparison against CMP_GAP_H is exact, so no tolerance appears.
+k0 = checks[0]
+K_RET = bb.RET_FIELDS
+K_LVL = [f for f in bb.CD_FIELDS if f not in K_RET]
+K_ANY = (None, 0.0, 3.0, -3.0, 3.1, -3.1, 30.0, -30.0, 1e6, -1e6)
+K_UNK = 'разрыв во времени неизвестен'
+
+ok('K1. the return family is the four fields, in one module constant',
+   K_RET == ('r7', 'r14', 'r30', 'eff14'), K_RET)
+ok('K1. a level is comparable at any gap, an unknown one included',
+   len(K_LVL) > 0 and all(bb._cell_comparable(f, g) == (True, None)
+                          for f in K_LVL for g in K_ANY), K_LVL)
+ok('K2. an unknown gap is not comparable, and says so',
+   all(bb._cell_comparable(f, None) == (False, K_UNK) for f in K_RET))
+ok('K3. 3.0 h is comparable on both signs',
+   all(bb._cell_comparable(f, g) == (True, None) for f in K_RET for g in (3.0, -3.0)))
+ok('K3. 3.1 h is not comparable on both signs',
+   all(bb._cell_comparable(f, g)[0] is False for f in K_RET for g in (3.1, -3.1)))
+ok('K4. the boolean at +g equals the boolean at -g',
+   all(bb._cell_comparable(f, g)[0] == bb._cell_comparable(f, -g)[0]
+       for f in K_RET for g in (0.0, 0.5, 3.0, 3.1, 30.0, 1e6)))
+ok('K4. the printed reason carries the sign',
+   bb._cell_comparable('r7', 30.0)[1] == 'разрыв во времени +30.0 ч'
+   and bb._cell_comparable('r7', -30.0)[1] == 'разрыв во времени -30.0 ч',
+   (bb._cell_comparable('r7', 30.0), bb._cell_comparable('r7', -30.0)))
+ok('K5. every member of the return family behaves identically',
+   all(len(set(bb._cell_comparable(f, g) for f in K_RET)) == 1 for g in K_ANY))
+K_SAVED = bb.CMP_GAP_H
+K_BEFORE = bb._cell_comparable('r7', 5.0)[0]
+try:
+    bb.CMP_GAP_H = 10.0
+    K_MOVED = bb._cell_comparable('r7', 5.0)[0]
+finally:
+    bb.CMP_GAP_H = K_SAVED
+K_AFTER = bb._cell_comparable('r7', 5.0)[0]
+ok('K6. the constant is the only place the hours live: at 10.0 the 5 h decision moves',
+   K_BEFORE is False and K_MOVED is True, (K_BEFORE, K_MOVED))
+ok('K6. restored: the constant is back and so is the 5 h decision',
+   bb.CMP_GAP_H == K_SAVED == 3.0 and K_AFTER is False, (bb.CMP_GAP_H, K_AFTER))
+
+# ── §5.2.6 the section reports its own count and refuses to pass on zero.
+ok('K. section K compared something', checks[0] - k0 > 0, checks[0] - k0)
+print('K. comparability: %d comparisons' % (checks[0] - k0))
 
 # ═══════════════════════════════════════════════════════════════════════════
 shutil.rmtree(tmp, ignore_errors=True)

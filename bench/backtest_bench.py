@@ -1642,6 +1642,20 @@ CLASSES = ["venue-basis", "coverage", "unexplained"]
 # symbol --verify refused.
 HARD_CLASSES = ("coverage", "unexplained")
 
+# The return family. Read by reconcile(), by _cell_comparable() and by their
+# controls, so it lives here once: a second copy is what inv. 20 forbids.
+RET_FIELDS = ("r7", "r14", "r30", "eff14")
+
+# The comparison window, in hours, on EITHER side of production's
+# `generated_at`. The one place the three hours live: the decision and the
+# announcement both read it, and a threshold in two places moves in one.
+CMP_GAP_H = 3.0
+
+# A symbol with at least one cell NOT compared (ТЗ-43 §3 edit 7). It is neither
+# a class nor a failure, so it joins neither list above — but it is never
+# `clean`, because `clean` may not mean «nothing was compared».
+UNVERIFIED = "unverified"
+
 
 def _cov_hit(cov, win_d, t_last):
     """Does this field's OWN window overlap a gap the census named (2.2)?
@@ -1694,6 +1708,25 @@ def _cell_class(cov, win_d, t_last):
         return "venue-basis", None
     why = _cov_hit(cov, win_d, t_last)
     return ("coverage" if why else "unexplained"), why
+
+
+def _cell_comparable(field, gap_sym):
+    """Were both sides of this cell built over the same window? `(ok, why)`.
+
+    Asked per symbol and per field, BEFORE the threshold, of the quantity that
+    decides it: the symbol's OWN end instant against production's
+    `generated_at` (ТЗ-43 §3). A level is a 90-day extremum and hours do not
+    move it, so it is comparable at any gap. A return is comparable only inside
+    CMP_GAP_H on either side: the sign is carried into the reason, never into
+    the decision. No venue, no census and no threshold is read here —
+    comparability is a fact about instants."""
+    if field not in RET_FIELDS:
+        return True, None
+    if gap_sym is None:
+        return False, "разрыв во времени неизвестен"
+    if abs(gap_sym) > CMP_GAP_H:
+        return False, "разрыв во времени %+.1f ч" % gap_sym
+    return True, None
 
 
 def _gap_hours(gen, ends):
@@ -1782,7 +1815,6 @@ def reconcile(bot_path, html_path=None):
             fut_note = ("tokens[] из HTML не разобраны (%s) — объявленный "
                         "набор не показан; на класс ячейки это не влияет"
                         % type(e).__name__)
-    RET_FIELDS = ("r7", "r14", "r30", "eff14")
     # поле -> (вид сверки, порог).  rel = относительно, pp = проц. пункты,
     # abs = в единицах величины, info = только показать
     SPEC = [("min_price", "rel", 2.0), ("max_price", "rel", 2.0),
@@ -1798,6 +1830,8 @@ def reconcile(bot_path, html_path=None):
     ser_all = load_cache()
     worst = dict((k, 0.0) for k, _, _ in SPEC)
     seen = dict((k, 0) for k, _, _ in SPEC)
+    present = dict((k, 0) for k, _, _ in SPEC)   # both sides there, compared or not
+    nocmp = []                # (sym, field, why, gap_sym): read, printed, not compared
     basis, rows, cmp_n = [], [], 0
     no_venue = set()          # cached documents carrying no observed venue
     no_build = []             # in production and cached, but too short for f
@@ -1814,6 +1848,10 @@ def reconcile(bot_path, html_path=None):
         cmp_n += 1
         cov = ser.get("cov")
         t_last = int(ser["prices"][-1][0])
+        # The symbol's OWN gap, by the one derivation --attrib already calls
+        # per coin (inv. 20). The cache-wide `gap` below is a reading of the
+        # archive and is no longer a verdict.
+        gap_sym = _gap_hours(gen, [t_last])
         cells = {}
         for k, kind, thr in SPEC:
             a, b = cd.get(k), r.get(k)
@@ -1821,6 +1859,16 @@ def reconcile(bot_path, html_path=None):
                 cells[k] = None
                 continue
             dv = _cell_dv(kind, a, b)
+            present[k] += 1
+            ok_cmp, why_cmp = _cell_comparable(k, gap_sym)
+            if not ok_cmp:
+                # Printing a number and counting it as a comparison are two
+                # acts, and only the second is a claim: no `seen`, no `worst`,
+                # no threshold and no class for this cell (ТЗ-43 §3 edit 5).
+                nocmp.append((sym, k, why_cmp, gap_sym))
+                cells[k] = {"a": a, "b": b, "dv": dv, "kind": kind, "over": None,
+                            "cls": None, "why": None, "cmp": False}
+                continue
             seen[k] += 1
             if abs(dv) > abs(worst[k]):
                 worst[k] = dv
@@ -1839,12 +1887,16 @@ def reconcile(bot_path, html_path=None):
                         basis.append((sym, k, dv))
                     classes[cls].append((sym, k, dv, why))
             cells[k] = {"a": a, "b": b, "dv": dv, "kind": kind, "over": over,
-                        "cls": cls, "why": why}
-        rows.append({"sym": sym, "cells": cells, "cov": cov})
+                        "cls": cls, "why": why, "cmp": True}
+        rows.append({"sym": sym, "cells": cells, "cov": cov, "gap": gap_sym})
         worst_cls = None
         for c in CLASSES:
             if any(v and v["cls"] == c for v in cells.values()):
                 worst_cls = c
+        # Precedence: a hard class · UNVERIFIED · venue-basis · clean.
+        if worst_cls not in HARD_CLASSES and any(
+                v and not v["cmp"] for v in cells.values()):
+            worst_cls = UNVERIFIED
         sym_class[sym] = worst_cls or "clean"
     if no_venue:
         # Printed to STDOUT and not to stderr: this is a verdict of the run,
@@ -1860,10 +1912,12 @@ def reconcile(bot_path, html_path=None):
     if cmp_n == 0:
         sys.exit("СТОП: сверять нечего — в кэше ноль монет. "
                  "Это провал закачки, а не успешная сверка.")
-    skip = RET_FIELDS if (gap is None or gap > 3) else ()
-    never = [k for k, kind, _ in SPEC
-             if kind != "info" and k not in skip and seen[k] == 0]
-    return {"spec": SPEC, "gen": gen, "gap": gap, "skip": skip, "rows": rows,
+    # PRESENCE, not comparisons: a field absent from the live coeffs.json is a
+    # failure; a field present everywhere and comparable nowhere is an
+    # operational state, named and never failed (ТЗ-43 §3 edit 6).
+    never = [k for k, kind, _ in SPEC if kind != "info" and present[k] == 0]
+    return {"spec": SPEC, "gen": gen, "gap": gap, "nocmp": nocmp,
+            "present": present, "rows": rows,
             "seen": seen, "worst": worst, "basis": basis, "classes": classes,
             "sym_class": sym_class, "never": never, "cmp_n": cmp_n,
             "windows": windows, "fut": sorted(fut), "fut_note": fut_note,
@@ -1877,7 +1931,7 @@ def verify_against_live(bot_path, html_path=None):
     """Сверка восстановленной записи с ЖИВЫМ coeffs.json. Печать и код
     возврата; вся арифметика — в reconcile()."""
     R = reconcile(bot_path, html_path)
-    SPEC, gap, skip = R["spec"], R["gap"], R["skip"]
+    SPEC, gap, nocmp = R["spec"], R["gap"], R["nocmp"]
     if R["fut_note"]:
         print(R["fut_note"])
     if gap is not None:
@@ -1885,10 +1939,28 @@ def verify_against_live(bot_path, html_path=None):
             R["gen"][:16],
             time.strftime("%Y-%m-%dT%H:%M", time.gmtime(max(R["ends"]) / 1000)),
             gap))
-        if gap > 3:
-            print("РАЗРЫВ БОЛЬШЕ ТРЁХ ЧАСОВ: доходности r7/r14/r30/eff14 считаются "
-                  "на разные моменты и НЕ СРАВНИМЫ. Смотреть только уровни и "
-                  "волатильность; для доходностей показан сдвиг в сигмах.")
+    # The dispersion is the reading that would have caught ТЗ-43's defect: one
+    # cache-wide number hid exactly the symbols whose own bar is never newest.
+    gs = [row["gap"] for row in R["rows"] if row["gap"] is not None]
+    n_unk = len(R["rows"]) - len(gs)
+    if R["rows"]:
+        print("разрыв по монетам: %s%s" % (
+            ("от %+.1f до %+.1f ч" % (min(gs), max(gs))) if gs else "не измерен",
+            (" · разрыв неизвестен у %d монет" % n_unk) if n_unk else ""))
+    if nocmp:
+        nc_sym = set(s for s, _, _, _ in nocmp)
+        nc_unk = set(s for s, _, _, g in nocmp if g is None)
+        # An announcement may not assert a size it did not measure (inv. 22).
+        if nc_unk == nc_sym:
+            head = "РАЗРЫВ ВО ВРЕМЕНИ НЕИЗВЕСТЕН у %d монет из %d" % (
+                len(nc_sym), R["cmp_n"])
+        else:
+            head = "РАЗРЫВ БОЛЬШЕ ТРЁХ ЧАСОВ у %d монет из %d%s" % (
+                len(nc_sym), R["cmp_n"],
+                (" (у %d разрыв неизвестен)" % len(nc_unk)) if nc_unk else "")
+        print(head + ": доходности r7/r14/r30/eff14 считаются на разные моменты "
+              "и НЕ СРАВНИМЫ. Смотреть только уровни и волатильность; для "
+              "доходностей показан сдвиг в сигмах.")
     print("уровни и скорости — в относительных %, доходности — в проц. пунктах; "
           "ЗНАК сохранён, порог сравнивается по модулю")
     print("vol_ratio построен продакшном как: %s — это ОБОРОТ, а не vol7/volatility "
@@ -1911,14 +1983,18 @@ def verify_against_live(bot_path, html_path=None):
     print("\nсверено монет: %d" % R["cmp_n"])
     for k, kind, thr in SPEC:
         u = {"rel": "%", "pp": " пп", "abs": "", "info": "%"}[kind]
-        note = ("не сравнимо (разрыв во времени)" if k in skip else
-                "справочно, порога нет" if kind == "info" else "%.2f%s" % (thr, u))
-        print("  %-11s сверок %2d   окно %2dд   худшее %+9.3f%s   порог %s"
-              % (k, R["seen"][k], int(R["windows"].get(k, 90)), R["worst"][k],
-                 u, note))
-    if skip:
+        note = ("справочно, порога нет" if kind == "info" else "%.2f%s" % (thr, u))
+        n_nc = R["present"][k] - R["seen"][k]
+        print("  %-11s сверок %2d из %2d   окно %2dд   худшее %+9.3f%s   порог %s%s"
+              % (k, R["seen"][k], R["present"][k], int(R["windows"].get(k, 90)),
+                 R["worst"][k], u, note,
+                 ("   не сравнимо у %d монет" % n_nc) if n_nc else ""))
+    # The worst |gap| among the symbols NOT compared — never a negative number
+    # under the root, which a later-than-production archive would put there.
+    g_nc = [abs(g) for _, _, _, g in nocmp if g is not None]
+    if g_nc:
         print("  ожидаемый сдвиг цены за разрыв: ~%.1f%% при часовой воле 1%%"
-              % (100 * 0.01 * math.sqrt(max(gap or 0, 0))))
+              % (100 * 0.01 * math.sqrt(max(g_nc))))
     print("")
     # Every failing cell carries a class, and the class is printed WITH the
     # number of cells it holds (inv. 43). A class with no cells is printed as
@@ -1952,11 +2028,20 @@ def verify_against_live(bot_path, html_path=None):
     print("СВЕРКА ПО МОНЕТАМ: " + " · ".join(
         "%s %s" % (sy, cl) for sy, cl in sorted(R["sym_class"].items())))
     if not hard and not R["never"]:
-        checked = [k for k, kind, _ in SPEC if kind != "info" and k not in skip]
+        # Only a field with at least one comparison may be named as agreeing:
+        # zero comparisons is not agreement (inv. 22, ТЗ-43 lane L8).
+        checked = [k for k, kind, _ in SPEC if kind != "info" and R["seen"][k] > 0]
         print("совпадает с продакшном по сверенным полям: " + ", ".join(checked))
-    if skip:
-        print("НЕ СВЕРЯЛОСЬ (разрыв во времени %s): %s"
-              % ("неизвестен" if gap is None else "%.1f ч" % gap, ", ".join(skip)))
+    if nocmp:
+        by = {}
+        for s, k, why, _ in nocmp:
+            by.setdefault(s, [why, []])[1].append(k)
+        print("НЕ СВЕРЯЛОСЬ (окно не совпадает): %s — ячеек %d на %d монетах"
+              % (", ".join(k for k in RET_FIELDS
+                           if any(f == k for _, f, _, _ in nocmp)),
+                 len(nocmp), len(by)))
+        for s in sorted(by):
+            print("  %-7s %s: %s" % (s, by[s][0], ", ".join(by[s][1])))
     # Non-zero exit is the whole point: a workflow step must go red on failure.
     # A time gap is an expected operational state of the archive, not a
     # failure, so it downgrades the claim in words instead of failing the step.
@@ -2244,7 +2329,7 @@ def attrib_run(bot_path, html_path=None):
     for c in cells:
         if c["why"]:
             reasons[c["why"]] = reasons.get(c["why"], 0) + 1
-    return {"gen": R["gen"], "gap": R["gap"], "skip": R["skip"],
+    return {"gen": R["gen"], "gap": R["gap"], "nocmp": R["nocmp"],
             "fields": fields, "kinds": kinds, "cells": cells, "effs": effs,
             "coins": coins, "two": two, "eff_in": sorted(eff_in),
             "reasons": reasons,
@@ -4882,6 +4967,11 @@ def main():
             # session's judgement standing where the specification is.
             print("  НЕ СВЕРЕНО (нет строки в живом coeffs.json), но в рукава "
                   "допущено: " + ", ".join(unrec))
+        partial = sorted(sy for sy in ser if R["sym_class"].get(sy) == UNVERIFIED)
+        if partial:
+            # Admitted, as target_gate admits it: only HARD_CLASSES are removed.
+            print("  СВЕРКА НЕПОЛНАЯ (окно не совпадает), но в рукава допущено: "
+                  + ", ".join(partial))
         if len(ser) < 8:
             sys.exit("СТОП: после исключений в кэше %d монет — замер "
                      "невозможен. %s" % (len(ser), _excl_line({"excluded": excluded})))
@@ -4922,6 +5012,10 @@ def main():
         if unrec:
             print("  НЕ СВЕРЕНО (нет строки в живом coeffs.json), но в сетку "
                   "допущено: " + ", ".join(unrec))
+        partial = sorted(sy for sy in ser if R["sym_class"].get(sy) == UNVERIFIED)
+        if partial:
+            print("  СВЕРКА НЕПОЛНАЯ (окно не совпадает), но в сетку допущено: "
+                  + ", ".join(partial))
         if len(ser) < 8:
             sys.exit("СТОП: после исключений в кэше %d монет — замер "
                      "невозможен. %s"
