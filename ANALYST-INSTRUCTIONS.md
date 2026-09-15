@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-15-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-16-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -164,6 +164,29 @@ published a short whose zone carried 8.2 % over a week and 15.09 refused nine co
 best carried 11.9 % over two, on one sentence, with both numbers computed and printed on the
 page. And §2 required a sentence of reason under «СДЕЛОК СЕЙЧАС НЕТ» that item 59 banned
 outright; the run obeyed §2 and recorded the contradiction. §7 gains items 63–67.
+
+**`2026-09-16-a` restores the ENTRY level to the object production computes it with, and it
+is the first revision of this file written from the code rather than from a run.** The
+audit read `index.html` beside this file and found two functions answering two different
+questions where this file read one of them twice. `invalidationInfo` returns the reference
+price broke and the clipped distance behind a STOP; `tradeGeometry` returns the waiting
+level for an ENTRY, built from the 24-hour extreme and half a daily sigma. §4 took the
+stop's reference, kept production's own band around it, and called the result the entry
+zone — so on a coin that had trended for two weeks the zone was anchored to a price from
+the previous month. **Measured 15.09:** nine coins reached the trend branch, the nearest
+zone sat 4.7 % away and the furthest 57.6 %, all nine were refused as unreachable, and the
+answer carried no trade on a day its own anti-chase test found no chase anywhere. The
+one-sigma reachability test `-a` installed was right and was measuring the wrong level.
+
+**Two further repairs come from the same reading.** `directionVerdict` holds two mirrored
+priors and takes exactly one on the regime word — continuation in a trend, mean reversion
+in a range — and this file named the mean-reversion channel unconditionally, so in a
+trending market the engine would score a continuation entry with the prior built to fade
+it. And §6's class table had three rows: an event naming a coin, a routine macro print, an
+unscheduled shock. **A bill, a rule-making deadline or an ETF decision date is none of the
+three**, which is why the CLARITY Act had nowhere to sit even before its publishers refused
+this client — class S is that row, uncapped and independent of `tokens[]` by construction.
+§7 gains items 68–70.
 
 **This file is methodology, not contract.** Authority, repository operations, the
 trigger protocol, the hard floor, what may be committed and where all live in
@@ -738,6 +761,23 @@ naming which way a `СОЗРЕВАЕТ` item points — it is map inv. 30's, the
 score of production's own scoring, cut and executed on the coin's `cd` row like every other
 production function (inv. 21).** No side is invented here and none is taken from the ratio.
 
+**`momentumScore` is the score in a MARKET trend, and `scoreCandidate` in a market range —
+the choice is production's own and it was never carried into this file.** `directionVerdict`
+holds two mirrored priors and takes exactly one: mean reversion lives in a range and dies in
+a trend, continuation the other way round, and production switches between them on the
+regime word this file already produces. The clause above named the mean-reversion channel
+unconditionally, so in a `БЫЧИЙ` or `МЕДВЕЖИЙ` market this engine would score a continuation
+entry with the prior built to fade it. **Both channels are cut and executed like every other
+production function, and they are NEVER summed** — adding two opposite priors is what
+produced a long and a short on the same coin in the same run, which is why production
+computes the second one only when the first is not in force. The market regime word chooses;
+the coin's own regime still gates the side (above); geometry still vetoes.
+
+**Measured 15.09:** the market was `ДИАПАЗОН`, so the channel production would have used is
+the one the run used, and this rule changed nothing that day. It is written now because the
+gap is a standing one: on the first day BTC itself trends, the run would reach for the
+mean-reversion prior with no rule anywhere telling it not to.
+
 **Fading a coin's own TREND is banned outright, in both directions.** No ratio, no
 catalyst, no oversold reading and no structure above or below reopens it; the only entry
 in a trend is a pullback in the trend's direction, cut per §4. This is the sentence `-a`
@@ -954,18 +994,36 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   and all three printed `БЕЗ ИЗМЕНЕНИЙ`. Three runs of the same three lines, each one
   further from the market than the last, is precisely what «the answer never changes»
   looks like from the reading end.
-- **In a TREND the entry is a retest, and the level is CUT rather than chosen.** The
-  clause above — «in a trending or overheated regime a mean-reversion pullback zone is
-  the default failure mode, the entry is a breakout retest or nothing» — named an object
-  and never a computation, so in every trend this engine has ever measured it published
-  the «or nothing» half and never once the first (map inv. 58). The construction:
-  `invalidationInfo` is cut from `index.html` and executed on the coin's structural row
-  (§5), exactly as `marketRegime` is and for the same reason (map inv. 21). It returns
-  the reference price broke — the 30-day extreme, with the 90-day as its own fallback —
-  the structural price beside it, and the clipped distance production puts behind every
-  stop it draws (map §3.2). **That level is the zone, and that distance is the
-  invalidation.** Neither is invented here, neither is read off a chart, and neither is a
-  second implementation of anything.
+- **In a TREND the entry is a pullback, the level is CUT rather than chosen, and it is
+  cut from the object production uses for an ENTRY — never from the object production
+  uses for a STOP.** Two different functions in `index.html` answer two different
+  questions, and this clause read one of them twice. `invalidationInfo` returns the
+  reference price broke — the 30-day extreme, with the 90-day as its own fallback — and
+  the clipped distance production puts behind every stop it draws (map §3.2): **that
+  distance is the invalidation and it is nothing else.** The ENTRY is `tradeGeometry`'s
+  own waiting level, cut and executed on the coin's structural row exactly as
+  `marketRegime` and `invalidationInfo` are (map inv. 21):
+
+  ```
+  anchor = lo24 for a long, hi24 for a short
+  lim    = anchor × (1 ± ENTRY_CHASE_SD × sigmaDay(vol))
+  зона   = [anchor, lim] for a long, [lim, anchor] for a short
+  ```
+
+  **The zone is the coin's own DAY and the side's own extreme of it**, which is what a
+  non-chase entry has always meant here (item 4) and what production has always computed.
+  `ENTRY_CHASE_SD` and `sigmaDay` are production's, the 24-hour extremes are the payload's,
+  and nothing on either line is invented. **What stood here substituted `invalidationInfo`'s
+  reference for that anchor and kept production's own `± 0.5 × sd` band around it**, so the
+  shape was right and the anchor was a month old: on a coin that has trended for fourteen
+  days the 30-day extreme sits far behind price, and the band around it is a level from
+  another market. **Measured 15.09:** nine coins reached the trend branch, their zones
+  landed −4.7 %, −16.5 %, −19.6 %, −20.7 %, −25.6 %, −34.1 %, −51.1 % and −57.6 % away for
+  the longs and +37.0 % for the short, every one was refused as unreachable, and the answer
+  carried no trade on a day the anti-chase test found no chase anywhere on the list. **A
+  zone that cannot be reached is not a strict rule, it is the wrong level**, and the
+  reachability test of this section was left to report it once a run instead of one clause
+  above computing it right.
 - **Every level of a setup is computed at the price that setup is PUBLISHED at, and that
   price is the row's own ANCHOR.** The anchor is not chosen and is not a new object: it is
   the price the row's status already prints — the frozen price for `СЕЙЧАС`, the
@@ -1500,8 +1558,21 @@ kind an item is, so that «important» and «noise» stop being a matter of tast
 | Class | What it is | Admission |
 |---|---|---|
 | A — asset-specific | an unlock, vote, upgrade, listing, delisting, court or regulator decision NAMING a coin | published whenever dated and sourced; no cap |
+| **S — scheduled systemic** | a DATED decision or proceeding of a regulator, legislature, court, exchange or central bank that names no single coin and governs the asset class: a bill, a rule-making deadline, an ETF decision date, a licensing regime, an exchange-wide policy | published whenever dated and sourced; **no cap, and never compressed into B's** |
 | B — scheduled macro print | a release every calendar already carries: employment, inflation, a central-bank meeting | **at most two, and only in the collapsed line unless the event lands inside 48 h** |
 | C — world event | a shock nobody scheduled: conflict, an exchange failure, a chain halt | published only when its market reaction is VISIBLE IN THE FROZEN PAYLOAD |
+
+**Class S exists because the biggest crypto catalysts of a legislative year had no home in
+this table, and one of them proved it.** A bill, an agency rule-making, an ETF decision date
+or a licensing deadline names no coin, so it is not A; it is scheduled, so it is not C; and
+it is not a release every calendar carries, so calling it B would put the asset class's own
+regulatory calendar under a two-item cap written for employment and inflation. The run of
+15.09 held the CLARITY Act cloture vote, dated inside its own trading day, and had nowhere in
+this table to put it even before its source was refused. **The class is independent of the
+coin list by construction** — it moves the whole universe at once, so it is never gated on
+membership of `tokens[]` and never counted against A. The source rule is unchanged and binds
+it exactly as it binds A: a date carried only by aggregators is `none`, a proceeding whose
+own publishers refuse this client is `reported` (§6), and neither prints a level.
 
 **Class C carries the noise test, and the test costs nothing because the run already holds
 the data.** A world event is a catalyst here when the payload frozen at §5 step 4 shows the
@@ -2170,6 +2241,26 @@ every rule correctly, and the rules produced an answer that was silent on the da
 regulatory event, printed six closures twice, and refused nine coins on a sentence that had
 published a worse one eight days earlier. **None of it was visible from inside** — §7 is the
 engine checking itself, and no checklist can fail a run for obeying the file.
+
+68. **The trend entry zone was cut from `tradeGeometry`'s 24-hour anchor** (§4), never from
+    `invalidationInfo`'s reference. A published zone whose edges are not the coin's own
+    24-hour extreme and that extreme shifted by `ENTRY_CHASE_SD × sigmaDay(vol)` fails this
+    item, whatever its probability reads.
+69. **The score channel matches the MARKET regime word** (§2) — `momentumScore` in
+    `БЫЧИЙ` or `МЕДВЕЖИЙ`, `scoreCandidate` in `ДИАПАЗОН` — and the two were never summed.
+    A run that scored a continuation entry on the mean-reversion prior fails this item even
+    where the side it produced is the one the coin's own regime admits.
+70. **Every dated systemic event with an admissible source carries a class-S line** (§6),
+    uncapped and never folded into class B's two. A run that dropped one for want of room
+    fails this item; a run that found none records the sweep and the host.
+
+**68–70 name the audit of 15.09 rather than a run, and they are the first items on this list
+the engine could not have produced.** Each was found by reading `index.html` beside this
+file: two functions answering two questions, one of them read twice; two priors, one of them
+named unconditionally; and a class table with no row for the event the owner asked about.
+**§7 checks the run against the file, and nothing in §7 checks the file against the code it
+claims to cut** — which is the Architect's audit and is why items reaching this list from it
+carry no measured run of their own.
 
 **Revision `-c` added nothing to this list and item 55 was corrected rather than
 supplemented**, because no run broke it: the band it asserted was empty by arithmetic and was
