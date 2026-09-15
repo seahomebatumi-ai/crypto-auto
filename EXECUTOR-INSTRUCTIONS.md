@@ -1,8 +1,17 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 20.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 21.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v21 narrows what an ANALYSIS run reads of this file, and narrows nothing else.** The Boss
+asked whether the analytical role should be decoupled from the build project, and the
+measurement answers it: the System Map is not loaded by an analysis run at all (§5), so the
+only overlap is this file's own role-1 half — the TZ machinery, the fingerprint gate, the
+GitHub rules, the validation rules, the report template and the closing message, none of
+which an analysis run can reach. **That is the whole of the decoupling and it is one step,
+not a second document.** Nothing is repealed for role 2: the hard floor binds it as before,
+and a section named from inside the operative set is read on that reference.
 
 **v20 closes three gaps in the §2 class table.** `analyst/owner.json`,
 `analyst/live-gate.sh` and `analyst/README.md` were in the repository with no row, so the
@@ -285,8 +294,16 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
 **Nine steps here, no analytical rule.** How to analyse is
 `ANALYST-INSTRUCTIONS.md`; this is only what the repository requires around it.
 
-1. Read this file, then read `ANALYST-INSTRUCTIONS.md` from the repository in full.
-   Never from memory, never from a previous session's summary.
+1. **Read §1, §2, §4, §7, §12, §13 and §14 of this file — the operative set for role 2 —
+   then read `ANALYST-INSTRUCTIONS.md` from the repository in full.** Never from memory,
+   never from a previous session's summary. §3, §5, §6, §8, §9, §10 and §11 belong to
+   role 1 and do not bind an analysis run: four of them say so in their own opening lines,
+   and the other three are TZ machinery a run with no TZ cannot reach. **A section NAMED
+   from inside the operative set is read on that reference** — step 8 below points at §8
+   for the push rules and restates the command itself, so the pointer costs one read and
+   never a missing rule. **This is a CONTEXT decision and not a licence:** no clause is
+   repealed for role 2, and a rule that reaches the run through a reference binds it
+   exactly as if this step had named it.
 2. **Bring the WORKING TREE to `origin/main`, not just the refs.** `git fetch --all
    --prune` (§3), confirm the tree is clean and on `main`, then **`git pull --ff-only`**
    and confirm it succeeded. A fetch updates what the clone knows and changes no file on
