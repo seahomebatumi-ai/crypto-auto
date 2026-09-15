@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-07-d.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-15-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -137,6 +137,33 @@ computable is a probability that price ends the week in the recommended directio
 revision of this file will print one: the map records this engine's directional information
 as measured zero, and a confidence figure with nothing behind it is the one number that can
 cost the owner more than silence. §7 gains item 62; items 44, 58 and 60 are corrected.
+
+**`2026-09-15-a` is a SOURCING revision, and every one of its five repairs comes from a run
+that broke no rule.** The run of 15.09 found the CLARITY Act cloture vote dated inside its
+own trading day, was refused by five Senate and `congress.gov` hosts in a row, assigned
+`dclass:none` exactly as this file required, and printed nothing — while the same section
+spent two of its lines on a CPI print from the 11th and a vote closed on the 14th, and the
+first line above it had already spoken six of those closures once. **`dclass` was built to
+stop a date INVENTED by aggregators and was applied to a date a public body schedules and
+only its host would not serve; `ЗАКРЫТО` was built so a closure cannot vanish and became the
+place yesterday is printed twice.** `-a` gives the first case its own class, purely
+subtractive, and takes the second's repetition away.
+
+**The other half is coverage.** §6's list has always been a list of event TYPES, and the
+horizon store has always been keyed to the hosts that serve them — so class A, the one class
+with no cap and the only one that names a coin, could be found only where some earlier
+thesis had already built a lane for that coin. The run read seven lanes, held two coin
+channels two old theses had left behind, and recorded no class-A event with a primary source
+anywhere in the window, over a list of thirty coins. **A hunt keyed to event types finds the
+events every calendar already carries.** `-a` keys the class-A lane to `tokens[]`.
+
+**Two publication gates named an object and no computation (map inv. 58), and the run found
+both itself.** «A zone that cannot realistically fill inside 7–14 days is not published» has
+never had a test on the PUBLICATION side — `gap` governs withdrawal alone — so 07.09
+published a short whose zone carried 8.2 % over a week and 15.09 refused nine coins whose
+best carried 11.9 % over two, on one sentence, with both numbers computed and printed on the
+page. And §2 required a sentence of reason under «СДЕЛОК СЕЙЧАС НЕТ» that item 59 banned
+outright; the run obeyed §2 and recorded the contradiction. §7 gains items 63–67.
 
 **This file is methodology, not contract.** Authority, repository operations, the
 trigger protocol, the hard floor, what may be committed and where all live in
@@ -337,8 +364,12 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   answer, and the regime line asserted «весь список без исключения» four lines above the
   appendix that listed the exceptions.
 - **ЛУЧШИЕ СДЕЛКИ СЕЙЧАС** carries only trades that clear the quality bar right now.
-  None clear it → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** plus one short sentence of
-  reason, then the strategy table carries the pending triggers.
+  None clear it → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** and nothing beside it, then
+  the strategy table carries the pending triggers. **The sentence of reason that stood
+  here is deleted, not moved:** item 59 bans a section that explains why it is empty,
+  this clause required exactly that sentence, and the run of 15.09 had to choose between
+  the two and recorded the objection. The refusal reaches the Boss as an empty section
+  and a `СОЗРЕВАЕТ` price, which is the actionable form of the same fact.
 - **The two touch probabilities go with the SETUP, not with the R:R line** — the chance
   of the target being reached inside the holding horizon and the chance of the stop being
   reached, computed in §4, printed for every published setup that has a structural row,
@@ -436,6 +467,17 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   already telling the run to speak them — because a run was asked at the end to remember
   what it had decided in the middle. A list produced from an artifact cannot forget
   (map inv. 58).
+- **A closure is spoken ONCE, and the first line outranks the section.** §11 already puts
+  every withdrawal, every removal and every lifted prohibition in the first line of the
+  answer; `ЗАКРЫТО` carries what that line did not say and never the same object twice.
+  **A scheduled macro print that fired and moved no level closes in state and occupies no
+  line at all** — it is neither a withdrawal the Boss has to be told about nor an event
+  with a date left, and a section capped at five items has spent one of them on yesterday.
+  The diff of `items` still decides WHAT closed (item 30); this decides which of it is
+  printed. Measured 15.09: the first line withdrew TRX and lifted five prohibitions,
+  `ЗАКРЫТО` reprinted all six beneath it, two further slots went to a print from the 11th
+  and a vote closed on the 14th — and the one regulatory event dated that same day could
+  not be printed at all.
 - **A closure is reported in `ЗАКРЫТО` and is not ALSO printed as a forward item.**
   `ВПЕРЕДИ` and `ДАЛЬШЕ` carry dated events that have not happened; a cancelled event has no
   date left, and §6 does not publish an event with no time. Measured 04.09, second run: the
@@ -521,6 +563,9 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   itself survives the demotion intact: the coin stays in `ИЗБЕГАТЬ` on its `signal` item
   and is re-argued every run, which is what an unverified date deserves. Measured 02.09: three dated prohibitions
   rested on aggregator dates with no primary; under `dclass` all three now print bare.
+  **`reported` is not a dated class for this field either** (§6): the proceeding is
+  published as a catalyst under item 66, where its consequences are subtractive, and the
+  prohibition it would justify stays bare and is re-argued every run.
 - **A DATE may be published only in the class §6 admits, and a setup resting on a date
   inherits that test.** The rule already binds the dated prohibition above; it binds the
   catalyst item and the trade with more force, because a prohibition costs the Boss a trade
@@ -533,7 +578,9 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   published on a protocol upgrade dated from a crypto news aggregator, its own state entry
   recorded `dclass:none`, and the same date was printed as a catalyst item beneath it. The
   refusal is not a loss: the coin returns the moment the protocol's own publication is read,
-  and it is one lookup.
+  and it is one lookup. **At `reported` the same refusal stands for a setup and is lifted
+  for the catalyst line alone** (§6): the class closes a side, so it can only ever remove a
+  trade, and a class that can remove one may not be allowed to create one.
 - **Every coin named in `ИЗБЕГАТЬ` is state-backed with a CURRENT reason.** It is a
   published position: it keeps the Boss out of a trade, it is repeated run after run, and
   its reason decays exactly like a thesis's. A name carried in that field with no `items[]`
@@ -589,7 +636,14 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   and this is the line the Boss acts on — «ЖДАТЬ: нет» is one word and says something,
   while a missing `ЖДАТЬ:` says nothing twice.
 - **The `ЖДАТЬ` field of `ИТОГ` carries the activating price beside every name**, in
-  the form `AAVE 122–124`. The Статус-cell rule above binds the strategy table; a bare
+  the form `AAVE 122–124`. **Every activating price the answer publishes stands in that
+  field, `СОЗРЕВАЕТ` triggers included.** A `СОЗРЕВАЕТ` item is a name and a price at
+  which the Boss acts, which is what this field is for; leaving it out prints
+  «ЖДАТЬ: нет» as the last line of an answer carrying three exact trigger prices above
+  it — which is what the run of 15.09 printed, correctly, under the wording that stood
+  here. The rule keeping a `СЕЙЧАС` or `ЖДАТЬ` setup out of two places governs the
+  strategy TABLE and a row in it; it was never a rule about the summary line.
+  The Статус-cell rule above binds the strategy table; a bare
   name list in `ИТОГ` is the same banned form arriving through the one field the rule
   did not cover, and it arrives exactly when the table is absent — which is exactly when
   the Boss has nothing else to read. A name with no price and no date leaves the field
@@ -860,9 +914,25 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
 - **Entry type is implicit in the level, not narrated.** A zone below market for a
   long is a limit; beyond market it needs a daily close through the level, and that
   condition goes in the Вход cell.
-- **A zone that cannot realistically fill inside 7–14 days is not published.** In a
-  trending or overheated regime a mean-reversion pullback zone is the default
-  failure mode — the entry is a breakout retest or nothing.
+- **A zone is published only if it sits inside ONE standard deviation of the coin's own
+  volatility over the SECTION's own window** — `vol × √H`, measured from the frozen price
+  to the near edge of the zone, with `H` the horizon the section's own heading prints
+  (fourteen days for `СОЗРЕВАЕТ`). In a trending or overheated regime a mean-reversion
+  pullback zone is the default failure mode — the entry is a breakout retest or nothing.
+  **No numeral is introduced and no input is new:** `vol` is the coin's own structural
+  field, the window is one the answer already prints, and the resulting bar is the touch
+  probability of a one-sigma barrier — which this run already computes and prints for
+  every item under «Шанс дойти до зоны». **This is the PUBLICATION test the sentence that
+  stood here always required and never named** (map inv. 58): `gap` governs WITHDRAWAL and
+  nothing else, so one rule had a computation at one end and a judgement at the other, and
+  a judgement taken in the minute before publication returns a different answer every run.
+  **Measured across two runs:** 07.09 published a short whose zone carried 8.2 % over
+  seven days and 21.8 % over fourteen; 15.09 refused nine coins whose best carried 2.75 %
+  and 11.9 %, on the same sentence, with every one of those numbers computed and on the
+  page. Under this test both runs agree and neither verdict is a taste. A run refuses a
+  zone by this computation and names it in the appendix; **it may not refuse a zone that
+  passes, and it may not publish one that does not.** The printed number stays the
+  seven-day one (§2) — the test is the section's window, the display is unchanged.
 - **A level carried in state is re-verified against live price before reuse.** If
   price has left the zone, the recommendation is withdrawn by name in the first line
   («снимаю X — цена ушла на +N%») before anything else.
@@ -1447,6 +1517,24 @@ three of five printed items on 02.09, each at full length, each carrying nothing
 day whose actual driver was a class C event the same run had found and published correctly.
 The cap existed and had no mechanical form; «collapsed line beyond 48 h» is that form.
 
+**Class A is hunted PER COIN, and the unit of the hunt is `tokens[]`, never the event
+type.** The coverage list below names event TYPES and the hosts that serve them, which
+finds what every calendar already carries and finds an asset-specific event only where
+some earlier thesis happened to leave a lane behind for that coin. Every coin of the
+universe therefore carries a horizon lane of its own (§6a), holding the channel the
+PROTOCOL itself publishes on — its governance forum, its release or upgrade blog, its
+token contract, and the exchange's own announcement list for a listing or a delisting.
+**A channel is established once and reused**, exactly as the horizon store is built once
+and maintained: a protocol's forum does not move, and re-deriving where it publishes is
+the cost §6a exists to remove. A coin whose channel has not been established is named
+unserved in the appendix (item 63), never silently skipped, and a coin whose channel
+answers with nothing has a class-A result of nothing — which is a measurement and not a
+gap, on the terms this section already states for every sweep. **Measured 15.09:** seven
+lanes were read and all seven were type lanes; the two coin channels the run held existed
+because two earlier theses had created them; and the appendix recorded no class-A event
+with a primary source anywhere in the window, over a list of thirty coins, on the morning
+the owner named class-A sourcing as the thing this engine does worst.
+
 Coverage that must be checked every time:
 
 - macro prints and central-bank dates;
@@ -1538,6 +1626,29 @@ against the source rule, or dropping a real event because its host timed out —
 second is what silence looks like from the outside. Measured 2026-08-31: `home.treasury.gov`
 timed out on the G20 finance-track announcement and the text was read from a university
 archive of the same release; the event was real, material and inside 24 hours.
+
+**A PROCEEDING of a NAMED PUBLIC BODY whose own publishers refuse this client, and for
+which no archive carries their words, is `dclass:'reported'` — and the class exists to
+close a side, never to open one.** A committee or floor vote, a hearing, a rule-making
+deadline: each is scheduled by a body that publishes its own calendar, so when every one
+of those publishers answers with a managed challenge the date does not stop existing and
+no amount of searching converts a refusal into a reading. **Admission requires all four:**
+the body is named, the proceeding is named, two sources that are not aggregators of one
+another carry the same date, and no publisher contradicts it. **The consequences are
+entirely subtractive, in the standing of `НЕ ПРОВЕРЕНО` below.** The item appears in the
+collapsed line with the status `НЕ ПОДТВЕРЖДЕНО` and an `Эффект` of
+`ЖДАТЬ · [сторона при исходе]`; it may hold a setup at `ЖДАТЬ`, weaken one, or close a
+side. **It may never create or move a level, carry a figure, back a `XXX до ДД.ММ`
+prohibition, or be the dated event a setup rests on** — every one of those still requires
+`primary` or `archive`. Nothing here reopens the aggregator ban: an aggregator's date on
+an event no public body scheduled is `none` as before, because the class turns on who
+SCHEDULES the proceeding and not on who reported it. **Measured 15.09:** the CLARITY Act
+cloture vote was dated inside the trading day, `dailypress.senate.gov`,
+`periodicalpress.senate.gov`, `democrats.senate.gov`, `lummis.senate.gov` and
+`congress.gov` refused in a row, the run assigned `none` as this file then required, and
+the only event capable of closing a side that day reached the Boss in no form whatever.
+A date this engine will not print is a date it has decided he is better off not knowing,
+and that decision is the one §6 was never meant to make.
 
 **A DATE established by a primary is permanent; everything said ABOUT the event decays,
 and the two must not share one status.** That a G20 finance track meets on a stated day
@@ -1669,6 +1780,12 @@ list carries its own read date, its own host and its own result inside
 inherit the freshness of one that was, and the store then reports a coverage it does not
 have — the same shape map inv. 48 names for a bench green on invented input.
 
+**The coin horizon is stored per COIN on exactly those terms**, each entry carrying the
+channel's host, its read date, its result and its `sec6_md5`. A coin with no entry is not
+a coin with no events, and the whole point of keying the store to `tokens[]` is that the
+absence is countable: thirty coins, thirty entries, and the appendix names every one that
+is short (item 63).
+
 **A lane's `sec6_md5` records the text the lane was ACTUALLY READ UNDER, so a run that does
 not open a lane does not touch its hash.** Writing this run's digest into a lane last read
 under an older revision does not refresh the lane: it deletes the only evidence that the
@@ -1684,6 +1801,7 @@ being read; a hash is written only by the read that produced it.
 | Capital | TVL direction over 7 and 30 days, for the coins TVL applies to | 24 hours | DefiLlama's API — the publisher of the series, not a repeater of it |
 | Backing | which cohort holds the tokens a cliff releases, and how far above its entry the price sits | 30 days | round terms as disclosed by the protocol or the fund |
 | **Horizon** | every dated event known to fall in the next **90 days**, whether or not it is reportable today | 7 days | the named hosts of §6 |
+| **Coin horizon** | for EVERY coin of `tokens[]`: the dated events its own publication channel carries in the next **90 days** | 7 days | that coin's governance forum, release blog, token contract or listing venue (§6) |
 
 **The horizon sweep is built once and maintained, never rebuilt.** Its purpose is that
 nothing arrives as a surprise and nothing is discovered twice: an event found today at
@@ -1946,7 +2064,8 @@ which is the shape §7 exists to replace.
     under `ВПЕРЕДИ` or `ДАЛЬШЕ` lacks a date or repeats a closure already in `ЗАКРЫТО`.
 46. **Every dated catalyst printed, and every setup whose thesis rests on a dated event,
     carries `dclass` `primary` or `archive`** (§2, §6). At `none` nothing is published on
-    the date.
+    the date; at `reported` only the collapsed-line form of item 66 is published, and no
+    setup and no dated prohibition may rest on it.
 47. **Every name in `ИЗБЕГАТЬ` has a backing entry dated TODAY** (§2), and no name stands
     there for want of a structural row.
 48. **Every `СОЗРЕВАЕТ` candidate the anchor pass produced was published or refused by a
@@ -2026,6 +2145,31 @@ gap no checklist could have caught, because no rule had ever named the computati
 62. **Every published setup prints its survival number and nothing that forecasts
     direction** (§4). No percentage in the answer may be read as the chance of the trade
     working; the one figure printed is `1 − touchProb(стоп)` and it is labelled as such.
+
+63. **Every coin of `tokens[]` has a class-A horizon lane with a recorded channel** (§6,
+    §6a), or is named in the appendix as unserved with the reason. A universe swept for
+    event TYPES has not been swept for its own coins, and a count of thirty entries is the
+    only form in which that gap is visible.
+64. **No closure is printed twice** (§2). Nothing in `ЗАКРЫТО` repeats an object the first
+    line already spoke, and no scheduled macro print that fired without moving a level
+    occupies a line in the section at all.
+65. **Every `СОЗРЕВАЕТ` item published passed §4's one-sigma zone test at the section's own
+    window, and every item refused for reachability was refused BY that computation**, named
+    in the appendix. No item is published or refused on a judgement about whether its zone
+    «will fill», and a run that believes the test wrong records the objection and obeys it.
+66. **Every item at `dclass:'reported'` prints in the collapsed line with `НЕ ПОДТВЕРЖДЕНО`
+    and creates nothing** (§6, §11) — no level, no zone, no target, no figure, no
+    `XXX до ДД.ММ`. A setup whose thesis is that date fails this item; a side the date
+    closes is the one thing it may do.
+67. **`ИТОГ`'s `ЖДАТЬ` field carries every activating price the answer publishes**,
+    `СОЗРЕВАЕТ` triggers included (§2). «ЖДАТЬ: нет» printed over an answer that carries a
+    trigger price fails this item.
+
+**63–67 name the run of 15.09, and four of the five are one mechanism:** the run executed
+every rule correctly, and the rules produced an answer that was silent on the day's only
+regulatory event, printed six closures twice, and refused nine coins on a sentence that had
+published a worse one eight days earlier. **None of it was visible from inside** — §7 is the
+engine checking itself, and no checklist can fail a run for obeying the file.
 
 **Revision `-c` added nothing to this list and item 55 was corrected rather than
 supplemented**, because no run broke it: the band it asserted was empty by arithmetic and was
@@ -2141,9 +2285,13 @@ overwrites the empty seed.
 trigger date. Fields not applicable to a type are omitted, never nulled.
 
 **`dclass` records WHO ESTABLISHED THE DATE, and it is the one field two separate rules
-read.** `dclass ∈ primary | archive | none` — the class of the source that first put this
-event on this date, in the vocabulary §6 already uses for a reading: the publisher itself,
-a documentary archive of the publisher's own words, or neither. It is a property of the
+read.** `dclass ∈ primary | archive | reported | none` — the class of the source that
+first put this event on this date, in the vocabulary §6 already uses for a reading: the
+publisher itself, a documentary archive of the publisher's own words, a proceeding a named
+public body schedules whose own publishers refuse this client (§6), or none of those.
+**`reported` carries the DATE exemption on the same terms as `archive` and carries nothing
+else:** the proceeding is on a public calendar, so the counter does not close the item, and
+every rule in this file that asks for `primary` or `archive` still refuses it. It is a property of the
 DATE and not of this run: once a primary has established a date the field is `primary`
 permanently and no later silence lowers it, exactly as §6 says the date itself is never
 re-established. It is set on the item, not inferred from a note, because a rule that reads
