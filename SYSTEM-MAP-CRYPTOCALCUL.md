@@ -14,24 +14,37 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-16-a.** Baseline: one report-only TZ and two contract versions.
-**TZ-45** measured one catalyst channel for every member of `tokens[]` from the Executor's own
-machine, class by class — governance forum, release channel, token contract, exchange
-announcement list — and read no content: 27 answer with dated records, 15 on a Discourse forum
-and 12 on a release channel, and ONDO, HYPE and LIT have no protocol channel that dates
-anything (§10). Report `CryptoReports/TZ-45-coin-catalyst-channels-report.md`, accepted.
+**Revision 2026-09-16-b.** Baseline: one report-only TZ, one methodology revision and one
+contract version.
+**TZ-46** probed class 2 for the two coins TZ-45 left owed one, with TZ-45's own instrument
+and one request each: ETH answers on the Ethereum Foundation's blog feed
+(`blog.ethereum.org`, `pubDate` on every item of its one page) and ADA on the
+`IntersectMBO/cardano-node` release list (`api.github.com`, `published_at` on five of five),
+both `primary-dated`, and the stop rule withheld the third candidate — go-ethereum's releases
+are unmeasured, not negative (§10). Report
+`CryptoReports/TZ-46-eth-ada-release-channels-report.md`, accepted.
 **There is no implementation commit to name**: the class is report-only (contract §8), the
-report is the whole of the change, and every figure in it was measured on `57ea70e`, the
+report is the whole of the change, and every figure in it was measured on `e04eb3f`, the
 Boss's upload of the specification. The reading reaches the engine as an Architect edit and
-not as a TZ — `ANALYST-INSTRUCTIONS.md` revision `2026-09-16-b` names the 27 channels in
-methodology §6a.
+not as a TZ — `ANALYST-INSTRUCTIONS.md` revision `2026-09-16-c` names 29 channels in
+methodology §6a, ETH and ADA carrying two lanes each, and its §11 schema gains `c2` so the
+second lane has somewhere to be stored.
 
 **No production file moves at this revision either, and no bench moves with it.**
 `index.html`, `main.py`, `catalysts.json` and `bench/exhaustion-calibration.txt` appear in no
-diff, and no workflow moved. TZ-45's session re-read the four rows of the file table below and
-the five bench figures carried further down on `57ea70e`, and all nine sit at the values this
+diff, and no workflow moved. TZ-46's session re-read the four rows of the file table below and
+the five bench figures carried further down on `e04eb3f`, and all nine sit at the values this
 block records — so they stand on a reading rather than on inheritance, and the three benches
-TZ-44 moved were last measured by a session other than the one that moved them.
+TZ-44 moved have now been re-measured by two sessions other than the one that moved them.
+
+**The Project mirrors were MATCHED against that tree, not assumed.** Before this revision's
+edits, this map, `EXECUTOR-INSTRUCTIONS.md` and `ANALYST-INSTRUCTIONS.md` each reproduced the
+report's line count and MD5 on the Architect's own copy, and so did the `## 6` + `6a` digest
+the methodology keys lane staleness to (`a121c493be25b8a7a25c505a600b1a95`) — so mirror and
+repository were the same bytes at `e04eb3f`, and the three files this revision publishes are
+edits of that reading. **That is a computation and never an inheritance:** a mirror whose
+version line is behind the repository is not a weaker source but a wrong one, and nothing but
+a hash of both says which it is.
 
 **The latest DISPATCH is still 13.09.2026's**, recorded at revision `2026-09-13-b`, taken
 13.09.2026T09:50–10:28Z and read from the `backtest-report` artifact the Boss forwarded. It
@@ -96,7 +109,11 @@ a count carried in three places goes stale in silence (inv. 20), and the calibra
 is the one exception in this tree only because gate step 12 compares its two copies on every
 push (inv. 46).
 
-**The revisions before this one, in one line each.** `2026-09-14-a` recorded TZ-44 —
+**The revisions before this one, in one line each.** `2026-09-16-a` recorded TZ-45 — one
+catalyst channel measured for every member of `tokens[]` from the Executor's own machine,
+class by class and reading no content: 27 answered with dated records, 15 on a Discourse
+forum and 12 on a release channel, and ONDO, HYPE and LIT have no protocol channel that dates
+anything (§10); `2026-09-14-a` recorded TZ-44 —
 comparability decided per symbol and per field before the class, guard I9 re-registered as a
 pair and section K added on `_cell_comparable` — beside TZ-43, correctly BLOCKED on a §4
 unsatisfiable by construction; `2026-09-13-b` recorded no code at
@@ -116,13 +133,16 @@ OBSERVATION and the reconciliation reading it (inv. 67, 68); `2026-09-08-a` reco
 the anchored publication price. **None of the seven after it moved a production file either**, and
 each one's attribution lives in its own immutable report rather than here.
 
-Contract **v22** — 849 lines, MD5 `ba6ef34b108d70c287e02412dd84955e`. **Two versions moved
-since `2026-09-14-a`, and neither touches a production file.** v21 — 831 lines, `5b125d9a39bc4ccd4e935d01ed1aa1e8`,
+Contract **v23** — 864 lines, MD5 `02abb1969626d2af150a0d1f6e02f2a7`. **Three versions moved
+since `2026-09-14-a`, and none touches a production file.** v21 — 831 lines, `5b125d9a39bc4ccd4e935d01ed1aa1e8`,
 measured by TZ-45's session and matched on the copy the Architect edited — narrowed what an
 analysis run reads of the contract to its role-2 operative set, because an analysis run never
-loads this map (contract §5). v22 makes the fingerprint gate take its anchor list from this
+loads this map (contract §5). v22 — 849 lines, `ba6ef34b108d70c287e02412dd84955e`, measured
+by TZ-46's session — makes the fingerprint gate take its anchor list from this
 block's table, so a header that omits an anchor is BLOCKED instead of passing on the anchors
-it happened to quote (§10).
+it happened to quote (§10). **v23 says how that list is CUT**, because v22 said only where it
+comes from: TZ-46's gate read this table and filtered it through seven anchor names, which
+compares the filter and reports it as the table (§10).
 
 **`bench/backtest_bench.py` has no row in the file table, and six consecutive TZs have now
 had to explain the absence.** The table pins the four files a TZ header fingerprints: three
@@ -146,11 +166,15 @@ header would pin a file whose behaviour is already under a control that runs —
 argument §11 makes for `live-gate.sh` at step 13. A fingerprint entry buys a second, weaker
 check and costs one line in every future TZ header.
 
-Every TZ header quotes this block IN FULL — all seven anchors and the file table,
-never a subset. The Executor takes the anchor list from the table below, matches each as an
+Every TZ header quotes this block IN FULL — every anchor of the table below and the file
+table, never a subset. The Executor takes the anchor list from that table, cutting it by the
+table's own rows and never by the anchor names it expects (contract §5 step 2, since v23),
+matches each as an
 exact substring against the repository copy before any work and records the text each match
 returned (contract §5); any mismatch is BLOCKED, and since contract v22 a header that omits one
-is BLOCKED as well.
+is BLOCKED as well. **The number of anchors is not restated in this sentence** — it is the
+height of the table, and a count carried beside a table it does not control goes stale the
+first time the table grows (inv. 20).
 
 **An anchor is a string COPIED out of this file, never one recalled from the rule it names,
 and it is verified as a literal substring before this block is published.** The inv. 68 anchor
@@ -162,7 +186,7 @@ written, and a blocking gate is the one control that may not have such a directi
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-16-a.**` |
+| revision | `**Revision 2026-09-16-b.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -193,7 +217,7 @@ which is inv. 46 read backwards — the constant would then agree with a record 
 longer names the run behind it. It goes stale by design; the reader is told so here.
 
 Gate at this revision: `bench.yml`, **14 steps, 1 336 147 checks**, unchanged since
-`2026-09-14-a`: TZ-45 moved no file any step reads. That revision is where TZ-44 moved TWO
+`2026-09-14-a`: neither TZ-45 nor TZ-46 moved a file any step reads. That revision is where TZ-44 moved TWO
 steps, which no single TZ before it did — step 14 475 → **487**, section I 94 → 95 where the I9
 pair puts two checks where one stood plus the new section K at **11**, and step 4 40 → **59**,
 the nineteen lane assertions added to `verify_bench.py`; `1 336 116 + 12 + 19 = 1 336 147`.
@@ -2404,8 +2428,8 @@ until someone re-runs the command.
 
 | Item | State | Trigger to act |
 |---|---|---|
-| Class-A coin channels had never been measured | **measured 15.09.2026T22:35–22:39Z by TZ-45 — 27 of 30 answer with dated records** | a run recording one of the channels refused or landing on another host, which is the re-measurement. Methodology §6a (`ANALYST-INSTRUCTIONS.md` `2026-09-16-b`) names the 27 with the one command form they were measured with: fifteen Discourse forums read at `/latest.json`, ten release lists on `api.github.com`, one on `gitlab.com` and RENDER's feed on `rendernetwork.medium.com`. Two forums land elsewhere — `forum.sky.money` on `forum.skyeco.com`, `forum.algorand.org` on `forum.algorand.co` — and the lane records the host that answered. **What was measured is a dated STREAM and not an event date:** each date field says when a record was made, and whether a channel carries class-A dates in its content was deliberately left unread. Two residuals are properties of the channels rather than defects: each read is one page, so a busy forum can outrun a weekly read and the methodology records the unread stretch instead of an absence; and the ten GitHub lanes share one unauthenticated quota, 60 requests an hour as measured, so a refusal there is one refusal of all ten |
-| ETH and ADA are read on forums that do not date their upgrades | **open** | TZ-46, report-only: class 2 probed for both with TZ-45's instrument. `ethereum-magicians.org` is where Ethereum's improvement proposals are argued and `forum.cardano.org` is Cardano's community forum; both answered with dated records and both are admitted and read, but neither is where the event that moves either coin is DATED — a network upgrade is scheduled and announced on a release channel. TZ-45's stop rule ended both coins at class 1, correctly, so class 2 was never requested. **Until TZ-46's reading is named in methodology §6a, both coins' upgrade dates arrive only through §6's type lanes** |
+| Class-A coin channels had never been measured | **measured 15.09.2026T22:35–22:39Z by TZ-45 — 27 of 30 answer with dated records** | a run recording one of the channels refused or landing on another host, which is the re-measurement. Methodology §6a (`ANALYST-INSTRUCTIONS.md` `2026-09-16-c`) names them with the one command form each was measured with: fifteen Discourse forums read at `/latest.json`, eleven release lists on `api.github.com`, one on `gitlab.com`, RENDER's feed on `rendernetwork.medium.com` and the Ethereum Foundation's on `blog.ethereum.org` — **29 rows for 27 coins**, ETH and ADA carrying two lanes each since TZ-46. Two forums land elsewhere — `forum.sky.money` on `forum.skyeco.com`, `forum.algorand.org` on `forum.algorand.co` — and the lane records the host that answered. **What was measured is a dated STREAM and not an event date:** each date field says when a record was made, and whether a channel carries class-A dates in its content was deliberately left unread. Two residuals are properties of the channels rather than defects: each read is one page, so a busy forum can outrun a weekly read and the methodology records the unread stretch instead of an absence; and the eleven GitHub lanes share one unauthenticated quota, 60 requests an hour as measured, so a refusal there is one refusal of all eleven. **A coin with no row costs no request**, so HYPE's unestablished candidate on that host is not a twelfth lane — TZ-46's own risk list counted it as one and the methodology says so in one clause |
+| ETH and ADA are read on forums that do not date their upgrades | **closed by TZ-46 and `2026-09-16-c`** | a run recording either class-2 lane refused or landed elsewhere, which is the re-measurement; go-ethereum's release channel is unmeasured rather than negative, and a TZ naming it is the only thing that would establish it. **Measured 16.09.2026T09:23:06–09:23:17Z**, one request per candidate with TZ-45's own instrument: ETH answers on `blog.ethereum.org` with `pubDate` on every item of its one page — a 527 621 B page, the whole Foundation blog rather than an upgrade stream — and ADA on `IntersectMBO/cardano-node`'s release list with `published_at` on five of five, mixing versions and carrying `draft` and `prerelease` flags a consumer can filter. ETH's request to `/feed.xml` is answered at `/en/feed.xml` on the same host, which the methodology now names as no channel change, because the lane is recorded by the host that served the records and not the path. Original entry: class 2 probed for both with TZ-45's instrument. `ethereum-magicians.org` is where Ethereum's improvement proposals are argued and `forum.cardano.org` is Cardano's community forum; both answered with dated records and both are admitted and read, but neither is where the event that moves either coin is DATED — a network upgrade is scheduled and announced on a release channel. TZ-45's stop rule ended both coins at class 1, correctly, so class 2 was never requested. **Until TZ-46's reading is named in methodology §6a, both coins' upgrade dates arrive only through §6's type lanes** |
 | ONDO, HYPE and LIT have no protocol channel | **measured 15.09.2026T22:35–22:39Z by TZ-45** | a named candidate channel arriving as a TZ — for HYPE and ONDO the unlock primary-source measurement is the likeliest carrier, and LIT first needs the protocol behind its symbol established in this repository. ONDO: `forum.ondo.foundation` did not resolve, `blog.ondo.finance/rss/` landed on `ondo.finance` as a 404, and `eth.blockscout.com` answered the token contract keyless with state and no dated record — **the first reading of methodology §6's contract-state lane, and it dates nothing**, because a cliff lives in a vesting contract whose address is the protocol's own. HYPE: `hyperliquid-dex/node` releases answered an empty list, no forum is known, and the native asset of its own L1 has no token contract. LIT: no candidate in any protocol class, and **LIT = Lighter is the Executor's inference, backed by nothing in this repository**. All three are served only by Binance's announcement list, which answered with dated records and carried no title naming any of them among its latest fifty per catalogue; the methodology names all three unserved on every run |
 | The Senate and `congress.gov` publishers refuse this machine | **measured 15.09.2026 — all five refused on the analysis run of that date; the time is in its day log and was not read here** | any egress change, and re-measure before citing this row as current (inv. 56). `dailypress.senate.gov`, `periodicalpress.senate.gov`, `democrats.senate.gov`, `lummis.senate.gov` and `congress.gov` refused in a row on a day whose one regulatory event — a cloture vote — was dated inside the run's own trading day. **Not a closed lane:** a public body publishes its own calendar, so the refusal is a fact about this client and the date does not stop existing. Methodology `2026-09-15-a` gave that case `dclass:'reported'`, admitted on two sources that are not aggregators of one another and purely subtractive, and a run never routes around the challenge. Same standing as `home.treasury.gov`'s row |
 | The side of every trade rests on a smoothness measure | **open** | a backtest TZ, and nothing in production before its reading. `marketRegime`'s fourteen-day efficiency ratio decides the side on every list coin, and efficiency measures how straight a path is, not which way it points: a market that climbs with pullbacks reads `ДИАПАЗОН` while it climbs. Four methodology revisions in three days each repaired the symptom the one before had produced, and `ANALYST-INSTRUCTIONS.md` records that the defect sits upstream of it and is repaired by measurement and a specification or not at all. **The reading comes first and no repair is presumed:** §8 closes the regime as a scoring switch on ten null cells, hard floor item 1 closes `marketRegime` to edits without a completed backtest (§3.10b), and the instrument that takes the reading is `bench/backtest_bench.py` on the three-year archive |
@@ -2428,7 +2452,8 @@ until someone re-runs the command.
 | Two `_http` callers read an ANSWER as a valid payload | open — measured 12.09.2026 offline | any TZ opening the fetch layer. `reconcile` checks `ok` and never `status`, so an answered non-200 gist reaches `live.get(...)` on `None` and raises `AttributeError`; `_rest_rows` validates no shape, so a 200 whose body is valid JSON of the wrong type raises `ValueError` inside its comprehension. Both are **the correct side of inv. 70** — a code error rather than a network verdict — and both end the fetch. Measured before and after TZ-39: the traceback is identical, and what its repair changed is that the 404 arrives as a 404 in one attempt instead of as `status: None` after three |
 | `coeffs.json` publishes no end-of-window level | **open, unowned — measured 12.09.2026** | any TZ opening `main.py`; it is one field, not a project. `--attrib`'s `d_start_implied` follows from `log(1+r) = ln P(end) − ln P(start)` and is therefore `d_start − d_end`, printed as such with the absence on its own line rather than read as zero. `cur` is computed by the AST-cut block (§3.10), is in neither `CD_FIELDS` nor the published row, and recovering it inside the bench as `min + price_pos·(max − min)/100` is a second implementation of a production formula (inv. 21, 38). **The specification that needed it named it as an existing cell** — a specification is written against the repository, and this one was written against the map's own field list, which had carried `cur` since before it stopped being published |
 | `backtest_bench.yml` carries a comment above the wrong step | open, unowned | any TZ opening that workflow. «Артефакт нужен именно тогда, когда что-то упало.» stands immediately above `Деление по режиму BTC` and describes the `upload-artifact` step's `if: always()` two steps below it. Same class as `index.html:799` and `.gitignore`'s enumeration, and the same repair — move it or delete it, never a second copy (inv. 20) |
-| A §0 anchor could not match, and was reported as matched | **closed by contract v22** | nothing. The Architect side is the anchor rule in §0; the Executor side is contract §5 step 2, which now takes its list from this block's table, BLOCKS a header that omits an anchor and records the text each match returned instead of a verdict. **The trigger this row carried was missed once** — v21 was a contract edit for another reason and carried none of it — so a trigger naming «the next edit» of a file is a reminder only while that edit's author reads the row. **The second instance arrived before the repair did:** TZ-45's header quoted the revision and the file table and none of the six content anchors, and the gate as written could not see it, because it compared only what a header quoted. Original entry: the inv. 68 anchor at `2026-09-08-b` differed from the invariant in case alone (`flip`/`FLIP`, `not`/`NOT`), so an exact-substring match was impossible, and TZ-36's report nevertheless recorded all seven as present as exact substrings. **Either the comparison was case-insensitive or it was not performed, and both are worse than a mismatch**, because the fingerprint gate is the one control that runs BEFORE any work and its whole value is that it blocks. Anchors are now copied and verified as literal substrings here before publication; what is not yet written anywhere is that the Executor must report the MATCHED SUBSTRING and not the verdict |
+| A §0 anchor could not match, and was reported as matched | **re-opened — measured 16.09.2026 on TZ-46's gate; closed by contract v23** | nothing on the cut; the next gate is what reads it. **v22's closure was incomplete and the measurement is TZ-46's own gate script**: it read this block's anchor table and then filtered it through seven anchor NAMES, compared seven of seven correctly — the table held exactly those seven — and printed «anchors in map table: 7», which is the height of its own filter and not of the table. **A list cut by the names it expects cannot see a row nobody told it about**, so the eighth anchor this block gains would be skipped silently and the gate would pass, which is the direction v22 exists to remove. v23 makes step 2 cut by the table's rows and print the table's own row count beside the number compared, and this block no longer restates that count in prose. **Previous entry, closed by v22:** the Architect side is the anchor rule in §0, the Executor side contract §5 step 2, which takes its list from this block's table, BLOCKS a header that omits an anchor and records the text each match returned instead of a verdict. **The trigger this row carried was missed once** — v21 was a contract edit for another reason and carried none of it — so a trigger naming «the next edit» of a file is a reminder only while that edit's author reads the row. **The second instance arrived before the repair did:** TZ-45's header quoted the revision and the file table and none of the six content anchors, and the gate as written could not see it, because it compared only what a header quoted. Original entry: the inv. 68 anchor at `2026-09-08-b` differed from the invariant in case alone (`flip`/`FLIP`, `not`/`NOT`), so an exact-substring match was impossible, and TZ-36's report nevertheless recorded all seven as present as exact substrings. **Either the comparison was case-insensitive or it was not performed, and both are worse than a mismatch**, because the fingerprint gate is the one control that runs BEFORE any work and its whole value is that it blocks. Anchors are now copied and verified as literal substrings here before publication; what is not yet written anywhere is that the Executor must report the MATCHED SUBSTRING and not the verdict |
+| TZ-45's probe validation flag pattern is blind to the tool | **open** | an Architect decision in the next TZ that carries the pattern, then nothing else. The pattern exists to prove no `curl` in a channel probe carried a user-agent, header, proxy, cookie or retry flag, and it matches those flag letters wherever they appear: `grep -c`, `wc -c` and `git branch -a` are local counting reads and it flags all three. **TZ-46 therefore re-ran four local reads with long-form options so the report would scan clean**, disclosed as its Deviation 3 — the artifact was changed to satisfy the check, which is the shape a control must never have, even though nothing was hidden and no pattern was weakened. **The property is established by the instrument, not by the prose**: `probe.py` is quoted verbatim and matched by MD5, and every request came from it. Scoping the pattern to `curl` invocations tests the same property and stops forcing edits to prose that makes no request |
 | `bench/backtest_guard_bench.py` has TWO sections lettered `E` | watched, deliberate | any TZ adding a section there, which chooses its letter from the FILE and never by counting. TZ-32's regime-gate section and TZ-34's venue-observation section share `E`, and only the second prints a section line, so the first is unlabelled in the gate's output. **Renaming is refused for the reason invariant numbers are never renumbered**: a section letter appears in the immutable report of the TZ that created it, and moving it makes that report unreadable against the file. Same class as the D7 collision TZ-36 hit in `--lab-selftest`, and the same repair — the next section is chosen deliberately and the collision is stated |
 | `journal/write.js` cites `§4.1` four times and no document has a §4.1 | open, unowned | any TZ opening that file. The reference is to a superseded specification's own numbering, and `§` means this map everywhere else in the tree. Same class as `index.html:799` and `.gitignore`'s comment, and the same repair — **name the map section or delete the citation**, never invent a §4.1 to satisfy it |
 | UNI, XLM and ZEC class `unexplained` | **closed — measured 09.09.2026; the mechanism is REFUTED as the cause and the finding is five times wider** | nothing on this row; the return-family row below replaces it. TZ-34's mechanism — an undeclared coin cached on the perpetual, its basis measured against a spot index — was repaired, every cached document was refetched with an observed venue, and the class did not go away: it grew from three coins to **eighteen, across 35 cells**. All eighteen are spot, so no venue argument reaches them. **Both branches this row wrote down were wrong, and that is what a dispatch is for**: the answer was neither «perp, so the arms return to 30» nor «spot, so one candidate is eliminated» — the candidate was eliminated and the population tripled in the same reading |
