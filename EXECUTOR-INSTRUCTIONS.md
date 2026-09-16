@@ -1,8 +1,20 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 21.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 22.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v22 makes the fingerprint gate count what it compares.** §5 required every TZ header to
+quote the map's `## 0` block in full, then compared only the anchors a header happened to
+quote — so a header quoting none of them passed on the revision string alone, a comparison
+over an empty set that inv. 22 forbids in every other control this repository runs. TZ-45's
+header quoted none of six, the gate passed, and the omission surfaced only because the
+session ran the map's anchors on its own initiative and reported the gap. **Checking the
+map's anchors against the map proves nothing, because they were copied from it; the evidence
+is the TZ's quote meeting the map.** Step 2 now takes its list from the map's table, a header
+that omits an anchor is BLOCKED, and the report prints what each match returned instead of a
+verdict — which also closes the case of an anchor that differed from its invariant in case
+alone and was recorded as matched. Nothing else in v21 changed.
 
 **v21 narrows what an ANALYSIS run reads of this file, and narrows nothing else.** The Boss
 asked whether the analytical role should be decoupled from the build project, and the
@@ -398,12 +410,18 @@ Before any work, against `origin/main` after fetching:
 
 1. Read `## 0. Fingerprint` at the top of `SYSTEM-MAP-CRYPTOCALCUL.md` and record
    the **revision string** it carries (format `Revision YYYY-MM-DD[-x]`).
-2. Confirm **every content anchor** the TZ header quotes is present in the map,
-   matched as an exact substring.
+2. **Take the anchor list from the map's own anchor table, never from the TZ.** Confirm
+   the TZ header quotes every anchor in that table, character for character, and that each
+   is present in the map as an exact, case-sensitive substring. A comparison over the
+   anchors a header happens to quote passes on a header that quotes none, which is a check
+   passing with no data (inv. 22). Record under `## Fingerprints`, per anchor, the command
+   and the text the match returned — a fixed-string match prints the matched text itself —
+   never only a verdict or a count of passes.
 3. Record the map's line count and MD5.
 
-If an anchor is missing, or the map's revision string differs from the one the TZ
-header requires — in either direction — **STOP. Do no work. Report BLOCKED**,
+If the TZ header omits an anchor the map's table carries or quotes one that differs from
+it, if an anchor is absent from the map, or if the map's revision string differs from the
+one the TZ header requires — in either direction — **STOP. Do no work. Report BLOCKED**,
 stating fingerprint found versus fingerprint required. An older map is unblocked by
 the Boss uploading the current one and re-triggering; a newer map is the Architect's
 to resolve, routed through the report. The map's line count and MD5 are reported,
@@ -694,7 +712,7 @@ this section is role 1.
 **`## Fingerprints` is mandatory in every report**: line count and MD5 for
 `SYSTEM-MAP-CRYPTOCALCUL.md` (plus the revision string from its `## 0. Fingerprint`
 block), for every file the map's `## 0` table lists at the required revision, and
-for any file the TZ's gate table adds. The Architect compares these against the
+for any file the TZ's gate table adds — and, per anchor, the text §5 step 2 recorded. The Architect compares these against the
 Claude Project copies during the audit; this is how a stale copy is caught in
 either direction.
 
