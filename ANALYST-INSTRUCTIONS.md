@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-16-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-16-c.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -206,6 +206,25 @@ move on, and each is owed a release channel; §6 records the one contract-state 
 took, which answers and dates nothing. **No §7 item is added** — no run has read a channel
 yet — and item 63 is corrected to compare against the table instead of whatever host a run
 recorded.
+
+**`2026-09-16-c` pays the two channel debts `-b` recorded, and it adds no class, no date
+rule and no host class.** TZ-46 probed class 2 for ETH and ADA with TZ-45's own instrument on
+16.09: `blog.ethereum.org/feed.xml` answers with `pubDate` on every item and
+`IntersectMBO/cardano-node`'s release list answers with `published_at`, both already governed
+by class-table rows this section carries — RENDER's feed and the GitHub release lists —
+so neither reading needs a class of its own. **The forums stay.**
+They date what they were admitted for — a proposal opened and argued — and the release channel
+dates what they never did, so each coin now reads two lanes instead of one, and §6a's table
+holds at most two rows per coin, class 1 first.
+
+**A second lane has to be STORABLE, or naming it would name an object with no computation
+(map inv. 58).** `sweeps.coins.<SYM>` carries one `host`, one `d` and one `from`, and a
+window is a property of the lane that was read: one date over two channels lets the lane
+nobody opened inherit the freshness of the lane that was opened, which is the failure this
+section's per-lane storage already exists to prevent. So §11 gains `c2` — the same five
+fields, nested, omitted for a coin with one row — and item 63 now fails a coin short of
+either lane instead of passing on the first. **No §7 item is added**: the item that already
+counts entries is the one that had to learn to count lanes.
 
 **This file is methodology, not contract.** Authority, repository operations, the
 trigger protocol, the hard floor, what may be committed and where all live in
@@ -1874,11 +1893,11 @@ list carries its own read date, its own host and its own result inside
 inherit the freshness of one that was, and the store then reports a coverage it does not
 have — the same shape map inv. 48 names for a bench green on invented input.
 
-**The coin horizon is stored per COIN on exactly those terms**, each entry carrying the
-channel's host, its read date, its result and its `sec6_md5`. A coin with no entry is not
-a coin with no events, and the whole point of keying the store to `tokens[]` is that the
-absence is countable: thirty coins, thirty entries, and the appendix names every one that
-is short (item 63).
+**The coin horizon is stored per COIN on exactly those terms, and per LANE inside the coin**,
+each lane carrying its channel's host, its read date, its result and its `sec6_md5`. A coin
+with no entry is not a coin with no events, and the whole point of keying the store to
+`tokens[]` is that the absence is countable: thirty coins, thirty entries, and the appendix
+names every one that is short a lane (item 63).
 
 **A lane's `sec6_md5` records the text the lane was ACTUALLY READ UNDER, so a run that does
 not open a lane does not touch its hash.** Writing this run's digest into a lane last read
@@ -1895,7 +1914,7 @@ being read; a hash is written only by the read that produced it.
 | Capital | TVL direction over 7 and 30 days, for the coins TVL applies to | 24 hours | DefiLlama's API — the publisher of the series, not a repeater of it |
 | Backing | which cohort holds the tokens a cliff releases, and how far above its entry the price sits | 30 days | round terms as disclosed by the protocol or the fund |
 | **Horizon** | every dated event known to fall in the next **90 days**, whether or not it is reportable today | 7 days | the named hosts of §6 |
-| **Coin horizon** | for EVERY coin of `tokens[]`: the dated events its own publication channel carries in the next **90 days** | 7 days | its row in the channel table below, and the exchange list for a listing or a delisting |
+| **Coin horizon** | for EVERY coin of `tokens[]`: the dated events its own publication channels carry in the next **90 days** | 7 days | its rows in the channel table below, and the exchange list for a listing or a delisting |
 
 **The horizon sweep is built once and maintained, never rebuilt.** Its purpose is that
 nothing arrives as a surprise and nothing is discovered twice: an event found today at
@@ -1906,12 +1925,17 @@ none of it on account of having looked. **Earliness is a property of the store, 
 search** — a sweep that only ever looks fourteen days ahead can never see a setup form.
 
 **The coin horizon reads the channels named here and no other.** Every row below is a
-reading TZ-45 took from this machine on 15.09.2026 between 22:35Z and 22:39Z, with its
-command recorded in `CryptoReports/TZ-45-coin-catalyst-channels-report.md`; a channel absent
+reading taken from the Executor's own machine: the class-1 and class-2 rows TZ-45 took on
+15.09.2026 between 22:35Z and 22:39Z, and ETH's and ADA's class-2 rows TZ-46 took on
+16.09.2026 between 09:23:06Z and 09:23:17Z, each with its command recorded in its own report
+— `CryptoReports/TZ-45-coin-catalyst-channels-report.md` and
+`CryptoReports/TZ-46-eth-ada-release-channels-report.md`. A channel absent
 from this section is not established, whatever a run knows about the protocol (map inv. 44,
 inv. 52). **The table is a lookup keyed by symbol, never a list of the universe:** the coins
 swept are cut from `tokens[]` at run time, a member with no row is unserved (item 63), and a
-row whose symbol has left `tokens[]` is not read.
+row whose symbol has left `tokens[]` is not read. **A coin has at most two rows, one per
+class, kept adjacent with class 1 first** — a protocol argues its proposals in one place and
+ships its releases in another, and the two lanes are read, stored and reported separately.
 
 | Coin | Class | Request | Answers from |
 |---|---|---|---|
@@ -1920,10 +1944,12 @@ row whose symbol has left `tokens[]` is not read.
 | YFI | 1 · forum | `https://gov.yearn.fi/latest.json` | `gov.yearn.fi` |
 | AAVE | 1 · forum | `https://governance.aave.com/latest.json` | `governance.aave.com` |
 | ENA | 1 · forum | `https://gov.ethenafoundation.com/latest.json` | `gov.ethenafoundation.com` |
-| ADA | 1 · forum · **2 owed** | `https://forum.cardano.org/latest.json` | `forum.cardano.org` |
+| ADA | 1 · forum | `https://forum.cardano.org/latest.json` | `forum.cardano.org` |
+| ADA | 2 · releases | `https://api.github.com/repos/IntersectMBO/cardano-node/releases?per_page=5` | `api.github.com` |
 | SOL | 1 · forum | `https://forum.solana.com/latest.json` | `forum.solana.com` |
 | SKY | 1 · forum | `https://forum.sky.money/latest.json` | **`forum.skyeco.com`** — redirect |
-| ETH | 1 · forum · **2 owed** | `https://ethereum-magicians.org/latest.json` | `ethereum-magicians.org` |
+| ETH | 1 · forum | `https://ethereum-magicians.org/latest.json` | `ethereum-magicians.org` |
+| ETH | 2 · feed | `https://blog.ethereum.org/feed.xml` | `blog.ethereum.org` |
 | ALGO | 1 · forum | `https://forum.algorand.org/latest.json` | **`forum.algorand.co`** — redirect |
 | BNB | 1 · forum | `https://forum.bnbchain.org/latest.json` | `forum.bnbchain.org` |
 | ZEC | 1 · forum | `https://forum.zcashcommunity.com/latest.json` | `forum.zcashcommunity.com` |
@@ -1955,7 +1981,11 @@ it counts toward the host's next-attempt date below, and no second client is tri
 `%{url_effective}` — never the one requested, which is why SKY and ALGO show two. A read that
 lands anywhere other than its row's `Answers from` has changed channel: nothing is taken from
 it, the landing host goes to the appendix, and the coin is unserved until this table names the
-new one.
+new one. **A redirect that stays on the row's own host is not a channel change**, because the
+rule is the host that served the records and not the path it served them at: ETH's request to
+`/feed.xml` is answered at `/en/feed.xml` on `blog.ethereum.org`, and the row carries the
+request that was measured rather than the path it landed on — naming the landing path would
+name a request nobody has made.
 
 **A channel dates a RECORD, never an event.** The date each class carries says when a topic
 was opened, a release cut or a post sent — not when the vote it announces closes or the
@@ -1985,9 +2015,15 @@ read covers exactly back to `from`, and says so.
 
 **Storage.** A coin's entry is `sweeps.coins.<SYM>`, never a key under `horizon`, whose keys
 are §6's type lanes; it carries `d`, `sec6_md5`, `host`, `n` and `from` (§11), and `from` is
-written only by a read this section names. **The ten GitHub rows are one host with one
-quota** — sixty unauthenticated requests an hour, measured by TZ-45 — so a refusal there is
-one refusal, counted once on `api.github.com`, and it holds all ten lanes.
+written only by a read this section names. **Those five fields hold the coin's FIRST row, and
+a coin with a class-2 row carries that lane under `c2` with the same five on the same terms**
+— its own read date, its own host, its own window and the digest it was read under. `c2` is
+omitted for a coin with one row, never nulled, and a run that opens one lane writes only that
+lane's fields: a date copied across lanes deletes the only evidence that the other is stale.
+**The eleven GitHub rows are one host with one quota** — sixty unauthenticated requests an
+hour, measured by TZ-45 — so a refusal there is one refusal, counted once on
+`api.github.com`, and it holds all eleven lanes. A coin whose channel this section does not
+name costs no request at all, so an unestablished lane is never counted against that quota.
 
 **One exchange list names every coin for a listing or a delisting.**
 `https://www.binance.com/bapi/composite/v1/public/cms/article/list/query?type=1&pageNo=1&pageSize=50`
@@ -2007,14 +2043,17 @@ votes and upgrades reach state only through §6's type lanes, on §6's source ru
 | HYPE | releases `hyperliquid-dex/node` on `api.github.com` — an empty list · no forum is known, and the native asset of its own L1 has no token contract |
 | LIT | no candidate in any protocol class: the protocol behind the symbol is not established in this repository |
 
-**ETH and ADA are read on their forums and are owed a release channel.**
-`ethereum-magicians.org` is where Ethereum's improvement proposals are argued and
-`forum.cardano.org` is Cardano's community forum; both are admitted and both are read.
-Neither DATES the event that moves its coin — a network upgrade is scheduled and announced on
-a release channel — so each is owed a class-2 reading by a TZ, and until this table names one
-their upgrade dates arrive only through §6's type lanes. RENDER's feed is the protocol's own
-publication on a third-party host and ENA's forum is its foundation's: the publisher decides
-admissibility, not the host.
+**ETH and ADA are the two coins read on two lanes, and the debt that opened at
+`2026-09-15-a` is paid.** `ethereum-magicians.org` is where Ethereum's improvement proposals
+are argued and `forum.cardano.org` is Cardano's community forum; both are admitted, both are
+read, and neither DATES the event that moves its coin — a network upgrade is scheduled and
+announced on a release channel. TZ-46 measured that channel for each: the Ethereum
+Foundation's own blog feed, and the `cardano-node` release list published by Intersect, the
+member organisation that maintains the node. **Both streams carry more than upgrades** — the
+feed is the whole blog and the release list mixes versions, and each record's own content is
+what says which one changes the protocol, exactly as it is for every other row here.
+RENDER's feed is the protocol's own publication on a third-party host and ENA's forum is its
+foundation's: the publisher decides admissibility, not the host.
 
 **Vesting scans 28 days and publishes by proximity, not by discovery.** A cliff three weeks
 out is written to state as a future catalyst the moment it is known and becomes reportable
@@ -2352,10 +2391,13 @@ gap no checklist could have caught, because no rule had ever named the computati
     working; the one figure printed is `1 − touchProb(стоп)` and it is labelled as such.
 
 63. **Every coin of `tokens[]` has a `sweeps.coins` entry read from its own row of §6a's
-    channel table** (§6), or is named in the appendix as unserved with the reason. An entry
-    whose `host` is not that row's `Answers from` was read from no established channel and
-    fails this item. A universe swept for event TYPES has not been swept for its own coins,
-    and a count of thirty entries is the only form in which that gap is visible.
+    channel table, and every LANE that table gives it** (§6) — the top-level five for its
+    first row and `c2` for a class-2 row — or is named in the appendix with the reason and
+    the lane that is short. A lane whose `host` is not that row's `Answers from` was read
+    from no established channel and fails this item, and a coin served on one of two lanes
+    fails it on the other rather than passing on the first. A universe swept for event TYPES
+    has not been swept for its own coins, and a count taken per coin AND per lane is the
+    only form in which that gap is visible.
 64. **No closure is printed twice** (§2). Nothing in `ЗАКРЫТО` repeats an object the first
     line already spoke, and no scheduled macro print that fired without moving a level
     occupies a line in the section at all.
@@ -2505,11 +2547,18 @@ overwrites the empty seed.
               "first_seen","last_seen" } ],
   "archive":[ { "id","sym","d","closed","status" } ],
   "sweeps":{ "horizon":{ "<lane>":{ "d","sec6_md5","host","n","from" } },
-             "coins":{ "<SYM>":{ "d","sec6_md5","host","n","from" } } } }
+             "coins":{ "<SYM>":{ "d","sec6_md5","host","n","from",
+                                 "c2":{ "d","sec6_md5","host","n","from" } } } } }
 ```
 
 `type ∈ catalyst | thesis | sozrevaet | position | signal`. `d` is the event or
 trigger date. Fields not applicable to a type are omitted, never nulled.
+
+**`c2` is the coin's second lane and it is ADDITIVE:** an entry written before this revision
+keeps its meaning, the five top-level fields always describe the coin's first row in §6a's
+channel table, and `c2` appears only for a coin whose rows include a class-2 channel — ETH
+and ADA at this revision. Its five fields carry that lane's own reading and are written only
+by a read of that lane (§6a).
 
 **`dclass` records WHO ESTABLISHED THE DATE, and it is the one field two separate rules
 read.** `dclass ∈ primary | archive | reported | none` — the class of the source that
