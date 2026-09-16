@@ -1,8 +1,18 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 22.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 23.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v23 fixes how §5 step 2 CUTS the anchor list — v22 named the source and not the cut.**
+v22 said the list comes from the map's own table, and TZ-46's gate obeyed it by reading that
+table and then filtering it through seven anchor NAMES: it compared seven of seven and
+printed «anchors in map table: 7», a number describing its own filter rather than the table.
+The table held exactly those seven, so nothing was missed on that run and the control still
+could not have seen an eighth row. **A list cut by the names it expects is the copied list
+v22 replaced, one step further from the table**, and it fails in the same direction as its
+predecessor: the gate passes. Step 2 now cuts by the table's structure and reports the
+table's own row count beside the number compared. Nothing else in v22 changed.
 
 **v22 makes the fingerprint gate count what it compares.** §5 required every TZ header to
 quote the map's `## 0` block in full, then compared only the anchors a header happened to
@@ -414,9 +424,14 @@ Before any work, against `origin/main` after fetching:
    the TZ header quotes every anchor in that table, character for character, and that each
    is present in the map as an exact, case-sensitive substring. A comparison over the
    anchors a header happens to quote passes on a header that quotes none, which is a check
-   passing with no data (inv. 22). Record under `## Fingerprints`, per anchor, the command
+   passing with no data (inv. 22). **Cut that list by the table's STRUCTURE — every row of it
+   between its separator line and its end — and never by matching anchor NAMES:** a filter
+   naming the anchors it expects cannot see a row nobody told it about, and it then reports
+   its own list as the table's count. Record under `## Fingerprints`, per anchor, the command
    and the text the match returned — a fixed-string match prints the matched text itself —
-   never only a verdict or a count of passes.
+   never only a verdict or a count of passes, and record **the table's own row count beside
+   the number compared**: where those two differ the cut is the defect, and a gate that
+   cannot print both has not read the table.
 3. Record the map's line count and MD5.
 
 If the TZ header omits an anchor the map's table carries or quotes one that differs from
