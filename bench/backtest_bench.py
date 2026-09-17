@@ -3244,6 +3244,10 @@ function armOut(g) {
     if (!g) return null;
     return { veto: g.veto, rr: g.rr, tgtSig: g.tgtSig, reward: g.reward };
 }
+// ТЗ-48. A regime word cut to the two members the methodology reads.
+function wordOut(w) {
+    return { mode: w.mode, dir: w.dir };
+}
 var job = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 var out = [];
 for (var i = 0; i < job.length; i++) {
@@ -3329,6 +3333,12 @@ for (var i = 0; i < job.length; i++) {
               // добавлен и ни одно число выше не двинулось.
               prod: { g: armOut(gP), p: p0, tgt: has(tgt0) ? tgt0 : null,
                       anchor: anchor, waiting: waiting, pA: pA,
+                      // ТЗ-48. The COIN's own word: marketRegime on the whole
+                      // j.cd, the record every reader above already takes. It
+                      // lives inside `prod` for ТЗ-36's reason — gate step 14
+                      // check 33 pins the answer's top-level keys, so a sibling
+                      // of `reg` would move an assertion this change may not.
+                      own: wordOut(marketRegime(j.cd)),
                       anchorStop: decP.inv ? decP.inv.price : null,
                       anchorDist: decP.inv ? decP.inv.dist : null },
               subs: subs };
@@ -3337,6 +3347,14 @@ for (var i = 0; i < job.length; i++) {
 }
 fs.writeFileSync(process.argv[3], JSON.stringify(out));
 """
+
+# ТЗ-48 · the one line the coin's own word adds to the driver, named once so
+# the lab's identity control (E3) can run the driver WITHOUT it — a pre-change
+# run — instead of comparing the new code with itself (inv. 45).
+TGT_OWN_JS = "                      own: wordOut(marketRegime(j.cd)),\n"
+if TARGET_DRIVER.count(TGT_OWN_JS) != 1:
+    raise RuntimeError("ТЗ-48: строка слова монеты стоит в драйвере %d раз, "
+                       "а должна один" % TARGET_DRIVER.count(TGT_OWN_JS))
 
 
 def _read_js_num(html_path, name):
@@ -3401,7 +3419,7 @@ def _anchor_fill(hi, lo, j0, j1, anchor, is_long):
 
 def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
                H_override=None, want_identity=False, rr_grid=None,
-               anchor_off=False, verbose=True):
+               anchor_off=False, verbose=True, driver=None):
     """Per (date, coin, side): production's own geometry on the 90-day extremum
     against the same geometry on a continuation target, resolved by first touch
     on the forward window. Requires 'hl' in the cache — a close-based touch
@@ -3422,7 +3440,9 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
     H = int(H_override if H_override else _read_js_num(html, "H_NOISE"))
     horizon_d = max(1, H // 24)
     cdb = CdBuilder(bot)
-    br = JsBridge(html, TARGET_JS_FUNCS, TARGET_JS_VARS, TARGET_DRIVER,
+    # `driver` exists for the lab alone (ТЗ-48 E3, E4): every mode runs the
+    # registered TARGET_DRIVER.
+    br = JsBridge(html, TARGET_JS_FUNCS, TARGET_JS_VARS, driver or TARGET_DRIVER,
                   "_tgt_bridge.js")
     px = {s: np.array([p[1] for p in series[s]["prices"]]) for s in series}
     hlt = {s: np.array([h[0] for h in series[s]["hl"]]) for s in series}
@@ -3493,7 +3513,7 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
             continue
         res = br.call(jobs)
         obs = []
-        for (s, i, iF, j0, E, isL), r in zip(meta, res):
+        for (s, i, iF, j0, E, isL), job, r in zip(meta, jobs, res):
             if r is None:
                 continue
             j1 = int(np.searchsorted(hlt[s], series[s]["prices"][i][0]
@@ -3509,6 +3529,13 @@ def run_target(series, bot, html, btc, betawalk=None, k_grid=None,
                  # the anchored arm can be compared against them by a control
                  # instead of by a second derivation of them.
                  "E": E, "stop": r["stop"]}
+            # ТЗ-48. The coin's own word beside the market word, and the WHOLE
+            # record it was computed from: the census takes |r14| and its null
+            # takes the record off this key, never off a second construction
+            # (inv. 21, 48). Absent only when the lab runs a driver without it.
+            if "own" in r["prod"]:
+                o["own"] = r["prod"]["own"]
+                o["cd"] = job["cd"]
             stop, dist = r["stop"], r["dist"]
             if stop is None or dist is None or not (dist > 0) or not (stop > 0):
                 obs.append(o)
@@ -3998,6 +4025,28 @@ def _rg_split(dates):
     return out
 
 
+def _own_split(dates):
+    """ТЗ-48 · {word: date-shaped VIEW} by the COIN's own word. That word varies
+    inside a date by construction, so a population is a subset of OBSERVATIONS
+    and one date belongs to several populations at once — which is exactly why
+    `_rg_word`'s one-word-per-date refusal must not be reused here. A view keeps
+    each date's `t` and only the observations carrying its word; a date left
+    with none is absent from that view, never present and empty. Blocks stay
+    dates, so `_arm_pool` takes a view unchanged (inv. 38). An observation with
+    no recorded word is REFUSED rather than defaulted (inv. 67)."""
+    out = {}
+    for d in dates:
+        by = {}
+        for o in d["obs"]:
+            if not o.get("own"):
+                raise ValueError("на дате %d наблюдение %s без слова монеты — "
+                                 "деление невозможно" % (d["t"], o.get("sym")))
+            by.setdefault(o["own"]["mode"], []).append(o)
+        for w in by:
+            out.setdefault(w, []).append({"t": d["t"], "obs": by[w]})
+    return out
+
+
 def _rg_agree(by_H, btc):
     """Согласие двух разметчиков: одно целое на клетку (слово marketRegime ×
     слово btc_regimes) по датам, которые сетка реально посчитала. Ничего не
@@ -4058,18 +4107,24 @@ def _rg_break_even(cell, ref, H, html):
     return (cell["R"] - ref["R"]) / den
 
 
-def regime_gate_summary(by_H, btc, html, level=95.0, excluded=None):
+def regime_gate_summary(by_H, btc, html, level=95.0, excluded=None,
+                        splitter=_rg_split):
     """Сетка H × RR, делённая словом marketRegime на дате входа. Ω, ДИ и
     планка каждой ячейки приходят из _arm_pool — того же блочного бутстрапа по
     датам, что и у --target: он РЕЖЕТСЯ по популяции, а не переписывается
     (инв. 38). Популяция — подмножество ДАТ, поэтому блоки бутстрапа остаются
-    блоками."""
+    блоками.
+
+    ТЗ-48: `splitter` is the one thing the coin's own word changes — with
+    `_own_split` the same cells, quorum, bar, empty-cell reasons and verdict
+    run on observation-level views. `btc=None` omits the labeller agreement,
+    a count about the MARKET word with no counterpart on a coin's."""
     out = {"H_grid": sorted(by_H), "rr_grid": list(RG_RR_GRID),
            "pops": list(RG_POPS), "stress": RG_STRESS,
            "quorum": [TGT_QUORUM_N, TGT_QUORUM_D],
            "ref": [RG_REF_H, RG_REF_RR], "excluded": dict(excluded or {}),
            "trunc": _rg_trunc(by_H), "cells": {}, "pop_dates": {}}
-    split = {h: _rg_split(by_H[h]) for h in by_H}
+    split = {h: splitter(by_H[h]) for h in by_H}
     for h in by_H:
         out["pop_dates"][h] = {w: len(split[h].get(w, [])) for w in split[h]}
     # Опорная ячейка считается первой: остальные меряются от неё.
@@ -4108,7 +4163,8 @@ def regime_gate_summary(by_H, btc, html, level=95.0, excluded=None):
                         m["lost_dates"] = out["trunc"][h]["lost"]
                         m["last_entry"] = out["trunc"][h]["last"]
                     out["cells"]["%d|%.1f|%s|%s" % (h, rr, sd, pop)] = m
-    out["agree"], out["agree_dates"] = _rg_agree(by_H, btc)
+    if btc is not None:
+        out["agree"], out["agree_dates"] = _rg_agree(by_H, btc)
     out["verdict"] = _rg_verdict(out)
     return out
 
@@ -4148,7 +4204,7 @@ def _rg_verdict(sm):
 
 
 def run_regime_grid(series, bot, html, btc, betawalk=None, H_grid=None,
-                    rr_grid=None, verbose=True):
+                    rr_grid=None, verbose=True, driver=None):
     """Один проход run_target на каждый H сетки; все RR приходят одним рукавом
     внутри прохода, потому что подстановка живёт на задании. H уходит в тот же
     H_override, которым уже пользуется D3 — новой машинерии горизонта здесь
@@ -4163,7 +4219,7 @@ def run_regime_grid(series, bot, html, btc, betawalk=None, H_grid=None,
         try:
             out[h] = run_target(series, bot, html, btc, betawalk=betawalk,
                                 k_grid=[], H_override=h, rr_grid=rrs,
-                                verbose=False)
+                                verbose=False, driver=driver)
         except ValueError as e:
             # РОВНО один случай: архива не хватает даже на одну дату при этом
             # горизонте — крайняя точка той самой правой усечённости, которую
@@ -4269,6 +4325,224 @@ def report_regime_gate(sm):
         print("ВЕРДИКТ: ТЕЗИС ПАЛ на %d ячейках из %d — `range` строго ниже\n"
               "`trend`. Ворота делают свою работу, дни `ДИАПАЗОН` действительно\n"
               "пусты, и молчание движка на них ВЕРНО. Ячейки: %s"
+              % (len(v["failed"]), v["n_cmp"],
+                 " · ".join("H=%d RR=%.1f %s" % f for f in v["failed"])))
+
+
+# ── ТЗ-48 · the coin's own word through the gate that already exists ────────
+# The grid above is split a second time, by marketRegime on each coin's OWN
+# record (TARGET_DRIVER's `prod.own`). The measurement gains no formula, no
+# threshold, no quorum and no bar; the census rides along and decides nothing.
+OWN_DRIVER = r"""
+var fs = require('fs');
+__EXTRACTED__
+function wordOut(w) {
+    return { mode: w.mode, dir: w.dir };
+}
+var job = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+var out = [];
+for (var i = 0; i < job.length; i++) {
+    // One date. `w`: the word on each coin-date's WHOLE record as recorded.
+    // `tab[a][b]`: the word on record a carrying record b's volatility — the
+    // record is copied and one field substituted, as the target grid does it.
+    var rows = job[i], w = [], tab = [];
+    for (var a = 0; a < rows.length; a++) {
+        w.push(wordOut(marketRegime(rows[a])));
+        var line = [];
+        for (var b = 0; b < rows.length; b++) {
+            var cdv = {};
+            for (var f in rows[a]) cdv[f] = rows[a][f];
+            cdv.volatility = rows[b].volatility;
+            line.push(marketRegime(cdv).mode);
+        }
+        tab.push(line);
+    }
+    out.push({ w: w, tab: tab });
+}
+fs.writeFileSync(process.argv[3], JSON.stringify(out));
+"""
+
+
+def _own_rows(dates):
+    """{t: [(sym, word, record)] ordered by symbol} — one row per COIN-DATE,
+    however many observations (sides, horizons) carried it. A coin-date met
+    again with a different word or record is COUNTED, never overwritten."""
+    seen, n_conflict = {}, 0
+    for d in dates:
+        at = seen.setdefault(d["t"], {})
+        for o in d["obs"]:
+            if not o.get("own"):
+                raise ValueError("на дате %d наблюдение %s без слова монеты — "
+                                 "перепись невозможна" % (d["t"], o.get("sym")))
+            if o["sym"] not in at:
+                at[o["sym"]] = (o["own"], o["cd"])
+            elif at[o["sym"]] != (o["own"], o["cd"]):
+                n_conflict += 1
+    return ({t: [(s,) + seen[t][s] for s in sorted(seen[t])]
+             for t in sorted(seen) if seen[t]}, n_conflict)
+
+
+def _own_table(rows, html):
+    """Production's word on every row's record, and on that record under each
+    volatility its date carries: one bridge call for every date."""
+    ts = sorted(rows)
+    if not ts:
+        return {}
+    br = JsBridge(html, TARGET_JS_FUNCS, TARGET_JS_VARS, OWN_DRIVER,
+                  "_own_bridge.js")
+    return dict(zip(ts, br.call([[cd for _, _, cd in rows[t]] for t in ts])))
+
+
+def _own_overlap(is_r, is_t, m):
+    """The share of the `range` cell whose |r14| reaches the `trend` cell's
+    median. Where either cell is empty that median does not exist: the value is
+    None and the empty cell is NAMED — nothing is divided by nothing."""
+    fin = np.isfinite(m)
+    R, T = m[is_r & fin], m[is_t & fin]
+    if len(R) == 0 or len(T) == 0:
+        return None, "пуста ячейка " + " и ".join(
+            w for w, v in (("range", R), ("trend", T)) if len(v) == 0)
+    return float(np.mean(R >= np.median(T))), None
+
+
+def _own_stats(rows, tab, level=95.0):
+    """Everything the census prints, from rows and their production table
+    alone. `overlap` carries no band and decides nothing (inv. 49). Beside it
+    stands the SAME statistic on a decoupled null: each date's volatilities
+    permuted across its coin-dates, TGT_BOOT times, so both marginals are kept
+    and only their pairing with |r14| is broken. A date's permutations are
+    seeded by the date alone, so no date's null depends on which other dates a
+    run holds. `id_*` compares the recorded word with production's word on the
+    recorded record: the field and the census must be reading one fact."""
+    word, m, id_n, id_bad, nulls = [], [], 0, 0, []
+    for t in sorted(rows):
+        n = len(rows[t])
+        for a, (_, own, cd) in enumerate(rows[t]):
+            id_n += 1
+            id_bad += int(tab[t]["w"][a] != own
+                          or tab[t]["tab"][a][a] != own["mode"])
+            word.append(own["mode"])
+            m.append(abs(cd["r14"]) if cd.get("r14") is not None else np.nan)
+        code = np.array([[0 if x == "range" else 1 if x == "trend" else 2
+                          for x in line] for line in tab[t]["tab"]],
+                        dtype=np.int8).reshape(n, n)
+        perm = np.random.default_rng([17, t]).permuted(
+            np.tile(np.arange(n), (TGT_BOOT, 1)), axis=1)
+        nulls.append(code[np.arange(n)[None, :], perm])
+    word, m = np.array(word, dtype=str), np.array(m, dtype=float)
+    words = {}
+    for w in list(RG_POPS) + [RG_STRESS] + sorted(
+            set(word.tolist()) - set(RG_POPS) - {RG_STRESS}):
+        mv = m[word == w]
+        fv = mv[np.isfinite(mv)]
+        words[w] = {"n": int(len(mv)), "n_no_r14": int(len(mv) - len(fv)),
+                    "q": ([float(v) for v in np.percentile(fv, [25, 50, 75])]
+                          if len(fv) else None)}
+    ov, why = _own_overlap(word == "range", word == "trend", m)
+    ov_null = []
+    if nulls:
+        nc = np.concatenate(nulls, axis=1)          # TGT_BOOT × coin-dates
+        for k in range(TGT_BOOT):
+            v, _ = _own_overlap(nc[k] == 0, nc[k] == 1, m)
+            if v is not None:
+                ov_null.append(v)
+    a = (100.0 - level) / 2.0
+    return {"n": int(len(word)), "n_dates": len(rows), "words": words,
+            "overlap": ov, "why": why,
+            "null": {"k": TGT_BOOT, "n_undef": TGT_BOOT - len(ov_null),
+                     "med": float(np.median(ov_null)) if ov_null else None,
+                     "ci": ([float(np.percentile(ov_null, a)),
+                             float(np.percentile(ov_null, 100 - a))]
+                            if ov_null else None)},
+            "id_cmp": id_n, "id_diff": id_bad}
+
+
+def own_census(dates, html, level=95.0):
+    """ТЗ-48 §4.4 · per word: coin-dates and the quartiles of |r14| off the same
+    record the word was computed from, plus `overlap` beside its decoupled null."""
+    rows, n_conflict = _own_rows(dates)
+    out = _own_stats(rows, _own_table(rows, html), level)
+    out["n_conflict"] = n_conflict
+    return out
+
+
+def own_regime_summary(by_H, html, level=95.0, excluded=None):
+    """ТЗ-48 · the registered grid split by the coin's own word — the same
+    function, cells, quorum, bar and verdict (`_rg_verdict`, `_rg_below`
+    unchanged) — plus its census over every coin-date any horizon saw."""
+    out = regime_gate_summary(by_H, None, html, level, excluded,
+                              splitter=_own_split)
+    out["census"] = own_census([d for h in sorted(by_H) for d in by_H[h]],
+                               html, level)
+    return out
+
+
+def report_own_regime(sm):
+    print("\n" + "═" * 62)
+    print("СЛОВО МОНЕТЫ · marketRegime на собственной записи монеты против исхода")
+    print("═" * 62)
+    print("ПЕРВИЧНЫЙ — тезис слова рынка той же функцией (_rg_verdict): на каждой\n"
+          "ячейке с кворумом ДИ95 Ω на `range` перекрывает ДИ95 на `trend` или\n"
+          "превышает его; падает, только если `range` строго ниже. `stress`\n"
+          "печатается, но в тезис не входит.")
+    print("Популяция — подмножество НАБЛЮДЕНИЙ, а не дат: слово монеты меняется\n"
+          "внутри даты, и дата входит в каждую популяцию, где у неё есть слово.\n"
+          "Блоки бутстрапа — по-прежнему даты; сетка, кворум и планка — те же.")
+    print("Кворум: %d сетапов и %d дат — на КАЖДОЙ из двух популяций."
+          % (sm["quorum"][0], sm["quorum"][1]))
+    print(_excl_line(sm))
+
+    print("\nДАТ НА ПОПУЛЯЦИЮ (дата с двумя словами считается в обеих):")
+    for h in sm["H_grid"]:
+        pd = sm["pop_dates"].get(h, {})
+        print("  H=%-4d %s" % (h, " · ".join(
+            "%s %d" % (w, pd.get(w, 0))
+            for w in list(sm["pops"]) + [sm["stress"]])))
+
+    for sd in ("long", "short"):
+        print("\n" + "─" * 62)
+        print("СТОРОНА: %s" % sd.upper())
+        for h in sm["H_grid"]:
+            for rr in sm["rr_grid"]:
+                print("  H=%-4d RR=%.1f" % (h, rr))
+                for pop in list(sm["pops"]) + [sm["stress"]]:
+                    print("    %-7s %s"
+                          % (pop, _rg_line(_rg_cell(sm, h, rr, sd, pop))))
+
+    c, nl = sm["census"], sm["census"]["null"]
+    print("\n" + "─" * 62)
+    print("ПЕРЕПИСЬ СЛОВА МОНЕТЫ · описательно: полосы нет, ничего не решает")
+    print("  монето-дат %d на %d датах · монето-дат с двумя разными записями %d"
+          % (c["n"], c["n_dates"], c["n_conflict"]))
+    print("  слово поля против слова на той же записи: сравнений %d, расхождений %d"
+          % (c["id_cmp"], c["id_diff"]))
+    for w, v in c["words"].items():
+        print("  %-7s монето-дат %-5d |r14| квартили %s%s"
+              % (w, v["n"], "—" if v["q"] is None else
+                 " · ".join("%.4f" % x for x in v["q"]),
+                 " · без r14 %d" % v["n_no_r14"] if v["n_no_r14"] else ""))
+    print("  overlap — доля `range`, чья |r14| достигает медианы `trend`: %s"
+          % ("НЕ ОПРЕДЕЛЁН — %s, медианы нет" % c["why"]
+             if c["overlap"] is None else "%.3f" % c["overlap"]))
+    print("  развязанный нуль — волатильность переставлена внутри даты, "
+          "перестановок %d: %s · не определён в %d"
+          % (nl["k"], "—" if nl["med"] is None else
+             "медиана %.3f, разброс нуля %.3f–%.3f" % (nl["med"], nl["ci"][0],
+                                                         nl["ci"][1]),
+             nl["n_undef"]))
+
+    v = sm["verdict"]
+    print("\n" + "═" * 62)
+    if not v["decidable"]:
+        print("ВЕРДИКТ СЛОВА МОНЕТЫ: decidable: false — ни одной ячейки, где обе\n"
+              "популяции взяли кворум. Это не «тезис устоял»: сравнивать было\n"
+              "нечего (инв. 22).")
+    elif v["holds"]:
+        print("ВЕРДИКТ СЛОВА МОНЕТЫ: decidable: true — тезис устоял на %d\n"
+              "сравнениях: `range` нигде не ниже `trend`." % v["n_cmp"])
+    else:
+        print("ВЕРДИКТ СЛОВА МОНЕТЫ: decidable: true — тезис ПАЛ на %d ячейках "
+              "из %d:\n`range` строго ниже `trend`. Ячейки: %s"
               % (len(v["failed"]), v["n_cmp"],
                  " · ".join("H=%d RR=%.1f %s" % f for f in v["failed"])))
 
@@ -4458,6 +4732,418 @@ def synth_fund(coupled, n_coins=20, hours=12000, seed=5, g=5e-4):
         ser["C%02d" % c] = {"prices": [[ts[i], float(p[i])] for i in range(hours)],
                             "volumes": [[ts[i], 1e7] for i in range(hours)]}
     return ser, fund
+
+
+def synth_own(kind, seed=1, n_coins=12, hours=8760):
+    """ТЗ-48 · worlds whose COIN-word answer follows from marketRegime's own
+    arithmetic in index.html, each built to the shape that ТЗ's §5 registers:
+      smooth — W1: log-price a straight line. Hourly returns are one constant,
+               so volatility is float residue and |z| has no bound: `stress`.
+      stair  — W2: a jump every 100 h over a flat floor: `trend`, `range` empty.
+      zigzag — W3: a slow climb under an alternating ±amplitude: `range`,
+               `trend` empty.
+      walk   — W4: driftless gaussian walks, ONE volatility for every coin.
+      mixed  — W5: even coins `stair`, odd coins `zigzag`.
+      brown  — W6: gaussian walks over a volatility × drift grid, each coin
+               named S<volatility index>M<drift index>; M0 is driftless.
+    Seeds move the phase and slope of the deterministic worlds and the noise of
+    the random ones. `hl` is the close (no intra-hour range); BTC is a
+    driftless walk that carries the dates and is not a candidate."""
+    rng = np.random.default_rng(seed)
+    t0 = 1700000000000
+    x = np.arange(hours, dtype=float)
+    alt = np.where(np.arange(hours) % 2 == 0, 1.0, -1.0)
+    ts = [t0 + (i + 1) * HOUR_MS for i in range(hours)]
+
+    def stair(jump):
+        return jump * np.floor((x + rng.integers(0, 100)) / 100.0)
+
+    def zigzag():
+        return 0.0003 * x + 0.007 * rng.choice([-1.0, 1.0]) * alt
+
+    def ser(lp):
+        p = 10.0 * np.exp(lp)
+        return {"prices": [[ts[i], float(p[i])] for i in range(hours)],
+                "volumes": [[ts[i], 1e7] for i in range(hours)],
+                "hl": [[ts[i], float(p[i]), float(p[i])] for i in range(hours)]}
+
+    lps = {}
+    for c in range(n_coins):
+        if kind == "smooth":
+            lps["C%02d" % c] = rng.uniform(0.0008, 0.0012) * x
+        elif kind == "stair":
+            lps["C%02d" % c] = stair(0.03)
+        elif kind == "zigzag":
+            lps["C%02d" % c] = zigzag()
+        elif kind == "walk":
+            lps["C%02d" % c] = np.cumsum(rng.normal(0, 0.01, hours))
+        elif kind == "mixed":
+            lps["C%02d" % c] = stair(0.01) if c % 2 == 0 else zigzag()
+        elif kind == "brown":
+            vi, di = c // 4 % 3, c % 4
+            lps["S%dM%d" % (vi, di)] = np.cumsum(rng.normal(
+                (0.0, 0.0002, -0.0002, 0.0004)[di], (0.004, 0.008, 0.016)[vi],
+                hours))
+        else:
+            raise ValueError("мир %r не зарегистрирован" % kind)
+    btc = ser(np.cumsum(rng.normal(0, 0.004, hours)))
+    return {s: ser(lp) for s, lp in lps.items()}, btc
+
+
+def _out_fields(x, path=()):
+    """{path: repr(leaf)} over an output as the mode builds it: dict keys in any
+    order, a tuple read as a sequence, an empty container a leaf of its own.
+    repr keeps 1 apart from 1.0 and prints NaN one way, so equal text is an
+    equal field."""
+    if isinstance(x, dict) and x:
+        out = {}
+        for k in x:
+            out.update(_out_fields(x[k], path + (repr(k),)))
+        return out
+    if isinstance(x, (list, tuple)) and x:
+        out = {}
+        for i, v in enumerate(x):
+            out.update(_out_fields(v, path + (i,)))
+        return out
+    return {path: repr(x)}
+
+
+def _out_diff(pre, post):
+    """Field-by-field: compared, differing, missing after, added after."""
+    fa, fb = _out_fields(pre), _out_fields(post)
+    shared = [p for p in fa if p in fb]
+    return {"cmp": len(shared), "diff": sum(1 for p in shared if fa[p] != fb[p]),
+            "missing": sum(1 for p in fa if p not in fb),
+            "added": sum(1 for p in fb if p not in fa)}
+
+
+def lab_own_word(html, bot, seeds, w, btc, dA, sA, by_H, sg):
+    """ТЗ-48 §6 · section E: the coin's own word. `w`, `btc`, `dA`, `sA`, `by_H`
+    and `sg` are section D's world and its --target / --regime-gate records,
+    reused so the identity control's field-present side costs no second pass.
+    Every comparison is counted where it is made (inv. 43), the section prints
+    its own total, and zero comparisons fail it (inv. 22)."""
+    import io, copy, contextlib
+    print("E · --regime-gate, слово монеты")
+    cnt = {"n": 0, "bad": 0}
+
+    def chk(cond):
+        cnt["n"] += 1
+        cnt["bad"] += int(not cond)
+        return bool(cond)
+
+    def chk_n(n_cmp, n_bad):
+        cnt["n"] += n_cmp
+        cnt["bad"] += n_bad
+        return n_cmp > 0 and n_bad == 0
+
+    def mark(flags):
+        return "ОК" if all(flags) else "СТОП"
+
+    def printed(fn, *args):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            fn(*args)
+        return buf.getvalue().split("\n")
+
+    # E0 · the view and the extremes on hand-built observations, keyed by the
+    # grid's own arm name, so every cell below is a registered cell.
+    H0, rk = RG_REF_H, _rk(RG_RR_GRID[0])
+
+    def fo(word, side="long", arm=True, first="tgt"):
+        return {"sym": "X", "side": side, "reg": "range",
+                "own": {"mode": word, "dir": 0},
+                "arms": ({rk: {"first": first, "hit": first == "tgt", "p": 0.3,
+                               "rr": 2.0, "tgtSig": 1.0, "a": 0.1, "b": 0.05,
+                               "R": 2.0 if first == "tgt" else -1.0}}
+                         if arm else {})}
+
+    d1 = {"t": 1, "obs": [fo("range"), fo("trend", "short"), fo("stress")]}
+    d2 = {"t": 2, "obs": [fo("range")]}
+    sp = _own_split([d1, d2])
+    views = [(wd, o) for wd in sp for v in sp[wd] for o in v["obs"]]
+    f0 = [chk(len(views) == 4 and len(set(id(o) for _, o in views)) == 4),
+          chk(all(o["own"]["mode"] == wd for wd, o in views)),
+          chk([v["t"] for v in sp.get("trend", [])] == [1]),
+          chk([v["t"] for v in sp.get("range", [])] == [1, 2])]
+    try:
+        _own_split([{"t": 3, "obs": [{"sym": "Y", "side": "long", "arms": {}}]}])
+        refused = False
+    except ValueError as e:
+        refused = "3" in str(e)
+    f0.append(chk(refused))
+    print("  E0 деление по наблюдениям: каждое в одном виде, дата без своего слова "
+          "из вида выпала, запись без слова отвергнута %s" % mark(f0))
+
+    # a population of ONE date; a population whose arm admitted no setup at all
+    fx = [{"t": 10 + i, "obs": [fo("range", first="stop" if i % 2 else "tgt"),
+                                fo("stress", arm=False)]
+           + ([fo("trend")] if i == 0 else [])} for i in range(6)]
+    sx = regime_gate_summary({H0: fx}, None, html, splitter=_own_split)
+    c_r = _rg_cell(sx, H0, RG_RR_GRID[0], "long", "range")
+    c_t = _rg_cell(sx, H0, RG_RR_GRID[0], "long", "trend")
+    c_s = _rg_cell(sx, H0, RG_RR_GRID[0], "long", "stress")
+    f1 = [chk(c_r["pooled"] and not c_r["quorum"]),
+          chk(not c_t["pooled"] and c_t["n_pop_dates"] == 1
+              and c_t["n_setups"] == 1),
+          chk(not c_s["pooled"] and c_s["n_pop_dates"] == 6
+              and c_s["n_arm_dates"] == 0 and c_s["n_setups"] == 0),
+          chk("сетапов 0 на 0 датах (дат в популяции 6)" in _rg_line(c_s)),
+          chk(sx["verdict"]["n_cmp"] == 0 and not sx["verdict"]["decidable"])]
+    print("  E0 края сетки: популяция из одной даты — «%s» · ни одного сетапа — "
+          "«%s» · сравнений %d, decidable %s %s"
+          % (_rg_line(c_t), _rg_line(c_s), sx["verdict"]["n_cmp"],
+             str(sx["verdict"]["decidable"]).lower(), mark(f1)))
+
+    # a coin-date whose volatility is absent: production answers `range` with
+    # known:false, and run_target never lets such a coin-date into a population
+    Hn = int(_read_js_num(html, "H_NOISE"))
+    rec = {"min30": 1.0, "max30": 1.0, "min_price": 1.0, "max_price": 1.0,
+           "r7": 0.2, "r14": 0.2}
+    job = {"cd": dict(rec, volatility=0.001), "E": 1.0, "isLong": True, "H": Hn,
+           "btcStats": {"volatility": 0.01, "r7": 0.0, "r14": 0.0},
+           "hi24": 1.0, "lo24": 1.0, "subs": {}}
+    brt = JsBridge(html, TARGET_JS_FUNCS, TARGET_JS_VARS, TARGET_DRIVER,
+                   "_tgt_bridge.js")
+    r_v, r_nv = brt.call([job, dict(job, cd=rec)])
+    wf, bf = synth_own("walk", seed=1, n_coins=3, hours=3000)
+    wf["FLAT"] = {f: [[r[0]] + [10.0] * (len(r) - 1) for r in wf["C00"][f]]
+                  for f in ("prices", "volumes", "hl")}
+    dF = run_target(wf, bot, html, bf, k_grid=[], verbose=False)
+    symsF = set(o["sym"] for d in dF for o in d["obs"])
+    f2 = [chk(r_v is not None and r_v["prod"]["own"]["mode"] == "stress"),
+          chk(r_nv is not None
+              and r_nv["prod"]["own"] == {"mode": "range", "dir": 0}),
+          chk(len(dF) > 0 and "FLAT" not in symsF and len(symsF) == 3)]
+    print("  E0 волатильности нет: та же запись с волатильностью — %s, без неё — "
+          "%s (known:false) · в мире с плоской монетой её монето-дат в записи %d, "
+          "остальных монет %d %s"
+          % (r_v and r_v["prod"]["own"]["mode"],
+             r_nv and r_nv["prod"]["own"]["mode"],
+             sum(1 for d in dF for o in d["obs"] if o["sym"] == "FLAT"),
+             len(symsF - {"FLAT"}), mark(f2)))
+
+    # E1 · W1–W6, --lab-seeds seeds each. Counts are coin-dates; overlap is
+    # printed per seed or named undefined.
+    c0 = _read_js_num(html, "EFF_TREND")
+    worlds = (("W1", "smooth", "гладкий подъём — только stress"),
+              ("W2", "stair", "лестница — только trend"),
+              ("W3", "zigzag", "зигзаг — только range, overlap не определён"),
+              ("W4", "walk", "блуждание с одной волатильностью — overlap 0"),
+              ("W5", "mixed", "лестницы и зигзаги поровну — overlap 1"),
+              ("W6", "brown", "броуновские σ × снос — ни одна монета не вся "
+                              "в range"))
+    keep = {"m0": [0, 0], "vmax": 0.0}
+    for tag, kind, title in worlds:
+        fl, cs, extra = [], [], ""
+        for sd in range(1, seeds + 1):
+            ser, bt = synth_own(kind, seed=sd)
+            dW = run_target(ser, bot, html, bt, k_grid=[], verbose=False)
+            cW = own_census(dW, html)
+            cs.append(cW)
+            if kind == "walk" and sd == 1:
+                keep["walk"] = (ser, bt, dW)
+            n, nw = cW["n"], {x: cW["words"][x]["n"] for x in cW["words"]}
+            fl += [chk(n > 0), chk(cW["id_cmp"] == n and cW["id_diff"] == 0),
+                   chk(cW["n_conflict"] == 0)]
+            if kind == "smooth":
+                fl += [chk(nw["stress"] == n), chk(nw["trend"] == 0),
+                       chk(cW["overlap"] is None)]
+                keep["vmax"] = max([keep["vmax"]] + [
+                    cd["volatility"] for rs in _own_rows(dW)[0].values()
+                    for _, _, cd in rs])
+                if sd == 1:
+                    # every coin-date `stress`: both compared populations are
+                    # absent, and the report must SAY undecidable (P3)
+                    s1 = regime_gate_summary({Hn: dW}, None, html,
+                                             splitter=_own_split)
+                    s1["census"] = cW
+                    txt = "\n".join(printed(report_own_regime, s1))
+                    fl += [chk(set(s1["pop_dates"][Hn]) == {RG_STRESS}),
+                           chk(s1["verdict"]["n_cmp"] == 0
+                               and not s1["verdict"]["decidable"]),
+                           chk("decidable: false" in txt
+                               and "дат в популяции 0" in txt)]
+            elif kind == "stair":
+                fl += [chk(nw["trend"] == n), chk(nw["range"] == 0),
+                       chk(cW["overlap"] is None)]
+            elif kind == "zigzag":
+                fl += [chk(nw["range"] == n), chk(nw["trend"] == 0),
+                       chk(cW["overlap"] is None and "trend" in cW["why"])]
+            elif kind == "walk":
+                fl += [chk(nw["range"] > 0 and nw["trend"] > 0),
+                       chk(cW["overlap"] == 0.0)]
+            elif kind == "mixed":
+                fl += [chk(nw["range"] > 0 and nw["trend"] > 0),
+                       chk(cW["overlap"] == 1.0)]
+            else:
+                rows, _ = _own_rows(dW)
+                per = {}
+                for t in rows:
+                    for s, own, _cd in rows[t]:
+                        e = per.setdefault(s, [0, 0])
+                        e[0] += 1
+                        e[1] += int(own["mode"] == "range")
+                fl.append(chk(nw["trend"] > 0))
+                fl += [chk(e[1] < e[0]) for e in per.values()]
+                for s, e in per.items():
+                    if s.endswith("M0"):
+                        keep["m0"][0] += e[1]
+                        keep["m0"][1] += e[0]
+        tot = {x: sum(c["words"][x]["n"] for c in cs) for x in cs[0]["words"]}
+        if kind == "smooth":
+            extra = " · волатильность не выше %.1e" % keep["vmax"]
+        if kind == "brown":
+            extra = (" · доля range у монет без сноса %.3f, для справки "
+                     "P(|N(0,1)| < EFF_TREND) = %.3f"
+                     % (keep["m0"][0] / float(max(keep["m0"][1], 1)),
+                        math.erf(c0 / math.sqrt(2))))
+        print("  E1 %s %s: посевов %d · монето-дат %d · range %d · trend %d · "
+              "stress %d · overlap %s · нуль %s%s %s"
+              % (tag, title, seeds, sum(c["n"] for c in cs), tot["range"],
+                 tot["trend"], tot["stress"],
+                 " ".join("—" if c["overlap"] is None else "%.3f" % c["overlap"]
+                          for c in cs)
+                 + ("" if cs[0]["why"] is None else " (%s)" % cs[0]["why"]),
+                 " ".join("—" if c["null"]["med"] is None
+                          else "%.3f" % c["null"]["med"] for c in cs),
+                 extra, mark(fl)))
+
+    # E2 · truncation: every coin-date of W4 seed 1 rebuilt from the series cut
+    # at its own date — the record, the word, and every census statistic of
+    # that date must be byte-identical to the full-series reading.
+    ser, bt, dT = keep["walk"]
+    rowsF, _ = _own_rows(dT)
+    tabF = _own_table(rowsF, html)
+    cdb = CdBuilder(bot)
+    pts = {s: [p[0] for p in ser[s]["prices"]] for s in ser}
+    vts = {s: [v[0] for v in ser[s]["volumes"]] for s in ser}
+    rowsC, cd_n, cd_bad = {}, 0, 0
+    for t in rowsF:
+        rowsC[t] = []
+        for s, own, cd in rowsF[t]:
+            k = bisect.bisect_right(pts[s], t)
+            cdc = cdb.build(ser[s]["prices"][:k],
+                            ser[s]["volumes"][:bisect.bisect_right(vts[s], t)],
+                            k - 1)
+            cd_n += 1
+            cd_bad += int(json.dumps(cdc, sort_keys=True)
+                          != json.dumps(cd, sort_keys=True))
+            rowsC[t].append((s, None, cdc))
+    tabC = _own_table(rowsC, html)
+    wd_n = wd_bad = st_n = st_bad = 0
+    for t in rowsF:
+        cut = [(s, tabC[t]["w"][a], cdc) for a, (s, _, cdc) in enumerate(rowsC[t])]
+        for (_, own, _), (_, wc, _) in zip(rowsF[t], cut):
+            wd_n += 1
+            wd_bad += int(own != wc)
+        st_n += 1
+        st_bad += int(json.dumps(_own_stats({t: rowsF[t]}, {t: tabF[t]}),
+                                 sort_keys=True)
+                      != json.dumps(_own_stats({t: cut}, {t: tabC[t]}),
+                                    sort_keys=True))
+    f4 = [chk_n(cd_n, cd_bad), chk_n(wd_n, wd_bad), chk_n(st_n, st_bad)]
+    print("  E2 усечение на дате (W4, посев 1): записей %d, расхождений %d · слов "
+          "%d, расхождений %d · дат со статистикой переписи %d, расхождений %d %s"
+          % (cd_n, cd_bad, wd_n, wd_bad, st_n, st_bad, mark(f4)))
+
+    # E3 · identity (inv. 45, 69). The world is section D's: synth_hl «normal»,
+    # its first coin as BTC. The identity holds UNCONDITIONALLY there because
+    # no arm and no split of --target or of the market word reads the new
+    # field. The pre-change side is the registered driver WITHOUT that field.
+    pre = TARGET_DRIVER.replace(TGT_OWN_JS, "")
+    dA0 = run_target(w, bot, html, btc, k_grid=K_GRID, want_identity=True,
+                     verbose=False, driver=pre)
+    sA0 = target_summary(dA0, html)
+    by_H0 = run_regime_grid(w, bot, html, btc, verbose=False, driver=pre)
+    sg0 = regime_gate_summary(by_H0, btc, html)
+    has_own = [("own" in o) for d in dA for o in d["obs"]]
+    has_own0 = [("own" in o) for d in dA0 for o in d["obs"]]
+    f5 = [chk(len(has_own) > 0 and all(has_own)),
+          chk(len(has_own0) > 0 and not any(has_own0))]
+    tq = _out_diff(sA0, sA)
+    gq = _out_diff(sg0, sg)
+    f5 += [chk_n(tq["cmp"], tq["diff"]), chk(tq["missing"] == 0 and tq["added"] == 0),
+           chk_n(gq["cmp"], gq["diff"]), chk(gq["missing"] == 0 and gq["added"] == 0)]
+    txt_t0, txt_t = printed(report_target, sA0), printed(report_target, sA)
+    own_w = own_regime_summary(by_H, html)
+    txt_g0 = printed(report_regime_gate, sg0)
+    txt_g = printed(report_regime_gate, sg) + printed(report_own_regime, own_w)[1:]
+    lt = sum(1 for a, b in zip(txt_t0, txt_t) if a != b) + abs(len(txt_t0) - len(txt_t))
+    lg = sum(1 for a, b in zip(txt_g0, txt_g) if a != b)
+    f5 += [chk_n(len(txt_t0), lt), chk_n(len(txt_g0), lg),
+           chk(len(txt_g) > len(txt_g0))]
+    # the same comparator, handed one deliberately perturbed field per output
+    sAp, sgp = copy.deepcopy(sA), copy.deepcopy(sg)
+    sAp["pooled"]["prod"]["n"] += 1
+    kp = sorted(k for k in sgp["cells"] if sgp["cells"][k].get("pooled"))[0]
+    sgp["cells"][kp]["n"] += 1
+    tp, gp = _out_diff(sA0, sAp), _out_diff(sg0, sgp)
+    f5 += [chk(tp["diff"] == 1), chk(gp["diff"] == 1)]
+    print("  E3 тождество (мир D: synth_hl «normal», первая монета — BTC; безусловно "
+          "— ни рукав, ни деление по слову рынка не читают новое поле): наблюдений "
+          "с полем %d из %d, в прогоне без поля %d из %d"
+          % (sum(has_own), len(has_own), sum(has_own0), len(has_own0)))
+    print("     --target: полей %d, расхождений %d, пропало %d, добавлено %d · строк "
+          "отчёта %d, расхождений %d"
+          % (tq["cmp"], tq["diff"], tq["missing"], tq["added"], len(txt_t0), lt))
+    print("     --regime-gate: полей %d, расхождений %d, пропало %d, добавлено %d · "
+          "строк отчёта %d, расхождений %d, добавлено раздела слова монеты %d"
+          % (gq["cmp"], gq["diff"], gq["missing"], gq["added"], len(txt_g0), lg,
+             len(txt_g) - len(txt_g0)))
+    print("     тот же сравниватель против возмущённого поля: --target расхождений "
+          "%d · --regime-gate расхождений %d (%s) %s"
+          % (tp["diff"], gp["diff"], kp, mark(f5)))
+
+    # the coin-word grid on the same passes: it partitions every observation,
+    # carries every registered cell, and its census reads one word per coin-date
+    part = [chk(sum(len(v["obs"]) for vs in _own_split(by_H[h]).values()
+                    for v in vs) == sum(len(d["obs"]) for d in by_H[h]))
+            for h in by_H]
+    part += [chk(set(own_w["cells"]) == set(sg["cells"])),
+             chk(own_w["census"]["id_diff"] == 0 and own_w["census"]["id_cmp"] > 0
+                 and own_w["census"]["n_conflict"] == 0)]
+    print("     сетка слова монеты на тех же проходах: ячеек %d (у слова рынка %d) · "
+          "монето-дат %d · range %d · trend %d · stress %d · decidable %s %s"
+          % (len(own_w["cells"]), len(sg["cells"]), own_w["census"]["n"],
+             own_w["census"]["words"]["range"]["n"],
+             own_w["census"]["words"]["trend"]["n"],
+             own_w["census"]["words"]["stress"]["n"],
+             str(own_w["verdict"]["decidable"]).lower(), mark(part)))
+
+    # E4 · dependence on the constant, read in its DIRECTION (inv. 50): raising
+    # EFF_TREND inside the cut bundle may only move `trend` coin-dates to
+    # `range`, must move some, and must leave `stress` — tested first — alone.
+    ser, bt, dT = keep["walk"]
+    if TARGET_DRIVER.count("__EXTRACTED__") != 1:
+        raise RuntimeError("ТЗ-48: в драйвере не одно место вставки бандла")
+    c1 = c0 * 1.5
+    dP = run_target(ser, bot, html, bt, k_grid=[], verbose=False,
+                    driver=TARGET_DRIVER.replace(
+                        "__EXTRACTED__", "__EXTRACTED__\nEFF_TREND = %r;" % c1))
+    r0, _ = _own_rows(dT)
+    r1, _ = _own_rows(dP)
+    pair = [(a[1]["mode"], b[1]["mode"]) for t in r0 if t in r1
+            for a, b in zip(r0[t], r1[t]) if a[0] == b[0]]
+    n0 = sum(len(v) for v in r0.values())
+    was = lambda x: [p for p in pair if p[0] == x]
+    t2r = sum(1 for p in pair if p == ("trend", "range"))
+    r2t = sum(1 for p in was("range") if p[1] != "range")
+    s_mv = sum(1 for p in pair if (p[0] == "stress") != (p[1] == "stress"))
+    f6 = [chk(len(pair) == n0 == sum(len(v) for v in r1.values())),
+          chk_n(len(was("range")), r2t), chk_n(len(pair), s_mv), chk(t2r > 0)]
+    pops = lambda rs: "/".join(str(sum(1 for v in rs.values() for x in v
+                                       if x[1]["mode"] == wd))
+                               for wd in ("range", "trend", "stress"))
+    print("  E4 EFF_TREND %.2f → %.2f в вырезанном бандле (W4, посев 1): "
+          "range/trend/stress %s → %s · trend→range %d (нужно > 0) · range→другое "
+          "%d (должно 0) · stress сменило слово %d (должно 0) %s"
+          % (c0, c1, pops(r0), pops(r1), t2r, r2t, s_mv, mark(f6)))
+
+    ok = cnt["n"] > 0 and cnt["bad"] == 0
+    print("  E сравнений %d, отказов %d %s" % (cnt["n"], cnt["bad"],
+                                            "ОК" if ok else "СТОП"))
+    return ok
 
 
 def lab_selftest(html, bot, seeds=3):
@@ -4889,6 +5575,9 @@ def lab_selftest(html, bot, seeds=3):
               "сторону: это дефект прибора, а не результат")
     ok = ok and d1 and d2 and d3 and d4 and d5 and d6 and d7 and d8 and d9
 
+    # E · ТЗ-48, the coin's own word — on section D's world and records.
+    ok = lab_own_word(html, bot, seeds, w, btc, dA, sA, by_H, sg) and ok
+
     print("\nВЕРДИКТ ЛАБОРАТОРИИ: %s"
           % ("измеряет то, что должна" if ok else "НЕИСПРАВНА — результатам не верить"))
     return 0 if ok else 1
@@ -5024,6 +5713,10 @@ def main():
                                betawalk=BetaWalk(a.bot, btc["prices"]))
         sm = regime_gate_summary(by_H, btc, a.html, excluded=excluded)
         report_regime_gate(sm)
+        # ТЗ-48. The coin's own word, from the SAME passes. Printed before the
+        # dump so the reading reaches regime_gate.txt without depending on
+        # anything after it (inv. 71); `sm` and its file are not touched.
+        report_own_regime(own_regime_summary(by_H, a.html, excluded=excluded))
         json.dump(sm, open(os.path.join(HERE, "regime_gate_raw.json"), "w"))
         if not sm["verdict"]["decidable"]:
             # Прогон, сравнивший слишком мало, не должен выглядеть как прогон,
