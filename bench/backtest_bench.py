@@ -720,8 +720,7 @@ def run_regimes(html, bot, horizon=7, step=7):
             m = metrics(sub, key, sg, level=REG_LEVEL)
             report_regime("%s · режим «%s»%s" % (nm, r, "" if primary else " (разведка)"),
                           m, primary)
-    json.dump([{"t": x["t"], "reg": x["reg"]} for x in d],
-              open(os.path.join(HERE, "regimes.json"), "w"))
+    _dump_raw([{"t": x["t"], "reg": x["reg"]} for x in d], "regimes.json")
 def tokens_from_html(html_path):
     """Список пар — из фронта, а не из отдельной копии (инвариант 2: список монет
     живёт в одном месте). Разбирается настоящим node, а не регуляркой."""
@@ -4052,7 +4051,13 @@ def _rg_agree(by_H, btc):
     слово btc_regimes) по датам, которые сетка реально посчитала. Ничего не
     решает и никуда не подключается — btc_regimes не трогается и тезисом не
     является (§3.3). Даты без метки btc_regimes названы, а не отброшены:
-    исчезнувшая строка читалась бы как согласие."""
+    исчезнувшая строка читалась бы как согласие.
+
+    ТЗ-50: the cells leave as a TWO-LEVEL MAP, {marketRegime word:
+    {btc_regimes word: count}}, sorted at both levels here so the artifact is
+    deterministic. A tuple key is not JSON; a pair joined into one string would
+    be a parse over free text from two sources; a record per pair would give a
+    generic comparator three leaves where a cell is one."""
     times = sorted(set(d["t"] for ds in by_H.values() for d in ds))
     lab = btc_regimes(btc, times)
     cell, seen = {}, set()
@@ -4062,9 +4067,11 @@ def _rg_agree(by_H, btc):
                 continue
             seen.add(d["t"])
             w2 = lab.get(d["t"])
-            cell[(_rg_word(d), w2[0] if w2 else "нет метки")] = \
-                cell.get((_rg_word(d), w2[0] if w2 else "нет метки"), 0) + 1
-    return cell, len(seen)
+            row = cell.setdefault(_rg_word(d), {})
+            row[w2[0] if w2 else "нет метки"] = \
+                row.get(w2[0] if w2 else "нет метки", 0) + 1
+    return ({w1: dict(sorted(cell[w1].items())) for w1 in sorted(cell)},
+            len(seen))
 
 
 def _rg_trunc(by_H):
@@ -4306,8 +4313,9 @@ def report_regime_gate(sm):
           % sm["agree_dates"])
     print("Счёт, и только счёт: btc_regimes не тронут, тезисом не является и\n"
           "ничего не подключает (§3.3).")
-    for (w1, w2), n in sorted(sm["agree"].items()):
-        print("  %-8s × %-10s %d" % (w1, w2, n))
+    for w1, row in sorted(sm["agree"].items()):
+        for w2, n in sorted(row.items()):
+            print("  %-8s × %-10s %d" % (w1, w2, n))
 
     v = sm["verdict"]
     print("\n" + "═" * 62)
@@ -4488,6 +4496,12 @@ def report_own_regime(sm):
     print("Популяция — подмножество НАБЛЮДЕНИЙ, а не дат: слово монеты меняется\n"
           "внутри даты, и дата входит в каждую популяцию, где у неё есть слово.\n"
           "Блоки бутстрапа — по-прежнему даты; сетка, кворум и планка — те же.")
+    # ТЗ-50 §4.5. The reading is read from an artifact long after this text,
+    # so the comparison structure travels with it as one sentence.
+    print("ОГОВОРКА: одна дата может класть наблюдения сразу во все три популяции,\n"
+          "а два ДИ95 строятся как независимые; положительная ковариация мешает им\n"
+          "разойтись, поэтому `range` строго ниже `trend` — по-прежнему сильное\n"
+          "свидетельство, а «тезис устоял» — слабее того же чтения под словом рынка.")
     print("Кворум: %d сетапов и %d дат — на КАЖДОЙ из двух популяций."
           % (sm["quorum"][0], sm["quorum"][1]))
     print(_excl_line(sm))
@@ -5583,6 +5597,28 @@ def lab_selftest(html, bot, seeds=3):
     return 0 if ok else 1
 
 # ─────────────────────────────────────────────────────────────────────────────
+def _dump_raw(obj, name):
+    """ТЗ-50 · the one write of a run artifact, `name` under HERE. The text is
+    built BEFORE the filesystem is touched and lands through a temporary file
+    in the same directory, so no reader sees half a file. On ANY failure the
+    artifact's path is emptied and the error re-raised: a truncated file reads
+    as data (inv. 70), and the previous run's complete file would read as this
+    run's. The path carries this run's artifact or nothing. The bridge job
+    writes and the cache writes do not come here — they are not artifacts."""
+    path = os.path.join(HERE, name)
+    tmp = os.path.join(HERE, "_%s.%d.tmp" % (name, os.getpid()))
+    try:
+        text = json.dumps(obj)
+        with open(tmp, "w") as f:
+            f.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        for p in (tmp, path):
+            if os.path.exists(p):
+                os.remove(p)
+        raise
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
@@ -5623,7 +5659,7 @@ def main():
             sys.exit("СТОП: в кэше %d монет." % len(ser))
         sm = stops_summary(run_stops(ser, a.bot, a.html, a.horizon, a.step))
         report_stops(sm)
-        json.dump(sm, open(os.path.join(HERE, "stops_raw.json"), "w"))
+        _dump_raw(sm, "stops_raw.json")
         return 0
     if a.target:
         # --horizon/--step are NOT read here: the mode's horizon is H_NOISE cut
@@ -5668,7 +5704,7 @@ def main():
                                        betawalk=BetaWalk(a.bot, btc["prices"])),
                             a.html, excluded=excluded)
         report_target(sm)
-        json.dump(sm, open(os.path.join(HERE, "target_raw.json"), "w"))
+        _dump_raw(sm, "target_raw.json")
         pl, ps = sm["arms"]["prod"]["long"], sm["arms"]["prod"]["short"]
         if not (pl and pl["quorum"]) and not (ps and ps["quorum"]):
             # A run that compared too little must not look like a run that
@@ -5717,7 +5753,7 @@ def main():
         # dump so the reading reaches regime_gate.txt without depending on
         # anything after it (inv. 71); `sm` and its file are not touched.
         report_own_regime(own_regime_summary(by_H, a.html, excluded=excluded))
-        json.dump(sm, open(os.path.join(HERE, "regime_gate_raw.json"), "w"))
+        _dump_raw(sm, "regime_gate_raw.json")
         if not sm["verdict"]["decidable"]:
             # Прогон, сравнивший слишком мало, не должен выглядеть как прогон,
             # который ничего не нашёл (инв. 22, 37).
@@ -5742,8 +5778,7 @@ def main():
                              ("r30 · контр (лонг)", "r30c", 1.0)):
             factor_report("%s · %dд" % (ttl, a.horizon),
                           metrics(d, key, sg, level=EXPL_LEVEL), False)
-        json.dump([{"t": x["t"]} for x in d],
-                  open(os.path.join(HERE, "res7_dates.json"), "w"))
+        _dump_raw([{"t": x["t"]} for x in d], "res7_dates.json")
         return 0
     if a.funding:
         ser = load_cache()
@@ -5786,7 +5821,7 @@ def main():
                    % (side.upper(), a.horizon,
                       " · ранг/оборот сегодняшние" if qc else ""),
                    metrics(d, side, 1.0 if side == "long" else -1.0))
-        json.dump(d, open(os.path.join(HERE, "run_raw.json"), "w"))
+        _dump_raw(d, "run_raw.json")
         return 0
     ap.print_help()
 

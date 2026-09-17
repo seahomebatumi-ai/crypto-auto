@@ -83,16 +83,6 @@ jobs:
           python backtest_bench.py --target \
             --html ../index.html --bot ../main.py 2>&1 | tee target.txt
 
-      # ТЗ-32. Сетка H × RR, делённая словом marketRegime на дате входа.
-      # Шаг включается входом запуска и по умолчанию не идёт: прогон стоит
-      # шести проходов run_target и нужен не каждому запуску стенда.
-      - name: Ворота режима на архиве (--regime-gate)
-        if: ${{ inputs.regime_gate }}
-        run: |
-          cd bench
-          python backtest_bench.py --regime-gate \
-            --html ../index.html --bot ../main.py 2>&1 | tee regime_gate.txt
-
       - name: Фактор res7 (--res7, первичный — 7д)
         run: |
           cd bench
@@ -143,6 +133,20 @@ jobs:
           cd bench
           python backtest_bench.py --regimes --horizon 7 --step 7 \
             --html ../index.html --bot ../main.py 2>&1 | tee regimes.txt
+
+      # ТЗ-32. Сетка H × RR, делённая словом marketRegime на дате входа.
+      # Шаг включается входом запуска и по умолчанию не идёт: прогон стоит
+      # шести проходов run_target и нужен не каждому запуску стенда.
+      # ТЗ-50. Шаг последний перед артефактом: после него ничего не идёт, и его
+      # падение или таймаут не стоит ни одного другого чтения. !cancelled() —
+      # по той же причине, что у --attrib: --verify возвращает 1 на
+      # coverage/unexplained, и без условия шаг пропускался бы ровно тогда.
+      - name: Ворота режима на архиве (--regime-gate)
+        if: ${{ inputs.regime_gate && !cancelled() }}
+        run: |
+          cd bench
+          python backtest_bench.py --regime-gate \
+            --html ../index.html --bot ../main.py 2>&1 | tee regime_gate.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
