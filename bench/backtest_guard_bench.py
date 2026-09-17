@@ -890,6 +890,16 @@ ok('33. and the untouched keys of the answer are unchanged',
    and sorted(r_no[0]) == sorted(r_no[1]) == ['dist', 'moneyBelowMin', 'ok',
                                               'prod', 'reg', 'stop', 'subs'],
    None if not r_no[0] else sorted(r_no[0]))
+# ТЗ-50 · one level down. Fields now land INSIDE `prod` (ТЗ-36, ТЗ-48), where
+# check 43 tests a superset only, so the exact set is pinned here as well. The
+# list is TARGET_DRIVER's `prod` literal as registered, written out and never
+# read off the driver: a set taken from what it checks asserts nothing.
+ok('33. and the key set of `prod` on the same answer is exactly the registered one',
+   r_no[0] is not None and r_no[1] is not None
+   and sorted(r_no[0].get('prod') or {}) == sorted(r_no[1].get('prod') or {})
+   == ['anchor', 'anchorDist', 'anchorStop', 'g', 'own', 'p', 'pA', 'tgt',
+       'waiting'],
+   None if not r_no[0] else sorted(r_no[0].get('prod') or {}))
 # ═══════════════════════════════════════════════════════════════════════════
 # E. The venue actually fetched is an OBSERVATION (ТЗ-34)
 # ═══════════════════════════════════════════════════════════════════════════
