@@ -1,8 +1,8 @@
 {
  "v": 1,
  "k": "state",
- "d": "2026-09-18",
- "ts": "2026-09-19T05:12:34Z",
+ "d": "2026-09-19",
+ "ts": "2026-09-19T05:53:40Z",
  "items": [
   {
    "id": "cat-sec-regcrypto-2026-10-20",
@@ -11,10 +11,10 @@
    "d": "2026-10-20",
    "impact": "УСЛОВНОЕ",
    "dclass": "primary",
-   "note": "SEC S7-2026-27 «Regulation Crypto Assets», выпущено 18.08.2026, дедлайн комментариев 20.10 (дата — чтение первоисточника 30.08). Первоисточник ОТВЕТИЛ 15.09: sec.gov/rules/proposed.htm http 200, правило в списке proposed; дедлайн на этой странице не печатается. Вне 14 дней. Прогон 18.09 (второй): sec.gov/rules/proposed.htm снова http 403 — первоисточник не перечитан, unver 1 -> 2. dclass primary даёт исключение по ДАТЕ: элемент не закрывается, но его оценка больше не держит ни одну сторону (§11). Вне 14 дней — свёрнутая строка.",
-   "unver": 2,
+   "note": "SEC S7-2026-27 «Regulation Crypto Assets», выпущено 18.08.2026, дедлайн комментариев 20.10 (дата — чтение первоисточника 30.08). Первоисточник ОТВЕТИЛ 15.09: sec.gov/rules/proposed.htm http 200, правило в списке proposed; дедлайн на этой странице не печатается. Вне 14 дней. Прогон 18.09 (второй): sec.gov/rules/proposed.htm снова http 403 — первоисточник не перечитан, unver 1 -> 2. dclass primary даёт исключение по ДАТЕ: элемент не закрывается, но его оценка больше не держит ни одну сторону (§11). Вне 14 дней — свёрнутая строка. | 19.09: sec.gov/rules/proposed.htm снова http 403 — первоисточник не перечитан, unver 2 -> 3. dclass primary держит элемент живым по ДАТЕ, но оценка не держит ни одну сторону. Вне 14 дней — свёрнутая строка.",
+   "unver": 3,
    "first_seen": "2026-08-30",
-   "last_seen": "2026-09-18"
+   "last_seen": "2026-09-19"
   },
   {
    "id": "cat-fomc-2026-10-27",
@@ -25,8 +25,8 @@
    "dclass": "primary",
    "unver": 0,
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-18",
-   "note": "Следующее заседание ФРС 27-28.10.2026. Первоисточник прочитан 18.09: federalreserve.gov/monetarypolicy/fomccalendars.htm http 200, \"October 27-28\" (без звёздки — без SEP). Заведён после закрытия заседания 15-16.09, на котором ставка поднята на 0.25 п.п. до 3.75-4.00% (12-0). Вне 14 дней — свёрнутая строка. | 18.09 (второй прогон): federalreserve.gov/monetarypolicy/fomccalendars.htm http 200 перечитан, «October 27-28» на месте."
+   "last_seen": "2026-09-19",
+   "note": "Следующее заседание ФРС 27-28.10.2026. Первоисточник прочитан 18.09: federalreserve.gov/monetarypolicy/fomccalendars.htm http 200, \"October 27-28\" (без звёздки — без SEP). Заведён после закрытия заседания 15-16.09, на котором ставка поднята на 0.25 п.п. до 3.75-4.00% (12-0). Вне 14 дней — свёрнутая строка. | 18.09 (второй прогон): federalreserve.gov/monetarypolicy/fomccalendars.htm http 200 перечитан, «October 27-28» на месте. | 19.09: federalreserve.gov/monetarypolicy/fomccalendars.htm http 200 перечитан, панель «2026 FOMC Meetings» несёт «October 27-28» без звёздки. Вне 14 дней — свёрнутая строка."
   },
   {
    "id": "cat-zec-nu7-2026-09-30",
@@ -38,39 +38,39 @@
    "dclass": "primary",
    "unver": 0,
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-18",
-   "note": "ZEC NU7 идёт. Первоисточник: forum.zcashcommunity.com/t/nu7-timeline/57655.json http 200, пост ebfull 17.09.2026 22:42Z, закреплён. Даты протокола: код готов 30.09, активация тестнета 06.10, решение по высоте мейннета 20.10, мейннет 05.11.2026. Содержание: ZIP-218 (блок 25 с), отключение v4-транзакций, NSM ZIP-234(alt)/ZIP-235; халвинги сохранены, возврат с февраля 2031. Это итог голосования, закрытого 14.09 (элемент cat-zec-nu7-2026-09-14 архивирован 15.09 как СРАБОТАЛО без итога). | 18.09 (второй прогон): forum.zcashcommunity.com/t/57655.json http 200 перечитан, 8 постов, даты не двигались. Клауза изменилась: элемент теперь работает ЗА лонг ZEC, а не держит монету в ИЗБЕГАТЬ."
+   "last_seen": "2026-09-19",
+   "note": "ZEC NU7 идёт. Первоисточник: forum.zcashcommunity.com/t/nu7-timeline/57655.json http 200, пост ebfull 17.09.2026 22:42Z, закреплён. Даты протокола: код готов 30.09, активация тестнета 06.10, решение по высоте мейннета 20.10, мейннет 05.11.2026. Содержание: ZIP-218 (блок 25 с), отключение v4-транзакций, NSM ZIP-234(alt)/ZIP-235; халвинги сохранены, возврат с февраля 2031. Это итог голосования, закрытого 14.09 (элемент cat-zec-nu7-2026-09-14 архивирован 15.09 как СРАБОТАЛО без итога). | 18.09 (второй прогон): forum.zcashcommunity.com/t/57655.json http 200 перечитан, 8 постов, даты не двигались. Клауза изменилась: элемент теперь работает ЗА лонг ZEC, а не держит монету в ИЗБЕГАТЬ. | 19.09: forum.zcashcommunity.com/t/57655.json http 200 перечитан, 8 постов, последний 18.09 — даты 30.09 / 06.10 / 20.10 / 05.11 не двигались. Ничего нового за прогон -> свёрнутая строка (§6a)."
   },
   {
    "id": "cat-avax-helicon-2026-09-22",
    "type": "catalyst",
    "sym": "AVAX",
-   "status": "НОВОЕ",
+   "status": "ПРИБЛИЖАЕТСЯ",
    "d": "2026-09-22",
    "dclass": "primary",
    "impact": "СРЕДНЕЕ",
    "unver": 0,
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-18",
-   "note": "Активация Helicon в основной сети Avalanche 22.09.2026 в 11:00 ET / 15:00 UTC. Первоисточник: релиз протокола ava-labs/avalanchego v1.15.0 на api.github.com (лейн класса 2 §6a, прочитан 18.09): «This release schedules the activation of the Helicon network upgrade at 11 AM ET (3 PM UTC) on Tuesday, September 22nd, 2026 on Mainnet». Содержание: ACP-194 (async execution), ACP-236 (auto-renewed staking), ACP-267, ACP-273, ACP-283, ACP-285 (снижение минимальной ставки потребления). Сторона ЛОНГ: эмиссия вниз, стейк запирается."
+   "last_seen": "2026-09-19",
+   "note": "Активация Helicon в основной сети Avalanche 22.09.2026 в 11:00 ET / 15:00 UTC. Первоисточник: релиз протокола ava-labs/avalanchego v1.15.0 на api.github.com (лейн класса 2 §6a, прочитан 18.09): «This release schedules the activation of the Helicon network upgrade at 11 AM ET (3 PM UTC) on Tuesday, September 22nd, 2026 on Mainnet». Содержание: ACP-194 (async execution), ACP-236 (auto-renewed staking), ACP-267, ACP-273, ACP-283, ACP-285 (снижение минимальной ставки потребления). Сторона ЛОНГ: эмиссия вниз, стейк запирается. | 19.09: api.github.com/repos/ava-labs/avalanchego/releases http 200 перечитан: v1.15.0 (08.09) слово в слово держит «11 AM ET (3 PM UTC) on Tuesday, September 22nd, 2026 on Mainnet». Статус ПРИБЛИЖАЕТСЯ: AVAX сегодня получил опубликованную строку ЖДАТЬ, и событие падает внутрь её недели — близость меняет сделку."
   },
   {
    "id": "cat-us-pce-2026-09-30",
    "type": "catalyst",
-   "status": "НОВОЕ",
+   "status": "БЕЗ ИЗМЕНЕНИЙ",
    "d": "2026-09-30",
    "dclass": "primary",
    "impact": "СРЕДНЕЕ",
    "unver": 0,
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-18",
-   "note": "Personal Income and Outlays, August 2026 (PCE) — 30.09.2026 08:30 ET. Первоисточник: bea.gov/news/schedule http 200, прочитан 18.09. Там же 24.09 U.S. International Transactions 2Q. Класс B, второе из двух мест занято ФРС 27-28.10. Дата 26.09, которую дал агрегатор, первоисточником не подтверждена — у BEA релиз 30.09."
+   "last_seen": "2026-09-19",
+   "note": "Personal Income and Outlays, August 2026 (PCE) — 30.09.2026 08:30 ET. Первоисточник: bea.gov/news/schedule http 200, прочитан 18.09. Там же 24.09 U.S. International Transactions 2Q. Класс B, второе из двух мест занято ФРС 27-28.10. Дата 26.09, которую дал агрегатор, первоисточником не подтверждена — у BEA релиз 30.09. | 19.09: bea.gov/news/schedule http 200 перечитан: «September 30 8:30 AM Personal Income and Outlays, August 2026» на месте; там же 24.09 U.S. International Transactions 2Q и 30.09 GDP (Third Estimate)."
   },
   {
    "id": "th-fet-2026-09-18",
    "type": "thesis",
    "sym": "FET",
-   "status": "НОВОЕ",
+   "status": "БЕЗ ИЗМЕНЕНИЙ",
    "d": "2026-09-18",
    "impact": "СРЕДНЕЕ",
    "entry": "0.1716-0.175305",
@@ -78,18 +78,18 @@
    "tgt": 0.271639,
    "trigger": 0.175305,
    "oi_prev": {
-    "v": 145962705,
-    "d": "2026-09-18"
+    "v": 148372503,
+    "d": "2026-09-19"
    },
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-18",
-   "note": "ЛОНГ, ЖДАТЬ. Собственный режим trend up на замороженной цене (eff 1.233, z 0.702); в якоре 0.175305 режим остаётся trend (eff 0.844, z 0.206) — п.71 пройден. Зона = 24ч-опора tradeGeometry [lo24 0.1716, lo24·(1+0.5·sd)], якорь — верхний край. Стоп invalidationInfo на нижнем крае: 0.127138 (мин30 0.125037, дистанция упёрлась в потолок 6σ). Цель = якорь + RR_MIN·риск = 0.271639, σцель 4.810. Тест одной сигмы на 7 днях: 0.471 < 1 — публикуется как сделка. P(зона) 63.8%/73.9%. Пара: цель 0.013% / стоп 0.49%. fr 0.0001, oi 145963000, mark 0.185102, oi_prev нет — первое чтение. Канал счёта scoreCandidate (рынок ДИАПАЗОН): лонг 29.5 / шорт 33.1 — стороны не задаёт (§2)."
+   "last_seen": "2026-09-19",
+   "note": "ЛОНГ, ЖДАТЬ. Собственный режим trend up на замороженной цене (eff 1.233, z 0.702); в якоре 0.175305 режим остаётся trend (eff 0.844, z 0.206) — п.71 пройден. Зона = 24ч-опора tradeGeometry [lo24 0.1716, lo24·(1+0.5·sd)], якорь — верхний край. Стоп invalidationInfo на нижнем крае: 0.127138 (мин30 0.125037, дистанция упёрлась в потолок 6σ). Цель = якорь + RR_MIN·риск = 0.271639, σцель 4.810. Тест одной сигмы на 7 днях: 0.471 < 1 — публикуется как сделка. P(зона) 63.8%/73.9%. Пара: цель 0.013% / стоп 0.49%. fr 0.0001, oi 145963000, mark 0.185102, oi_prev нет — первое чтение. Канал счёта scoreCandidate (рынок ДИАПАЗОН): лонг 29.5 / шорт 33.1 — стороны не задаёт (§2). | 19.09: Зона перенесена без перерезки (§4): ценового события нет — зона не наполнена (мин суток 0.1774 выше верхнего края 0.175305), стоп и цель не достигнуты. Замороженная цена 0.1788 выше зоны -> ЖДАТЬ. п.71 в якоре 0.175305: trend up, eff 0.844, z 0.206, вето нет. P(зона) 86.3%/90.3% (7/14д), устойчивость 99.51%, пара: цель 0.013% / стоп 0.493%. fr 0.0001, oi 148372503 против oi_prev 145962705 (+1.7% при цене −3.4% — позиции добавляются в падение), mark 0.1787."
   },
   {
    "id": "th-zec-2026-09-18",
    "type": "thesis",
    "sym": "ZEC",
-   "status": "НОВОЕ",
+   "status": "БЕЗ ИЗМЕНЕНИЙ",
    "d": "2026-09-18",
    "impact": "СРЕДНЕЕ",
    "entry": "1420.42-1457.55",
@@ -97,18 +97,18 @@
    "tgt": 2422.802352,
    "trigger": 1457.545272,
    "oi_prev": {
-    "v": 491521.094,
-    "d": "2026-09-18"
+    "v": 499889.378,
+    "d": "2026-09-19"
    },
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-18",
-   "note": "ЛОНГ, ЖДАТЬ. Собственный режим stress (z 2.341) с eff 2.655 — вход по замороженной цене закрыт, откат остаётся (§2): в якоре 1457.55 режим trend up (eff 2.086, z 1.640), п.71 пройден. Зона [1420.42, 1457.55], стоп 974.917 (мин30 551.058, потолок 6σ), цель 2422.80 (σцель 4.788). Тест одной сигмы 7д: 0.550 < 1. P(зона) 58.2%/69.7%. Пара: цель 0.024% / стоп 0.36%. fr 0.000051, oi 491521, mark 1573.24, oi_prev 550712 (-10.8% при цене +7.0% — позиции закрываются в рост). NU7 30.09 работает за сторону."
+   "last_seen": "2026-09-19",
+   "note": "ЛОНГ, ЖДАТЬ. Собственный режим stress (z 2.341) с eff 2.655 — вход по замороженной цене закрыт, откат остаётся (§2): в якоре 1457.55 режим trend up (eff 2.086, z 1.640), п.71 пройден. Зона [1420.42, 1457.55], стоп 974.917 (мин30 551.058, потолок 6σ), цель 2422.80 (σцель 4.788). Тест одной сигмы 7д: 0.550 < 1. P(зона) 58.2%/69.7%. Пара: цель 0.024% / стоп 0.36%. fr 0.000051, oi 491521, mark 1573.24, oi_prev 550712 (-10.8% при цене +7.0% — позиции закрываются в рост). NU7 30.09 работает за сторону. | 19.09: Зона перенесена без перерезки. Минимум суток 1420.42 — тот же, из которого зона резалась вчера, новым наполнением не является; цена 1546.98 выше зоны -> ЖДАТЬ. п.71 в якоре 1457.55: trend up, eff 2.086, z 1.640. P(зона) 66.7%/76.1%, устойчивость 99.64%. fr −0.0000849 (отрицательный — за шорты платят лонгам), oi 499889 против oi_prev 491521 (+1.7% при цене −1.7%), mark 1546.93. NU7 30.09 работает за сторону."
   },
   {
    "id": "th-uni-2026-09-18",
    "type": "thesis",
    "sym": "UNI",
-   "status": "НОВОЕ",
+   "status": "БЕЗ ИЗМЕНЕНИЙ",
    "d": "2026-09-18",
    "impact": "СРЕДНЕЕ",
    "entry": "7.625-7.82334",
@@ -116,42 +116,138 @@
    "tgt": 12.980278,
    "trigger": 7.823344,
    "oi_prev": {
-    "v": 23475534,
-    "d": "2026-09-18"
+    "v": 24062378,
+    "d": "2026-09-19"
    },
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-18",
-   "note": "ЛОНГ, ЖДАТЬ. Собственный режим stress (z 3.169) с eff 2.158; в якоре 7.82334 — trend up (eff 1.287, z 1.923), п.71 пройден. Зона [7.625, 7.82334], стоп 5.24488 (мин30 3.50865, потолок 6σ), цель 12.9803 (σцель 4.789). Тест одной сигмы 7д: 0.924 < 1 — на грани, но проходит. P(зона) 35.6%/51.4%. Пара: цель 0.023% / стоп 0.37%. fr 0.0001, oi 23475534, mark 8.88481, oi_prev 23996263 (-2.2% при цене +15.1%). Вектор vec-uni-whales по-прежнему открыт: gov.uniswap.org и blog.uniswap.org прочитаны 18.09, о крупных холдерах ничего."
-  },
-  {
-   "id": "th-myx-2026-09-18",
-   "type": "thesis",
-   "sym": "MYX",
-   "status": "НОВОЕ",
-   "d": "2026-09-18",
-   "impact": "СРЕДНЕЕ",
-   "entry": "0.07673",
-   "inv": 0.05988,
-   "tgt": 0.115,
-   "trigger": 0.07673,
-   "first_seen": "2026-09-18",
-   "last_seen": "2026-09-18",
-   "note": "ЛОНГ вне списка, цена в зоне. Строка x: MYXUSDT p 0.07673, hi24 0.115, lo24 0.05988, оборот $137.6M, +20.91% за сутки при медиане списка +7.947%. Экран §3B: pos 0.306 (<=0.35), rng 0.718 > медианы 0.0986 — длинная полоса, вторая по обороту после отказов по фильтру 3. Фильтр 3 пройден по поиску: MYX Finance — перпетуал-DEX без проскальзывания (BNB Chain, Linea, Arbitrum, opBNB). Структурной строки нет: уровни — собственные сутки (стоп = минимум суток, цель = максимум суток), пара вероятностей не считается и не печатается (§4). R:R 2.27."
+   "last_seen": "2026-09-19",
+   "note": "ЛОНГ, ЖДАТЬ. Собственный режим stress (z 3.169) с eff 2.158; в якоре 7.82334 — trend up (eff 1.287, z 1.923), п.71 пройден. Зона [7.625, 7.82334], стоп 5.24488 (мин30 3.50865, потолок 6σ), цель 12.9803 (σцель 4.789). Тест одной сигмы 7д: 0.924 < 1 — на грани, но проходит. P(зона) 35.6%/51.4%. Пара: цель 0.023% / стоп 0.37%. fr 0.0001, oi 23475534, mark 8.88481, oi_prev 23996263 (-2.2% при цене +15.1%). Вектор vec-uni-whales по-прежнему открыт: gov.uniswap.org и blog.uniswap.org прочитаны 18.09, о крупных холдерах ничего. | 19.09: Зона перенесена без перерезки. Цена 9.037 (+1.7% за прогон) — зона не наполнена, до верхнего края 7.82334 ещё −13.4%. Тест одной сигмы на 7 днях 0.976 (вчера 0.924) — ещё проходит. п.71 в якоре: trend up, eff 1.287, z 1.923. P(зона) 29.5%/45.9%, устойчивость 99.63%. fr 0.0001, oi 24062378 против oi_prev 23475534 (+2.5% при цене +1.7%), mark 9.039. Вектор vec-uni-whales: gov.uniswap.org не перечитан этим прогоном (лейн свеж от 18.09), поиск по крупным холдерам дал только UNIfication — о накоплении китов ничего."
   },
   {
    "id": "sig-avoid-near-2026-09-18",
    "type": "signal",
    "sym": "NEAR",
    "status": "БЕЗ ИЗМЕНЕНИЙ",
-   "d": "2026-09-18",
+   "d": "2026-09-19",
    "impact": "СРЕДНЕЕ",
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-18",
+   "last_seen": "2026-09-19",
    "oi_prev": {
-    "v": 50933640.0,
-    "d": "2026-09-18"
+    "v": 50961532,
+    "d": "2026-09-19"
    },
-   "note": "Сегодняшняя причина: +20.7% за сутки, pos24 0.92, собственная неделя 3.55σ (stress). Шорт — фейд собственного тренда вверх (eff 3.0), запрещён п.53. Лонг: откат посчитан (зона 3.069-3.14279, якорь 3.14279, стоп 2.18348, цель 5.06141), но тест одной сигмы §4 не проходит ни на 7 днях (1.443), ни на 14 (1.020) — зона недостижима, вход по текущей цене был бы погоней. Обе стороны отказаны сегодня — голое имя."
+   "note": "Сегодняшняя причина (19.09): +7.27% за сутки, pos24 0.60, собственная неделя 3.37σ — режим stress. Шорт — фейд собственного тренда вверх (eff 3.0), запрещён п.53. Лонг: зона отката 3.415–3.49711 тест одной сигмы проходит (0.467 на 7 днях), но п.71 в якоре 3.49711 даёт режим STRESS (z 2.70) — сторона в якоре не допущена, отказ по НАПРАВЛЕНИЮ, поэтому и пункта СОЗРЕВАЕТ не производит (§4). Обе стороны отказаны сегодня — голое имя. fr 0.0001, oi 50961532 против oi_prev 50933640 (+0.05% при цене +7.3% — позиции стоят), mark 3.717."
+  },
+  {
+   "id": "th-avax-2026-09-19",
+   "type": "thesis",
+   "sym": "AVAX",
+   "status": "НОВОЕ",
+   "d": "2026-09-19",
+   "impact": "СРЕДНЕЕ",
+   "entry": "7.857-7.984634",
+   "inv": 6.418389,
+   "tgt": 11.117125,
+   "trigger": 7.984634,
+   "oi_prev": {
+    "v": 9799223,
+    "d": "2026-09-19"
+   },
+   "first_seen": "2026-09-19",
+   "last_seen": "2026-09-19",
+   "note": "ЛОНГ, ЖДАТЬ. Вчера снята тестом якоря (в якоре был range eff 0.363) — сегодня цена выше, и в якоре 7.984634 собственный режим trend up (eff 0.672, z 0.590), п.71 пройден: это ценовое событие, а не перерезка. Собственный режим на замороженной цене 8.521 — trend up eff 1.271. Зона = 24ч-опора tradeGeometry [lo24 7.857, lo24·(1+0.5·sd)]. Стоп invalidationInfo на нижнем крае: 6.418389 (мин30 6.52437). Цель = якорь + RR_MIN·риск = 11.117125, σцель 4.564. Тест одной сигмы 7д: 0.732 — публикуется как сделка. P(зона) 44.9%/59.3%. Пара: цель 0.012% / стоп 1.108% -> устойчивость 98.89%. fr 0.0001, oi 9799223 (первое чтение), mark 8.52. Helicon 22.09 внутри недели удержания — работает за сторону."
+  },
+  {
+   "id": "th-trx-2026-09-19",
+   "type": "thesis",
+   "sym": "TRX",
+   "status": "НОВОЕ",
+   "d": "2026-09-19",
+   "impact": "СРЕДНЕЕ",
+   "entry": "0.33574-0.337109",
+   "inv": 0.320366,
+   "tgt": 0.370595,
+   "trigger": 0.337109,
+   "oi_prev": {
+    "v": 296764568,
+    "d": "2026-09-19"
+   },
+   "first_seen": "2026-09-19",
+   "last_seen": "2026-09-19",
+   "note": "ЛОНГ, ЖДАТЬ. Вчера снята тестом якоря (range eff 0.495), сегодня в якоре 0.337109 trend up (eff 0.638, z 0.137). Замороженная цена 0.33803, +0.64% за сутки при медиане списка +5.23% — монета в стороне от общего максимума. Зона [0.33574, 0.337109], стоп 0.320366 (мин30 0.321677), цель 0.370595, σцель 4.605. Тест одной сигмы 7д: 0.126. P(зона) 89.9%/92.9% — самая достижимая зона списка. Пара: цель 0.001% / стоп 1.820% -> устойчивость 98.18%. fr 0.0000738, oi 296764568 (первое чтение), mark 0.338073."
+  },
+  {
+   "id": "th-bnb-2026-09-19",
+   "type": "thesis",
+   "sym": "BNB",
+   "status": "НОВОЕ",
+   "d": "2026-09-19",
+   "impact": "СРЕДНЕЕ",
+   "entry": "745.33-752.4543",
+   "inv": 659.838288,
+   "tgt": 937.686353,
+   "trigger": 752.4543,
+   "oi_prev": {
+    "v": 614552.16,
+    "d": "2026-09-19"
+   },
+   "first_seen": "2026-09-19",
+   "last_seen": "2026-09-19",
+   "note": "ЛОНГ, ЖДАТЬ. Вчера снята тестом якоря (range eff 0.454), сегодня в якоре 752.4543 trend up (eff 0.642, z 0.593). Замороженная цена 764.41, +1.40% за сутки против медианы +5.23%. Зона [745.33, 752.4543], стоп 659.838288 (мин30 616.284, дистанция упёрлась в потолок 6σ: структурные 18.10% обрезаны до 11.47%), цель 937.686353, σцель 4.867. Тест одной сигмы 7д: 0.309. P(зона) 75.5%/82.6%. Пара: цель 0.001% / стоп 0.941% -> устойчивость 99.06%. fr 0.0000307, oi 614552 (первое чтение), mark 764.40."
+  },
+  {
+   "id": "th-c-2026-09-19",
+   "type": "thesis",
+   "sym": "C",
+   "status": "НОВОЕ",
+   "d": "2026-09-19",
+   "impact": "СРЕДНЕЕ",
+   "entry": "0.06742",
+   "inv": 0.05765,
+   "tgt": 0.089,
+   "trigger": 0.06742,
+   "first_seen": "2026-09-19",
+   "last_seen": "2026-09-19",
+   "note": "ЛОНГ вне списка, цена в зоне. Строка x: CUSDT last 0.06742, hi24 0.089, lo24 0.05765, оборот $46.5M, +16.87% за сутки при медиане списка +5.23%. Экран §3B: pos 0.312 (<=0.35), rng 0.465 > медианы 0.0890 — длинная полоса; единственная строка полосы, чей день ВЫШЕ медианы списка, то есть единственная «сила, отдавшая часть хода». Фильтр 3 пройден по лукапу: Chainbase — сеть структурированных блокчейн-данных (Cosmos для координации, EigenLayer-рестейкинг для безопасности), C — её нативный токен. Структурной строки нет: стоп = минимум суток, цель = максимум суток, пара вероятностей не считается и не печатается (§4). R:R 2.21."
+  },
+  {
+   "id": "cat-arb-unlock-2026-09-23",
+   "type": "catalyst",
+   "sym": "ARB",
+   "status": "НОВОЕ",
+   "d": "2026-09-23",
+   "dclass": "none",
+   "impact": "СРЕДНЕЕ",
+   "unver": 0,
+   "note": "Разблокировка ARB 23.09.2026, ~139.15M токенов (1.4% предложения) в казну DAO. Найдено поиском-открытием 19.09; дату несут только агрегаторы (tokenomist.ai, app.tokenomics.com, defillama), причём один из них даёт для «следующей» разблокировки 16.10 — источники расходятся. Первоисточник (вестинг-контракт Arbitrum) не читался: хост для этого лейна не установлен TZ (§6a). dclass none -> не печатается ни в каком виде, лежит в состоянии, чтобы не переоткрываться. ARB — futures-only, строки cd нет, торговой стороны и так не производит.",
+   "first_seen": "2026-09-19",
+   "last_seen": "2026-09-19"
+  },
+  {
+   "id": "cat-hype-unlock-2026-09-29",
+   "type": "catalyst",
+   "sym": "HYPE",
+   "status": "НОВОЕ",
+   "d": "2026-09-29",
+   "dclass": "none",
+   "impact": "СРЕДНЕЕ",
+   "unver": 0,
+   "note": "Разблокировка HYPE 29.09.2026, ~14.18M токенов (1.4% предложения, ~2.7% капитализации) команде. Найдено поиском-открытием 19.09; дату несут агрегаторы (tokenomist.ai, app.tokenomics.com). Канала протокола у HYPE нет (§6a: releases hyperliquid-dex/node — пустой список), первоисточник не читался. dclass none -> не печатается.",
+   "first_seen": "2026-09-19",
+   "last_seen": "2026-09-19"
+  },
+  {
+   "id": "cat-ena-unlock-2026-10-05",
+   "type": "catalyst",
+   "sym": "ENA",
+   "status": "НОВОЕ",
+   "d": "2026-10-05",
+   "dclass": "none",
+   "impact": "СРЕДНЕЕ",
+   "unver": 0,
+   "note": "Разблокировка ENA 05.10.2026 — остаток инвесторских токенов, ~1.41 млрд ENA (~14% флоата), после чего месячный календарь исчезает. Найдено поиском-открытием 19.09; несут агрегатор и вторичная пресса. Вне 14-дневного окна публикации. Первоисточник — форум фонда gov.ethenafoundation.com (лейн §6a, прочитан 18.09) — на этот пункт адресно не читался: сделать поштучный лукап следующим прогоном, тогда dclass станет primary. dclass none.",
+   "first_seen": "2026-09-19",
+   "last_seen": "2026-09-19"
   }
  ],
  "archive": [
@@ -1578,23 +1674,30 @@
    "d": "2026-09-18",
    "closed": "2026-09-18",
    "status": "ОТМЕНЕНО"
+  },
+  {
+   "id": "th-myx-2026-09-18",
+   "sym": "MYX",
+   "d": "2026-09-18",
+   "closed": "2026-09-19",
+   "status": "ОТМЕНЕНО"
   }
  ],
  "sweeps": {
   "horizon": {
    "macro-cb": {
-    "d": "2026-09-18",
+    "d": "2026-09-19",
     "sec6_md5": "d6c3e4c19f0740c3f51a17eee530941c",
     "host": "federalreserve.gov (monetarypolicy/fomccalendars.htm 200)",
     "n": 1,
-    "from": "2026-09-18"
+    "from": "2026-09-19"
    },
    "macro-prints": {
-    "d": "2026-09-18",
+    "d": "2026-09-19",
     "sec6_md5": "d6c3e4c19f0740c3f51a17eee530941c",
-    "host": "bea.gov/news/schedule (200); bls.gov не читался — отказ 18.09",
-    "n": 2,
-    "from": "2026-09-18"
+    "host": "bea.gov/news/schedule (200); bls.gov не читался — отказ держит следующую попытку",
+    "n": 3,
+    "from": "2026-09-19"
    },
    "intl-institutional": {
     "d": "2026-09-18",
@@ -1845,174 +1948,174 @@
   },
   "discovery": {
    "FET": {
-    "d": "2026-09-18",
-    "q": "FET Artificial Superintelligence Alliance Fetch.ai token unlock upgrade governance vote listing September October 2026 dated",
-    "n": 1
+    "d": "2026-09-19",
+    "q": "Fetch.ai FET Artificial Superintelligence Alliance dated event unlock upgrade listing September October 2026",
+    "n": 0
    },
    "ZEC": {
-    "d": "2026-09-18",
-    "q": "Zcash ZEC dated events next 14 days unlock upgrade governance vote listing regulator decision September 2026",
-    "n": 2
+    "d": "2026-09-19",
+    "q": "Zcash ZEC dated event NU7 activation upgrade vote listing late September 2026",
+    "n": 1
    },
    "UNI": {
-    "d": "2026-09-18",
-    "q": "Uniswap UNI dated events next two weeks governance vote onchain snapshot fee proposal listing September 2026",
+    "d": "2026-09-19",
+    "q": "Uniswap UNI dated event governance vote fee switch UNIfication September October 2026",
     "n": 0
    },
    "NEAR": {
-    "d": "2026-09-18",
-    "q": "NEAR Protocol dated events next 14 days token unlock upgrade governance vote listing September October 2026",
+    "d": "2026-09-19",
+    "q": "NEAR Protocol dated event unlock upgrade governance vote listing late September 2026",
     "n": 0
    },
    "SUI": {
-    "d": "2026-09-18",
-    "q": "SUI Sui Network token unlock September 2026 upgrade governance vote listing dated event",
-    "n": 1
+    "d": "2026-09-19",
+    "q": "Sui SUI dated events next 14 days token unlock upgrade governance vote listing September October 2026",
+    "n": 0
    },
    "ONDO": {
-    "d": "2026-09-18",
-    "q": "ONDO Ondo Finance dated event next 14 days token unlock launch listing regulator September 2026",
-    "n": 0
+    "d": "2026-09-19",
+    "q": "Ondo Finance ONDO dated event token unlock launch regulator listing late September October 2026",
+    "n": 1
    },
    "LINK": {
-    "d": "2026-09-18",
-    "q": "Chainlink LINK dated event next two weeks upgrade partnership listing unlock September 2026",
-    "n": 0
+    "d": "2026-09-19",
+    "q": "Chainlink LINK dated event upgrade listing unlock reserve announcement late September October 2026",
+    "n": 1
    },
    "RENDER": {
-    "d": "2026-09-18",
-    "q": "Render Network RENDER token dated event unlock upgrade migration listing September October 2026",
+    "d": "2026-09-19",
+    "q": "Render Network RENDER dated event unlock upgrade migration listing late September October 2026",
     "n": 0
    },
    "SOL": {
-    "d": "2026-09-18",
-    "q": "Solana SOL dated events next 14 days ETF decision network upgrade governance vote September 2026",
+    "d": "2026-09-19",
+    "q": "Solana SOL dated event upgrade ETF inflow governance vote late September 2026",
     "n": 0
    },
    "ETH": {
-    "d": "2026-09-18",
-    "q": "Ethereum ETH dated events next 14 days network upgrade fork ETF staking decision September October 2026",
+    "d": "2026-09-19",
+    "q": "Ethereum ETH dated event next upgrade fork ETF staking decision late September October 2026",
     "n": 1
    },
    "XRP": {
-    "d": "2026-09-18",
-    "q": "XRP Ripple dated events next 14 days ETF decision court ruling unlock escrow release September October 2026",
-    "n": 0
+    "d": "2026-09-19",
+    "q": "XRP Ripple dated event ETF decision court escrow unlock late September October 2026",
+    "n": 2
    },
    "ADA": {
-    "d": "2026-09-18",
-    "q": "Cardano ADA dated events next two weeks hard fork upgrade governance vote listing September October 2026",
+    "d": "2026-09-19",
+    "q": "Cardano ADA dated event hard fork upgrade governance vote listing late September October 2026",
     "n": 1
    },
    "AVAX": {
-    "d": "2026-09-18",
-    "q": "Avalanche AVAX dated events next 14 days upgrade unlock ETF listing September October 2026",
+    "d": "2026-09-19",
+    "q": "Avalanche AVAX dated event unlock upgrade ETF decision listing late September 2026",
     "n": 1
    },
    "TAO": {
-    "d": "2026-09-18",
-    "q": "Bittensor TAO dated event halving upgrade unlock listing September October 2026",
+    "d": "2026-09-19",
+    "q": "Bittensor TAO dated event halving upgrade subnet listing late September October 2026",
     "n": 0
    },
    "ENA": {
-    "d": "2026-09-18",
-    "q": "Ethena ENA dated events fee switch unlock vote next 14 days September October 2026",
-    "n": 1
+    "d": "2026-09-19",
+    "q": "Ethena ENA dated event unlock fee switch vote late September October 2026",
+    "n": 2
    },
    "AAVE": {
-    "d": "2026-09-18",
-    "q": "Aave AAVE dated events governance vote V4 launch next two weeks September October 2026",
+    "d": "2026-09-19",
+    "q": "Aave AAVE dated event governance vote V4 launch upgrade late September October 2026",
     "n": 0
    },
    "TRX": {
-    "d": "2026-09-18",
-    "q": "TRON TRX dated event next 14 days network upgrade governance listing September October 2026",
+    "d": "2026-09-19",
+    "q": "TRON TRX dated event network upgrade governance listing ETF September October 2026",
     "n": 0
    },
    "BNB": {
-    "d": "2026-09-18",
-    "q": "BNB Chain dated event next 14 days hard fork upgrade burn listing September October 2026",
-    "n": 1
+    "d": "2026-09-19",
+    "q": "BNB Chain dated event hard fork upgrade burn listing September October 2026",
+    "n": 0
    },
    "XLM": {
-    "d": "2026-09-18",
-    "q": "Stellar XLM dated event protocol 24 upgrade vote listing September October 2026",
+    "d": "2026-09-19",
+    "q": "Stellar XLM dated event protocol upgrade vote listing late September October 2026",
     "n": 0
    },
    "HBAR": {
-    "d": "2026-09-18",
-    "q": "Hedera HBAR dated event council decision ETF upgrade listing September October 2026",
-    "n": 0
+    "d": "2026-09-19",
+    "q": "Hedera HBAR dated event council ETF decision upgrade late September October 2026",
+    "n": 1
    },
    "ALGO": {
-    "d": "2026-09-18",
-    "q": "Algorand ALGO dated event upgrade xGov vote listing unlock September October 2026",
+    "d": "2026-09-19",
+    "q": "Algorand ALGO dated event upgrade xGov vote unlock late September October 2026",
     "n": 0
    },
    "XMR": {
-    "d": "2026-09-18",
-    "q": "Monero XMR dated event hard fork upgrade delisting exchange September October 2026",
+    "d": "2026-09-19",
+    "q": "Monero XMR dated event hard fork upgrade exchange delisting late September October 2026",
     "n": 1
    },
    "BCH": {
-    "d": "2026-09-18",
-    "q": "Bitcoin Cash BCH dated event upgrade November 15 2026 ETF listing September October 2026",
+    "d": "2026-09-19",
+    "q": "Bitcoin Cash BCH dated event November 15 2026 upgrade ETF listing late September 2026",
     "n": 0
    },
    "ARB": {
-    "d": "2026-09-18",
-    "q": "Arbitrum ARB dated event next 14 days DAO vote unlock upgrade September October 2026",
-    "n": 1
+    "d": "2026-09-19",
+    "q": "Arbitrum ARB dated event DAO vote unlock upgrade late September October 2026",
+    "n": 2
    },
    "HYPE": {
-    "d": "2026-09-18",
-    "q": "Hyperliquid HYPE dated event unlock buyback listing September October 2026",
+    "d": "2026-09-19",
+    "q": "Hyperliquid HYPE dated event unlock buyback listing late September October 2026",
     "n": 2
    },
    "SKY": {
-    "d": "2026-09-18",
-    "q": "Sky Protocol SKY token dated event spell executive vote September 24 2026 upgrade",
-    "n": 1
+    "d": "2026-09-19",
+    "q": "Sky Protocol SKY token dated event executive spell vote upgrade late September October 2026",
+    "n": 0
    },
    "MORPHO": {
-    "d": "2026-09-18",
-    "q": "Morpho MORPHO dated event DAO vote token unlock listing September October 2026",
+    "d": "2026-09-19",
+    "q": "Morpho MORPHO dated event DAO vote unlock listing late September October 2026",
     "n": 0
    },
    "GRAM": {
-    "d": "2026-09-18",
-    "q": "Toncoin TON GRAM dated event upgrade unlock listing September October 2026",
-    "n": 1
+    "d": "2026-09-19",
+    "q": "Toncoin TON dated event upgrade unlock listing late September October 2026",
+    "n": 2
    },
    "YFI": {
-    "d": "2026-09-18",
-    "q": "Yearn Finance YFI dated event vote treasury buyback September October 2026",
+    "d": "2026-09-19",
+    "q": "Yearn Finance YFI dated event vote buyback treasury late September October 2026",
     "n": 0
    },
    "LIT": {
-    "d": "2026-09-18",
-    "q": "Litentry LIT token Binance futures dated event unlock delisting September 2026",
+    "d": "2026-09-19",
+    "q": "Litentry LIT token Binance futures dated event unlock delisting September October 2026",
     "n": 0
    },
    "us-legislation": {
-    "d": "2026-09-18",
-    "q": "US crypto legislation Senate CLARITY Act market structure bill vote schedule SEC CFTC calendar late September 2026",
-    "n": 0
+    "d": "2026-09-19",
+    "q": "US crypto legislation Senate CLARITY Act market structure vote schedule SEC CFTC calendar late September 2026",
+    "n": 1
    },
    "etf-decisions": {
-    "d": "2026-09-18",
-    "q": "crypto ETF decision deadline dates late September 2026 SEC 19b-4 S-1 approval calendar altcoin ETFs",
-    "n": 0
+    "d": "2026-09-19",
+    "q": "crypto ETF decision deadline dates late September October 2026 SEC 19b-4 S-1 altcoin ETF launches",
+    "n": 1
    },
    "macro-7d": {
-    "d": "2026-09-18",
-    "q": "US macro economic calendar week September 21 25 2026 CPI PCE jobs report Fed speakers",
-    "n": 2
+    "d": "2026-09-19",
+    "q": "US economic calendar week September 21-25 2026 releases PCE durable goods jobless claims Fed speakers",
+    "n": 3
    },
    "exchange-wide": {
-    "d": "2026-09-18",
-    "q": "Binance listing delisting announcement September 2026 futures new perpetual policy change",
-    "n": 2
+    "d": "2026-09-19",
+    "q": "Binance listing delisting announcement September 19 2026 new futures perpetual policy change",
+    "n": 1
    }
   }
  }
