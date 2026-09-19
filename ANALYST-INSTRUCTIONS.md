@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-19-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-20-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -14,19 +14,7 @@ text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
 
-**`2026-09-19-a` is a trader's audit of the run of 19.09, and it repairs what that run could
-not have caught: four of its six published stops were levels production itself refuses to call
-stops.** `invalidationInfo` clips its distance at `INV_CAP_SD`, and production's own comment on the
-clip reads «это уже не стоп, а пожелание… опоры рядом НЕТ»; the board switches its money rule off
-for such a level and tells the owner to hold the exit by hand. The run printed those levels
-12–33 % from entry as stops, derived +25–66 % targets from them, and labelled the result
-«устойчивость 99 %». From this revision an own-trend pullback takes its stop from the same 24-hour
-structure its zone is cut from (§4), a stressed coin in its own trend is given the price at which
-it cools off instead of a prohibition (§4), every own-trend coin without an entry is named rather
-than hidden (§2), and a trade resting on one day of data says so (§3B). `2026-09-18-a` — the
-coin's own trend decides its side, the market word its risk tier — stands unchanged. **The history
-of earlier revisions lives in git and in the day logs, not here** — this file carries rules, and a
-run reads all of it every time. §7 gains items 76–78.
+**`2026-09-20-a` is the owner's decision of 19.09.2026 made operative: the engine is a TRADER, not a rule-checker.** The run of 19.09, second pass, executed `2026-09-19-a` correctly and passed all seventy-eight items — and the book it printed still failed the only test that decides anything, which is whether a professional would put his own money on it. Three of its printed measures could not differ between rows: survival read 65.8–67.5 % and R:R read 2.00 on every one of nine rows, both by the arithmetic of the new stop rather than by any property of a coin. Its table was ordered by how close each limit sat, so the cheapest trade in the book (+4.1 % against −2.0 %) stood first and the two largest stood fourth and last. Its one immediately actionable trade was, for the second run running, an outside-list coin with one day of data — published at R:R 1.86 under a floor that refuses every list row below 2.00. And its first line spent itself on an unfilled limit, a lifted prohibition and a one-off recalculation note, for an owner who reads only the latest answer. **From this revision the standard is written where the role is (§0), the table is ordered by what a trade is worth (§2), a measure that cannot differ between rows is not printed (§2), the first line carries only what the owner is IN (§2), the book states its own concentration (§2), a dated catalyst on a coin with no row carries the price that would give it one (§2), and an outside-list setup answers to `RR_MIN` and to a stated construction like every other setup (§3B).** `2026-09-19-a`’s stop and cool-off geometry and `2026-09-18-a`’s side rule stand unchanged. **The history of earlier revisions lives in git and in the day logs, not here** — this file carries rules, and a run reads all of it every time. §7 gains items 79–83.
 
 **This file is methodology, not contract.** Authority, repository operations, the
 trigger protocol, the hard floor, what may be committed and where all live in
@@ -61,6 +49,32 @@ acceptance. The analyst owns execution of the cycle below and owns nothing else:
 trigger → live data → state → catalyst discovery → opportunity discovery
         → analysis → ALTCOIN STRATEGY → state update → day log
 ```
+
+**СТАНДАРТ ТРЕЙДЕРА — the standard every other rule in this file is read against, and the
+owner's decision of 19.09.2026.** One question decides what a run publishes: *with the Boss's own
+capital at stake, would a professional take this trade now?* **«do the filters permit a trade?» is
+the wrong question**, and a run that answers only it has failed with every check green — which is
+what the second run of 19.09 did. A «no» is never silence: it names the cause — entry, stop
+distance, structure, confirmation, R:R, catalyst, regime, liquidity, correlated exposure — and the
+price or the date that turns it into a «yes», which is what `СОЗРЕВАЕТ` and the `Вход` cell are
+for. A «yes» names the instrument, the side, the entry, the invalidation and the exit.
+
+**What that standard requires of an answer, beyond every gate passing:**
+
+- **the book is RANKED the way capital ranks it**, not by which limit is nearest (§2);
+- **every printed number can differ between rows**, or it is a constant of the construction
+  wearing the shape of a measurement and belongs in the log (§2, §12);
+- **the answer states its own concentration**, because simultaneous same-side rows on coins that
+  move with the market are one trade in several costumes (§2);
+- **the trade the engine knows LEAST about does not get the loosest standard** (§3B);
+- **an event inside the holding window reaches the Boss as a price**, not as a headline beside a
+  coin the engine will not trade (§2, §6).
+
+**The standard adds no procedure and overrides no gate.** It is the reason the gates exist, and
+where a run can satisfy every one of them and still print a book no professional would take, the
+defect is in this file and the run records the objection (§7). **The objective is the best
+objectively supported opportunity, including one still developing toward an entry, and never the
+number of trades.**
 
 **The trigger is one line and there are exactly two of them.** Everything the Boss needs
 from a run is already mandated by §2's skeleton, so a run is started by naming it and by
@@ -159,8 +173,8 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 
 # ЛУЧШИЕ СДЕЛКИ СЕЙЧАС
 **1. МОНЕТА — ЛОНГ [· ПОВЫШЕННЫЙ РИСК]**
-Вход $X–$X · Стоп $X (−X.X%) · Цель $X (+X.X% от входа) · R:R X.X · Уверенность [ВЫСОКАЯ / СРЕДНЯЯ]
-Шанс, что сетап устоит 7 дней: XX% · цель — структурный уровень, не недельный ориентир
+Вход $X–$X · Стоп $X (−X.X%) · Цель $X (+X.X% от входа) · Уверенность [ВЫСОКАЯ / СРЕДНЯЯ]
+Цель — структурный уровень, не недельный ориентир
 Почему: одно предложение.
 
 # СТРАТЕГИЯ — МОЙ СПИСОК
@@ -168,9 +182,8 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 |---|---|---|---|---|---|
 | XXX | ЛОНГ | $X–$X | $X (−X.X%) | $X → $X | СЕЙЧАС $X |
 | XXX | ШОРТ ⚠ | $X–$X | $X (+X.X%) | $X → $X | ЖДАТЬ |
-Устойчивость 7 дней: XXX XX% · XXX XX% · XXX XX%
 ⚠ — против режима рынка: повышенный риск
-Свой ход сильнее BTC: XXX · XXX · слабее: XXX
+Свой ход сильнее BTC: XXX · XXX · слабее: XXX · одновременно X лонгов / X шортов, из них X идут с рынком
 В тренде, входа сегодня нет: XXX · XXX
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
@@ -236,25 +249,42 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   this clause required exactly that sentence, and the run of 15.09 had to choose between
   the two and recorded the objection. The refusal reaches the Boss as an empty section
   and a `СОЗРЕВАЕТ` price, which is the actionable form of the same fact.
-- **The two touch probabilities go with the SETUP, not with the R:R line** — the chance
-  of the target being reached inside the holding horizon and the chance of the stop being
-  reached, computed in §4, printed for every published setup that has a structural row,
-  in whatever section it appears: the best-trades block, the strategy table, and the
-  `СОЗРЕВАЕТ` item, whose FIRST number is the chance of its own zone being reached and whose
-  SECOND is the survival a trade row prints, taken from the fill (§4). **The second is the risk
-  grade the owner asked for on 18.09**: a waiting setup's risk read on the same scale as a live
-  one's — measured that morning, the first number read 93 % on a row whose survival read 67 %. A coin
-  without a structural row prints its line as before, with nothing said about the absence
-  (§1). **Revision `-c` scoped the pair to the R:R, and R:R prints in one section that is
-  empty on most days:** measured 04.09, the run computed all six numbers, logged them, and
-  withheld every one of them because `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` read «СДЕЛОК СЕЙЧАС НЕТ» — so
-  the Boss read three `ЖДАТЬ` rows whose targets carried a 0.3–0.4 % chance of being reached
-  in a week and whose stops carried 10 % to 43 %, and the engine had every one of those
-  figures in front of it. A measurement withheld is the defect it was written to prevent,
-  arriving one section to the left.
+- **A measure that CANNOT differ between rows is not printed, and two of them stopped
+  differing at `2026-09-19-a`.** The survival figure and the ratio both became arithmetic of
+  the construction rather than properties of a coin: an own-trend stop now sits exactly
+  `INV_FLOOR_SD` day-sigmas from the zone's far edge (§4), so
+  `ln(anchor/stop) / (vol × √H_NOISE) ≈ INV_FLOOR_SD × √24 / √H_NOISE` on every row whatever
+  its volatility, and the target is `RR_MIN × risk`, so the ratio is `RR_MIN` on every row by
+  construction — §4 says so itself. **Measured 19.09, second run:** survival printed
+  65.8–67.5 % across nine rows and R:R printed 2.00 across all nine, and the run recorded the
+  objection in its own appendix before sending. **Both leave the answer and stay in the log**
+  (§12), computed exactly as before. **This is not the withholding of 04.09 arriving back:**
+  that defect was a figure that VARIED 9–47 % across ten rows being kept off the page, and
+  the premise expired when the stop construction changed. A number that is the same on every
+  row does not inform a choice between rows — it decorates one — and printing it beside nine
+  identical values tells the Boss the engine measured nine things when it measured one.
+- **What the row carries instead is what varies:** the stop's distance in per cent (below),
+  the target's distance in per cent (§4), and the chance of the zone being reached inside
+  seven days, which ranges 30–92 % across a single measured answer and is the row's ranking
+  key (below). A `СОЗРЕВАЕТ` item keeps both of its numbers, because its first — the chance
+  of its own zone arriving — is the one figure this engine produces that separates its items
+  (§4).
 - **СТРАТЕГИЯ — МОЙ СПИСОК** lists only coins with a real setup. Never padded to
   look complete. A coin with no setup and no trigger does not appear; a coin that
   must be avoided appears in `ИТОГ` under ИЗБЕГАТЬ with no row.
+- **The table is ordered by what the trade is WORTH, never by how near its limit sits.**
+  The key is the chance of the zone being reached inside seven days multiplied by the
+  distance from the anchor to the target in per cent — both numbers the run already computes
+  and both already printed, so no input, constant or threshold is introduced and nothing here
+  is a score (map inv. 32). It is a ranking key exactly as the `СОЗРЕВАЕТ` section already
+  has one (§4), and it gates nothing: a row's admission is unchanged, only its position on
+  the page. **The top of this table is the first thing the Boss reads and he reads it as the
+  best idea in the answer.** Ordering by fill probability puts the smallest trade there by
+  construction, because the nearest limit is the one asking for the least movement.
+  **Measured 19.09, second run:** TRX stood first on a target of +4.1 % against a stop of
+  −2.0 %, while ZEC (+25.5 %) stood fourth and NEAR (+23.5 %) stood last, purely because
+  their limits sat further away. Ties are broken by the nearer zone, which is the old key
+  demoted to where it belongs.
 - **Статус** is `СЕЙЧАС` or `ЖДАТЬ`. `ЖДАТЬ` requires the exact activating price in
   the Вход cell — «ЖДАТЬ» alone is a violation.
 - **A setup against the market word carries `ПОВЫШЕННЫЙ РИСК` wherever it is named** — in its
@@ -300,7 +330,14 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   omitted when empty. `Свой ход сильнее BTC` names every list coin whose `residual7` class is
   `own` — production's function, executed on the coin's row and on `btc`, both re-expressed at
   the freeze (§2) — split by sign into «сильнее» and «слабее»: the list's measured independence
-  from BTC, and nothing else. `В тренде, входа сегодня нет` names every coin in its own trend at
+  from BTC, and nothing else. **That line ends with the book's own concentration** —
+  «одновременно 8 лонгов / 0 шортов, из них 3 идут с рынком» — the count of published rows per
+  side and how many of them `residual7` classes as `market`. The run measures that class for
+  every row already and has never told the Boss what it adds up to: same-side rows on coins
+  that move with BTC are one position bought at several spreads, and the number he sizes from
+  is the total, not the row. **Measured 19.09, second run:** eight long rows, no short, three
+  of them (`BNB`, `FET`, `TRX`) classed `market` by the run's own `residual7`, and nothing in
+  the answer said so. `В тренде, входа сегодня нет` names every coin in its own trend at
   the freeze that carries no row, no `СОЗРЕВАЕТ` item and no `ИЗБЕГАТЬ` reason of its own (§4).
   **A coin in its own trend is never absent from the answer.** Measured 19.09: six coins trending
   up at the freeze — SUI, ONDO, RENDER, SOL, ETH, XLM — appeared nowhere, on the morning after the
@@ -348,9 +385,21 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   carries R from it. A holding is not a candidate (§11) and never appears in the strategy
   table.
 - **The answer speaks only of what is AHEAD, and the past reaches it in one form.** The first
-  line carries the withdrawal of every TRADE object previously published to the Boss — a
-  setup, a `СОЗРЕВАЕТ` item, a position, an `ИЗБЕГАТЬ` name — because each is a thing he may be
-  acting on (§11). **Nothing else about the past prints anywhere**: a catalyst that fired,
+  line carries the withdrawal of every object the Boss is IN — a filled `СЕЙЧАС` row and a
+  `# ПОЗИЦИИ` holding — because a thesis he has money behind dying is the one past fact that
+  is an instruction (§11).
+- **The answer is the WHOLE standing book, and what is not in it is not standing.** This is
+  the owner's decision of 19.09.2026: he acts on the latest answer and on nothing carried in
+  his head from the previous one. An unfilled limit, a `СОЗРЕВАЕТ` item and an `ИЗБЕГАТЬ`
+  name that do not reappear are cancelled by their absence, and the first line no longer
+  spends itself saying so — **a thing he is IN, not a thing he was waiting for, is what
+  earns that line.** The closure is still COMPUTED and still recorded in the appendix
+  (below), so nothing is lost to the Architect; what changes is that the loudest line of the
+  answer stops being inter-run bookkeeping. **A revision of this file that re-derives a
+  carried level still names itself there once** (§4), because that sentence tells him the
+  levels under his own open orders moved. **Measured 19.09, second run:** the first line
+  withdrew an unfilled AVAX limit, lifted a NEAR prohibition and announced a one-off
+  recalculation, on the morning the owner wrote that he reads only the latest run. **Nothing else about the past prints anywhere**: a catalyst that fired,
   expired or was cancelled has already done whatever it did to this answer's levels and sides,
   and a line saying so is yesterday in tomorrow's space. The one past-tense label left is
   `УЖЕ БЫЛО СЕГОДНЯ`, for an event of the last 24 hours whose reaction the frozen payload shows
@@ -418,6 +467,16 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   («Эффект: ШОРТ · ВЫСОКОЕ») says what the event is and not what to do about it, so
   every item ends with one clause naming which setups it strengthens, weakens or
   cancels. A clause that only restates the tag in words is deleted.
+- **A dated item whose coin carries NO row in this answer names the price at which that coin
+  would become a row**, and the price is the anchor §4 already cut for it — its pullback
+  zone's near edge, or its cool-off entry — printed with the frozen price and the distance in
+  per cent, exactly as a `СОЗРЕВАЕТ` trigger is (§2). Where §4 produced no anchor at all the
+  item says the side and the window and carries no price, which is a different statement and
+  is read as one. An event the Boss cannot act on published beside a coin the engine will not
+  trade is a headline, and the one thing that turns it back into a decision is the number at
+  which he could. **Measured 19.09, second run:** AVAX's Helicon activation on 22.09 —
+  primary-sourced, three days out, the only dated event inside the holding window — headed the
+  section while AVAX had no row, no trigger and no price anywhere in the answer.
 - **A coin the run refuses on BOTH sides for a stated reason is named in `ИЗБЕГАТЬ`,
   never merely absent.** A refusal that is not printed is not a decision the Boss can
   act on: the coin looks exactly like a coin nobody examined, and he has no way to tell
@@ -730,6 +789,30 @@ the ones it knows most about. It prints its stop distance like every other setup
 19.09:** the only `ЛОНГ` in `ИТОГ` was an outside-list coin that had traded a 46 % range that day,
 printed without a label beside six list setups built on ninety days of structure.
 
+**The levels of an outside-list setup are CUT from the day's own two extremes, and this is
+stated here because it was improvised on every run that published one.** The row carries no
+structural line, so there is no `vol`, no `sigmaDay` and no `invalidationInfo` to call: what
+it does carry is `high`, `low` and `last` from the payload, and the screen has already put
+`last` inside the entry third of that day (`pos ≤ 0.35` long, `pos ≥ 0.65` short). **The
+entry is the frozen price, the invalidation is the day's own extreme on the entry side
+(`low` for a long, `high` for a short), and the target is the day's opposite extreme.** No
+constant is introduced, nothing is chosen, and every number is one the payload already
+carries. **Measured 19.09, second run:** ESP was published on exactly this construction —
+entry 0.09587, stop 0.08563, target 0.11496, its stop the day's low to the digit — with no
+rule in this file saying so, so the next run had nothing to reproduce but the last run's
+arithmetic.
+
+**`RR_MIN` binds this section exactly as it binds §4, and a candidate below it is refused by
+name.** The floor is production's constant, cut with the geometry (§4), and it exists so that
+a setup pays for its own stop; **the trade the engine knows LEAST about does not get the
+loosest standard** (§0). Where the day's opposite extreme does not clear `RR_MIN` against the
+day's entry-side extreme, there is no publishable target and the candidate is refused — it is
+not republished at a target chosen to make the ratio work, which is the manufacture §4 bans.
+**Measured 19.09, second run:** ESP was published at a ratio of 1.86 and stood alone in the
+`ЛОНГ` field of `ИТОГ`, on a page where every list row was held to exactly 2.00 — the second
+consecutive run whose only immediately actionable trade was the one coin with a single day of
+data behind it.
+
 **A dated catalyst strengthens a candidate and is not required to produce one.** The side is
 the candidate's own day (above); a dated event, where one exists, ranks the candidate first and
 names its thesis, and a candidate without one stands on the other legs of the admissibility list
@@ -833,8 +916,10 @@ the first time the producer adds a column.
 
 ## 4. What every setup must contain
 
-Direction · entry zone · invalidation (stop) · first target · status. Risk/reward
-and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
+Direction · entry zone · invalidation (stop) · first target · status. Confidence is added
+in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only. **The ratio is COMPUTED, gates publication and is not
+printed** (§2): it equals `RR_MIN` on every own-trend row by construction, so the page
+carries nine copies of one constant while the log carries the computation (§12).
 
 - **Levels are day-scale and valid ≥ 24 h.** Hour-scale scalp levels are never
   issued: the horizon is 7 days and hourly resolution is noise.
@@ -1041,16 +1126,18 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   (map inv. 32). What this rule buys is not edge, it is that every number published can be
   reached inside the week it is published for. **It changes what is PRINTED and what is
   REFUSED; it changes no production file** (map inv. 27).
-- **The number the answer PRINTS is the setup's survival, and it is one number:**
-  `Шанс, что сетап устоит 7 дней = 1 − touchProb(стоп)` at the published anchor over
-  `H_NOISE`. It is production's own function on production's own stop, it varies coin by
-  coin — 9 % to 47 % across the ten rows of a single measured answer — and it says the one
-  thing a stop-based trade turns on: whether the thesis is still standing at the end of the
-  window. **The target's own touch probability is COMPUTED and LOGGED and no longer printed
-  beside it** (§12): a structural extreme a quarter of a year away carries a weekly figure
-  near zero on every coin, which separates nothing and reads as a verdict on the trade
-  rather than on the label. The target instead prints its distance in per cent and is named
-  for what it is — a structural level, not a weekly objective.
+- **The setup's survival is COMPUTED at every published anchor and written to the log, and
+  it is no longer printed** (§2): `1 − touchProb(стоп)` over `H_NOISE`. It varied 9–47 %
+  across ten rows while the stop came from the 30-day structure; under the own-trend stop it
+  is `INV_FLOOR_SD` day-sigmas on every row and printed 65.8–67.5 % across nine of them on
+  19.09. The measurement is unchanged and its audience moved. **The target's own touch
+  probability is COMPUTED and LOGGED on the same terms** (§12): a structural extreme a
+  quarter of a year away carries a weekly figure near zero on every coin, which separates
+  nothing and reads as a verdict on the trade rather than on the label. The target prints its
+  distance in per cent and is named for what it is — a structural level, not a weekly
+  objective. **A `СОЗРЕВАЕТ` item keeps both of its printed numbers** (§2): the chance of its
+  own zone arriving is the one figure here that still separates items, and it is that
+  section's ranking key.
   **No probability that price ENDS the window in the published direction is computed,
   printed or implied.** This engine has no measured directional information (map §3.10), so
   such a figure could only be manufactured, and a manufactured confidence is the one output
@@ -2180,7 +2267,11 @@ which is the shape §7 exists to replace.
     line (§2) — **except an item at `dclass:none`, which §2 forbids printing at all.** A
     tracked event the Boss cannot see is one the next run will call unchanged; a date
     nobody has sourced is one he cannot act on. The two rules met on 04.09 and the run had
-    to choose between them with nothing here naming which governs.
+    to choose between them with nothing here naming which governs. **An item whose coin
+    carries no row in this answer also carries the price that would give it one** (§2), taken
+    from the anchor §4 cut, or states in the same clause that §4 produced no anchor. Measured
+    19.09, second run: the only dated event inside the holding window headed the section over
+    a coin with no price anywhere in the answer.
 25. **Every lifecycle change this run made is accounted for** (§11) — a trade object
     withdrawn by name in the first line, a coin moving INTO `ИЗБЕГАТЬ` named there beside the
     withdrawal that produced it, and every other closure in the appendix's closure list.
@@ -2239,8 +2330,10 @@ which is the shape §7 exists to replace.
     and `invalidationInfo` was executed at that price rather than at the freeze. Checked
     per row against the anchor recorded in the log (§12), never against the impression
     that the numbers look consistent.
-44. **Every published setup with a structural row has both touch probabilities in the LOG
-    and its SURVIVAL number in the answer** (§2, §4, §12). **Neither touch number was used
+44. **Every published setup with a structural row has both touch probabilities AND its
+    survival number in the LOG, and the answer carries neither** (§2, §4, §12, item 79) —
+    corrected in place at `2026-09-20-a`, when the survival figure stopped differing between
+    rows. A `СОЗРЕВАЕТ` item still prints its own pair (§2). **Neither touch number was used
     to refuse, downgrade or promote anything** (§4) — they are read over `H_NOISE` and the
     target is not on that clock, so a run that gates on them deletes correct setups. A run
     that believes a pair disqualifies a setup records the objection and publishes.
@@ -2327,9 +2420,11 @@ gap no checklist could have caught, because no rule had ever named the computati
 61. **No catalyst item's side slot reads `ЖДАТЬ` alone** (§2), and every item carries its
     strength word.
 
-62. **Every published setup prints its survival number and nothing that forecasts
-    direction** (§4). No percentage in the answer may be read as the chance of the trade
-    working; the one figure printed is `1 − touchProb(стоп)` and it is labelled as such.
+62. **No percentage in the answer may be read as the chance of the trade working, and no
+    published row prints a constant of the construction** (§4, item 79) — corrected in place
+    at `2026-09-20-a`. The probabilities the answer still carries are a `СОЗРЕВАЕТ` item's
+    pair and the seven-day chance of a zone being reached, both of which separate rows;
+    survival and the ratio are in the log.
 
 63. **Every coin of `tokens[]` has a `sweeps.coins` entry read from its own row of §6a's
     channel table, and every LANE that table gives it** (§6) — the top-level five for its
@@ -2423,6 +2518,36 @@ calls «пожелание», hid six trending coins and avoided the seventh, an
 trade it knew least about — each read correctly off a file that said so. They were found by
 reading the answer the way the owner trades it, which is the one audit no checklist runs.
 
+79. **No measure printed on a published row is a constant of the construction** (§2): each one
+    differs between rows in this answer, or it is computed to the log instead (§12). The
+    survival figure and the ratio are in the log. A run printing the same value on every row
+    fails this item whatever the value is.
+80. **The strategy table is ordered by the key of §2** — the chance of the zone being reached
+    inside seven days multiplied by the anchor-to-target distance in per cent — and the log
+    records that key per row beside the order it produced. A table ordered by the zone
+    probability alone fails this item.
+81. **The first line carries only what the Boss is IN** (§2): a `СЕЙЧАС` row that filled, a
+    `# ПОЗИЦИИ` holding that closed, and the once-per-revision sentence naming a re-derivation
+    of carried levels (§4). A withdrawn limit, a withdrawn `СОЗРЕВАЕТ` item or a lifted
+    `ИЗБЕГАТЬ` name appearing there fails this item; all of them are still in the appendix's
+    closure list, which is built by diff as before (§2).
+82. **The own-move line ends with the book's concentration** (§2): rows per side, and how many
+    of them `residual7` classes `market`, counted from the rows this answer published.
+83. **Every outside-list setup clears `RR_MIN` at its published levels, and those levels are
+    the day's own extremes** (§3B): entry the frozen price, invalidation the entry-side
+    extreme, target the opposite one, each read from the payload row. A ratio under the floor,
+    or a stop or target that is neither extreme, fails this item.
+
+**79–83 name the SECOND run of 19.09, and it broke no rule either** — it passed all
+seventy-eight items above and recorded, in its own appendix, the objection that item 79 now
+enforces. What it printed was a table whose three quality figures carried one constant between
+them, ordered so that its cheapest trade stood first, headed by a line about an unfilled order,
+with its only actionable trade held to a looser floor than every row beside it. **Every one of
+those is a property of the BOOK and none is a property of a rule**, which is why no checklist
+item could have caught them and why §0 now states the standard they are read against. Item 24
+was corrected in place rather than supplemented, on the file's own precedent: the defect it
+names is the one it already covered, reaching a coin the answer had no row for.
+
 **Revision `-c` added nothing to this list and item 55 was corrected rather than
 supplemented**, because no run broke it: the band it asserted was empty by arithmetic and was
 caught before a run executed it. **A list that grows on a defect nobody met would stop being
@@ -2464,11 +2589,15 @@ REVIEW verbs are never mixed with ЛОНГ / ШОРТ: «Сокращать» is
 is a new trade.
 
 **`ВЫСОКАЯ` has a definition, because it sat on the most-read line of the answer with
-no rule behind it.** It requires all four: the frozen price inside the zone (§2) · R:R
-at or above 2.5 measured at the anchor (§4), which on such a row is that same frozen
-price · a stop at a named structural level, not a
-round number (§7 item 5) · **and no `ВЫСОКОЕ` catalyst resolving inside the holding
-window.** Any one missing → `СРЕДНЯЯ`. **A setup whose case rests on an item marked
+no rule behind it.** It requires all three: the frozen price inside the zone (§2) · a stop
+resting on a named structural extreme — the 24-hour anchor its own zone is cut from (§4) —
+and not on a round number (§7 item 5) · **and no `ВЫСОКОЕ` catalyst resolving inside the
+holding window.** Any one missing → `СРЕДНЯЯ`. **The R:R leg is RETIRED and the word is
+reachable again.** It read «at or above 2.5 at the anchor» while §4 makes the target
+`RR_MIN × risk`, so the ratio is exactly 2.00 on every own-trend setup and the condition
+could not be met by any row this engine constructs — a confidence word that is `СРЕДНЯЯ` by
+arithmetic on every trade is not a grade, and it went unnoticed because the section it prints
+in is empty on most days. **A setup whose case rests on an item marked
 `НЕ ПРОВЕРЕНО` (§6) is `СРЕДНЯЯ` at best**, because the fourth condition is a statement
 about what is known and an unverified item is exactly what is not. The fourth condition is the one that was doing
 nothing: a coin published `ВЫСОКАЯ` while a `ВЫСОКОЕ` event lands before the trade
