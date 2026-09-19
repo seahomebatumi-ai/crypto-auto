@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-18-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-19-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -14,16 +14,19 @@ text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
 
-**`2026-09-18-a` is the owner's decision of 18.09.2026 made operative, and the audit of that
-morning's run.** For two weeks the answer carried no long and no short while the list rose, and
-on 18.09 it hid the one coin in its own uptrend behind BTC's fortnight. From this revision a
-coin's OWN trend decides its side and the market word decides its RISK TIER, not its admission
-(§2); both regimes are read at the frozen price, never at a structural row up to a day old (§2);
-a trend's pullback the week cannot reach is published as the pre-planned entry it is, and every
-waiting row is a price at which the coin actually becomes a trade (§4); catalysts are hunted by
-a daily search per coin before they are admitted by source (§6); and the answer speaks only of
-what is ahead (§2). **The history of earlier revisions lives in git and in the day logs, not
-here** — this file carries rules, and a run reads all of it every time. §7 gains items 71–75.
+**`2026-09-19-a` is a trader's audit of the run of 19.09, and it repairs what that run could
+not have caught: four of its six published stops were levels production itself refuses to call
+stops.** `invalidationInfo` clips its distance at `INV_CAP_SD`, and production's own comment on the
+clip reads «это уже не стоп, а пожелание… опоры рядом НЕТ»; the board switches its money rule off
+for such a level and tells the owner to hold the exit by hand. The run printed those levels
+12–33 % from entry as stops, derived +25–66 % targets from them, and labelled the result
+«устойчивость 99 %». From this revision an own-trend pullback takes its stop from the same 24-hour
+structure its zone is cut from (§4), a stressed coin in its own trend is given the price at which
+it cools off instead of a prohibition (§4), every own-trend coin without an entry is named rather
+than hidden (§2), and a trade resting on one day of data says so (§3B). `2026-09-18-a` — the
+coin's own trend decides its side, the market word its risk tier — stands unchanged. **The history
+of earlier revisions lives in git and in the day logs, not here** — this file carries rules, and a
+run reads all of it every time. §7 gains items 76–78.
 
 **This file is methodology, not contract.** Authority, repository operations, the
 trigger protocol, the hard floor, what may be committed and where all live in
@@ -156,20 +159,22 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 
 # ЛУЧШИЕ СДЕЛКИ СЕЙЧАС
 **1. МОНЕТА — ЛОНГ [· ПОВЫШЕННЫЙ РИСК]**
-Вход $X–$X · Стоп $X · Цель $X (+X.X% от входа) · R:R X.X · Уверенность [ВЫСОКАЯ / СРЕДНЯЯ]
+Вход $X–$X · Стоп $X (−X.X%) · Цель $X (+X.X% от входа) · R:R X.X · Уверенность [ВЫСОКАЯ / СРЕДНЯЯ]
 Шанс, что сетап устоит 7 дней: XX% · цель — структурный уровень, не недельный ориентир
 Почему: одно предложение.
 
 # СТРАТЕГИЯ — МОЙ СПИСОК
 | Монета | Сторона | Вход | Стоп | Цель | Статус |
 |---|---|---|---|---|---|
-| XXX | ЛОНГ | $X–$X | $X | $X → $X | СЕЙЧАС $X |
-| XXX | ШОРТ ⚠ | $X–$X | $X | $X → $X | ЖДАТЬ |
+| XXX | ЛОНГ | $X–$X | $X (−X.X%) | $X → $X | СЕЙЧАС $X |
+| XXX | ШОРТ ⚠ | $X–$X | $X (+X.X%) | $X → $X | ЖДАТЬ |
 Устойчивость 7 дней: XXX XX% · XXX XX% · XXX XX%
 ⚠ — против режима рынка: повышенный риск
+Свой ход сильнее BTC: XXX · XXX · слабее: XXX
+В тренде, входа сегодня нет: XXX · XXX
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
-**МОНЕТА** — вход $X–$X · стоп $X · цель $X. Почему: одно предложение.
+**МОНЕТА · ПОВЫШЕННЫЙ РИСК** — вход $X–$X · стоп $X (−X.X%) · цель $X (+X.X%). Почему: одно предложение.
 
 # ТОП-3 ВНЕ СПИСКА — ШОРТ
 [same form]
@@ -284,8 +289,22 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   column.** The form is `$X → $X`: the nearer structural extreme the holding window can
   reach, then the level `RR_MIN` was computed against. A seventh column would not survive
   a phone, and the two levels are one decision — where to reduce and where the trade is
-  measured to. Where the nearer extreme sits behind price the cell carries one number and
-  the row says so once (§4).
+  measured to. Where the nearer extreme sits behind price, or beyond the level `RR_MIN` was computed
+  against, the cell carries that level alone (§4).
+- **Every printed stop carries its distance from the entry in per cent** — `$6.832 (−12.7%)`,
+  measured from the row's anchor (§4). The distance is the number a futures position is sized
+  from and the one the owner cannot read off the price cells himself. **Measured 19.09:** the
+  table printed stops 12–33 % from entry with nothing to say so, beside a survival of 99 % that
+  was the same fact read backwards.
+- **Two lines under the table name the list's own-trend facts the table cannot hold**, each
+  omitted when empty. `Свой ход сильнее BTC` names every list coin whose `residual7` class is
+  `own` — production's function, executed on the coin's row and on `btc`, both re-expressed at
+  the freeze (§2) — split by sign into «сильнее» and «слабее»: the list's measured independence
+  from BTC, and nothing else. `В тренде, входа сегодня нет` names every coin in its own trend at
+  the freeze that carries no row, no `СОЗРЕВАЕТ` item and no `ИЗБЕГАТЬ` reason of its own (§4).
+  **A coin in its own trend is never absent from the answer.** Measured 19.09: six coins trending
+  up at the freeze — SUI, ONDO, RENDER, SOL, ETH, XLM — appeared nowhere, on the morning after the
+  owner asked for the second time why a rising coin was hidden from him.
 - **ТОП-3 ВНЕ СПИСКА is mandatory to search and never mandatory to fill.** One
   genuine candidate beats three manufactured ones; zero genuine candidates prints
   «Нет достойных кандидатов.» in one line.
@@ -473,6 +492,13 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   extended is still refused by the anti-chase test, which is measured separately and reaches
   `ИЗБЕГАТЬ` on its own. **Measured 04.09, second run:** ZEC and UNI stood in the field on
   this veto alone, and the same run's table shows neither had failed the chase test.
+- **A coin in its OWN trend is not a prohibition for want of an entry.** The fade ban closes its
+  other side (§2) and its own side waits for a price the chase rule accepts, so it is refused on
+  both — and printed as `ИЗБЕГАТЬ` it tells the owner to avoid the coin leading his list, which is
+  the bullet above in its third shape. It carries its cool-off entry (§4) or stands in the
+  `В тренде, входа сегодня нет` line; `ИЗБЕГАТЬ` keeps it only for a reason of its own — a
+  catalyst, a veto, a weakness. **Measured 19.09:** NEAR, the strongest trend on the list, stood in
+  `ИЗБЕГАТЬ` for the second answer running.
 - **A refusal the WHOLE LIST shares is a regime fact and is stated once, in `# РЕЖИМ`.**
   `ИЗБЕГАТЬ` carries what is true of a coin, never what is true of the market. When one
   sentence — «вход сейчас погоня» — is the entire reason behind a dozen names, the field
@@ -574,7 +600,7 @@ is one the run already reads for every candidate (§7 item 42).
 | trend, `dir` up | ЛОНГ only |
 | trend, `dir` down | ШОРТ only |
 | range | **neither as a directional trade** — see below |
-| stress | **no entry at the frozen price** — a coin at `REG_STRESS_Z` in its own week is a chase; where its `eff` also marks a trend, that side keeps its pullback: a waiting row whose regime at its own anchor reads trend (§4) |
+| stress | **no entry at the frozen price** — a coin at `REG_STRESS_Z` in its own week is a chase; where its `eff` also marks a trend, that side keeps its pullback: a waiting row whose regime at its own anchor reads trend, or else its cool-off entry (§4) |
 
 **One coin, one side, still** (map inv. 30): a coin has one own trend, so its side is unique, and
 the market word only labels it. **What the side never comes from is a ratio** — measured 06.09,
@@ -696,6 +722,13 @@ answer the owner holds up as the format he wants, the regime read `ДИАПАЗ�
 candidates were published under it, each with one clause naming what the project actually
 does. **That clause is mandatory** — a ticker with a price is a row the Boss cannot judge,
 and the description is the only thing here that is not arithmetic.
+
+**Every outside-list setup carries `ПОВЫШЕННЫЙ РИСК`, by construction and not by judgement:** its
+side, its entry and its levels rest on one day of one row, with no trend, no regime and no
+volatility measured behind them (§5), and the trade the engine knows least about may not read like
+the ones it knows most about. It prints its stop distance like every other setup (§2). **Measured
+19.09:** the only `ЛОНГ` in `ИТОГ` was an outside-list coin that had traded a 46 % range that day,
+printed without a label beside six list setups built on ninety days of structure.
 
 **A dated catalyst strengthens a candidate and is not required to produce one.** The side is
 the candidate's own day (above); a dated event, where one exists, ranks the candidate first and
@@ -882,6 +915,27 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   zone that cannot be reached is not a strict rule, it is the wrong level**, and the
   reachability test of this section was left to report it once a run instead of one clause
   above computing it right.
+- **The stop of an own-trend pullback is cut from the same 24-hour structure its zone is cut
+  from, and never from the 30-day extreme.** `invalidationInfo` answers «where is the 30-day
+  structure broken», which is a range trade's stop and a question a trending coin has left far
+  behind: its 30-day extreme sits beyond `INV_CAP_SD` day-sigmas, and production's own comment on
+  that clip reads «это уже не стоп, а пожелание… опоры рядом НЕТ» — the board turns its money
+  rule off for such a level (`moneyHard` requires `!capped`) and tells the owner to hold the exit
+  by hand. **A pullback's invalidation is its own low breaking**, and that low is the 24-hour
+  extreme the zone already rests on. The run therefore executes the cut `invalidationInfo` on the
+  coin's row with the stop side's 30-day extreme replaced by the 24-hour one (`min30` := `lo24`
+  for a long, `max30` := `hi24` for a short), at the zone's edge nearest the invalidation (below);
+  the call returns production's floor, so the stop lands at
+  `far edge × (1 ∓ INV_FLOOR_SD × sigmaDay(vol))` — the distance production calls honest and
+  prices money on. **No function, constant or input is new**: the reference is the payload's, the
+  clip is production's, and the log records the call and its flags (§12). The money test is
+  production's `lMoney` on the published risk, anchor to stop, refused below `L_MIN`; every other
+  refusal `leverageDecision` returns at the anchor on the same substituted row stands. The board
+  keeps its own stop (map §10). **Measured 19.09:** four of six published stops were capped
+  distances — BNB −12.3 %, FET −27.5 %, UNI −33.0 %, ZEC −33.1 % from entry — their +25–66 %
+  targets were derived from them, and the answer printed a survival of 99 % over stops the model
+  gave under 1 % and targets under 0.03 % of being reached inside the week. Cut this way the same
+  six rows carry stops 2.0–12.7 % and targets 4–26 % from entry.
 - **Every level of a setup is computed at the price that setup is PUBLISHED at, and that
   price is the row's own ANCHOR.** The anchor is not chosen and is not a new object: it is
   the price the row's status already prints — the frozen price for `СЕЙЧАС`, the
@@ -924,20 +978,22 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   withdrawal naming no price event is the answer changing its mind rather than the market
   changing. This is the discipline `gap` / `gap_prev` already applies to a `СОЗРЕВАЕТ`
   zone, arriving at the section the Boss actually trades from.
+  **A revision of this file that changes how a level is DERIVED is an event for every carried
+  row**: the zone stays, the stop and the target are re-derived once under the new rule, and the
+  first line of that run names it once — «стопы и цели пересчитаны по новому правилу» — so no
+  carried row stands on a derivation the file has retired.
 - **On a coin's own-trend side the structural extreme does not gate publication, and the
   trade's target is the derived one (next bullet).** `tradeGeometry` measures its ratio against
   the 90-day extreme, which is a mean-reversion target: a coin trending into new highs sits at or
   beyond it and «fails» by construction — the leaders of a rising list, on every day the trend
   runs (map §3.12). **The owner decision of 18.09.2026 is a trend trade, and a gate that refuses
   every trend leader is not a filter on it but its absence.** The 30- and 90-day extremes print
-  as `Структура`; the margin veto still refuses, taken at the anchor, and so does the reward floor
-  below, and a refusal names its veto. **No claim of edge rides on this:** on a random walk
+  as `Структура`; the money test of the own-trend stop bullet still refuses, and so does the reward floor below, and a refusal names its veto. **No claim of edge rides on this:** on a random walk
   neither a target nor a veto has one (map inv. 32), so choosing a target the trend can reach over
   one it cannot is a product decision. The board's own target is unchanged, and map §3.12's open
   item stands for it.
 - **The trade's target is DERIVED FROM THE STOP, and never read off the price history.**
-  `Цель = вход ± RR_MIN × |вход − стоп|`. Both terms are production's — the stop is
-  `invalidationInfo`'s structural level at the anchor with its own clip, and `RR_MIN` is
+  `Цель = вход ± RR_MIN × |вход − стоп|`. Both terms are production's — the stop is the one the own-trend stop bullet above cuts, through `invalidationInfo` and its own clip, and `RR_MIN` is
   the constant cut with the geometry — **so no constant is introduced and no level is
   chosen.** The ratio is then `RR_MIN` by construction and stops being a selector, which
   is the point: a ratio built by moving the target is a ratio anyone can manufacture, and
@@ -1016,9 +1072,10 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
 - **A coin whose own-trend side is refused at its anchor for a DISTANCE is a `СОЗРЕВАЕТ`
   candidate, and its trigger is COMPUTED.** Two refusals are distances, because each lifts at a
   price: the zone fails the seven-day reachability test and passes the fourteen-day one — the
-  trigger is the zone's near edge; or the margin veto holds at the zone and lifts at a deeper
-  entry — the trigger is the nearest such entry, found by the two-pass construction, which is
-  monotone in the entry. A refusal by the coin's own regime, by market stress or by a catalyst is
+  trigger is the zone's near edge; or the coin's own week is stressed at its zone and cools at a computed price — the trigger is
+  its cool-off entry (below). **The money test is not one of them:** an own-trend stop sits a fixed
+  number of the coin's own day-sigmas from its zone (above), so no deeper entry changes it, and a
+  coin that fails it is refused on its volatility, by name. A refusal by the coin's own regime, by market stress or by a catalyst is
   a DIRECTION and produces no item. **That price is what must happen** (§2): the item carries it
   with the zone, the invalidation and the target it would create, and the chance of the zone
   being reached inside the horizon is its first printed number and its ranking key, so the three
@@ -1040,6 +1097,20 @@ and confidence are added in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` only.
   18.09:** RENDER, ALGO and TRX were printed as short triggers each still in its own range there —
   the range fade §2 closed, re-opened through the section written to replace it, and ranked first
   because a short zone just above a rising price is the one most likely to fill.
+- **A coin in its own trend that fails the anchor test on STRESS is given its cool-off entry,
+  computed and never chosen.** Stress is a week moving too fast, and it cools at a price the run
+  can compute: the cut `marketRegime` inverted on the coin's row re-expressed at the freeze (§2),
+  exactly as `# BTC`'s levels are, gives `P_z` — the price at which the weekly `z` falls back to
+  `REG_STRESS_Z`, `P7 × (1 ± REG_STRESS_Z × vol × √H_NOISE)` with `P7` the price the row's `r7`
+  reaches back to. The cool-off zone is cut exactly as a pullback zone is, with
+  `P_z × (1 ∓ ENTRY_CHASE_SD × sigmaDay(vol))` standing in for the 24-hour extreme, so its anchor
+  sits inside `P_z` where the week is no longer stressed, and every gate is re-run there — the own
+  trend first: **where `eff` at that anchor no longer reads trend, cooling would end the trend and
+  there is no entry.** Its stop, target, reachability and section follow the pullback's rules
+  unchanged — the table within one sigma of seven days, `СОЗРЕВАЕТ` within fourteen — and a
+  cool-off beyond both puts the coin in the `В тренде, входа сегодня нет` line (§2). **Measured
+  19.09:** NEAR, trending up with its week at z 3.37 at the freeze and 2.70 at its zone, was
+  refused into `ИЗБЕГАТЬ` with no price at which it would stop being a chase.
 - **The pair gates nothing, and it is printed because the ratio hides what it measures.**
   R:R is two distances; it says nothing about whether either is reachable inside the window
   the Boss holds for, and §7 item 6 has asked «target reachable inside the holding window»
@@ -2090,7 +2161,9 @@ which is the shape §7 exists to replace.
     §3B, and `analyst/live.json` was read by command only (§5).
 21. **Every coin refused on both sides is in `ИЗБЕГАТЬ`, list member or not** — a coin
     he can trade on a perpetual is a coin he can be warned about; with the right class — bare
-    name for an entry refusal, `XXX до ДД.ММ` for a dated one (§2).
+    name for an entry refusal, `XXX до ДД.ММ` for a dated one (§2) —
+    **except a coin in its own trend refused only for want of an entry**, which carries its
+    cool-off entry or stands in the `В тренде, входа сегодня нет` line (§2, §4).
 22. **Every catalyst whose primary was not re-read this run carries `НЕ ПРОВЕРЕНО`**
     (§6), decided by the source class that answered and recorded per item in the log. The
     word is DERIVED from `unver` (§11) and never written beside it, and the DATE exemption
@@ -2327,13 +2400,28 @@ carry no measured run of their own.
     printed from another fails this item.
 75. **No coin in its own trend is hidden** (§2, §4): each is published on its own side — a
     trade or a `СОЗРЕВАЕТ` pre-planned entry, `ПОВЫШЕННЫЙ РИСК` where the market word opposes
-    it — or refused by a named DISTANCE or VETO rule in the appendix. A coin refused on the
+    it — or stands in the `В тренде, входа сегодня нет` line, or in `ИЗБЕГАТЬ` for a reason of its
+    own (§2); the rule that kept it from a row is named in the appendix either way. A coin refused on the
     market word alone, outside `ПЕРЕГРЕТ` and `ВЫСОКИЙ РИСК`, fails this item.
 
 **71–75 name the run of 18.09 and the owner's reading of it.** The run passed every item above
 and still printed three rally shorts on coins in their own range as waiting orders, a BTC level
 twelve times farther than its own arithmetic put it, one coin event for thirty coins — and no
 line at all for the one coin trending up on a list that rose 8 % in a day.
+
+76. **No published stop is a capped distance** (§4): every own-trend stop was cut by
+    `invalidationInfo` from the 24-hour extreme its zone rests on, at the zone's edge nearest the
+    invalidation, and prints its distance in per cent (§2); the call and the flags it returned
+    are in the log. A stop the call returned `capped` is not a stop, whatever it is published as.
+77. **Every coin in its own trend refused at its anchor on stress carries its computed cool-off
+    entry** (§4), or stands in the `В тренде, входа сегодня нет` line; none stands in `ИЗБЕГАТЬ`
+    for want of an entry (§2).
+78. **Every outside-list setup prints `ПОВЫШЕННЫЙ РИСК` and its stop distance** (§3B, §2).
+
+**76–78 name the run of 19.09, and it broke no rule:** it published four stops production itself
+calls «пожелание», hid six trending coins and avoided the seventh, and gave its one `ЛОНГ` to the
+trade it knew least about — each read correctly off a file that said so. They were found by
+reading the answer the way the owner trades it, which is the one audit no checklist runs.
 
 **Revision `-c` added nothing to this list and item 55 was corrected rather than
 supplemented**, because no run broke it: the band it asserted was empty by arithmetic and was
@@ -2676,6 +2764,8 @@ whether the PREVIOUS run's commit is on main, and where it is if not
 every command that read analyst/live.json, with the row count it returned
 the anchor price of every published level, and the two touch probabilities
   printed beside each R:R
+the stop derivation of every published row: the substituted reference, the edge it was
+  cut at, the distance returned and the capped / floored flags (§4)
 the source class that answered per carried catalyst: primary / archive / reported / none,
   and per item: the host, what it answered, the field taken from it
 every lane NOT read this run, with its previous read date and its stored sec6_md5
