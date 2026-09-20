@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-22-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-24-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,48 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-09-24-a` carries four owner decisions of 20.09.2026 and adds the one check this
+file never had.** **(1) `# СТРАТЕГИЯ — МОЙ СПИСОК` stops being a table** (§2, §7 item 87):
+six Markdown columns of price levels are about a hundred characters wide, an iPhone renders
+roughly forty, and the owner has been reading his own book sideways since the section
+existed — it is now the two-line block `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` already uses, same cells,
+wrapping instead of scrolling. **(2) `# ПОЗИЦИИ`, the `positions` array and §7 item 29 are
+RETIRED** (§2, §5, §7, §11, §12): the owner does not declare the coins he has entered, so
+the limb never had an input, and the consequence — the engine may offer him a coin he
+already holds — is stated and accepted rather than hidden. **(3) A DATED event found this
+run on an admissible source and refused for naming no side now prints one clause** (§2):
+the section showed only what survived, so four runs that re-read every lane in §6a looked
+exactly like four runs that read nothing, and the owner read the identity as a dead
+pipeline — measured 20.09, second run, when three dated primary-source events were found
+inside the window and none of them reached the page. **(4) §7 gains item 86, and it is the
+LAST thing a run does:** the finished book is read as a book and asked whether this run
+would put its own money into it, which is §0's standard applied to the PRODUCT rather than
+to each rule — every one of the 85 items before it establishes that a rule ran, and the
+failure this engine keeps finding is a book where every rule ran. **What this revision does
+NOT do is promise predictive catalysts:** an event is detected when it is ANNOUNCED, never
+before, and a positioning factor enters through `bench/backtest_bench.py` on the three-year
+archive or it does not enter (§4). §7 gains items 86 and 87.
+
+**`2026-09-23-a` gives §3B the stop test it already says it does not have.** §3B measured the
+defect itself on 20.09 — the four list stops sat about 1.1 of their coins' own daily ranges from
+entry and the six outside-list stops sat at 0.08 to 0.30 of theirs — and shipped a DISPLAY for
+it: the stop now prints the day's range beside it. A number printed beside a stop does not stop
+the stop being taken, and the section's own text says so in the sentence retiring the `RR_MIN`
+floor — «printing it as one hid that this section had no test of its stop at all». **Measured
+20.09, second run, and this is why the rule arrives now rather than later:** the three shorts the
+section published that morning were all closed on their stops inside four hours, and the three
+longs it published that afternoon carried stops at 0.44, 0.53 and 0.41 day-sigmas — `touchProb`
+over twenty-four hours reads 66 %, 60 % and 68 % against 27 %, 32 % and 28 % for their targets.
+Every one of those six rows satisfied every item of §7. **From this revision an outside-list stop
+carries the SAME floor as a list stop** (§3B): `INV_FLOOR_SD` day-sigmas from the entry, the
+day-sigma read from the coin's own twenty-four hours through production's own identity
+`E[range] = σ√(8/π)` (`dayRangeRatio`, `index.html`) inverted onto the only fields this section
+has. **No constant is introduced and nothing is calibrated:** `INV_FLOOR_SD` and `RR_MIN` are cut
+from production in the same run as every other number, and the identity's own arithmetic puts the
+floor at 1.25 of a coin's daily range — which is the 1.1 §3B measured on the list. This repairs
+the clause §0 has carried since 19.09 and no item enforced: **the trade the engine knows least
+about does not get the loosest standard.**
 
 **`2026-09-22-a` answers the owner's question of 20.09.2026 — «куда идёт биткойн» — with the only thing this engine can honestly put behind that word, and closes the door the question opens.** The answer is not a forecast and never will be: `E[R] = 0` under any selection on a random walk is a theorem, the `--control` run confirmed it, and §4 already refuses to compute, print or imply a probability that price ENDS a window in any direction (map inv. 32). What the run already holds and has never published is the DISTANCE to the two prices that decide the tier of every row in the book, and the chance of reaching them inside the holding window — `touchProb` on the `btc` row's own volatility, the same function on the same horizon the answer applies to every stop it draws. **From this revision `# BTC` prints both beside each of its two regime boundaries** (§2): a conditional map with a measured reach, which is what a professional uses where a forecast does not exist. **The door: no pattern, candlestick, indicator or sentiment engine enters through this file** (§4) — a directional method enters through `bench/backtest_bench.py` on the three-year archive or it does not enter, on the same terms map §3.12 already gates the own-trend geometry. **And a lane whose host refuses is RE-SOURCED rather than waited on** (§6a): the backoff written for a refusing publisher had no exit, so `sec.gov` held the class-S lane unread for five consecutive runs and `bls.gov` has been 403 for longer — the events the owner most wants found in advance, behind a rule that only ever counted. `2026-09-21-a`'s §3B repair is carried in this file in full, so a single upload replaces whatever revision the tree currently holds. **The history of earlier revisions lives in git and in the day logs, not here.** §7 gains item 84.
 
@@ -178,10 +220,10 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 Почему: одно предложение.
 
 # СТРАТЕГИЯ — МОЙ СПИСОК
-| Монета | Сторона | Вход | Стоп | Цель | Статус |
-|---|---|---|---|---|---|
-| XXX | ЛОНГ | $X–$X | $X (−X.X%) | $X → $X | СЕЙЧАС $X |
-| XXX | ШОРТ ⚠ | $X–$X | $X (+X.X%) | $X → $X | ЖДАТЬ |
+**XXX — ЛОНГ · СЕЙЧАС $X**
+Вход $X–$X · Стоп $X (−X.X%) · Цель $X → $X
+**XXX — ШОРТ ⚠ · ЖДАТЬ**
+Вход $X–$X · Стоп $X (+X.X%) · Цель $X → $X
 ⚠ — против режима рынка: повышенный риск
 Свой ход сильнее BTC: XXX · XXX · слабее: XXX · одновременно X лонгов / X шортов, из них X идут с рынком
 В тренде, входа сегодня нет: XXX · XXX
@@ -196,9 +238,6 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 **МОНЕТА — ЛОНГ [· ПОВЫШЕННЫЙ РИСК]** — тезис одним предложением.
 Что должно случиться: [ДД.ММ событие / цена $X (сейчас $X, ±X.X%)] · зона $X–$X · инвалидация $X · цель $X (±X.X% от зоны).
 Шанс дойти до зоны за 7 дней: XX%
-
-# ПОЗИЦИИ
-**МОНЕТА — ЛОНГ** — [Держать / Сокращать / Закрыть / Развернуть] · инвалидация $X · цель $X.
 
 # BTC
 Критический уровень $X (−X.X% · XX% за 7 дней) · выше $X (+X.X% · XX% за 7 дней) — за лонги · ниже — за шорты.
@@ -382,21 +421,22 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   of the three mandatory searches above and omission is not a permitted state for it.
   The clause that stood here said the opposite, the two contradicted each other at zero
   items, and the run of 03.09 had to choose between them and record the objection.
-- **`# ПОЗИЦИИ` prints every open holding `analyst/owner.json` declares, one line
-  each, and it is omitted only when the owner holds nothing.** §11 has always required a
-  declared position to be analysed as a holding — thesis intact or not, invalidation,
-  target, hold, reduce, close or reverse — and until this section existed that analysis
-  was performed on every run and written to `analyst/state.json`, where the owner of the
-  position never saw it. Measured 02.09: MORPHO was frozen at 2.4905, found sitting on
-  its own 24-hour low with the structural support holding, and the answer said nothing
-  about it on a day the same run labelled ВЫСОКИЙ РИСК. Where no entry price is
-  declared the line manages against structure and says so; where one is declared it
-  carries R from it. A holding is not a candidate (§11) and never appears in the strategy
-  table.
+- **`# СТРАТЕГИЯ — МОЙ СПИСОК` is a BLOCK per coin and not a table, and this is the
+  owner's decision of 20.09.2026.** Six Markdown columns carrying price levels run to about
+  a hundred characters and an iPhone renders roughly forty, so the three cells the Boss needs
+  first — coin, side, entry — arrived spread over two and a half screens of horizontal
+  scroll, with the coin name pushed away from its own side by the padding of the widest cell
+  underneath it. **The block is the form `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` has always used: first line
+  the coin, its side and its status; second line entry, stop and target.** Nothing is dropped
+  and nothing is added — the same six cells in two lines that WRAP instead of scrolling, so
+  the section cannot be wider than the screen whatever the prices are. **Every rule in this
+  file written about «the strategy table» governs this block unchanged** — its order (§7
+  item 80), its carried levels (§4), its `⚠`, its `СЕЙЧАС` and `ЖДАТЬ` statuses: only the
+  shape moved, and a run that reintroduces the pipe table fails §7 item 87.
 - **The answer speaks only of what is AHEAD, and the past reaches it in one form.** The first
-  line carries the withdrawal of every object the Boss is IN — a filled `СЕЙЧАС` row and a
-  `# ПОЗИЦИИ` holding — because a thesis he has money behind dying is the one past fact that
-  is an instruction (§11).
+  line carries the withdrawal of every object the Boss is IN — a filled `СЕЙЧАС` row —
+  because a thesis he has money behind dying is the one past fact that is an instruction
+  (§11).
 - **The answer is the WHOLE standing book, and what is not in it is not standing.** This is
   the owner's decision of 19.09.2026: he acts on the latest answer and on nothing carried in
   his head from the previous one. An unfilled limit, a `СОЗРЕВАЕТ` item and an `ИЗБЕГАТЬ`
@@ -456,7 +496,19 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   analysis moment** — уже было сегодня / идёт сейчас / впереди сегодня / дальше.
   Same-day items carry a clock time, later items a date. An event with no stated
   effect on ЛОНГ / ШОРТ / ЖДАТЬ is not a catalyst, it is news; an event with no time
-  is not published at all.
+  is not published at all. **A DATED event found THIS RUN on an admissible source and
+  refused for carrying no effect still prints ONE clause under `ДАЛЬШЕ`** — its name, its
+  date and the few words that say why it moves no side — at most three of them, nearest
+  date first, the rest in the appendix. **The owner's decision of 20.09.2026, and the
+  reason is not courtesy:** a section that shows only what SURVIVED looks identical on a run
+  that read thirty-seven sources and on a run that read none, so four consecutive runs of
+  the same five items read as a dead pipeline whatever the pipeline did. **Measured 20.09,
+  second run:** every lane in §6a was re-read, three dated events were found on primary
+  sources inside the window — the ZEC grants vote closing 29.09, the SKY cBEAM spell of
+  24.09, two Algorand releases — each correctly refused for naming no side, and the section
+  printed the same five items it had printed on the three runs before it. A refused event
+  with a date is market content and is published as such; an event with no date stays out
+  as before, and nothing here relaxes what it takes to become an ITEM.
 - **The impact tag and the status are both mandatory on every item, and the collapsed
   line carries the status of every item in it.** The skeleton above has printed both
   since the section existed, and the collapsed line is not an exception to it: an item
@@ -842,6 +894,30 @@ survives is its size against the day that produced it, and this section's rows a
 volatile in the answer. **Measured 20.09:** the four list stops sat about 1.1 of their coins'
 own daily ranges from entry; the six outside-list stops sat at 0.08 to 0.30 of theirs, printed
 in the same form and the same units, with nothing on the page distinguishing them.
+
+**And the stop carries the SAME FLOOR a list stop carries, because printing a number beside a
+stop is not a test of it.** The paragraph above is a display and the `RR_MIN` retirement two
+paragraphs above says in its own last sentence that this section had no test of its stop at all —
+so the section published its levels on the day's extremes and nothing anywhere asked whether
+those extremes were further from entry than one day of noise. **The stop of an outside-list setup
+sits at least `INV_FLOOR_SD` day-sigmas from the entry.** The section has no `vol` and no
+`sigmaDay` to call, and it does not need one: production states `E[range] = σ√(8/π)` for a
+driftless walk in `dayRangeRatio` (`index.html`) and derives its own denominator from it, so
+**`σ_day = (high − low) / (√(8/π) × price)`** is that identity read backwards onto `high`, `low`
+and `last` — the three fields the screen has already read. **Where the day's entry-side extreme
+is NEARER than the floor, it is not the invalidation:** the stop moves to the floor and the
+target to `RR_MIN × risk`, which is the list's own construction executed on the only volatility
+this section has. Where it is further, the extreme stands and the target stays the opposite
+extreme, unchanged. **No constant is introduced** — `INV_FLOOR_SD` and `RR_MIN` are cut from
+production in the same run as every other number, and no threshold is chosen here, because the
+floor's size in the unit this section prints is arithmetic: `INV_FLOOR_SD / √(8/π)` = 1.25 of the
+coin's own daily range. **Measured 20.09, second run:** 1000PEPE, BANK and ZIL published stops at
+0.44, 0.53 and 0.41 day-sigmas — `touchProb` over twenty-four hours 66 %, 60 % and 68 %, against
+27 %, 32 % and 28 % for their targets — and the section's three shorts from the same morning were
+all closed on their stops inside four hours. A row whose stop cannot survive one day of its own
+coin's noise is not a trade the owner's capital takes, whatever the ratio prints, and §0 has
+required exactly this since 19.09: **the trade the engine knows least about does not get the
+loosest standard.**
 
 **The SHORT form requires the coin's own 24-hour change to be NEGATIVE, and this is the
 section's only side condition that is not symmetric.** The long lane enters near the day's low
@@ -1488,11 +1564,9 @@ of §1 and nothing further.
 §11 lifecycle is applied to every item before the answer is composed. A run that cannot
 read or parse the state file stops and says so in one line: analysing without state
 silently restarts the memory chain and reports known events as discoveries.
-**`analyst/owner.json` is read in the same step** (§11): its `positions` become
-`type:"position"` items before candidacy is decided — a coin the Boss already holds must
-never be offered to him as a new entry — and its `vectors` enter the catalyst stage as
-questions. Its absence is normal and silent; an unparseable copy is stated in the first
-line and the run continues.
+**`analyst/owner.json` is read in the same step** (§11): its `vectors` enter the catalyst
+stage as questions. Its absence is normal and silent; an unparseable copy is stated in the
+first line and the run continues.
 
 **4 · Geometry — the freeze.** Every candidate that survives the state read gets its
 entry zone, invalidation and first target computed HERE, from the gate-fresh payload and
@@ -2365,9 +2439,13 @@ which is the shape §7 exists to replace.
     clause is named here because §11 granted it and this item did not carry it, so a run
     obeying §11 correctly failed a checklist item that was right about everything except
     the transition.
-29. **Every open position in `analyst/owner.json` has a line in `# ПОЗИЦИИ`** (§2),
-    carrying an action word and an invalidation. Analysis of a holding that reaches only
-    the state file has not been delivered.
+29. **RETIRED at `2026-09-24-a` by the owner's decision of 20.09.2026** — he does not
+    declare the coins he has entered, so `positions`, `# ПОЗИЦИИ` and this item never had
+    an input and could not acquire one. The number is held rather than reused so items 30
+    to 87 keep their identities. **The consequence is stated and accepted:** the engine
+    cannot know what he holds, so it may publish a coin he is already in, and its own
+    withdrawals are unaffected — those track the theses THIS engine published, in
+    `analyst/state.json`, and never came from the owner file.
 30. **The appendix's closure list was built from the diff of `items`**, before against after
     (§2, §12), and every id that left `items` this run appears in it.
 31. **Every owner vector is reported with a named host or a named source** (§11).
@@ -2603,9 +2681,8 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     inside seven days multiplied by the anchor-to-target distance in per cent — and the log
     records that key per row beside the order it produced. A table ordered by the zone
     probability alone fails this item.
-81. **The first line carries only what the Boss is IN** (§2): a `СЕЙЧАС` row that filled, a
-    `# ПОЗИЦИИ` holding that closed, and the once-per-revision sentence naming a re-derivation
-    of carried levels (§4). A withdrawn limit, a withdrawn `СОЗРЕВАЕТ` item or a lifted
+81. **The first line carries only what the Boss is IN** (§2): a `СЕЙЧАС` row that filled,
+    and the once-per-revision sentence naming a re-derivation of carried levels (§4). A withdrawn limit, a withdrawn `СОЗРЕВАЕТ` item or a lifted
     `ИЗБЕГАТЬ` name appearing there fails this item; all of them are still in the appendix's
     closure list, which is built by diff as before (§2).
 82. **The own-move line ends with the book's concentration** (§2): rows per side, and how many
@@ -2624,6 +2701,30 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     about where price ENDS the window**, and no pattern, candlestick, indicator or sentiment
     reading appears in any section (§4). A run that reaches for one records the objection
     and publishes without it.
+85. **Every published outside-list stop sits at or beyond `INV_FLOOR_SD` day-sigmas from its
+    entry** (§3B), the day-sigma computed from that coin's own 24-hour range by production's
+    identity `E[range] = σ√(8/π)`, and the appendix carries the sigma count for every published
+    row beside the range figure the answer prints. A row whose entry-side extreme sits nearer
+    than the floor publishes with the stop AT the floor and the target at `RR_MIN × risk`, and
+    the appendix says which of the two constructions produced each row. **This item exists
+    because item 83 checks that the construction RAN and item 78 checks that the label PRINTED,
+    and six rows on 20.09 passed both with stops at 0.41 to 0.53 day-sigmas.**
+86. **THE LAST THING DONE BEFORE THE ANSWER LEAVES, and the only item that is not about a
+    rule: the finished book is read once AS A BOOK and asked the owner's own question —
+    would this run put ITS OWN money into what it is about to send?** (§0, the owner's
+    decision of 20.09.2026.) Every item above establishes that a rule ran; this one asks
+    what the rules produced. It is answered per published row and then for the book as a
+    whole — concentration, correlated sides, the size of the smallest stop, whether the
+    first line names the one thing to do now. **A row the run would not take with its own
+    capital is repaired or removed before sending, never published with a hedge beside it**,
+    and the appendix carries the row and the reason. **A run that answers «yes» to items 1
+    to 85 and cannot answer «yes» here has found a defect in THIS FILE, not in the market:**
+    it publishes what it can stand behind, and records the objection beside it (§0, §7).
+87. **`# СТРАТЕГИЯ — МОЙ СПИСОК` is published as the two-line block of §2 and never as a
+    pipe table.** First line coin, side and status; second line entry, stop and target. A
+    Markdown table in this section fails this item whatever it contains, because the failure
+    it caused is not about content: six columns of price levels do not fit an iPhone and the
+    Boss read the section sideways for as long as it existed.
 
 **84 names the owner's question of 20.09 and not a broken rule.** He asked where Bitcoin is
 headed and the honest answer is that this engine does not know and will not pretend to; what
@@ -2804,8 +2905,7 @@ taken — invents a holding the Boss does not have and then manages it.
 
 **Contents, compact, decision-relevant only:** upcoming catalysts with date, time and
 impact tag · active ЛОНГ / ШОРТ theses with entry, invalidation and target · maturing
-`СОЗРЕВАЕТ` theses with their trigger and level structure · signals already reported ·
-positions the Boss has declared open.
+`СОЗРЕВАЕТ` theses with their trigger and level structure · signals already reported.
 
 **The cap of three is on the printed section, not on the state (§2).** A valid
 maturing thesis is not dropped because a better one outranked it today: it stays in
@@ -2903,7 +3003,7 @@ as a broken chain, not as a first run.
 
 **Every dated item in `items` reaches the answer, and compression is the only thing that
 may shrink it.** A catalyst tracked in state and absent from the answer is invisible to the
-Boss while the engine holds it against his positions, and the next run prints it as
+Boss while the engine holds it in state, and the next run prints it as
 `БЕЗ ИЗМЕНЕНИЙ` — unchanged from a state he was never shown. Measured 01.09: state carried
 fourteen dated catalysts and the answer printed five, and the nine silent ones included an
 item opened that day and two events inside the holding window of published setups. The
@@ -2917,12 +3017,12 @@ is printed whether or not anything about it changed** — proximity alone is a f
 about the trade at that range, and the alternative is an event landing tomorrow that
 was last mentioned a week ago because nothing moved in between.
 
-**A declared position stops being a candidate.** The coin is carried in state as
-`type:"position"` and is thereafter analysed as a holding — thesis intact or not,
-invalidation, target, whether to hold, reduce, close or reverse. It is not offered as
-a new entry again unless the plan calls for a second tranche.
+**A declared position no longer exists as an object and neither does `type:"position"`**
+— retired at `2026-09-24-a` with the array that fed it (below). The engine's own published
+theses are unaffected: they live in `items`, they are withdrawn by name when price leaves
+them, and none of that ever came from the owner file.
 
-**Positions and owner vectors arrive in `analyst/owner.json`, never in conversation.**
+**Owner vectors arrive in `analyst/owner.json`, never in conversation.**
 The earlier form of this clause said the coin was declared «on «вошёл в SOL ЛОНГ»» and
 assumed a conversation that does not happen: the Boss addresses the Architect, not this
 engine, and making him carry a technical fact between the two systems is the one thing
@@ -2933,17 +3033,14 @@ move**, and it was, in the Architect's own answer.
 analyst/owner.json — written by the Architect, uploaded by the Boss, read here, never written here
 
 { "v":1, "k":"owner", "updated":"YYYY-MM-DD",
-  "positions":[ { "sym", "side":"long|short", "e", "opened", "note" } ],
-  "vectors":[   { "id", "sym"|null, "claim", "raised" } ] }
+  "vectors":[ { "id", "sym"|null, "claim", "raised" } ] }
 ```
 
-**The two arrays have opposite standing and must not be treated alike.**
+**`positions` was removed at `2026-09-24-a` by the owner's decision of 20.09.2026** — he
+does not declare the coins he has entered, so the array, the `type:"position"` item it
+produced and the `# ПОЗИЦИИ` section it printed were a limb with no input. A file that still
+carries the key is read without it and nothing is said.
 
-- **A `positions` entry is a FACT and is taken as given.** It is the owner's own trading
-  reality, the one class the Architect may request and the one class this engine may not
-  second-guess. It is written to state as `type:"position"` on the first run that sees
-  it, and archived on the first run that does not — a symbol leaving the array is a
-  closed trade, and the run says so in the first line like any other lifecycle change.
 - **A `vectors` entry is a HYPOTHESIS and carries no authority whatever.** It enters §6
   as a question, not as evidence, and is resolved exactly like any other claim: confirmed
   against a primary source and published with that source named, refuted and archived, or
@@ -2958,10 +3055,10 @@ analyst/owner.json — written by the Architect, uploaded by the Boss, read here
   Measured 02.09: both vectors were carried a fourth consecutive run as unresolved, neither
   naming a host, and no search that run touched either claim.
 
-Missing file → no positions, no vectors, and nothing is said: an owner who holds nothing
-and has raised nothing is the normal state. Present but unparseable → the run continues
-and says so in the first line, because the Boss's holdings being invisible for one run is
-material to him and silent degradation here offers him a coin he already owns.
+Missing file → no vectors, and nothing is said: an owner who has raised nothing is the
+normal state. Present but unparseable → the run continues and says so in the first line,
+because a question he asked silently ceasing to be asked is the one failure this file
+exists to prevent.
 
 ---
 
@@ -3059,6 +3156,6 @@ a position seen, a position gone, a vector resolved — never in the file.
 published. **Never ask the Boss to decide** anything analytical. Three things may be
 requested, and only inside a task that cannot complete without them: data only his
 system holds (a LIVE SNAP run, a board screenshot, `debug.json`) · his own trading
-facts (hold period, capital, risk appetite, open positions) · a routing action. Asked
+facts (hold period, capital, risk appetite) · a routing action. Asked
 at the start of the run or not at all — never as the tail of an answer. **A missing
 price blocks the levels, never the verdict.**
