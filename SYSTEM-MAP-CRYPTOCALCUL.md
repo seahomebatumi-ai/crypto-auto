@@ -14,7 +14,32 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-09-20-a.** A methodology revision and the owner's decision of 19.09.2026:
+**Revision 2026-09-22-a.** A methodology revision answering the owner's question of 20.09.2026:
+**no direction engine enters through the methodology file.** Patterns, candlesticks, indicators
+and sentiment all produce a direction from price history, which inv. 32 denies and the
+`--control` run failed to find; a directional method enters through `bench/backtest_bench.py`
+on the three-year archive or it does not enter, on the terms §3.12 already gives the own-trend
+geometry. What replaces the forecast is measured and was already in hand: `# BTC` now prints
+the distance and the seven-day touch probability of each regime boundary — `touchProb` on the
+`btc` row's own volatility, a driftless lower bound (§7), not a claim about where the window
+ends. A §6a lane whose host refuses three next-attempt dates in a row is re-sourced to another
+publisher of record rather than waited on: `sec.gov` held the class-S lane unread for five
+consecutive runs and `bls.gov` has been 403 for longer, which is the scheduled-event coverage
+the owner named as most valuable. `ANALYST-INSTRUCTIONS.md` `2026-09-22-a`, §2, §4, §6a, item 84.
+
+**Revision 2026-09-21-a** was a methodology repair of the revision before it, found by the first
+run that executed it: the `RR_MIN` floor `2026-09-20-a` put on outside-list setups is
+`pos / (1 − pos)` by construction and tested nothing, and behind it the engine **shorted three
+vertical moves** — coins up 12 %, 31 % and 42 % on the day — with stops of 2.3 to 4.2 %, a
+tenth of their own daily ranges, while its list rows carried stops of about one full range.
+The short form of §3B now requires the coin's own day to be falling, the floor is retired, the
+stop prints beside the day that produced it, and a `СОЗРЕВАЕТ` item stops printing the
+survival constant the previous revision had just removed from the table
+(`ANALYST-INSTRUCTIONS.md` `2026-09-21-a`, §2, §3B, §4, item 83). **The defect was in the
+methodology file and not in the run**, which passed all eighty-three items and recorded the
+`СОЗРЕВАЕТ` objection itself before sending.
+
+**Revision 2026-09-20-a** was a methodology revision and the owner's decision of 19.09.2026:
 **the engine ranks by what a trade is worth** rather than by how near its limit sits, and a
 measure that cannot differ between rows leaves the answer for the log
 (`ANALYST-INSTRUCTIONS.md` `2026-09-20-a`, §0 «СТАНДАРТ ТРЕЙДЕРА», §2, §3B, §7 items 79–83).
@@ -226,7 +251,7 @@ written, and a blocking gate is the one control that may not have such a directi
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-09-20-a.**` |
+| revision | `**Revision 2026-09-22-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
