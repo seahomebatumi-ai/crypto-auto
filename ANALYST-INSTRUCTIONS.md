@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-24-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-25-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,29 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-09-25-a` answers the owner directive of 20.09.2026 — «find the move before it runs» —
+and the answer is that the DETECTION leg is not what failed.** Measured on this engine's own
+`state.json`: of the sixty-four trade theses in its `archive`, **one reached `СРАБОТАЛО` and
+fifty-one were withdrawn**, fifty-nine of the sixty-four inside two days of publication and
+thirty on the day they were published. On 20.09, third run, ten coins stood in their own trend
+and produced two rows — two refused for DISTANCE, eight because `marketRegime` at the one price
+this file constructs no longer read trend. **Both branches are one rule, and that rule tests a
+single POINT for a condition that holds over a BAND** (§4): a coin's trend does not end at its
+pullback anchor, it ends at the price where its own `eff` reaches `EFF_TREND`, and that price is
+returned by the inversion `# BTC` already performs four times a run. Refusing the whole band
+because its far edge fails is not a prior about the market — it is arithmetic, and it is why an
+answer can only report a move once the move is old. **(1) §4 gains the TREND FLOOR PRICE** and
+every own-trend anchor is cut at it; **(2) §2's `В тренде, входа сегодня нет` line carries a
+PRICE per name** — the rule that a name without a price leaves the field already stood in this
+file and bound one field only; **(3) §6 admits a state change the protocol has ALREADY SHIPPED**
+inside the holding window, because the catalyst leg was a calendar and could not see NEAR's
+launch of 17.09, announced on the day it shipped; **(4) §6a MEASURES lane coverage** against each
+coin's own largest move, because NEAR's single lane is a governance forum and NEAR does not ship
+from one. §7 gains items 88–90 and item 77 is corrected in place. **What this revision does not
+do is widen the chase ban by one basis point:** the trend floor is a shallower entry by
+construction, and whether a shallower entry is a chase is decided by the unchanged anti-chase
+window — what changes is that a coin failing it is refused WITH a price instead of without one.
 
 **`2026-09-24-a` carries four owner decisions of 20.09.2026 and adds the one check this
 file never had.** **(1) `# СТРАТЕГИЯ — МОЙ СПИСОК` stops being a table** (§2, §7 item 87):
@@ -226,7 +249,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 Вход $X–$X · Стоп $X (+X.X%) · Цель $X → $X
 ⚠ — против режима рынка: повышенный риск
 Свой ход сильнее BTC: XXX · XXX · слабее: XXX · одновременно X лонгов / X шортов, из них X идут с рынком
-В тренде, входа сегодня нет: XXX · XXX
+В тренде, входа сегодня нет: XXX $X · XXX $X
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
 **МОНЕТА · ПОВЫШЕННЫЙ РИСК** — вход $X–$X · стоп $X (−X.X%) · цель $X (+X.X%). Почему: одно предложение.
@@ -386,7 +409,15 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   is the total, not the row. **Measured 19.09, second run:** eight long rows, no short, three
   of them (`BNB`, `FET`, `TRX`) classed `market` by the run's own `residual7`, and nothing in
   the answer said so. `В тренде, входа сегодня нет` names every coin in its own trend at
-  the freeze that carries no row, no `СОЗРЕВАЕТ` item and no `ИЗБЕГАТЬ` reason of its own (§4).
+  the freeze that carries no row, no `СОЗРЕВАЕТ` item and no `ИЗБЕГАТЬ` reason of its own (§4),
+  **and every name in it carries that coin's own refusing PRICE** — its trend floor, its
+  cool-off price, or both where both were computed (§4) — in the form `NEAR 2.8713`. **A bare
+  list of names in this line is the banned form of `ИТОГ` arriving through the one line the rule
+  did not cover:** this file already says that a name with no price and no date leaves the field
+  rather than being printed without one, and it says it about a field the Boss reads after this
+  one. **Measured 20.09, third run:** ten names, no prices, on a line the owner read — correctly —
+  as a statement that the coins had already risen and nothing was to be done about any of them.
+  The same ten refusals carried eight computed prices in the run's own appendix.
   **A coin in its own trend is never absent from the answer.** Measured 19.09: six coins trending
   up at the freeze — SUI, ONDO, RENDER, SOL, ETH, XLM — appeared nowhere, on the morning after the
   owner asked for the second time why a rising coin was hidden from him.
@@ -1334,6 +1365,45 @@ carries nine copies of one constant while the log carries the computation (§12)
   cool-off beyond both puts the coin in the `В тренде, входа сегодня нет` line (§2). **Measured
   19.09:** NEAR, trending up with its week at z 3.37 at the freeze and 2.70 at its zone, was
   refused into `ИЗБЕГАТЬ` with no price at which it would stop being a chase.
+- **The own-trend anchor is cut at the TREND FLOOR PRICE, and no coin is refused for a
+  condition read at ONE point that holds over a BAND.** The bullet above tests the coin's own
+  regime at the single price the construction happened to produce, and a coin's trend does not
+  end there: it ends at the price where its own `eff` falls to `EFF_TREND`, and that price is
+  what the same inversion returns.
+
+  ```
+  P_trend = p × (1 + EFF_TREND × vol × √336) / (1 + r14)      long
+  P_trend = p × (1 − EFF_TREND × vol × √336) / (1 + r14)      short
+  ```
+
+  `p`, `r14` and `vol` are the row's own, re-expressed at the freeze exactly as §2 requires;
+  `EFF_TREND` comes from the same extraction as every other constant (§4); `√336` is the
+  fortnight `marketRegime` measures `eff` over. **No function, constant, input or threshold is
+  new** — this is the arithmetic `# BTC` executes on the `btc` row four times every run (§2),
+  executed on a coin's row instead, and the run verifies it the same way: `marketRegime` at
+  `P_trend` must return `eff` equal to `EFF_TREND`. **The anchor of an own-trend row is the
+  DEEPEST price at which the coin is still in its own trend** — `max(anchor, P_trend)` for a
+  long and `min(anchor, P_trend)` for a short, with `anchor` the pullback anchor this section
+  already cuts, or the cool-off anchor where the week is stressed. Where the existing anchor is
+  already the deeper of the two, nothing changes and this clause is silent. **Where it is not,
+  the anchor is `P_trend`, and every gate is re-run there under the rule above — the coin's own
+  regime, the stress test, the reachability test, the money test and the anti-chase window —
+  not one of them relaxed, and the row stands only where all of them pass at that price.**
+  Its stop, target and section follow the pullback's rules unchanged. **Where `P_trend` fails
+  the anti-chase window the regime names (§2), the coin has no entry today and the refusal
+  PRINTS `P_trend`**, exactly as a stress refusal prints its cool-off price (item 77); where
+  `marketRegime` at `P_trend` reads STRESS, the two conditions are incompatible and the coin has
+  no entry at any price — the outcome this section already states for a cool-off that ends the
+  trend, arriving from the other side. **The chase ban is untouched and is what decides:**
+  `P_trend` lies between the existing anchor and the freeze, so it IS a shallower entry, and
+  whether a shallower entry is a chase is precisely the question the anti-chase window answers —
+  re-run, unrelaxed, at the new price. **Measured 20.09, third run:** ten coins stood in their
+  own trend, two carried rows, and eight were refused because `marketRegime` at the pullback
+  anchor read range — ONDO on an `eff` of 0.585 against a threshold of 0.600, HBAR on 0.014
+  against a row reading 0.626 — while the answer printed all ten as a list of names with no
+  price beside any of them. A coin whose trend survives to within a hundredth of the threshold
+  and a coin whose trend is entirely in today's candle were refused by the same sentence and
+  reported identically.
 - **The pair gates nothing, and it is printed because the ratio hides what it measures.**
   R:R is two distances; it says nothing about whether either is reachable inside the window
   the Boss holds for, and §7 item 6 has asked «target reachable inside the holding window»
@@ -1797,6 +1867,35 @@ because two earlier theses had created them; and the appendix recorded no class-
 with a primary source anywhere in the window, over a list of thirty coins, on the morning
 the owner named class-A sourcing as the thing this engine does worst.
 
+**A state change the protocol has ALREADY SHIPPED is a class-A event, and the window runs
+BACKWARD as well as forward.** Everything above dates an event in the future, so a calendar is
+the only object this section could ever build — and a launch, a listing, a mainnet switch or an
+accepted filing is announced ON the day it takes effect, carries no future date, and therefore
+reached no element, no state and no answer. **Measured 20.09:** NEAR shipped confidential
+perpetual futures on 17.09 and rose about 15 % that day and 10.3 % on the third day after it,
+with a primary-source announcement standing the whole time; the answer of 20.09 carried NEAR as
+a name in the no-entry line and its appendix carried no catalyst for the coin at all. An engine
+that cannot see a protocol SHIP is not late on the news — it never held the record.
+
+**Admission is this section's own test with the date on the other side of the freeze**, and not
+one clause of it is relaxed: the record is on the coin's own channel (§6a), the run reads the
+record itself rather than a report of it, the class is `primary` on the same terms, and **it
+names a SIDE or it is not an element.** What is admitted is a change in the protocol's own state
+— code shipped, a product live, a listing or a delisting, a filing accepted, an unlock executed.
+**A metric, a milestone, a TVL figure, a price move, a partnership, an endorsement and a roadmap
+are not state changes and stay out**, whatever any of them did to the price: the ban on news is
+untouched, and the line between the two is whether the protocol's own state is different
+afterwards. **The window is the holding horizon and nothing longer** — seven days back from the
+freeze — because a shipped fact older than the trade's own horizon is history; the element's
+status is `СВЕРШИЛОСЬ` with the date it shipped, and it closes `ИСТЕКЛО` when that horizon
+passes rather than on an event date it does not have.
+
+**It does what every other catalyst does and not one thing more:** it is an element in state, it
+carries its side and its strength, item 7 checks it inside the holding window, and it prints.
+**It creates no trade and moves no level** — nothing here admits a directional claim a backtest
+has not measured (§4), and a shipped event is not an exception. What it ends is an engine that
+reads a coin's trend and cannot say what the trend is IN.
+
 Coverage that must be checked every time:
 
 - macro prints and central-bank dates;
@@ -2142,6 +2241,31 @@ rule is the host that served the records and not the path it served them at: ETH
 `/feed.xml` is answered at `/en/feed.xml` on `blog.ethereum.org`, and the row carries the
 request that was measured rather than the path it landed on — naming the landing path would
 name a request nobody has made.
+
+**LANE COVERAGE IS MEASURED AGAINST THE COIN'S OWN LARGEST MOVE, once per coin, and a coin whose
+lanes did not carry it is unserved for announcements however green they read.** A channel
+established once and reused is the right economy only where the channel is the right one, and
+this table assigns a class by what EXISTS rather than by where the protocol actually announces:
+a governance forum carries votes, a release stream carries code, and a protocol that ships
+products from neither holds a lane that answers every run and never carries the record that
+moves its price. **Measured 20.09:** NEAR's only row is `gov.near.org`; its move of 17.09 came
+from a product launch announced on the protocol's own site; and thirty runs of a fresh,
+correctly read, correctly hashed lane would not have found it.
+
+**The measurement is a computation on data the run already holds.** Once per coin, and again
+whenever this table's row for that coin changes: take the coin's largest single-day move of the
+last thirty days from the structural file the run reads every day (§5), and ask whether any lane
+this table gives that coin holds a record dated inside the forty-eight hours before it. **A coin
+whose lanes hold nothing is recorded `неохваченная` in `state.sweeps.coins` and named in the
+appendix with the size and date of the move, and the run names the host that DID carry the
+announcement** — one discovery search on §6's own terms, judged by its publisher like any
+discovery hit. **The run does not write that host into this table:** the table is this file's
+and this file is the Architect's, so the finding is a proposal the appendix carries and an
+Architect edit admits. A host no run has read is an assertion, and an assertion in this table is
+a lane that is green and empty. **A coin left `неохваченная` is not silently downgraded** — item
+63 already names every coin short a lane, and this measurement is what makes that count mean
+something: thirty coins holding thirty lanes, with no test of whether any of them is the channel
+that publishes, is a coverage figure measuring its own bookkeeping.
 
 **A channel dates a RECORD, never an event.** The date each class carries says when a topic
 was opened, a release cut or a post sent — not when the vote it announces closes or the
@@ -2663,9 +2787,12 @@ line at all for the one coin trending up on a list that rose 8 % in a day.
     `invalidationInfo` from the 24-hour extreme its zone rests on, at the zone's edge nearest the
     invalidation, and prints its distance in per cent (§2); the call and the flags it returned
     are in the log. A stop the call returned `capped` is not a stop, whatever it is published as.
-77. **Every coin in its own trend refused at its anchor on stress carries its computed cool-off
-    entry** (§4), or stands in the `В тренде, входа сегодня нет` line; none stands in `ИЗБЕГАТЬ`
-    for want of an entry (§2).
+77. **Every coin in its own trend refused at its anchor on STRESS or by its OWN REGIME carries a
+    computed PRICE** (§4) — its cool-off entry, its trend floor, or both where both were
+    computed — printed beside its name in the `В тренде, входа сегодня нет` line; none stands in
+    `ИЗБЕГАТЬ` for want of an entry (§2). **The regime branch is added at `2026-09-25-a`:** the
+    item bound the stress branch alone, and on 20.09 eight coins refused by the other branch
+    were reported as bare names while their prices sat in the run's own appendix.
 78. **Every outside-list setup prints `ПОВЫШЕННЫЙ РИСК` and its stop distance** (§3B, §2).
 
 **76–78 name the run of 19.09, and it broke no rule:** it published four stops production itself
@@ -2725,6 +2852,27 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     Markdown table in this section fails this item whatever it contains, because the failure
     it caused is not about content: six columns of price levels do not fit an iPhone and the
     Boss read the section sideways for as long as it existed.
+88. **Every coin in its own trend
+    that carries no row prints its own refusing PRICE, and the anchor of every own-trend row was
+    cut at `max(anchor, P_trend)`** (§4, §2). The appendix carries `P_trend` for every list coin
+    in its own trend, the gate that refused it AT that price, and the check that `marketRegime`
+    executed at `P_trend` returns `EFF_TREND`. A name printed in `В тренде, входа сегодня нет`
+    without a price fails this item whatever else the run got right.
+89. **Every state change SHIPPED inside the holding window on a coin's own channel is an element
+    with a side, or the appendix names the rule that refused it** (§6). A run that found one and
+    printed nothing fails this item; so does an element admitted on a metric, a milestone, a TVL
+    figure, a partnership or a price move, each of which this item reads as the news ban.
+90. **Lane coverage is measured for every coin whose §6a row has not yet been tested against
+    that coin's own largest single-day move of the last thirty days** (§6a), and every coin the
+    measurement leaves `неохваченная` is named in the appendix with the move, its date and the
+    host that did carry the announcement. A run reporting full coverage without the measurement
+    is reporting its own bookkeeping.
+
+**88–90 name the owner directive of 20.09.2026 and the run of 20.09 broke no rule reaching
+them.** It found ten coins in their own trend, computed a refusing price for eight of them,
+printed none, held a lane for NEAR that could not carry what moved NEAR, and had nowhere to put
+an event that had already happened. Each of the three is a rule this file did not have, and all
+three were visible in that run's own appendix before the answer left.
 
 **84 names the owner's question of 20.09 and not a broken rule.** He asked where Bitcoin is
 headed and the honest answer is that this engine does not know and will not pretend to; what
@@ -2773,7 +2921,7 @@ distinction is the whole reason this list exists.
 | Direction | ЛОНГ / ШОРТ / СДЕЛОК НЕТ |
 | Status | СЕЙЧАС / ЖДАТЬ / ИЗБЕГАТЬ |
 | Prohibition class | `XXX` — вход · `XXX до ДД.ММ` — событие (§2) |
-| Catalyst status | НОВОЕ / БЕЗ ИЗМЕНЕНИЙ / ПРИБЛИЖАЕТСЯ / СРАБОТАЛО / ИЗМЕНИЛОСЬ / ОТМЕНЕНО / ИСТЕКЛО / НЕ ПРОВЕРЕНО |
+| Catalyst status | НОВОЕ / БЕЗ ИЗМЕНЕНИЙ / ПРИБЛИЖАЕТСЯ / СВЕРШИЛОСЬ / СРАБОТАЛО / ИЗМЕНИЛОСЬ / ОТМЕНЕНО / ИСТЕКЛО / НЕ ПРОВЕРЕНО |
 | Regime | БЫЧИЙ / МЕДВЕЖИЙ / ДИАПАЗОН / ПЕРЕГРЕТ / ВЫСОКИЙ РИСК |
 | Confidence | ВЫСОКАЯ / СРЕДНЯЯ |
 | Venue | Фьючерсы / Спот |
