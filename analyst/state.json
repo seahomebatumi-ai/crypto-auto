@@ -2,7 +2,7 @@
  "v": 1,
  "k": "state",
  "d": "2026-09-21",
- "ts": "2026-09-21T09:50:04Z",
+ "ts": "2026-09-21T14:47:26Z",
  "items": [
   {
    "id": "cat-avax-helicon-2026-09-22",
@@ -15,7 +15,7 @@
    "unver": 0,
    "first_seen": "2026-09-18",
    "last_seen": "2026-09-21",
-   "note": "AVAX Helicon. Первоисточник перечитан 21.09: api.github.com/repos/ava-labs/avalanchego/releases?per_page=5 http 200, релиз v1.15.0 (8.09.2026): «activation of the Helicon network upgrade at 11 AM ET (3 PM UTC) on Tuesday, September 22nd, 2026 on Mainnet». Дата не двигалась — активация ЗАВТРА, внутри 48 ч от заморозки."
+   "note": "AVAX Helicon. Первоисточник перечитан 21.09 (2-й прогон): api.github.com/repos/ava-labs/avalanchego/releases?per_page=5 http 200, 250605 байт; релиз v1.15.0 (08.09.2026) дословно: «This release schedules the activation of the Helicon network upgrade at 11 AM ET (3 PM UTC) on Tuesday, September 22nd, 2026 on Mainnet». Дата не двигалась — активация ЗАВТРА, внутри 48 ч от заморозки, поэтому ПРИБЛИЖАЕТСЯ, а не НЕ ПРОВЕРЕНО. У AVAX строки нет: рынок ПЕРЕГРЕТ, и её собственная цена входа 8.73273 недостижима (2.65 сигмы за 7 дней)."
   },
   {
    "id": "cat-zec-nu7-2026-09-30",
@@ -28,7 +28,7 @@
    "unver": 0,
    "first_seen": "2026-09-18",
    "last_seen": "2026-09-21",
-   "note": "ZEC NU7. Первоисточник перечитан 21.09: forum.zcashcommunity.com/t/57655.json http 200, пост 17.09.2026. Даты не двигались: готовность кода 30.09, тестнет 06.10, мейннет 05.11. Внутри 14 дней только готовность кода; мейннет вне окна."
+   "note": "ZEC NU7. Первоисточник перечитан 21.09 (2-й прогон): forum.zcashcommunity.com/t/57655.json http 200, 33130 байт, пост ebfull 17.09.2026. Даты НЕ двигались: готовность кода 30.09, тестнет 06.10, ФИНАЛЬНОЕ решение по мейннету 20.10 (новая деталь этого чтения), мейннет 05.11. Внутри 14 дней только готовность кода 30.09."
   },
   {
    "id": "cat-us-pce-2026-09-30",
@@ -40,7 +40,7 @@
    "unver": 0,
    "first_seen": "2026-09-18",
    "last_seen": "2026-09-21",
-   "note": "PCE август 2026. Первоисточник перечитан 21.09: bea.gov/news/schedule http 200, строка «September 30, 8:30 AM, News, Personal Income and Outlays, August 2026». Дата не двигалась."
+   "note": "PCE август 2026. Первоисточник перечитан 21.09 (2-й прогон): bea.gov/news/schedule http 200, 75123 байта, строка «September 30 | 8:30 AM | News | Personal Income and Outlays, August 2026». Дата не двигалась. Агрегаторы в поиске этого прогона называли 26.09 — первоисточник их не подтверждает, стоит 30.09."
   },
   {
    "id": "cat-fomc-2026-10-27",
@@ -51,8 +51,8 @@
    "dclass": "primary",
    "unver": 0,
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-20",
-   "note": "Заседание ФРС 27-28.10.2026. Первоисточник перечитан 20.09 (третий прогон): federalreserve.gov/monetarypolicy/fomccalendars.htm http 200, 165460 байт, панель «2026 FOMC Meetings», строка «October 27-28» без звёздки (без SEP). Дата не двигалась. Вне 14 дней — свёрнутая строка. Вне 14 дней — свёрнутая строка, первоисточник в этом прогоне не перечитывался (следующая проверка при входе в окно)."
+   "last_seen": "2026-09-21",
+   "note": "Заседание ФРС 27-28.10.2026. Первоисточник перечитан 21.09 (2-й прогон): federalreserve.gov/monetarypolicy/fomccalendars.htm http 200, 165460 байт, панель «2026 FOMC Meetings», строка «October 27-28» без звёздки. Дата не двигалась. Вне 14 дней — свёрнутая строка."
   },
   {
    "id": "cat-sec-regcrypto-2026-10-20",
@@ -61,16 +61,16 @@
    "d": "2026-10-20",
    "impact": "УСЛОВНОЕ",
    "dclass": "primary",
-   "note": "SEC S7-2026-27 «Regulation Crypto Assets», дедлайн комментариев 20.10.2026. Первоисточник перечитан 20.09 (третий прогон) на переадресованном лейне: federalregister.gov/api/v1/documents/2026-17183.json http 200, 368 байт — type Proposed Rule, publication_date 2026-08-21, comments_close_on 2026-10-20, docket_ids «File No. S7-2026-27», RIN 3235-AN38. Дата не двигалась. Вне 14 дней — свёрнутая строка. Эффект: ШОРТ при ужесточении, УСЛОВНОЕ. Вне 14 дней — свёрнутая строка, первоисточник в этом прогоне не перечитывался (следующая проверка при входе в окно).",
+   "note": "SEC S7-2026-27 «Regulation Crypto Assets», дедлайн комментариев 20.10.2026. Первоисточник перечитан 21.09 (2-й прогон): federalregister.gov/api/v1/documents/2026-17183.json http 200, 235 байт — type Proposed Rule, publication_date 2026-08-21, comments_close_on 2026-10-20, File No. S7-2026-27, RIN 3235-AN38. Дата не двигалась. Вне 14 дней — свёрнутая строка.",
    "unver": 0,
    "first_seen": "2026-08-30",
-   "last_seen": "2026-09-20"
+   "last_seen": "2026-09-21"
   },
   {
    "id": "th-ada-2026-09-21",
    "type": "thesis",
    "sym": "ADA",
-   "status": "НОВОЕ",
+   "status": "БЕЗ ИЗМЕНЕНИЙ",
    "d": "2026-09-21",
    "entry": "0.237097-0.241883",
    "inv": 0.213698,
@@ -81,16 +81,21 @@
    "last_seen": "2026-09-21",
    "gap": 0.06793991416308894,
    "oi_prev": {
-    "v": 418405296.0,
+    "v": 416565715.0,
     "d": "2026-09-21"
    },
-   "note": "Свой тренд вверх (eff 0.698, z 1.57). Якорь срезан по ЦЕНЕ ПОЛА ТРЕНДА max(anchor,P_trend): база pullback 0.2181, P_trend 0.237097 (проверка: marketRegime в P_trend даёт eff 0.600), якорь 0.237097. Стоп через invalidationInfo с подстановкой 24ч-экстремума, floored=False, capped=False, источник мин30; цель = вход + RR_MIN*риск. Все ворота перезапущены на якоре: режим trend, L_money 3.5>=2, tgtSig 2.07>=1.0, погоня — окно структурной строки (pos30 0.78, pos90 0.88), не экстремум. P(зона 7д) 95%, P(стоп) 27%, P(цель) 6%, выживание 73%."
+   "note": "НАЛИТА 21.09 (рыночный вход СЕЙЧАС 0.2403). Тест §4 по суточным экстремумам payload: минимум дня 0.22110 зашёл в зону, максимум 0.24900; НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.24240: trend/1 по строке, trend на цене — сторона ЛОНГ не закрыта, значит четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ и НЕ ПЕРЕРЕЗАНЫ. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы и не закрывает уже налитую строку. ОГОВОРКА, вынесенная в приложение: 24-часовое окно payload перекрывает утренний прогон, поэтому доказать, что минимум наступил ПОСЛЕ публикации 09:50Z, инструментом, который называет файл, нельзя ни для одной из четырёх лимитных строк.",
+   "filled": {
+    "d": "2026-09-21",
+    "px": 0.2403,
+    "how": "рыночный вход СЕЙЧАС"
+   }
   },
   {
    "id": "th-algo-2026-09-21",
    "type": "thesis",
    "sym": "ALGO",
-   "status": "НОВОЕ",
+   "status": "БЕЗ ИЗМЕНЕНИЙ",
    "d": "2026-09-21",
    "entry": "0.109261-0.111253",
    "inv": 0.0987755,
@@ -101,16 +106,21 @@
    "last_seen": "2026-09-21",
    "gap": 0.06175213675213625,
    "oi_prev": {
-    "v": 88138123.6,
+    "v": 92677374.8,
     "d": "2026-09-21"
    },
-   "note": "Свой тренд вверх (eff 1.365, z 2.09). Якорь срезан по ЦЕНЕ ПОЛА ТРЕНДА max(anchor,P_trend): база cool-off 0.109261, P_trend 0.102251 (проверка: marketRegime в P_trend даёт eff 0.600), якорь 0.109261. Стоп через invalidationInfo с подстановкой 24ч-экстремума, floored=False, capped=False, источник мин30; цель = вход + RR_MIN*риск. Все ворота перезапущены на якоре: режим trend, L_money 3.6>=2, tgtSig 2.32>=1.0, погоня — окно структурной строки (pos30 0.93, pos90 0.95), не экстремум. P(зона 7д) 94%, P(стоп) 22%, P(цель) 4%, выживание 78%."
+   "note": "ЗОНА ДОСТИГНУТА 21.09. Минимум дня 0.107270 <= активирующая цена 0.111253; максимум дня 0.117820. НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.113180 сторону ЛОНГ не закрывает, четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ, зона НЕ перерезана. ЧЕГО ПРОГОН НЕ ЗНАЕТ: налился ли лимит. 24-часовое окно payload перекрывает утренний прогон (payload 09:46:59Z, минимум тогда 0.100610, цена 0.112120); сегодняшний минимум ВЫШЕ утреннего, значит старый минимум вышел из окна, и наступил ли сегодняшний минимум ДО или ПОСЛЕ публикации 09:50Z — по payload неразличимо. Файл инструмента для теста налива ожидающей строки не называет: §4 называет суточные экстремумы только для теста стопа и цели уже налитой строки. Находка записана в приложение. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы; уже налитую строку оно не закрывает.",
+   "filled": {
+    "d": "2026-09-21",
+    "px": 0.111253,
+    "how": "лимит — достижение зоны установлено, факт налива нет"
+   }
   },
   {
    "id": "th-trx-2026-09-21",
    "type": "thesis",
    "sym": "TRX",
-   "status": "НОВОЕ",
+   "status": "БЕЗ ИЗМЕНЕНИЙ",
    "d": "2026-09-21",
    "entry": "0.341580-0.342990",
    "inv": 0.335942,
@@ -121,16 +131,21 @@
    "last_seen": "2026-09-21",
    "gap": 0.23626373626372765,
    "oi_prev": {
-    "v": 292059478.0,
+    "v": 290698723.0,
     "d": "2026-09-21"
    },
-   "note": "Свой тренд вверх (eff 0.877, z 0.41). Якорь срезан по ЦЕНЕ ПОЛА ТРЕНДА max(anchor,P_trend): база pullback 0.34158, P_trend 0.341409 (проверка: marketRegime в P_trend даёт eff 0.600), якорь 0.34158. Стоп через invalidationInfo с подстановкой 24ч-экстремума, floored=True, capped=False, источник мин30; цель = вход + RR_MIN*риск. Все ворота перезапущены на якоре: режим trend, L_money 21.2>=2, tgtSig 1.88>=1.0, погоня — окно структурной строки (pos30 0.76, pos90 0.81), не экстремум. P(зона 7д) 86%, P(стоп) 34%, P(цель) 7%, выживание 66%."
+   "note": "ЗОНА ДОСТИГНУТА 21.09. Минимум дня 0.34233 <= активирующая цена 0.342990; максимум дня 0.34531. НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.34489 сторону ЛОНГ не закрывает, четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ, зона НЕ перерезана. ЧЕГО ПРОГОН НЕ ЗНАЕТ: налился ли лимит. 24-часовое окно payload перекрывает утренний прогон (payload 09:46:59Z, минимум тогда 0.34158, цена 0.34428); сегодняшний минимум ВЫШЕ утреннего, значит старый минимум вышел из окна, и наступил ли сегодняшний минимум ДО или ПОСЛЕ публикации 09:50Z — по payload неразличимо. Файл инструмента для теста налива ожидающей строки не называет: §4 называет суточные экстремумы только для теста стопа и цели уже налитой строки. Находка записана в приложение. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы; уже налитую строку оно не закрывает.",
+   "filled": {
+    "d": "2026-09-21",
+    "px": 0.34299,
+    "how": "лимит — достижение зоны установлено, факт налива нет"
+   }
   },
   {
    "id": "th-xlm-2026-09-21",
    "type": "thesis",
    "sym": "XLM",
-   "status": "НОВОЕ",
+   "status": "БЕЗ ИЗМЕНЕНИЙ",
    "d": "2026-09-21",
    "entry": "0.198655-0.202224",
    "inv": 0.184382,
@@ -141,16 +156,21 @@
    "last_seen": "2026-09-21",
    "gap": 0.3008587786259548,
    "oi_prev": {
-    "v": 244714779.0,
+    "v": 244081401.0,
     "d": "2026-09-21"
    },
-   "note": "Свой тренд вверх (eff 1.000, z 1.79). Якорь срезан по ЦЕНЕ ПОЛА ТРЕНДА max(anchor,P_trend): база pullback 0.18854, P_trend 0.198655 (проверка: marketRegime в P_trend даёт eff 0.600), якорь 0.198655. Стоп через invalidationInfo с подстановкой 24ч-экстремума, floored=True, capped=False, источник мин30; цель = вход + RR_MIN*риск. Все ворота перезапущены на якоре: режим trend, L_money 4.9>=2, tgtSig 1.86>=1.0, погоня — окно структурной строки (pos30 0.64, pos90 0.74), не экстремум. P(зона 7д) 75%, P(стоп) 33%, P(цель) 9%, выживание 67%."
+   "note": "ЗОНА ДОСТИГНУТА 21.09. Минимум дня 0.19097 <= активирующая цена 0.202224; максимум дня 0.21321. НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.20848 сторону ЛОНГ не закрывает, четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ, зона НЕ перерезана. ЧЕГО ПРОГОН НЕ ЗНАЕТ: налился ли лимит. 24-часовое окно payload перекрывает утренний прогон (payload 09:46:59Z, минимум тогда 0.18854, цена 0.20853); сегодняшний минимум ВЫШЕ утреннего, значит старый минимум вышел из окна, и наступил ли сегодняшний минимум ДО или ПОСЛЕ публикации 09:50Z — по payload неразличимо. Файл инструмента для теста налива ожидающей строки не называет: §4 называет суточные экстремумы только для теста стопа и цели уже налитой строки. Находка записана в приложение. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы; уже налитую строку оно не закрывает.",
+   "filled": {
+    "d": "2026-09-21",
+    "px": 0.202224,
+    "how": "лимит — достижение зоны установлено, факт налива нет"
+   }
   },
   {
    "id": "th-ondo-2026-09-21",
    "type": "thesis",
    "sym": "ONDO",
-   "status": "НОВОЕ",
+   "status": "БЕЗ ИЗМЕНЕНИЙ",
    "d": "2026-09-21",
    "entry": "0.413431-0.422251",
    "inv": 0.37815,
@@ -161,48 +181,28 @@
    "last_seen": "2026-09-21",
    "gap": 0.38978672985781954,
    "oi_prev": {
-    "v": 139836210.1,
+    "v": 149660171.8,
     "d": "2026-09-21"
    },
-   "note": "Свой тренд вверх (eff 1.080, z 2.42). Якорь срезан по ЦЕНЕ ПОЛА ТРЕНДА max(anchor,P_trend): база cool-off 0.413431, P_trend 0.410024 (проверка: marketRegime в P_trend даёт eff 0.600), якорь 0.413431. Стоп через invalidationInfo с подстановкой 24ч-экстремума, floored=True, capped=False, источник мин30; цель = вход + RR_MIN*риск. Все ворота перезапущены на якоре: режим trend, L_money 4.1>=2, tgtSig 1.85>=1.0, погоня — окно структурной строки (pos30 0.86, pos90 0.89), не экстремум. P(зона 7д) 73%, P(стоп) 33%, P(цель) 9%, выживание 67%."
+   "note": "ЗОНА ДОСТИГНУТА 21.09. Минимум дня 0.4086000 <= активирующая цена 0.422251; максимум дня 0.4589000. НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.4484000 сторону ЛОНГ не закрывает, четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ, зона НЕ перерезана. ЧЕГО ПРОГОН НЕ ЗНАЕТ: налился ли лимит. 24-часовое окно payload перекрывает утренний прогон (payload 09:46:59Z, минимум тогда 0.4042, цена 0.4387); сегодняшний минимум ВЫШЕ утреннего, значит старый минимум вышел из окна, и наступил ли сегодняшний минимум ДО или ПОСЛЕ публикации 09:50Z — по payload неразличимо. Файл инструмента для теста налива ожидающей строки не называет: §4 называет суточные экстремумы только для теста стопа и цели уже налитой строки. Находка записана в приложение. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы; уже налитую строку оно не закрывает.",
+   "filled": {
+    "d": "2026-09-21",
+    "px": 0.422251,
+    "how": "лимит — достижение зоны установлено, факт налива нет"
+   }
   },
   {
-   "id": "th-zec-2026-09-18",
-   "type": "thesis",
-   "sym": "ZEC",
-   "status": "БЕЗ ИЗМЕНЕНИЙ",
-   "d": "2026-09-21",
-   "entry": "1351.802627-1387.209471",
-   "inv": 1210.175251,
-   "tgt": 1741.277912,
-   "trigger": 1387.209471,
-   "first_seen": "2026-09-18",
+   "id": "cat-sky-spell-2026-09-24",
+   "type": "catalyst",
+   "sym": "SKY",
+   "status": "НОВОЕ",
+   "d": "2026-09-24",
+   "dclass": "primary",
+   "impact": "УСЛОВНОЕ",
+   "unver": 0,
+   "first_seen": "2026-09-21",
    "last_seen": "2026-09-21",
-   "note": "ПЕРЕНЕСЕНА БЕЗ ПЕРЕРЕЗКИ (§4: перенесённая зона измеряется, а не режется заново). Проверка перенесённого якоря 1387.209471: marketRegime на своей строке читает ТРЕНД ВВЕРХ (ZEC eff 0.958 z 1.994 / UNI eff 0.725 z 1.994) — сторона допущена, строка стоит. Цена 1505.67 выше зоны, это неисполненный лимит, не событие. gap в единицах суточного хода записан для правила gap/gap_prev следующего прогона. P(зона 7д) 55%. Свежая нарезка на этой заморозке дала бы другой якорь и по §4 не применяется.",
-   "oi_prev": {
-    "v": 472269.067,
-    "d": "2026-09-21"
-   },
-   "gap": 0.9872533461121774
-  },
-  {
-   "id": "th-uni-2026-09-18",
-   "type": "thesis",
-   "sym": "UNI",
-   "status": "БЕЗ ИЗМЕНЕНИЙ",
-   "d": "2026-09-21",
-   "entry": "7.758035-7.960960",
-   "inv": 6.946337,
-   "tgt": 9.990204,
-   "trigger": 7.96096,
-   "first_seen": "2026-09-18",
-   "last_seen": "2026-09-21",
-   "note": "ПЕРЕНЕСЕНА БЕЗ ПЕРЕРЕЗКИ (§4: перенесённая зона измеряется, а не режется заново). Проверка перенесённого якоря 7.96096: marketRegime на своей строке читает ТРЕНД ВВЕРХ (ZEC eff 0.958 z 1.994 / UNI eff 0.725 z 1.994) — сторона допущена, строка стоит. Цена 9.048 выше зоны, это неисполненный лимит, не событие. gap в единицах суточного хода записан для правила gap/gap_prev следующего прогона. P(зона 7д) 36%. Свежая нарезка на этой заморозке дала бы другой якорь и по §4 не применяется.",
-   "oi_prev": {
-    "v": 25068201.0,
-    "d": "2026-09-21"
-   },
-   "gap": 1.372525252525253
+   "note": "Исполнение spell Sky 24.09.2026. Первоисточник прочитан 21.09: forum.skyeco.com/t/28229.json http 200, 126157 байт, тема «[September 24, 2026] - Proposed Changes to Grove for Upcoming Spell» (создана 10.09). Три темы одной даты: Grove (28229), Spark (28237), Osero (28224). Содержание — казначейское распределение 800k USDS, онбординг USDC-хранилища Morpho на Base, снятие лимитов DPAU. СТОРОНЫ НЕ ДАЁТ: ни эмиссии, ни разлока, ни параметра, который двигает цену SKY. Печатается одной оговоркой под ДАЛЬШЕ по правилу §2 о дат. событии без стороны. Строки у SKY нет — своя строка читает ДИАПАЗОН, якоря §4 не существует."
   }
  ],
  "archive": [
@@ -1888,442 +1888,606 @@
    "note": "СНЯТА 21.09: вход был одной замороженной ценой 0.02488, цена ушла на +6.2% (0.02642) — уровень для повторного использования не переживает (§4, §11). Не стоп и не цель: строка просто перестала существовать по своей цене.",
    "first_seen": "2026-09-20",
    "last_seen": "2026-09-21"
+  },
+  {
+   "id": "th-zec-2026-09-18",
+   "sym": "ZEC",
+   "d": "2026-09-21",
+   "closed": "2026-09-21",
+   "status": "ОТМЕНЕНО"
+  },
+  {
+   "id": "th-uni-2026-09-18",
+   "sym": "UNI",
+   "d": "2026-09-21",
+   "closed": "2026-09-21",
+   "status": "ОТМЕНЕНО"
   }
  ],
  "sweeps": {
   "horizon": {
    "macro-cb": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "www.federalreserve.gov (monetarypolicy/fomccalendars.htm 200, 165460 байт)",
     "n": 1,
     "from": "2026-01-27"
    },
    "macro-prints": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
-    "host": "www.bea.gov (news/schedule 200, 75123 байта); bls.gov 403 — лейн переадресован на api.bls.gov (200), календаря релизов не отдаёт",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
+    "host": "www.bea.gov (news/schedule 200, 75123 байта)",
     "n": 2,
-    "from": "2026-09-24"
+    "from": "2026-09-30"
    },
    "intl-institutional": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
-    "host": "home.treasury.gov (news/press-releases 200, 71195 байт)",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
+    "host": "home.treasury.gov (news/press-releases 200, 71195 байт) — датированных событий финансового трека G7/G20 в окне нет",
     "n": 0,
-    "from": "2026-09-16"
+    "from": "2026-09-09"
    },
    "regulatory": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
-    "host": "www.federalregister.gov (api/v1/documents.json 200, 9259 байт) — ПЕРЕАДРЕСАЦИЯ лейна с sec.gov, который держал его 5 прогонов",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
+    "host": "www.federalregister.gov (api/v1/documents.json SEC c 2026-08-21 200, 10366 байт, count 221; documents/2026-17183.json 200, 235 байт)",
     "n": 2,
-    "from": "2026-06-09"
+    "from": "2026-08-21"
    },
    "protocol-votes": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
-    "host": "forum.zcashcommunity.com (t/57655.json 200, 29434 байта; t/57650.json 200, 27930 байт)",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
+    "host": "forum.zcashcommunity.com (latest.json 200, 49597 байт, 30 тем; t/57655.json 200, 33130 байт)",
     "n": 2,
-    "from": "2026-09-17"
+    "from": "2026-09-20"
    },
    "outside-list": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
-    "host": "www.binance.com (bapi/composite/v1/public/cms/article/list/query 200, 66495 байт, 350 записей)",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
+    "host": "www.binance.com (bapi/composite/v1/public/cms/article/list/query 200, 66535 байт, 350 записей) — листингов и делистингов по монетам tokens[] с будущей датой нет",
     "n": 0,
-    "from": "2022-04-13"
+    "from": "2021-02-02"
    },
    "owner-vector-uni": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
-    "host": "gov.uniswap.org (latest.json 200, 42559 байт, 30 тем, 0 попаданий по заявке)",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
+    "host": "gov.uniswap.org (latest.json 200, 42650 байт, 30 тем, 0 попаданий по заявке о накоплении крупными держателями)",
     "n": 0,
     "from": "2026-06-29"
    },
    "capital-tvl": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
-    "host": "api.llama.fi (v2/chains 200, 64200 байт, 467 цепей)",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
+    "host": "api.llama.fi (v2/chains 200, 64211 байт)",
     "n": 0,
     "from": ""
    }
   },
   "coins": {
    "AAVE": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "governance.aave.com",
     "n": 30,
-    "from": "2026-09-11"
+    "from": "2026-09-15",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "не измерена",
+     "move": "+14.03% 2026-08-22"
+    }
    },
    "ADA": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.cardano.org",
     "n": 30,
     "from": "2026-09-14",
     "c2": {
-     "d": "2026-09-20",
-     "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+     "d": "2026-09-21",
+     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
      "host": "api.github.com",
      "n": 5,
      "from": "2026-04-15"
+    },
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "+13.52% 2026-09-03"
     }
    },
    "ALGO": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.algorand.co",
     "n": 30,
-    "from": "2026-06-05"
+    "from": "2026-06-05",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "охвачена",
+     "move": "+12.05% 2026-09-20",
+     "carried_by": "forum.algorand.co"
+    }
    },
    "ARB": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.arbitrum.foundation",
     "n": 30,
-    "from": "2026-09-08"
+    "from": "2026-09-11",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "не измерена",
+     "move": "нет структурной строки — площадка ОБЪЯВЛЕНА только фьючерсной (карта §3.14, инв. 41), px.p24 в journal/data отсутствует, крупнейший ход не вычисляется"
+    }
    },
    "AVAX": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2025-11-05"
+    "from": "2025-11-05",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "+18.67% 2026-09-19"
+    }
    },
    "BCH": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "gitlab.com",
     "n": 5,
-    "from": "2024-07-10"
+    "from": "2024-07-10",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "-12.26% 2026-09-10"
+    }
    },
    "BNB": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.bnbchain.org",
     "n": 30,
-    "from": "2025-08-21"
+    "from": "2025-08-21",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "+7.26% 2026-09-05"
+    }
    },
    "ENA": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "gov.ethenafoundation.com",
     "n": 30,
-    "from": "2026-02-04"
+    "from": "2026-02-04",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "+20.92% 2026-09-19"
+    }
    },
    "ETH": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "ethereum-magicians.org",
     "n": 30,
     "from": "2026-09-16",
     "c2": {
-     "d": "2026-09-20",
-     "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+     "d": "2026-09-21",
+     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
      "host": "blog.ethereum.org",
      "n": 639,
      "from": "2013-12-31"
+    },
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "охвачена",
+     "move": "+5.33% 2026-09-11",
+     "carried_by": "blog.ethereum.org"
     }
    },
    "FET": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2025-11-20"
+    "from": "2025-11-20",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "охвачена",
+     "move": "+11.98% 2026-09-17",
+     "carried_by": "api.github.com"
+    }
    },
    "GRAM": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2026-05-31"
+    "from": "2026-05-31",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "-6.17% 2026-09-01"
+    }
    },
    "HBAR": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2026-08-05"
+    "from": "2026-08-05",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "+9.93% 2026-09-03"
+    }
    },
    "LINK": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2026-08-17"
+    "from": "2026-08-17",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "+6.89% 2026-09-18"
+    }
    },
    "MORPHO": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.morpho.org",
     "n": 30,
-    "from": "2026-02-22"
+    "from": "2026-02-22",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "не измерена",
+     "move": "нет структурной строки — площадка ОБЪЯВЛЕНА только фьючерсной (карта §3.14, инв. 41), px.p24 в journal/data отсутствует, крупнейший ход не вычисляется"
+    }
    },
    "NEAR": {
     "d": "2026-09-21",
-    "status": "неохваченная",
-    "move": "+26.30% 2026-09-18 (крупнейший однодневный ход за 30 дней, journal/data/*.jsonl, поле px.p24)",
-    "lane": "gov.near.org — форум управления",
-    "carried_by": "www.near.org/blog",
-    "note": "Лейн §6a у NEAR один и это форум управления; ход 18.09 произошёл после запуска конфиденциальных перпетуалов 17.09, который NEAR публикует на своём блоге, а не на форуме. Предложение Архитектору (таблица §6a — его, не прогона): добавить www.near.org/blog как release-лейн NEAR. ВАЖНО: блог отдаётся клиентским рендерингом, прямой fetch вернул «Loading articles…» — лейн потребует не только адреса."
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
+    "host": "gov.near.org",
+    "n": 30,
+    "from": "2026-04-06",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "охвачена",
+     "move": "+26.30% 2026-09-18",
+     "carried_by": "gov.near.org"
+    }
    },
    "RENDER": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "rendernetwork.medium.com",
     "n": 10,
-    "from": "2026-04-09"
+    "from": "2026-04-09",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "+10.02% 2026-09-17"
+    }
    },
    "SKY": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.skyeco.com",
     "n": 30,
-    "from": "2026-09-07"
+    "from": "2026-09-07",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "охвачена",
+     "move": "+16.69% 2026-09-18",
+     "carried_by": "forum.skyeco.com"
+    }
    },
    "SOL": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.solana.com",
     "n": 30,
-    "from": "2025-04-16"
+    "from": "2025-04-16",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "охвачена",
+     "move": "+10.19% 2026-09-18",
+     "carried_by": "forum.solana.com"
+    }
    },
    "SUI": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forums.sui.io",
     "n": 30,
-    "from": "2026-06-02"
+    "from": "2026-06-02",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "охвачена",
+     "move": "+9.55% 2026-09-03",
+     "carried_by": "forums.sui.io"
+    }
    },
    "TAO": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2026-09-04"
+    "from": "2026-09-04",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "не измерена",
+     "move": "+9.46% 2026-08-27"
+    }
    },
    "TRX": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2026-02-04"
+    "from": "2026-02-04",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "-3.12% 2026-09-01"
+    }
    },
    "UNI": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "gov.uniswap.org",
     "n": 30,
-    "from": "2026-06-29"
+    "from": "2026-06-29",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "охвачена",
+     "move": "+23.04% 2026-09-17",
+     "carried_by": "gov.uniswap.org"
+    }
    },
    "XLM": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2026-05-15"
+    "from": "2026-05-15",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "-9.23% 2026-09-16"
+    }
    },
    "XMR": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2025-11-19"
+    "from": "2025-11-19",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "не измерена",
+     "move": "нет структурной строки — площадка ОБЪЯВЛЕНА только фьючерсной (карта §3.14, инв. 41), px.p24 в journal/data отсутствует, крупнейший ход не вычисляется"
+    }
    },
    "XRP": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2026-05-08"
+    "from": "2026-05-08",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "-9.62% 2026-09-16"
+    }
    },
    "YFI": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "gov.yearn.fi",
     "n": 30,
-    "from": "2025-07-30"
+    "from": "2025-07-30",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "+6.48% 2026-09-18"
+    }
    },
    "ZEC": {
-    "d": "2026-09-20",
-    "sec6_md5": "1e3258287ac3160525cd1b8f94eacf52",
+    "d": "2026-09-21",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.zcashcommunity.com",
     "n": 30,
-    "from": "2026-09-18"
+    "from": "2026-09-20",
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "не измерена",
+     "move": "+21.58% 2026-08-22"
+    }
+   },
+   "ONDO": {
+    "coverage": {
+     "d": "2026-09-21",
+     "status": "неохваченная",
+     "move": "+14.04% 2026-09-17",
+     "carried_by": "канала у ONDO нет — §6a объявляет его необслуженным"
+    }
    }
   },
   "discovery": {
    "FET": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Fetch.ai FET Artificial Superintelligence Alliance dated event unlock upgrade listing late September October 2026",
     "n": 0
    },
    "ZEC": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Zcash ZEC dated event NU7 activation upgrade listing late September October 2026",
     "n": 1
    },
    "UNI": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Uniswap UNI dated event governance vote fee switch UNIfication late September October 2026",
     "n": 0
    },
    "NEAR": {
-    "d": "2026-09-20",
-    "q": "NEAR Protocol dated event unlock upgrade governance vote listing late September October 2026",
-    "n": 0
+    "d": "2026-09-21",
+    "q": "NEAR Protocol dated event unlock upgrade governance vote listing product launch late September October 2026",
+    "n": 1
    },
    "SUI": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Sui SUI dated event token unlock upgrade governance vote listing late September October 2026",
     "n": 1
    },
    "ONDO": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Ondo Finance ONDO dated event token unlock launch listing late September October 2026",
     "n": 0
    },
    "LINK": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Chainlink LINK dated event upgrade listing unlock announcement late September October 2026",
     "n": 0
    },
    "RENDER": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Render Network RENDER dated event unlock upgrade migration listing late September October 2026",
-    "n": 0
-   },
-   "SOL": {
-    "d": "2026-09-20",
-    "q": "Solana SOL dated event upgrade ETF governance vote late September October 2026",
-    "n": 0
-   },
-   "ETH": {
-    "d": "2026-09-20",
-    "q": "Ethereum ETH dated event next upgrade fork ETF staking decision late September October 2026",
     "n": 1
    },
+   "SOL": {
+    "d": "2026-09-21",
+    "q": "Solana SOL dated event upgrade ETF governance vote Alpenglow late September October 2026",
+    "n": 1
+   },
+   "ETH": {
+    "d": "2026-09-21",
+    "q": "Ethereum ETH dated event next upgrade fork ETF staking decision late September October 2026",
+    "n": 2
+   },
    "XRP": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "XRP Ripple dated event ETF decision court escrow unlock late September October 2026",
     "n": 1
    },
    "ADA": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Cardano ADA dated event hard fork upgrade governance vote listing late September October 2026",
-    "n": 1
+    "n": 2
    },
    "AVAX": {
-    "d": "2026-09-20",
-    "q": "Avalanche AVAX dated event Helicon activation unlock ETF decision listing late September October 2026",
+    "d": "2026-09-21",
+    "q": "Avalanche AVAX Helicon activation September 22 2026 unlock ETF decision listing October 2026",
     "n": 1
    },
    "TAO": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Bittensor TAO dated event halving upgrade subnet listing late September October 2026",
     "n": 0
    },
    "ENA": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Ethena ENA dated event unlock fee switch vote late September October 2026",
     "n": 1
    },
    "AAVE": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Aave AAVE dated event governance vote V4 launch upgrade late September October 2026",
     "n": 0
    },
    "TRX": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "TRON TRX dated event network upgrade governance listing ETF late September October 2026",
     "n": 0
    },
    "BNB": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "BNB Chain dated event hard fork upgrade burn listing late September October 2026",
     "n": 0
    },
    "XLM": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Stellar XLM dated event protocol 24 upgrade vote listing late September October 2026",
     "n": 0
    },
    "HBAR": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Hedera HBAR dated event council ETF decision upgrade late September October 2026",
     "n": 0
    },
    "ALGO": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Algorand ALGO dated event upgrade xGov vote unlock late September October 2026",
     "n": 0
    },
    "XMR": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Monero XMR dated event hard fork upgrade exchange delisting late September October 2026",
-    "n": 1
+    "n": 2
    },
    "BCH": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Bitcoin Cash BCH dated event November 15 upgrade ETF listing late September October 2026",
     "n": 0
    },
    "ARB": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Arbitrum ARB dated event DAO vote unlock upgrade late September October 2026",
     "n": 2
    },
    "HYPE": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Hyperliquid HYPE dated event unlock buyback listing late September October 2026",
-    "n": 2
+    "n": 1
    },
    "SKY": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Sky Protocol SKY token dated event executive spell vote upgrade late September October 2026",
     "n": 0
    },
    "MORPHO": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Morpho MORPHO dated event DAO vote unlock listing late September October 2026",
     "n": 0
    },
    "GRAM": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Toncoin TON GRAM dated event upgrade unlock listing late September October 2026",
     "n": 1
    },
    "YFI": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "Yearn Finance YFI dated event vote buyback treasury late September October 2026",
     "n": 0
    },
    "LIT": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "LIT token Binance futures dated event unlock delisting September October 2026",
     "n": 0
    },
    "us-legislation": {
-    "d": "2026-09-20",
-    "q": "US crypto legislation Senate CLARITY Act market structure vote schedule SEC CFTC calendar late September 2026",
-    "n": 1
+    "d": "2026-09-21",
+    "q": "US crypto legislation Senate CLARITY Act market structure vote schedule SEC CFTC calendar late September October 2026",
+    "n": 0
    },
    "etf-decisions": {
-    "d": "2026-09-20",
+    "d": "2026-09-21",
     "q": "crypto ETF decision deadline dates late September October 2026 SEC 19b-4 S-1 altcoin ETF launches",
     "n": 0
    },
    "macro-7d": {
-    "d": "2026-09-20",
-    "q": "US economic calendar week September 21-25 2026 releases jobless claims durable goods Fed speakers PCE",
+    "d": "2026-09-21",
+    "q": "US economic calendar September 22-28 2026 releases PCE jobless claims Fed speakers durable goods",
     "n": 2
    },
    "exchange-wide": {
-    "d": "2026-09-20",
-    "q": "Binance listing delisting announcement September 20 2026 new futures perpetual policy change",
+    "d": "2026-09-21",
+    "q": "Binance listing delisting announcement September 21 2026 new futures perpetual policy change",
     "n": 1
    }
   }
