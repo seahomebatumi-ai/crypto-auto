@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-25-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-26-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,33 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-09-26-a` repairs the line `2026-09-25-a` added and closes the three gaps its first run
+exposed.** Measured on the run of 21.09, the first under `-25-a`: the trend floor executed on all
+nineteen coins in their own trend or stress, verified to `EFF_TREND` on every one, and the book
+went from two rows to seven. **(1) The price `-25-a` put beside every name in `В тренде, входа
+сегодня нет` was the REFUSING price, and a price beside a name reads as an entry:** of twelve
+names printed that day, two carried a price at which the coin becomes a trade; seven carried the
+anchor at which the chase test FAILED, and three carried a price for a coin whose trend floor and
+cool-off do not overlap — a coin with no entry at any price. The line now prints the price at
+which the coin BECOMES a trade, and a coin with no such price today stands after «ни по какой
+цене:» with none (§2). **(2) The run recorded one objection and it was correct:** item 4 names the
+trend window and never said what «extended» means, and two good-faith readings differed by six
+rows of seven. Extended now means BEYOND the window's own extreme — the reading the run chose,
+production's objects and no threshold — and **a chase refusal lifts at the RETEST of the broken
+extreme** (§4), which is the entry §4 has named for a trend since this file existed («the entry is
+a breakout retest or nothing») and which no branch ever computed. **(3) The catalyst hunt did not
+run and the answer looked as if it had:** `-25-a` edited §6 and moved `sec6_md5`, so all
+thirty-five lanes were stale by rule and none now carries the new digest, the discovery search was
+not run for the new UTC day, item 90 measured one coin of twenty-five, and `# КАТАЛИЗАТОРЫ`
+printed its carried items exactly as a completed hunt prints them. It is now the fourth mandatory
+search and prints «Поиск не завершён.» whenever that happens (§2). **(4) Four rows entered at
+market the day before were printed «Снимаю … цена ушла» with neither stop nor target reached** — a
+word a holder reads as «exit», on a short sitting 6.2 % against him inside a stop at 15.1 %. A
+filled row is never «снят» for the price leaving its entry (§4). **(5) Item 90's result is a field
+BESIDE a coin's lane** (§11): the run wrote NEAR's measurement over its lane record. **No edit
+touches §6 or §6a:** the lanes are stale from `-25-a` and the next run re-reads them once under
+its digest. §7 gains items 91–93; items 4, 77 and 88 are corrected in place.
 
 **`2026-09-25-a` answers the owner directive of 20.09.2026 — «find the move before it runs» —
 and the answer is that the DETECTION leg is not what failed.** Measured on this engine's own
@@ -249,7 +276,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 Вход $X–$X · Стоп $X (+X.X%) · Цель $X → $X
 ⚠ — против режима рынка: повышенный риск
 Свой ход сильнее BTC: XXX · XXX · слабее: XXX · одновременно X лонгов / X шортов, из них X идут с рынком
-В тренде, входа сегодня нет: XXX $X · XXX $X
+В тренде, входа сегодня нет: XXX $X · XXX $X · ни по какой цене: XXX
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
 **МОНЕТА · ПОВЫШЕННЫЙ РИСК** — вход $X–$X · стоп $X (−X.X%) · цель $X (+X.X%). Почему: одно предложение.
@@ -271,10 +298,13 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 ИДЁТ СЕЙЧАС — **событие.** Что отменяет сетап: … Эффект: [сторона] · [сила]. Что меняет: …
 ВПЕРЕДИ СЕГОДНЯ — **ЧЧ:ММ Тбилиси / ЧЧ:ММ ET — событие.** Эффект: [сторона] · [сила]. Что меняет: …
 ДАЛЬШЕ — **ДД.ММ — событие.** Эффект: [сторона] · [сила]. Что меняет: …
+СВЕРШИЛОСЬ — **ДД.ММ — событие.** Эффект: [сторона] · [сила]. Что меняет: …
 
 Каждый пункт несёт метку влияния [ВЫСОКОЕ / СРЕДНЕЕ / УСЛОВНОЕ] и статус
 [НОВОЕ / БЕЗ ИЗМЕНЕНИЙ / ПРИБЛИЖАЕТСЯ / ИЗМЕНИЛОСЬ / НЕ ПРОВЕРЕНО /
-НЕ ПОДТВЕРЖДЕНО]; `СРАБОТАЛО` — только у `УЖЕ БЫЛО СЕГОДНЯ`.
+НЕ ПОДТВЕРЖДЕНО]; `СРАБОТАЛО` — только у `УЖЕ БЫЛО СЕГОДНЯ`; `СВЕРШИЛОСЬ` — только у
+строки `СВЕРШИЛОСЬ`, состояния, уже отгруженного внутри окна удержания (§6). Секция
+заканчивается строкой «Поиск не завершён.», если охота не завершилась (§2).
 
 # ИТОГ
 ЛОНГ: … · ШОРТ: … · ЖДАТЬ: … · ИЗБЕГАТЬ: XXX · XXX до ДД.ММ
@@ -410,14 +440,20 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   of them (`BNB`, `FET`, `TRX`) classed `market` by the run's own `residual7`, and nothing in
   the answer said so. `В тренде, входа сегодня нет` names every coin in its own trend at
   the freeze that carries no row, no `СОЗРЕВАЕТ` item and no `ИЗБЕГАТЬ` reason of its own (§4),
-  **and every name in it carries that coin's own refusing PRICE** — its trend floor, its
-  cool-off price, or both where both were computed (§4) — in the form `NEAR 2.8713`. **A bare
-  list of names in this line is the banned form of `ИТОГ` arriving through the one line the rule
-  did not cover:** this file already says that a name with no price and no date leaves the field
-  rather than being printed without one, and it says it about a field the Boss reads after this
-  one. **Measured 20.09, third run:** ten names, no prices, on a line the owner read — correctly —
-  as a statement that the coins had already risen and nothing was to be done about any of them.
-  The same ten refusals carried eight computed prices in the run's own appendix.
+  **and every name in it carries the price at which that coin BECOMES a trade** — the activating
+  price of its cool-off, its trend floor or its retest (§4), whichever its own refusing condition
+  lifts at, with every gate but reachability passing there — in the form `NEAR $2.8033`. **A coin
+  for which no price passes today stands after «ни по какой цене:» at the end of the line, with
+  none** — its trend floor beyond its cool-off or its retest, so the conditions are incompatible
+  (§4). **A price beside a name reads as an entry, and a price at which the file refuses is the
+  one number that must never stand there.** Measured 21.09, the first run under `-25-a`, which
+  printed the REFUSING price: of twelve names, two carried a price at which the coin becomes a
+  trade, seven carried the anchor at which the chase test had just failed, and three carried a
+  price for a coin whose trend floor and cool-off do not overlap, with no entry at any price. **A
+  bare list of names is the other failure, and `-25-a` closed it:** measured 20.09, third run, ten
+  names and no prices, on a line the owner read — correctly — as a statement that the coins had
+  already risen and nothing was to be done about any of them, while the run's own appendix held
+  eight computed prices.
   **A coin in its own trend is never absent from the answer.** Measured 19.09: six coins trending
   up at the freeze — SUI, ONDO, RENDER, SOL, ETH, XLM — appeared nowhere, on the morning after the
   owner asked for the second time why a rising coin was hidden from him.
@@ -436,6 +472,20 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   is a measurement and an unrun sweep is a gap has always been true internally; this is
   the same distinction reaching the person who trades on it. These lines are section
   values, not an account of the system, and §1's ban is untouched by them.
+- **`# КАТАЛИЗАТОРЫ` is the fourth mandatory search, and its incomplete state is printed.** Its
+  carried items print as always — each was re-read at its own address (§6) and stands on that
+  read — and **the section ends with «Поиск не завершён.» whenever the hunt that would have found
+  a NEW item did not complete this run**: any lane of §6a stale by date or by `sec6_md5`, any coin
+  of `tokens[]` or systemic lane without today's discovery search (§6), or any coin whose lane
+  coverage item 90 required and did not measure. The string is the fixed one above — no reason,
+  no host, no count — and it is decided from `analyst/state.json` as written by this run, so the
+  answer and the state cannot disagree about it. **A hunt that found nothing and a hunt that did
+  not run print identically without it**, and the Boss reads an unchanged catalyst section as
+  «nothing new is coming». **Measured 21.09:** the revision before this one moved `sec6_md5`, all
+  thirty-five lanes were stale by rule and none now carries the new digest, no discovery search
+  ran for the new UTC day, item 90 measured one coin of twenty-five — and the section printed five carried items
+  in exactly the form a complete hunt prints them, on the first run of a revision the owner had
+  asked for because catalysts were being found too late.
 - **A `СОЗРЕВАЕТ` trigger price carries the CURRENT price beside it and the distance in
   per cent.** «цена $1.4255 (сейчас $1.4730, −3.2%)» tells the Boss in one glance how far the
   setup is from arming; the trigger alone makes him fetch a second number to use the first.
@@ -1105,7 +1155,20 @@ carries nine copies of one constant while the log carries the computation (§12)
   trend that has just run; refused, it would hide exactly the coins a rising list is led by.
 - **A level carried in state is re-verified against live price before reuse.** If
   price has left the zone, the recommendation is withdrawn by name in the first line
-  («снимаю X — цена ушла на +N%») before anything else.
+  («снимаю X — цена ушла на +N%») before anything else. **A FILLED row is never «снят» for price
+  having left its entry.** A `СЕЙЧАС` row and every outside-list row are entered at the frozen
+  price, so by the next freeze their entry has always «left», and «снимаю» is the one word a holder
+  reads as «exit». **A filled row stands in `items` with its entry, stop and target until one of
+  three events: its stop, its target, or the end of its horizon (§4) — and, for a list row, its
+  own regime failing at the frozen price (§2).** The first run after the fill prints it once in the
+  first line as closed to new money with its levels in force — «ZIL · SKL — вход по рынку от 20.09
+  закрыт для новых денег; стоп и цель от входа в силе» — and every later run prints it only on its
+  event, naming the level reached. Each run tests the stop and the target against the day's own
+  high and low from the payload (§5), the list row from `c` and the outside-list row from `x`.
+  **«Снимаю» is reserved for an event, and the event is named.** **Measured 21.09:** ZIL, SKL,
+  CTSI and the STABLE short, all four entered at market on 20.09, were printed «Снимаю … цена ушла с
+  каждой из них» with no stop and no target reached — three in profit, and the short 6.2 % against
+  its holder inside a stop of 15.1 %.
 - **A `СОЗРЕВАЕТ` zone is MEASURED against the market every run, and a zone the market
   is walking away from is withdrawn.** The item carries `gap` — the distance from the
   frozen price to the near edge of its own zone, divided by that coin's own 24-hour range
@@ -1404,6 +1467,33 @@ carries nine copies of one constant while the log carries the computation (§12)
   price beside any of them. A coin whose trend survives to within a hundredth of the threshold
   and a coin whose trend is entirely in today's candle were refused by the same sentence and
   reported identically.
+- **The chase refusal lifts at the RETEST of the broken extreme, and that price is computed, not
+  chosen.** In `БЫЧИЙ` or `МЕДВЕЖИЙ` item 4 measures the anchor on the structural row, and an
+  anchor is EXTENDED on a window when it lies BEYOND that window's own extreme on its side —
+  above `max30` or `max_price` for a long, below `min30` or `min_price` for a short. A chase is
+  extended on BOTH, so for a long it is an anchor above the row's 90-day high (`max_price` is
+  never below `max30`), and the chase lifts at exactly that high: the level the move broke, which
+  is where a breakout is retested and where this file has always said a trend is entered. **The
+  retest zone is cut exactly as the cool-off zone is, with the broken extreme standing in for
+  `P_z`** — `L × (1 ∓ ENTRY_CHASE_SD × sigmaDay(vol))` for its anchor, `L` = `max_price` for a
+  long and `min_price` for a short — so the whole zone sits at or inside the broken level and no
+  fill in it is a chase. **Every gate is re-run at that anchor, the coin's own regime first**, under
+  the rule above: where the trend floor lies beyond the retest — the trend would end before the
+  level is retested — the two conditions are incompatible and the coin has no entry at any price;
+  otherwise the anchor is `max(retest anchor, P_trend)` for a long, `min(…)` for a short, and the
+  row stands or falls on the unchanged gates, its section set by the reachability test exactly as
+  every other own-trend row's is. **No constant, input or threshold is new:** the extremes are the
+  structural row's, the band is production's, and «beyond the extreme» is the one definition of
+  «extended» that needs no number — a band such as §3B's `pos` 0.65 would import a figure §3B
+  itself declares uncalibrated into a publication gate (map inv. 47, 49). **Measured 21.09:** seven
+  coins — ETH, SOL, BNB, TAO, AAVE, FET, HBAR — were refused as chases with their anchors at a
+  90-day `pos` of 1.01 to 1.06, above the range on both windows, and each was printed beside the
+  anchor that FAILED, which is the one price on the chart at which the file had just said not to
+  buy. **No claim of edge rides on the retest either:** which of the two entries — the pullback
+  or the retest — earns more over the holding window is an archive question, measured through
+  `bench/backtest_bench.py` on the three-year archive before either is credited with one (map
+  inv. 32), and until then the retest is here because it is the entry this file already declared
+  and because a price at which the coin would be bought beats a name without one.
 - **The pair gates nothing, and it is printed because the ratio hides what it measures.**
   R:R is two distances; it says nothing about whether either is reachable inside the window
   the Boss holds for, and §7 item 6 has asked «target reachable inside the holding window»
@@ -2480,7 +2570,12 @@ which is the shape §7 exists to replace.
    coin's place inside its own 30- and 90-day range, read from `cd` (§5) — because a coin
    at the top of its DAY and the middle of its QUARTER is participating in the trend the
    regime has just measured, not chasing it. **This does not loosen the rule: a coin
-   extended on BOTH windows is a chase and is still refused.** What it ends is a test
+   extended on BOTH windows is a chase and is still refused.** **Extended means BEYOND the
+   window's own extreme on the side's side** — `pos` above 1 for a long and below 0 for a short,
+   on the structural row at the row's anchor — and a coin refused here carries its retest price
+   (§4). **Corrected in place at `2026-09-26-a`:** the item named the window and never said what
+   «extended» meant, and on 21.09 two good-faith readings of it differed by six published rows of
+   seven. What it ends is a test
    that returned the same verdict on every trending day because the day was the only
    window this engine could see. Measured across four consecutive runs: «экстремум дня
    уже пройден» refused the entire list every time, including on the run that measured
@@ -2787,12 +2882,13 @@ line at all for the one coin trending up on a list that rose 8 % in a day.
     `invalidationInfo` from the 24-hour extreme its zone rests on, at the zone's edge nearest the
     invalidation, and prints its distance in per cent (§2); the call and the flags it returned
     are in the log. A stop the call returned `capped` is not a stop, whatever it is published as.
-77. **Every coin in its own trend refused at its anchor on STRESS or by its OWN REGIME carries a
-    computed PRICE** (§4) — its cool-off entry, its trend floor, or both where both were
-    computed — printed beside its name in the `В тренде, входа сегодня нет` line; none stands in
-    `ИЗБЕГАТЬ` for want of an entry (§2). **The regime branch is added at `2026-09-25-a`:** the
-    item bound the stress branch alone, and on 20.09 eight coins refused by the other branch
-    were reported as bare names while their prices sat in the run's own appendix.
+77. **Every coin in its own trend refused at its anchor on STRESS, by its OWN REGIME or as a CHASE
+    carries the price at which it becomes a trade** (§4) — its cool-off entry, its trend floor or
+    its retest — printed beside its name in the `В тренде, входа сегодня нет` line, **or stands
+    after «ни по какой цене:» where its conditions do not overlap**; none stands in `ИЗБЕГАТЬ` for
+    want of an entry (§2). **The regime branch is added at `2026-09-25-a` and the chase branch at
+    `2026-09-26-a`:** the item bound the stress branch alone, and on 20.09 eight coins refused by
+    the other branch were reported as bare names while their prices sat in the run's own appendix.
 78. **Every outside-list setup prints `ПОВЫШЕННЫЙ РИСК` and its stop distance** (§3B, §2).
 
 **76–78 name the run of 19.09, and it broke no rule:** it published four stops production itself
@@ -2853,11 +2949,15 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     it caused is not about content: six columns of price levels do not fit an iPhone and the
     Boss read the section sideways for as long as it existed.
 88. **Every coin in its own trend
-    that carries no row prints its own refusing PRICE, and the anchor of every own-trend row was
-    cut at `max(anchor, P_trend)`** (§4, §2). The appendix carries `P_trend` for every list coin
-    in its own trend, the gate that refused it AT that price, and the check that `marketRegime`
-    executed at `P_trend` returns `EFF_TREND`. A name printed in `В тренде, входа сегодня нет`
-    without a price fails this item whatever else the run got right.
+    that carries no row prints the price at which that coin BECOMES a trade, or stands after
+    «ни по какой цене:», and the anchor of every own-trend row was cut at `max(anchor, P_trend)`**
+    (§4, §2). The appendix carries `P_trend` for every list coin in its own trend, the gate that
+    refused it AT its anchor, the lift price that gate implies, and the check that `marketRegime`
+    executed at `P_trend` returns `EFF_TREND`. A name printed without a price outside
+    «ни по какой цене:», or beside a price at which any gate but reachability refuses, fails this
+    item whatever else the run got right. **Corrected in place at `2026-09-26-a`:** it read
+    «its own refusing PRICE», and the first run under it printed exactly that — ten prices of
+    twelve at which the file refuses to enter.
 89. **Every state change SHIPPED inside the holding window on a coin's own channel is an element
     with a side, or the appendix names the rule that refused it** (§6). A run that found one and
     printed nothing fails this item; so does an element admitted on a metric, a milestone, a TVL
@@ -2867,6 +2967,26 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     measurement leaves `неохваченная` is named in the appendix with the move, its date and the
     host that did carry the announcement. A run reporting full coverage without the measurement
     is reporting its own bookkeeping.
+91. **`# КАТАЛИЗАТОРЫ` prints «Поиск не завершён.» exactly when `analyst/state.json`, as this run
+    wrote it, shows a lane stale by date or by `sec6_md5`, a coin or systemic lane without today's
+    discovery search, or a coin item 90 required and did not measure** (§2). The audit reads the
+    state and the answer side by side, and a disagreement fails this item in either direction.
+92. **Every coin refused as a chase in `БЫЧИЙ` or `МЕДВЕЖИЙ` was measured against the definition
+    of item 4 and carries its retest** (§4): the broken extreme, the retest anchor cut from it, the
+    gates re-run there, and either a row, a `СОЗРЕВАЕТ` item, a price in the trend line, or a place
+    after «ни по какой цене:» with the incompatibility named in the appendix.
+93. **No filled row is «снят» without its event** (§4). Every `СЕЙЧАС` and outside-list row filled
+    on an earlier run is in `items` or in the closure list with its stop, its target, its horizon
+    or its own regime named as the event, and the first line carries it exactly once after the
+    fill and then only on that event.
+
+**91–93 name the run of 21.09, the first under `-25-a`, and 88 and 4 are corrected in place
+because the defect each names is the one each was written for.** That run printed a refusing price
+as if it were an entry, chose a reading of item 4 the file never gave and recorded that it had,
+skipped the catalyst hunt the revision before had made compulsory and let its answer look
+complete, and withdrew four filled rows on no event. **No per-item §7 block reached its log**,
+which §7 and §12 require of every run; no item can enforce the one list that enforces the items,
+so that finding is the audit's and stays the audit's.
 
 **88–90 name the owner directive of 20.09.2026 and the run of 20.09 broke no rule reaching
 them.** It found ten coins in their own trend, computed a refusing price for eight of them,
@@ -3003,7 +3123,8 @@ overwrites the empty seed.
   "archive":[ { "id","sym","d","closed","status" } ],
   "sweeps":{ "horizon":{ "<lane>":{ "d","sec6_md5","host","n","from" } },
              "coins":{ "<SYM>":{ "d","sec6_md5","host","n","from",
-                                 "c2":{ "d","sec6_md5","host","n","from" } } },
+                                 "c2":{ "d","sec6_md5","host","n","from" },
+                                 "coverage":{ "d","status","move","carried_by" } } },
              "discovery":{ "<SYM>|<lane>":{ "d","q","n" } } } }
 ```
 
@@ -3015,6 +3136,16 @@ keeps its meaning, the five top-level fields always describe the coin's first ro
 channel table, and `c2` appears only for a coin whose rows include a class-2 channel — ETH
 and ADA at this revision. Its five fields carry that lane's own reading and are written only
 by a read of that lane (§6a).
+
+**`coverage` is item 90's measurement and it is ADDITIVE — a field BESIDE the lane, never the
+lane.** Its `d` is the day it was measured, `status` is `охвачена` or `неохваченная`, `move` the
+coin's largest single-day move of the last thirty days with its date, and `carried_by` the host
+that did carry the announcement, where one was found. **It never replaces the five lane fields**,
+which are written only by a read of the lane (§6a): an entry whose `host`, `n`, `from` and
+`sec6_md5` were overwritten by a measurement has lost the only evidence of what its lane last read
+and under which text. **Measured 21.09:** NEAR's lane record was replaced by the measurement — its
+host, its window and its digest gone, a `status` in their place — on the first run that executed
+item 90.
 
 **`discovery` holds the last discovery search per coin and per systemic lane (§6)** — its UTC day
 `d`, its query `q` and its count of dated hits `n` — and is written only by the search it records.
