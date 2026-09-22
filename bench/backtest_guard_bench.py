@@ -2496,6 +2496,71 @@ ok('K. section K compared something', checks[0] - k0 > 0, checks[0] - k0)
 print('K. comparability: %d comparisons' % (checks[0] - k0))
 
 # ═══════════════════════════════════════════════════════════════════════════
+# L. The archive read AT production's instant  (ТЗ-51)
+# ═══════════════════════════════════════════════════════════════════════════
+# The letter is L, read off the FILE: the last section it carries is K, and two
+# sections already share E, so counting sections would say M (ТЗ-51 §4).
+#
+# Known answers on the three helpers alone. The worlds that reach them through
+# --verify are verify_bench's lanes P1-P6: which class a cell earns is that
+# bench's, not this one's (inv. 20). Stamps are whole hours and the instants
+# probed sit on them or one millisecond away, so every equality is exact and no
+# tolerance appears. L8-L10 compare the reading with production's own builds by
+# dict equality: the records are the same floating-point expressions on the same
+# operands, never a restatement of them (inv. 21, 38).
+l0 = checks[0]
+L_PTS = [I_T0 + (k + 1) * HOUR for k in range(10)]
+L_HOLE = L_PTS[:5] + L_PTS[6:]                  # the bar stamped L_PTS[5] is absent
+ok('L1. on an interior stamp: that stamp twice', bb._enclosing(L_PTS, L_PTS[4]) == (4, 4),
+   bb._enclosing(L_PTS, L_PTS[4]))
+ok('L2. one millisecond past an interior stamp: the next bar',
+   bb._enclosing(L_PTS, L_PTS[4] + 1) == (4, 5), bb._enclosing(L_PTS, L_PTS[4] + 1))
+ok('L3. one millisecond before an interior stamp: the bar that stamp ends',
+   bb._enclosing(L_PTS, L_PTS[4] - 1) == (3, 4), bb._enclosing(L_PTS, L_PTS[4] - 1))
+ok('L4. on the last stamp: that stamp twice', bb._enclosing(L_PTS, L_PTS[-1]) == (9, 9),
+   bb._enclosing(L_PTS, L_PTS[-1]))
+ok('L4. one millisecond past the last stamp: no bar holds it',
+   bb._enclosing(L_PTS, L_PTS[-1] + 1) is None, bb._enclosing(L_PTS, L_PTS[-1] + 1))
+ok('L5. inside a hole: no bar holds it',
+   bb._enclosing(L_HOLE, L_PTS[5] - 1) is None, bb._enclosing(L_HOLE, L_PTS[5] - 1))
+ok('L5. on the stamp after a hole: that stamp twice',
+   bb._enclosing(L_HOLE, L_PTS[6]) == (5, 5), bb._enclosing(L_HOLE, L_PTS[6]))
+ok('L6. before the first stamp: no bar holds it',
+   bb._enclosing(L_PTS, L_PTS[0] - 1) is None, bb._enclosing(L_PTS, L_PTS[0] - 1))
+ok('L6. on the first stamp: that stamp twice', bb._enclosing(L_PTS, L_PTS[0]) == (0, 0),
+   bb._enclosing(L_PTS, L_PTS[0]))
+ok('L7. an empty archive holds nothing', bb._enclosing([], L_PTS[0]) is None)
+L_P = i_series(I_N, 23)
+L_V = i_vol(L_P)
+L_I = len(L_P) - 1
+L_LAST = I_CDB.build(L_P, L_V, L_I)
+L_IN = bb._archive_at(I_CDB, L_P, L_V, L_P[L_I - 3][0] + HOUR // 2, L_LAST)
+ok('L8. inside a bar: four records, each production\'s own build',
+   L_IN == [I_CDB.build(L_P, L_V, L_I - 3), I_CDB.build(L_P, L_V, L_I - 2),
+            I_CDB.build(bb._attr_swap(L_P, {L_I - 2: L_I - 3}), L_V, L_I - 2),
+            I_CDB.build(bb._attr_swap(L_P, {L_I - 3: L_I - 2}), L_V, L_I - 3)],
+   None if L_IN is None else len(L_IN))
+L_ON = bb._archive_at(I_CDB, L_P, L_V, L_P[L_I][0], L_LAST)
+ok('L9. on the last stamp: one record, the caller\'s own and not a rebuild',
+   isinstance(L_ON, list) and len(L_ON) == 1 and L_ON[0] is L_LAST,
+   None if L_ON is None else len(L_ON))
+ok('L10. past the last stamp: no reading',
+   bb._archive_at(I_CDB, L_P, L_V, L_P[L_I][0] + 1, L_LAST) is None)
+L_R = [{'r7': 0.01}, {'r7': 0.03}, {'r7': 0.02}]
+ok('L11. inside the span: production\'s own value', bb._nearest(L_R, 'r7', 0.025) == 0.025,
+   bb._nearest(L_R, 'r7', 0.025))
+ok('L11. below the span: its lower bound', bb._nearest(L_R, 'r7', -0.5) == 0.01,
+   bb._nearest(L_R, 'r7', -0.5))
+ok('L11. above the span: its upper bound', bb._nearest(L_R, 'r7', 0.5) == 0.03,
+   bb._nearest(L_R, 'r7', 0.5))
+ok('L11. a record with no number for the field: no reading',
+   bb._nearest(L_R + [{'r7': None}], 'r7', 0.02) is None)
+
+# ── §5.2.6 the section reports its own count and refuses to pass on zero.
+ok('L. section L compared something', checks[0] - l0 > 0, checks[0] - l0)
+print('L. reading at production\'s instant: %d comparisons' % (checks[0] - l0))
+
+# ═══════════════════════════════════════════════════════════════════════════
 shutil.rmtree(tmp, ignore_errors=True)
 for f in os.listdir(HERE):
     if f.startswith('_') and f.endswith('_bridge.js'):

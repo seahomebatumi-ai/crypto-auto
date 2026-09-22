@@ -1714,11 +1714,13 @@ def _cell_comparable(field, gap_sym):
 
     Asked per symbol and per field, BEFORE the threshold, of the quantity that
     decides it: the symbol's OWN end instant against production's
-    `generated_at` (ТЗ-43 §3). A level is a 90-day extremum and hours do not
-    move it, so it is comparable at any gap. A return is comparable only inside
-    CMP_GAP_H on either side: the sign is carried into the reason, never into
-    the decision. No venue, no census and no threshold is read here —
-    comparability is a fact about instants."""
+    `generated_at` (ТЗ-43 §3). A level is comparable at any gap. Hours DO move
+    it where an extreme is being made at the window's end — run #25's TAO
+    `max_price` moved 1.50 % inside one bar — which is why reconcile() reads
+    the archive at production's instant wherever it holds that bar (ТЗ-51).
+    A return is comparable only inside CMP_GAP_H on either side: the sign is
+    carried into the reason, never into the decision. No venue, no census and
+    no threshold is read here — comparability is a fact about instants."""
     if field not in RET_FIELDS:
         return True, None
     if gap_sym is None:
@@ -1744,6 +1746,82 @@ def _gap_hours(gen, ends):
     if g and ends:
         return (g - max(ends) / 1000.0) / 3600.0
     return None
+
+
+def _enclosing(pts, t):
+    """The two archive stamps between which instant `t` lies: `(j_lo, j_hi)`.
+
+    `j_hi` is the first stamp at or after `t`; where a stamp IS `t` both indices
+    are it. None where the archive does not hold the bar containing `t` — `t`
+    after the last stamp, before the first, or inside an interior hole, judged
+    by the enclosing stamps being more than one bar apart. A price is stamped at
+    the END of its hour (`_series_from_rows`), so the bar that contains `t` is
+    the one `pts[j_hi]` closes (ТЗ-51 §3.1)."""
+    if not pts:
+        return None
+    j_hi = bisect.bisect_left(pts, t)
+    if j_hi >= len(pts):
+        return None
+    if pts[j_hi] == t:
+        return (j_hi, j_hi)
+    j_lo = j_hi - 1
+    if j_lo < 0 or pts[j_hi] - pts[j_lo] > HOUR_MS:
+        return None
+    return (j_lo, j_hi)
+
+
+def _archive_at(cdb, P, V, t, cd_last=None):
+    """The archive READ at instant `t`, by production's own construction.
+
+    Returns the records that span what the archive can say at `t`, or None
+    where no bar holds it. On a stamp: the one record ending there. Inside a
+    bar: four — the windows ending at the two enclosing stamps, each with its
+    own close and then with the other stamp's close at its end.
+
+    WHY FOUR AND NOT TWO. Production derives its window's START from its end on
+    CoinGecko's own sampling grid, which this system does not publish, so that
+    start can sit on either window's grid; the two own records alone miss the
+    case where the start bar moved too (ТЗ-51 §3.2, lane P6).
+
+    `cd_last` is the caller's own record at the last bar, passed so the run does
+    not build the same window twice (inv. 20); it is returned as it was given
+    and never rebuilt. A window too short for `f` makes the whole reading None:
+    a partial span is not a span."""
+    e = _enclosing([p[0] for p in P], t)
+    if e is None:
+        return None
+    j_lo, j_hi = e
+    i_last = len(P) - 1
+
+    def own(j):
+        if j == i_last and cd_last is not None:
+            return cd_last
+        return cdb.build(P, V, j)
+
+    if j_lo == j_hi:
+        recs = [own(j_lo)]
+    else:
+        recs = [own(j_lo), own(j_hi),
+                cdb.build(_attr_swap(P, {j_hi: j_lo}), V, j_hi),
+                cdb.build(_attr_swap(P, {j_lo: j_hi}), V, j_lo)]
+    if any(r is None for r in recs):
+        return None
+    return recs
+
+
+def _nearest(recs, k, b):
+    """Production's `b` measured against the span the records give field `k`:
+    `b` itself where it lies inside `[min, max]`, else the bound it is outside.
+
+    None where any record carries no number for `k` — judged by `_attr_num`,
+    the module's one definition of a number (inv. 20). A span with a hole in it
+    is not a span, and a reading that quietly dropped a record would compare
+    against a narrower one without saying so (ТЗ-51 §3.3)."""
+    vals = [r.get(k) for r in recs]
+    if not vals or not all(_attr_num(v) for v in vals):
+        return None
+    lo, hi = min(vals), max(vals)
+    return lo if b < lo else (hi if b > hi else b)
 
 
 def _cell_dv(kind, a, b):
@@ -1851,13 +1929,26 @@ def reconcile(bot_path, html_path=None):
         # per coin (inv. 20). The cache-wide `gap` below is a reading of the
         # archive and is no longer a verdict.
         gap_sym = _gap_hours(gen, [t_last])
+        # The archive READ at production's instant, wherever the archive holds
+        # the bar containing it (ТЗ-51 §3.4). The instant comes off the gap
+        # just derived and is never parsed a second time (inv. 20).
+        at = None if gap_sym is None else _archive_at(
+            cdb, ser["prices"], ser["volumes"],
+            t_last + round(gap_sym * HOUR_MS), cd)
         cells = {}
         for k, kind, thr in SPEC:
             a, b = cd.get(k), r.get(k)
             if a is None or b is None or not isinstance(b, (int, float)):
                 cells[k] = None
                 continue
-            dv = _cell_dv(kind, a, b)
+            # `a` keeps its meaning — the archive at its LAST close — because
+            # --attrib raises when it differs from its own build there. `an` is
+            # the value the comparison is actually taken from, and falls back
+            # to `a` wherever no bar holds production's instant.
+            an = _nearest(at, k, b) if at else None
+            if an is None:
+                an = a
+            dv = _cell_dv(kind, an, b)
             present[k] += 1
             ok_cmp, why_cmp = _cell_comparable(k, gap_sym)
             if not ok_cmp:
@@ -1865,8 +1956,9 @@ def reconcile(bot_path, html_path=None):
                 # acts, and only the second is a claim: no `seen`, no `worst`,
                 # no threshold and no class for this cell (ТЗ-43 §3 edit 5).
                 nocmp.append((sym, k, why_cmp, gap_sym))
-                cells[k] = {"a": a, "b": b, "dv": dv, "kind": kind, "over": None,
-                            "cls": None, "why": None, "cmp": False}
+                cells[k] = {"a": a, "an": an, "b": b, "dv": dv, "kind": kind,
+                            "over": None, "cls": None, "why": None,
+                            "cmp": False}
                 continue
             seen[k] += 1
             if abs(dv) > abs(worst[k]):
@@ -1885,9 +1977,10 @@ def reconcile(bot_path, html_path=None):
                     if cls == "venue-basis":
                         basis.append((sym, k, dv))
                     classes[cls].append((sym, k, dv, why))
-            cells[k] = {"a": a, "b": b, "dv": dv, "kind": kind, "over": over,
-                        "cls": cls, "why": why, "cmp": True}
-        rows.append({"sym": sym, "cells": cells, "cov": cov, "gap": gap_sym})
+            cells[k] = {"a": a, "an": an, "b": b, "dv": dv, "kind": kind,
+                        "over": over, "cls": cls, "why": why, "cmp": True}
+        rows.append({"sym": sym, "cells": cells, "cov": cov, "gap": gap_sym,
+                     "at": at is not None})
         worst_cls = None
         for c in CLASSES:
             if any(v and v["cls"] == c for v in cells.values()):
@@ -1946,6 +2039,12 @@ def verify_against_live(bot_path, html_path=None):
         print("разрыв по монетам: %s%s" % (
             ("от %+.1f до %+.1f ч" % (min(gs), max(gs))) if gs else "не измерен",
             (" · разрыв неизвестен у %d монет" % n_unk) if n_unk else ""))
+        # WHERE each side read the archive, counted (ТЗ-51 §3.5). The gap line
+        # above says how far apart the two instants are; this one says whether
+        # the comparison could be taken at production's.
+        n_at = sum(1 for row in R["rows"] if row["at"])
+        print("архив прочитан в момент продакшна у %d монет"
+              " · по последнему закрытию у %d" % (n_at, len(R["rows"]) - n_at))
     if nocmp:
         nc_sym = set(s for s, _, _, _ in nocmp)
         nc_unk = set(s for s, _, _, g in nocmp if g is None)
