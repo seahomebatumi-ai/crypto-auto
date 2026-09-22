@@ -525,6 +525,109 @@ ok('L8. each return field reads «сверок 0 из 3»',
    all(_re.search(r'^\s+%s\s+сверок\s+0 из\s+%d\b' % (f, len(coins)), L1[1], _re.M)
        for f in RET), last_line(L1[1]))
 
+# 12. The archive read AT production's instant (ТЗ-51). A price is stamped at
+#     the END of its hour, so a production built inside the archive's last bar
+#     was compared with the archive's value at a LATER instant, and on a violent
+#     hour that alone crossed a threshold (run #25, TAO `r7`). Where the archive
+#     holds the bar containing production's instant it is now read there: the
+#     windows ending at the two stamps that enclose the instant, each with its own
+#     close and with the other close at its end, and a cell is measured from
+#     production's value to the nearest point of what those records span. Where no
+#     bar holds the instant — after the last stamp, or across a hole — the reading
+#     stays at the last close. Lanes keep the prefix P so they never read as this
+#     file's own L1-L8. Every world is AAA over the file's three-coin series with a
+#     violent last bar; production is production's own `f` on the same stamps with
+#     its last close moved inside that bar, and the non-vacuity checks prove each
+#     world really puts the old reading over its bar (inv. 22).
+def p_reading(text, n_at, n_last):
+    return ('архив прочитан в момент продакшна у %d монет · по последнему закрытию у %d'
+            % (n_at, n_last)) in text
+
+
+def p_cell(L, sym, k):
+    return next(row['cells'][k] for row in L[2]['rows'] if row['sym'] == sym)
+
+
+_pa = [list(x) for x in coins['AAA']]
+_pa[-1][1] = round(_pa[-2][1] * 1.04, 6)
+_pm = [list(x) for x in _pa]
+_pm[-1][1] = round(_pa[-2][1] * 1.02, 6)
+make_cache(tmp, dict(coins, AAA=_pa))
+P1 = run_lane(tmp, live_from_cache(dict(coins, AAA=_pm), cdb, gap_h=-0.5))
+_thr = dict((k, t) for k, _, t in P1[2]['spec'])
+_kind = dict((k, kd) for k, kd, _ in P1[2]['spec'])
+_c = p_cell(P1, 'AAA', 'r7')
+ok('P1. production inside the last bar: exits 0', P1[0] == 0, 'exit=%s' % P1[0])
+ok('P1. every symbol is clean',
+   P1[4] == dict((s, 'clean') for s in coins), repr(P1[4]))
+ok('P1. every compared cell of AAA reads exactly zero',
+   all(row['cells'][k]['dv'] == 0.0 for row in P1[2]['rows'] if row['sym'] == 'AAA'
+       for k in row['cells'] if row['cells'][k] and row['cells'][k]['cmp']),
+   repr([(k, c['dv']) for row in P1[2]['rows'] if row['sym'] == 'AAA'
+         for k, c in row['cells'].items() if c]))
+ok('P1. the reading line names every symbol at production\'s instant',
+   p_reading(P1[1], 3, 0), last_line(P1[1]))
+ok('P1. not vacuous: read at the last close, AAA r7 is over its bar',
+   abs(bb._cell_dv(_kind['r7'], _c['a'], _c['b'])) > _thr['r7'],
+   repr((_c['a'], _c['b'])))
+
+
+def p_minus(rec):
+    if rec['symbol'] == 'AAA':
+        rec['r7'] = rec['r7'] - 0.05                       # 5 pp BELOW the bar
+
+
+P2 = run_lane(tmp, live_from_cache(dict(coins, AAA=_pm), cdb, -0.5, mutate=p_minus))
+_c2 = p_cell(P2, 'AAA', 'r7')
+ok('P2. a planted 5 pp is still red: exit 1, only the planted cell unexplained',
+   P2[0] == 1 and P2[3].get('unexplained') == [('AAA', 'r7')], repr((P2[0], P2[3])))
+ok('P2. measured from the bar: nearer than the last close, and still over its bar',
+   _c2['an'] != _c2['a']
+   and _thr['r7'] < abs(_c2['dv']) < abs(bb._cell_dv(_kind['r7'], _c2['a'], _c2['b'])),
+   repr((_c2['a'], _c2['an'], _c2['b'], _c2['dv'])))
+
+P3 = run_lane(tmp, live_from_cache(dict(coins, AAA=_pm), cdb, gap_h=0.5))
+ok('P3. production after the last stamp: read at the last close, AAA unexplained',
+   P3[0] == 1 and P3[4].get('AAA') == 'unexplained', repr((P3[0], P3[4])))
+ok('P3. the reading line names every symbol at the last close',
+   p_reading(P3[1], 0, 3), last_line(P3[1]))
+
+P4 = run_lane(tmp, live_from_cache(dict(coins, AAA=_pm), cdb, gap_h=0.0))
+ok('P4. production exactly on the last stamp: read at that close, AAA unexplained',
+   P4[0] == 1 and P4[4].get('AAA') == 'unexplained', repr((P4[0], P4[4])))
+ok('P4. an instant on a stamp is read at production\'s instant',
+   p_reading(P4[1], 3, 0), last_line(P4[1]))
+
+_ph = [x for i, x in enumerate(_pa) if i != len(_pa) - 2]
+_phm = [list(x) for x in _ph]
+_phm[-1][1] = _pm[-1][1]
+make_cache(tmp, dict(coins, AAA=_ph))
+P5 = run_lane(tmp, live_from_cache(dict(coins, AAA=_phm), cdb, -0.5))
+ok('P5. a hole around production\'s instant: no reading, AAA reads coverage',
+   P5[0] == 1 and P5[4].get('AAA') == 'coverage', repr((P5[0], P5[4])))
+ok('P5. the reading line names AAA at the last close',
+   p_reading(P5[1], 2, 1), last_line(P5[1]))
+
+_pc = [list(x) for x in coins['AAA']]
+_i0 = len(_pc) - 1
+_s = bb.attrib_start(lambda Q, W, i: cdb.build(Q, W, i),
+                     _pc, [[t, 1e7] for t, _ in _pc], _i0, 'r7')
+for _j in range(_s, len(_pc)):
+    _pc[_j][1] = round(_pc[_j][1] * 1.05, 6)
+_pc[-1][1] = round(_pc[-2][1] * 1.04, 6)
+_pcm = [list(x) for x in _pc]
+_pcm[-1][1] = round(_pc[-2][1] * 1.02, 6)
+make_cache(tmp, dict(coins, AAA=_pc))
+P6 = run_lane(tmp, live_from_cache(dict(coins, AAA=_pcm), cdb, -0.5))
+_v = [[t, 1e7] for t, _ in _pc]
+_two = [cdb.build(_pc, _v, _i0 - 1), cdb.build(_pc, _v, _i0)]
+_b6 = p_cell(P6, 'AAA', 'r7')['b']
+ok('P6. the start bar moved too: the other close at each window\'s end holds AAA, exit 0',
+   P6[0] == 0 and P6[4].get('AAA') == 'clean', repr((P6[0], P6[4])))
+ok('P6. not vacuous: the two own records alone leave AAA r7 over its bar',
+   abs(bb._cell_dv(_kind['r7'], bb._nearest(_two, 'r7', _b6), _b6)) > _thr['r7'],
+   repr((_two[0]['r7'], _two[1]['r7'], _b6)))
+
 shutil.rmtree(tmp, ignore_errors=True)
 shutil.rmtree(tmp_in, ignore_errors=True)
 
