@@ -1,21 +1,21 @@
 {
  "v": 1,
  "k": "state",
- "d": "2026-09-21",
- "ts": "2026-09-21T14:47:26Z",
+ "d": "2026-09-23",
+ "ts": "2026-09-23T15:21:22Z",
  "items": [
   {
    "id": "cat-avax-helicon-2026-09-22",
    "type": "catalyst",
    "sym": "AVAX",
-   "status": "ПРИБЛИЖАЕТСЯ",
+   "status": "СВЕРШИЛОСЬ",
    "d": "2026-09-22",
    "dclass": "primary",
    "impact": "СРЕДНЕЕ",
    "unver": 0,
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-21",
-   "note": "AVAX Helicon. Первоисточник перечитан 21.09 (2-й прогон): api.github.com/repos/ava-labs/avalanchego/releases?per_page=5 http 200, 250605 байт; релиз v1.15.0 (08.09.2026) дословно: «This release schedules the activation of the Helicon network upgrade at 11 AM ET (3 PM UTC) on Tuesday, September 22nd, 2026 on Mainnet». Дата не двигалась — активация ЗАВТРА, внутри 48 ч от заморозки, поэтому ПРИБЛИЖАЕТСЯ, а не НЕ ПРОВЕРЕНО. У AVAX строки нет: рынок ПЕРЕГРЕТ, и её собственная цена входа 8.73273 недостижима (2.65 сигмы за 7 дней)."
+   "last_seen": "2026-09-23",
+   "note": "AVAX Helicon АКТИВИРОВАН 22.09.2026 15:00 UTC. Первоисточник перечитан 23.09: api.github.com/repos/ava-labs/avalanchego/releases?per_page=5 http 200, 250605 байт; релиз v1.15.0 (08.09) дословно: «This release schedules the activation of the Helicon network upgrade at 11 AM ET (3 PM UTC) on Tuesday, September 22nd, 2026 on Mainnet». Дата прошла — состояние протокола ОТГРУЖЕНО внутри окна удержания (7 суток назад от заморозки = 16.09), поэтому §6 даёт статус СВЕРШИЛОСЬ, а не закрытие. Сторона ЛОНГ по тексту самого релиза: кривая наград снижает эмиссию AVAX. Закроется ИСТЕКЛО 29.09, когда окно удержания пройдёт. Строки у AVAX нет: рынок ПЕРЕГРЕТ; её цена входа 8.70882 (сейчас 10.454, −16.7%)."
   },
   {
    "id": "cat-zec-nu7-2026-09-30",
@@ -27,8 +27,8 @@
    "dclass": "primary",
    "unver": 0,
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-21",
-   "note": "ZEC NU7. Первоисточник перечитан 21.09 (2-й прогон): forum.zcashcommunity.com/t/57655.json http 200, 33130 байт, пост ebfull 17.09.2026. Даты НЕ двигались: готовность кода 30.09, тестнет 06.10, ФИНАЛЬНОЕ решение по мейннету 20.10 (новая деталь этого чтения), мейннет 05.11. Внутри 14 дней только готовность кода 30.09."
+   "last_seen": "2026-09-23",
+   "note": "ZEC NU7. Первоисточник перечитан 23.09: forum.zcashcommunity.com/t/57655.json http 200, 31376 байт, тема «NU7 Timeline», пост #1 ebfull 17.09.2026. Даты НЕ двигались: готовность кода 30.09, активация тестнета 06.10, финальное решение по мейннету 20.10, мейннет 05.11. Внутри 14 дней (до 07.10) — 30.09 и 06.10."
   },
   {
    "id": "cat-us-pce-2026-09-30",
@@ -39,8 +39,8 @@
    "impact": "СРЕДНЕЕ",
    "unver": 0,
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-21",
-   "note": "PCE август 2026. Первоисточник перечитан 21.09 (2-й прогон): bea.gov/news/schedule http 200, 75123 байта, строка «September 30 | 8:30 AM | News | Personal Income and Outlays, August 2026». Дата не двигалась. Агрегаторы в поиске этого прогона называли 26.09 — первоисточник их не подтверждает, стоит 30.09."
+   "last_seen": "2026-09-23",
+   "note": "PCE август 2026. Первоисточник перечитан 23.09: bea.gov/news/schedule http 200, 75123 байта, строка «September 30 | 8:30 AM | News | Personal Income and Outlays, August 2026». Дата не двигалась. Агрегаторы в поиске этого прогона снова называли 26.09 — первоисточник их не подтверждает. Класс B, вне 48 ч — свёрнутая строка."
   },
   {
    "id": "cat-fomc-2026-10-27",
@@ -51,8 +51,8 @@
    "dclass": "primary",
    "unver": 0,
    "first_seen": "2026-09-18",
-   "last_seen": "2026-09-21",
-   "note": "Заседание ФРС 27-28.10.2026. Первоисточник перечитан 21.09 (2-й прогон): federalreserve.gov/monetarypolicy/fomccalendars.htm http 200, 165460 байт, панель «2026 FOMC Meetings», строка «October 27-28» без звёздки. Дата не двигалась. Вне 14 дней — свёрнутая строка."
+   "last_seen": "2026-09-23",
+   "note": "Заседание ФРС 27-28.10.2026. Первоисточник перечитан 23.09: federalreserve.gov/monetarypolicy/fomccalendars.htm http 200, 165460 байт, панель «2026 FOMC Meetings», строка «October 27-28» без звёздки. Дата не двигалась. Вне 14 дней — свёрнутая строка."
   },
   {
    "id": "cat-sec-regcrypto-2026-10-20",
@@ -61,110 +61,10 @@
    "d": "2026-10-20",
    "impact": "УСЛОВНОЕ",
    "dclass": "primary",
-   "note": "SEC S7-2026-27 «Regulation Crypto Assets», дедлайн комментариев 20.10.2026. Первоисточник перечитан 21.09 (2-й прогон): federalregister.gov/api/v1/documents/2026-17183.json http 200, 235 байт — type Proposed Rule, publication_date 2026-08-21, comments_close_on 2026-10-20, File No. S7-2026-27, RIN 3235-AN38. Дата не двигалась. Вне 14 дней — свёрнутая строка.",
+   "note": "SEC S7-2026-27 «Regulation Crypto Assets», дедлайн комментариев 20.10.2026. Первоисточник перечитан 23.09: federalregister.gov/api/v1/documents/2026-17183.json http 200, 70689 байт — type Proposed Rule, publication_date 2026-08-21, comments_close_on 2026-10-20. Дата не двигалась. Вне 14 дней — свёрнутая строка.",
    "unver": 0,
    "first_seen": "2026-08-30",
-   "last_seen": "2026-09-21"
-  },
-  {
-   "id": "th-ada-2026-09-21",
-   "type": "thesis",
-   "sym": "ADA",
-   "status": "БЕЗ ИЗМЕНЕНИЙ",
-   "d": "2026-09-21",
-   "entry": "0.237097-0.241883",
-   "inv": 0.213698,
-   "tgt": 0.293505,
-   "trigger": 0.2403,
-   "side": "long",
-   "first_seen": "2026-09-21",
-   "last_seen": "2026-09-21",
-   "gap": 0.06793991416308894,
-   "oi_prev": {
-    "v": 416565715.0,
-    "d": "2026-09-21"
-   },
-   "note": "НАЛИТА 21.09 (рыночный вход СЕЙЧАС 0.2403). Тест §4 по суточным экстремумам payload: минимум дня 0.22110 зашёл в зону, максимум 0.24900; НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.24240: trend/1 по строке, trend на цене — сторона ЛОНГ не закрыта, значит четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ и НЕ ПЕРЕРЕЗАНЫ. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы и не закрывает уже налитую строку. ОГОВОРКА, вынесенная в приложение: 24-часовое окно payload перекрывает утренний прогон, поэтому доказать, что минимум наступил ПОСЛЕ публикации 09:50Z, инструментом, который называет файл, нельзя ни для одной из четырёх лимитных строк.",
-   "filled": {
-    "d": "2026-09-21",
-    "px": 0.2403,
-    "how": "рыночный вход СЕЙЧАС"
-   }
-  },
-  {
-   "id": "th-algo-2026-09-21",
-   "type": "thesis",
-   "sym": "ALGO",
-   "status": "БЕЗ ИЗМЕНЕНИЙ",
-   "d": "2026-09-21",
-   "entry": "0.109261-0.111253",
-   "inv": 0.0987755,
-   "tgt": 0.136208,
-   "trigger": 0.111253,
-   "side": "long",
-   "first_seen": "2026-09-21",
-   "last_seen": "2026-09-21",
-   "gap": 0.06175213675213625,
-   "oi_prev": {
-    "v": 92677374.8,
-    "d": "2026-09-21"
-   },
-   "note": "ЗОНА ДОСТИГНУТА 21.09. Минимум дня 0.107270 <= активирующая цена 0.111253; максимум дня 0.117820. НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.113180 сторону ЛОНГ не закрывает, четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ, зона НЕ перерезана. ЧЕГО ПРОГОН НЕ ЗНАЕТ: налился ли лимит. 24-часовое окно payload перекрывает утренний прогон (payload 09:46:59Z, минимум тогда 0.100610, цена 0.112120); сегодняшний минимум ВЫШЕ утреннего, значит старый минимум вышел из окна, и наступил ли сегодняшний минимум ДО или ПОСЛЕ публикации 09:50Z — по payload неразличимо. Файл инструмента для теста налива ожидающей строки не называет: §4 называет суточные экстремумы только для теста стопа и цели уже налитой строки. Находка записана в приложение. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы; уже налитую строку оно не закрывает.",
-   "filled": {
-    "d": "2026-09-21",
-    "px": 0.111253,
-    "how": "лимит — достижение зоны установлено, факт налива нет"
-   }
-  },
-  {
-   "id": "th-trx-2026-09-21",
-   "type": "thesis",
-   "sym": "TRX",
-   "status": "БЕЗ ИЗМЕНЕНИЙ",
-   "d": "2026-09-21",
-   "entry": "0.341580-0.342990",
-   "inv": 0.335942,
-   "tgt": 0.357085,
-   "trigger": 0.34299,
-   "side": "long",
-   "first_seen": "2026-09-21",
-   "last_seen": "2026-09-21",
-   "gap": 0.23626373626372765,
-   "oi_prev": {
-    "v": 290698723.0,
-    "d": "2026-09-21"
-   },
-   "note": "ЗОНА ДОСТИГНУТА 21.09. Минимум дня 0.34233 <= активирующая цена 0.342990; максимум дня 0.34531. НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.34489 сторону ЛОНГ не закрывает, четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ, зона НЕ перерезана. ЧЕГО ПРОГОН НЕ ЗНАЕТ: налился ли лимит. 24-часовое окно payload перекрывает утренний прогон (payload 09:46:59Z, минимум тогда 0.34158, цена 0.34428); сегодняшний минимум ВЫШЕ утреннего, значит старый минимум вышел из окна, и наступил ли сегодняшний минимум ДО или ПОСЛЕ публикации 09:50Z — по payload неразличимо. Файл инструмента для теста налива ожидающей строки не называет: §4 называет суточные экстремумы только для теста стопа и цели уже налитой строки. Находка записана в приложение. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы; уже налитую строку оно не закрывает.",
-   "filled": {
-    "d": "2026-09-21",
-    "px": 0.34299,
-    "how": "лимит — достижение зоны установлено, факт налива нет"
-   }
-  },
-  {
-   "id": "th-xlm-2026-09-21",
-   "type": "thesis",
-   "sym": "XLM",
-   "status": "БЕЗ ИЗМЕНЕНИЙ",
-   "d": "2026-09-21",
-   "entry": "0.198655-0.202224",
-   "inv": 0.184382,
-   "tgt": 0.237907,
-   "trigger": 0.202224,
-   "side": "long",
-   "first_seen": "2026-09-21",
-   "last_seen": "2026-09-21",
-   "gap": 0.3008587786259548,
-   "oi_prev": {
-    "v": 244081401.0,
-    "d": "2026-09-21"
-   },
-   "note": "ЗОНА ДОСТИГНУТА 21.09. Минимум дня 0.19097 <= активирующая цена 0.202224; максимум дня 0.21321. НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.20848 сторону ЛОНГ не закрывает, четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ, зона НЕ перерезана. ЧЕГО ПРОГОН НЕ ЗНАЕТ: налился ли лимит. 24-часовое окно payload перекрывает утренний прогон (payload 09:46:59Z, минимум тогда 0.18854, цена 0.20853); сегодняшний минимум ВЫШЕ утреннего, значит старый минимум вышел из окна, и наступил ли сегодняшний минимум ДО или ПОСЛЕ публикации 09:50Z — по payload неразличимо. Файл инструмента для теста налива ожидающей строки не называет: §4 называет суточные экстремумы только для теста стопа и цели уже налитой строки. Находка записана в приложение. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы; уже налитую строку оно не закрывает.",
-   "filled": {
-    "d": "2026-09-21",
-    "px": 0.202224,
-    "how": "лимит — достижение зоны установлено, факт налива нет"
-   }
+   "last_seen": "2026-09-23"
   },
   {
    "id": "th-ondo-2026-09-21",
@@ -178,31 +78,97 @@
    "trigger": 0.422251,
    "side": "long",
    "first_seen": "2026-09-21",
-   "last_seen": "2026-09-21",
-   "gap": 0.38978672985781954,
+   "last_seen": "2026-09-23",
+   "gap": 0.0,
    "oi_prev": {
-    "v": 149660171.8,
-    "d": "2026-09-21"
+    "v": 131654930.0,
+    "d": "2026-09-23"
    },
-   "note": "ЗОНА ДОСТИГНУТА 21.09. Минимум дня 0.4086000 <= активирующая цена 0.422251; максимум дня 0.4589000. НИ СТОП, НИ ЦЕЛЬ НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.4484000 сторону ЛОНГ не закрывает, четвёртое событие §4 не наступило. Уровни от входа В СИЛЕ, зона НЕ перерезана. ЧЕГО ПРОГОН НЕ ЗНАЕТ: налился ли лимит. 24-часовое окно payload перекрывает утренний прогон (payload 09:46:59Z, минимум тогда 0.4042, цена 0.4387); сегодняшний минимум ВЫШЕ утреннего, значит старый минимум вышел из окна, и наступил ли сегодняшний минимум ДО или ПОСЛЕ публикации 09:50Z — по payload неразличимо. Файл инструмента для теста налива ожидающей строки не называет: §4 называет суточные экстремумы только для теста стопа и цели уже налитой строки. Находка записана в приложение. Рыночное слово ПЕРЕГРЕТ закрывает НОВЫЕ входы; уже налитую строку оно не закрывает.",
+   "note": "СТОИТ. Налита 21.09 по 0.422251. Тест §4 по суточным экстремумам payload (0.4011..0.4472) и по тикеру journal/data/2026-09-22.jsonl (0.4218..0.4639): НИ СТОП 0.37815, НИ ЦЕЛЬ 0.510452 НЕ ДОСТИГНУТЫ. Свой режим на замороженной цене 0.42: stress, eff 0.604 >= EFF_TREND 0.6 — сторона ЛОНГ НЕ закрыта (стресс = нет НОВОГО входа, не закрытие налитой строки), четвёртое событие §4 не наступило. Горизонт H_NOISE от налива 21.09 истекает 28.09. Уровни от входа в силе и НЕ перерезаны: геометрия этого прогона дала бы якорь 0.419735 (пол тренда), но §4 запрещает перерезать несённую строку — пересчёт не событие. oi 131.65M монет против 149.66M 21.09 (−12.0%) при цене −2.2%: позиция сокращается вместе с ценой — капитуляция, не распределение. fr +0.0050%, mark−last +2.4 бп.",
    "filled": {
     "d": "2026-09-21",
     "px": 0.422251,
     "how": "лимит — достижение зоны установлено, факт налива нет"
-   }
+   },
+   "gap_prev": 0.38978672985781954
   },
   {
    "id": "cat-sky-spell-2026-09-24",
    "type": "catalyst",
    "sym": "SKY",
-   "status": "НОВОЕ",
+   "status": "ИЗМЕНИЛОСЬ",
    "d": "2026-09-24",
    "dclass": "primary",
    "impact": "УСЛОВНОЕ",
    "unver": 0,
    "first_seen": "2026-09-21",
-   "last_seen": "2026-09-21",
-   "note": "Исполнение spell Sky 24.09.2026. Первоисточник прочитан 21.09: forum.skyeco.com/t/28229.json http 200, 126157 байт, тема «[September 24, 2026] - Proposed Changes to Grove for Upcoming Spell» (создана 10.09). Три темы одной даты: Grove (28229), Spark (28237), Osero (28224). Содержание — казначейское распределение 800k USDS, онбординг USDC-хранилища Morpho на Base, снятие лимитов DPAU. СТОРОНЫ НЕ ДАЁТ: ни эмиссии, ни разлока, ни параметра, который двигает цену SKY. Печатается одной оговоркой под ДАЛЬШЕ по правилу §2 о дат. событии без стороны. Строки у SKY нет — своя строка читает ДИАПАЗОН, якоря §4 не существует."
+   "last_seen": "2026-09-23",
+   "note": "Sky spell 24.09.2026. Первоисточник перечитан 23.09: forum.skyeco.com/t/28229.json http 200, 130977 байт (21.09 было 126157) — тема выросла до 10 постов. НОВОЕ с прошлого чтения: пост #8 BA Labs 18.09 дословно «Assuming the September 24 spell executes on September 28» — исполнение spell названо 28.09; пост #10 GroveLabs 21.09 16:07Z (после чтения прошлого прогона в 14:47Z) — предложения выложены на голосование в Grove Snapshot Space. Содержание прежнее: казначейское распределение, онбординг хранилища, параметры DC-IAM. СТОРОНЫ НЕ ДАЁТ: ни эмиссии, ни разлока, ни параметра цены SKY. Печатается одной оговоркой под ДАЛЬШЕ (§2). У SKY входа нет ни по какой цене: пол тренда 0.0736082 выше сломанного 90-дневного экстремума 0.0731487 — условия несовместимы."
+  },
+  {
+   "id": "cat-ena-unlock-2026-10-05",
+   "type": "catalyst",
+   "sym": "ENA",
+   "status": "НЕ ПОДТВЕРЖДЕНО",
+   "d": "2026-10-05",
+   "dclass": "reported",
+   "impact": "УСЛОВНОЕ",
+   "unver": 0,
+   "first_seen": "2026-09-23",
+   "last_seen": "2026-09-23",
+   "note": "Финальный инвесторский разлок ENA 05.10.2026, называемый ~1.41 млрд ENA, закрывающий весь остаток инвесторского вестинга. КЛАСС reported по §6, четыре условия: эмитент назван (Ethena Foundation), событие названо (разлок по вестинг-контракту протокола), дату несут два не-агрегатора друг друга (insights.unlocks.app, cryptoticker.io), ни один издатель не противоречит. СОБСТВЕННЫЙ КАНАЛ ENA ПРОЧИТАН ЭТИМ ПРОГОНОМ И ДАТЫ НЕ НЕСЁТ: gov.ethenafoundation.com/latest.json http 200, 35127 байт, 30 тем, свежие — 21.09 «Proposal: Asset allocation to Morpho Midnight» и «GHO and sGHO as Eligible Backing Assets for USDe», темы о разлоке нет. Поэтому primary недостижим, класс reported: печатается ТОЛЬКО свёрнутой строкой, уровня не создаёт, цифру не несёт, запрет с датой не подпирает (п.66)."
+  },
+  {
+   "id": "cat-hype-unlock-2026-10-06",
+   "type": "catalyst",
+   "sym": "HYPE",
+   "status": "НЕ ПОДТВЕРЖДЕНО",
+   "d": "2026-10-06",
+   "dclass": "reported",
+   "impact": "УСЛОВНОЕ",
+   "unver": 0,
+   "first_seen": "2026-09-23",
+   "last_seen": "2026-09-23",
+   "note": "Разлок HYPE 06.10.2026 в пользу Core Contributors, называемый ~9.92 млн токенов. КЛАСС reported: эмитент назван (Hyperliquid), событие названо, дату несут kucoin.com (news flash) и finance.yahoo.com, противоречий нет. Собственного канала у HYPE §6a не устанавливает (releases hyperliquid-dex/node — пустой список, форума нет, нативный актив своего L1 не имеет токен-контракта), поэтому primary недостижим по построению. Структурной строки у HYPE нет (объявленный фьючерсный актив) — сетап на этом событии невозможен в любом случае. Печатается только свёрнутой строкой."
+  },
+  {
+   "id": "cat-fet-unlock-2026-09-28",
+   "type": "catalyst",
+   "sym": "FET",
+   "status": "НЕ ПОДТВЕРЖДЕНО",
+   "d": "2026-09-28",
+   "dclass": "none",
+   "impact": "УСЛОВНОЕ",
+   "unver": 0,
+   "first_seen": "2026-09-23",
+   "last_seen": "2026-09-23",
+   "note": "Разлок FET 28.09.2026 (миграция AGIX), назван ОДНИМ агрегатором (tokenomist.ai — лейн, закрытый §6a). Второго независимого источника нет, собственный канал FET (api.github.com/repos/fetchai/fetchd/releases) разлоков не датирует. Четыре условия reported НЕ выполнены -> dclass none: хранится в state, НЕ печатается нигде (§2, п.24, п.46). Снимается в primary одним чтением вестинг-расписания протокола, когда оно будет установлено TZ-измерением (§6a)."
+  },
+  {
+   "id": "cat-arb-unlock-2026-10-16",
+   "type": "catalyst",
+   "sym": "ARB",
+   "status": "НЕ ПОДТВЕРЖДЕНО",
+   "d": "2026-10-16",
+   "dclass": "none",
+   "impact": "УСЛОВНОЕ",
+   "unver": 0,
+   "first_seen": "2026-09-23",
+   "last_seen": "2026-09-23",
+   "note": "Разлок ARB 16.10.2026 в казначейство DAO, один агрегатор (tokenomist.ai). Вне 14 дней. dclass none — не печатается."
+  },
+  {
+   "id": "cat-gram-unlock-2026-10-23",
+   "type": "catalyst",
+   "sym": "GRAM",
+   "status": "НЕ ПОДТВЕРЖДЕНО",
+   "d": "2026-10-23",
+   "dclass": "none",
+   "impact": "УСЛОВНОЕ",
+   "unver": 0,
+   "first_seen": "2026-09-23",
+   "last_seen": "2026-09-23",
+   "note": "Разлок GRAM 23.10.2026 05:30 UTC, ~0.72% выпущенного предложения; агрегаторы (coinmarketcal, defillama). Вне 14 дней. dclass none — не печатается."
   }
  ],
  "archive": [
@@ -1902,23 +1868,53 @@
    "d": "2026-09-21",
    "closed": "2026-09-21",
    "status": "ОТМЕНЕНО"
+  },
+  {
+   "id": "th-ada-2026-09-21",
+   "sym": "ADA",
+   "d": "2026-09-21",
+   "closed": "2026-09-23",
+   "status": "ОТМЕНЕНО"
+  },
+  {
+   "id": "th-algo-2026-09-21",
+   "sym": "ALGO",
+   "d": "2026-09-21",
+   "closed": "2026-09-23",
+   "status": "ОТМЕНЕНО"
+  },
+  {
+   "id": "th-trx-2026-09-21",
+   "sym": "TRX",
+   "d": "2026-09-21",
+   "closed": "2026-09-23",
+   "status": "ОТМЕНЕНО"
+  },
+  {
+   "id": "th-xlm-2026-09-21",
+   "sym": "XLM",
+   "d": "2026-09-21",
+   "closed": "2026-09-23",
+   "status": "ОТМЕНЕНО"
   }
  ],
  "sweeps": {
   "horizon": {
    "macro-cb": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "www.federalreserve.gov (monetarypolicy/fomccalendars.htm 200, 165460 байт)",
     "n": 1,
-    "from": "2026-01-27"
+    "from": "2026-09-23",
+    "note": "Панель 2026 FOMC Meetings: October 27-28 без звёздки."
    },
    "macro-prints": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "www.bea.gov (news/schedule 200, 75123 байта)",
     "n": 2,
-    "from": "2026-09-30"
+    "from": "2026-09-23",
+    "note": "30.09 08:30 Personal Income and Outlays, August 2026; 30.09 08:30 GDP (Third Estimate) Q2 2026."
    },
    "intl-institutional": {
     "d": "2026-09-21",
@@ -1928,11 +1924,12 @@
     "from": "2026-09-09"
    },
    "regulatory": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
-    "host": "www.federalregister.gov (api/v1/documents.json SEC c 2026-08-21 200, 10366 байт, count 221; documents/2026-17183.json 200, 235 байт)",
-    "n": 2,
-    "from": "2026-08-21"
+    "host": "www.federalregister.gov (api/v1/documents/2026-17183.json 200, 70689 байт)",
+    "n": 1,
+    "from": "2026-09-23",
+    "note": "S7-2026-27 Regulation Crypto Assets, comments_close_on 2026-10-20."
    },
    "protocol-votes": {
     "d": "2026-09-21",
@@ -1949,31 +1946,41 @@
     "from": "2021-02-02"
    },
    "owner-vector-uni": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
-    "host": "gov.uniswap.org (latest.json 200, 42650 байт, 30 тем, 0 попаданий по заявке о накоплении крупными держателями)",
-    "n": 0,
+    "host": "gov.uniswap.org (latest.json 200, 42870 байт, 28 тем) — 0 попаданий по заявке о накоплении крупными держателями",
+    "n": 1,
     "from": "2026-06-29"
    },
    "capital-tvl": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
-    "host": "api.llama.fi (v2/chains 200, 64211 байт)",
+    "host": "api.llama.fi (v2/chains 200, 64140 байт, 467 сетей)",
     "n": 0,
-    "from": ""
+    "from": "2026-09-23",
+    "note": "Точечный срез TVL; серии за 7/30 дней эндпойнт не несёт, поэтому датированного события падения депозитов не установлено ни по одной сети списка. Это результат, не пропуск."
+   },
+   "vesting": {
+    "d": "2026-09-23",
+    "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
+    "host": "per-coin discovery (§6) — оба агрегаторных хоста §6a закрыты, собственных вестинг-расписаний в таблице каналов нет",
+    "n": 5,
+    "from": "2026-09-23",
+    "note": "Датированные разлоки, найденные поиском по 30 монетам: FET 28.09, ENA 05.10, HYPE 06.10, ARB 16.10, GRAM 23.10. Внутри 28-дневного окна сканирования. Публикация — по классу источника: ENA и HYPE reported, остальные none."
    }
   },
   "coins": {
    "AAVE": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "governance.aave.com",
     "n": 30,
     "from": "2026-09-15",
     "coverage": {
-     "d": "2026-09-21",
-     "status": "не измерена",
-     "move": "+14.03% 2026-08-22"
+     "d": "2026-09-23",
+     "status": "охвачена",
+     "move": "+11.99% 2026-09-17",
+     "carried_by": "governance.aave.com — 9 записей в 48 ч до хода, в т.ч. «[ARFC] Revision of ETH & BTC Collateral Efficiency on Aave» 16.09 и «Risk Stewards: Cap and IRM Changes on Aave V3 / 2026.09.16»"
     }
    },
    "ADA": {
@@ -2009,23 +2016,24 @@
     }
    },
    "ARB": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.arbitrum.foundation",
-    "n": 30,
-    "from": "2026-09-11",
+    "n": 29,
+    "from": "2026-09-12",
     "coverage": {
-     "d": "2026-09-21",
-     "status": "не измерена",
-     "move": "нет структурной строки — площадка ОБЪЯВЛЕНА только фьючерсной (карта §3.14, инв. 41), px.p24 в journal/data отсутствует, крупнейший ход не вычисляется"
+     "d": "2026-09-23",
+     "status": "неизмерима",
+     "move": "нет структурной строки",
+     "carried_by": "объявленный фьючерсный актив (fut:true): journal/data пишет для него запись k:\"x\" без px и без cd, поэтому крупнейший однодневный ход по инструменту §6a не вычисляется (map §3.14, инв. 41)"
     }
    },
    "AVAX": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2025-11-05",
+    "from": "2026-03-30",
     "coverage": {
      "d": "2026-09-21",
      "status": "неохваченная",
@@ -2057,11 +2065,11 @@
     }
    },
    "ENA": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "gov.ethenafoundation.com",
     "n": 30,
-    "from": "2026-02-04",
+    "from": "2026-02-10",
     "coverage": {
      "d": "2026-09-21",
      "status": "неохваченная",
@@ -2144,9 +2152,10 @@
     "n": 30,
     "from": "2026-02-22",
     "coverage": {
-     "d": "2026-09-21",
-     "status": "не измерена",
-     "move": "нет структурной строки — площадка ОБЪЯВЛЕНА только фьючерсной (карта §3.14, инв. 41), px.p24 в journal/data отсутствует, крупнейший ход не вычисляется"
+     "d": "2026-09-23",
+     "status": "неизмерима",
+     "move": "нет структурной строки",
+     "carried_by": "объявленный фьючерсный актив (fut:true): запись k:\"x\" без px и без cd — крупнейший однодневный ход инструментом §6a не вычисляется (map §3.14, инв. 41)"
     }
    },
    "NEAR": {
@@ -2214,15 +2223,16 @@
     }
    },
    "TAO": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
     "n": 5,
-    "from": "2026-09-04",
+    "from": "2026-09-17",
     "coverage": {
-     "d": "2026-09-21",
-     "status": "не измерена",
-     "move": "+9.46% 2026-08-27"
+     "d": "2026-09-23",
+     "status": "охвачена",
+     "move": "+10.25% 2026-09-22",
+     "carried_by": "api.github.com/repos/opentensor/subtensor — релизы v468 (21.09) и v469 (22.09) внутри 48 ч до хода"
     }
    },
    "TRX": {
@@ -2238,10 +2248,10 @@
     }
    },
    "UNI": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "gov.uniswap.org",
-    "n": 30,
+    "n": 28,
     "from": "2026-06-29",
     "coverage": {
      "d": "2026-09-21",
@@ -2251,11 +2261,11 @@
     }
    },
    "XLM": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "api.github.com",
-    "n": 5,
-    "from": "2026-05-15",
+    "n": 4,
+    "from": "2026-06-05",
     "coverage": {
      "d": "2026-09-21",
      "status": "неохваченная",
@@ -2269,9 +2279,10 @@
     "n": 5,
     "from": "2025-11-19",
     "coverage": {
-     "d": "2026-09-21",
-     "status": "не измерена",
-     "move": "нет структурной строки — площадка ОБЪЯВЛЕНА только фьючерсной (карта §3.14, инв. 41), px.p24 в journal/data отсутствует, крупнейший ход не вычисляется"
+     "d": "2026-09-23",
+     "status": "неизмерима",
+     "move": "нет структурной строки",
+     "carried_by": "объявленный фьючерсный актив (fut:true): запись k:\"x\" без px и без cd — крупнейший однодневный ход инструментом §6a не вычисляется (map §3.14, инв. 41)"
     }
    },
    "XRP": {
@@ -2299,15 +2310,16 @@
     }
    },
    "ZEC": {
-    "d": "2026-09-21",
+    "d": "2026-09-23",
     "sec6_md5": "871b65bf9f7602da327b41be57c2de33",
     "host": "forum.zcashcommunity.com",
-    "n": 30,
-    "from": "2026-09-20",
+    "n": 26,
+    "from": "2026-09-22",
     "coverage": {
-     "d": "2026-09-21",
-     "status": "не измерена",
-     "move": "+21.58% 2026-08-22"
+     "d": "2026-09-23",
+     "status": "охвачена",
+     "move": "+18.14% 2026-09-17",
+     "carried_by": "forum.zcashcommunity.com — тема 57655 «NU7 Timeline», пост #1 ebfull 17.09, в день хода. ОГОВОРКА: страница latest.json этого чтения достаёт только до 22.09, то есть окно страницы до даты хода НЕ ДОСТАЁТ; запись установлена прямым чтением темы (t/57655.json 200, 31376 байт)."
     }
    },
    "ONDO": {
@@ -2317,178 +2329,194 @@
      "move": "+14.04% 2026-09-17",
      "carried_by": "канала у ONDO нет — §6a объявляет его необслуженным"
     }
+   },
+   "HYPE": {
+    "coverage": {
+     "d": "2026-09-23",
+     "status": "неизмерима",
+     "move": "нет структурной строки",
+     "carried_by": "канала у монеты §6a не устанавливает (HYPE: releases hyperliquid-dex/node пуст, форума нет, токен-контракта нет; LIT: протокол за тикером в репозитории не установлен) И объявленный фьючерсный актив без cd — измерять нечем и не на чем"
+    }
+   },
+   "LIT": {
+    "coverage": {
+     "d": "2026-09-23",
+     "status": "неизмерима",
+     "move": "нет структурной строки",
+     "carried_by": "канала у монеты §6a не устанавливает (HYPE: releases hyperliquid-dex/node пуст, форума нет, токен-контракта нет; LIT: протокол за тикером в репозитории не установлен) И объявленный фьючерсный актив без cd — измерять нечем и не на чем"
+    }
    }
   },
   "discovery": {
    "FET": {
-    "d": "2026-09-21",
-    "q": "Fetch.ai FET Artificial Superintelligence Alliance dated event unlock upgrade listing late September October 2026",
-    "n": 0
-   },
-   "ZEC": {
-    "d": "2026-09-21",
-    "q": "Zcash ZEC dated event NU7 activation upgrade listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "FET Fetch.ai Artificial Superintelligence Alliance dated event upgrade unlock October 2026",
     "n": 1
    },
+   "ZEC": {
+    "d": "2026-09-23",
+    "q": "ZEC Zcash dated event NU7 network upgrade vote grant September October 2026",
+    "n": 2
+   },
    "UNI": {
-    "d": "2026-09-21",
-    "q": "Uniswap UNI dated event governance vote fee switch UNIfication late September October 2026",
+    "d": "2026-09-23",
+    "q": "UNI Uniswap dated governance vote fee switch upgrade late September October 2026",
     "n": 0
    },
    "NEAR": {
-    "d": "2026-09-21",
-    "q": "NEAR Protocol dated event unlock upgrade governance vote listing product launch late September October 2026",
-    "n": 1
+    "d": "2026-09-23",
+    "q": "NEAR Protocol dated event upgrade mainnet launch unlock vote late September October 2026",
+    "n": 0
    },
    "SUI": {
-    "d": "2026-09-21",
-    "q": "Sui SUI dated event token unlock upgrade governance vote listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "SUI Sui network dated event unlock upgrade governance vote listing October 2026",
     "n": 1
    },
    "ONDO": {
-    "d": "2026-09-21",
-    "q": "Ondo Finance ONDO dated event token unlock launch listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "ONDO Ondo Finance dated event unlock upgrade listing vote next two weeks October 2026",
     "n": 0
    },
    "LINK": {
-    "d": "2026-09-21",
-    "q": "Chainlink LINK dated event upgrade listing unlock announcement late September October 2026",
-    "n": 0
+    "d": "2026-09-23",
+    "q": "LINK Chainlink dated event upgrade release unlock partnership announcement October 2026",
+    "n": 1
    },
    "RENDER": {
-    "d": "2026-09-21",
-    "q": "Render Network RENDER dated event unlock upgrade migration listing late September October 2026",
-    "n": 1
+    "d": "2026-09-23",
+    "q": "RENDER Render Network dated event upgrade release unlock October 2026",
+    "n": 0
    },
    "SOL": {
-    "d": "2026-09-21",
-    "q": "Solana SOL dated event upgrade ETF governance vote Alpenglow late September October 2026",
-    "n": 1
+    "d": "2026-09-23",
+    "q": "SOL Solana dated event upgrade vote listing ETF decision late September October 2026",
+    "n": 0
    },
    "ETH": {
-    "d": "2026-09-21",
-    "q": "Ethereum ETH dated event next upgrade fork ETF staking decision late September October 2026",
-    "n": 2
+    "d": "2026-09-23",
+    "q": "ETH Ethereum dated event Fusaka upgrade fork devnet schedule October 2026",
+    "n": 0
    },
    "XRP": {
-    "d": "2026-09-21",
-    "q": "XRP Ripple dated event ETF decision court escrow unlock late September October 2026",
-    "n": 1
+    "d": "2026-09-23",
+    "q": "XRP Ripple dated event court decision ETF deadline October 2026",
+    "n": 0
    },
    "ADA": {
-    "d": "2026-09-21",
-    "q": "Cardano ADA dated event hard fork upgrade governance vote listing late September October 2026",
-    "n": 2
+    "d": "2026-09-23",
+    "q": "ADA Cardano dated events next 14 days unlock upgrade governance vote listing October 2026",
+    "n": 0
    },
    "AVAX": {
-    "d": "2026-09-21",
-    "q": "Avalanche AVAX Helicon activation September 22 2026 unlock ETF decision listing October 2026",
+    "d": "2026-09-23",
+    "q": "AVAX Avalanche Helicon upgrade activated mainnet September 22 2026",
     "n": 1
    },
    "TAO": {
-    "d": "2026-09-21",
-    "q": "Bittensor TAO dated event halving upgrade subnet listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "TAO Bittensor dated event halving upgrade subnet release October 2026",
     "n": 0
    },
    "ENA": {
-    "d": "2026-09-21",
-    "q": "Ethena ENA dated event unlock fee switch vote late September October 2026",
+    "d": "2026-09-23",
+    "q": "ENA Ethena dated event unlock governance vote fee switch October 2026",
     "n": 1
    },
    "AAVE": {
-    "d": "2026-09-21",
-    "q": "Aave AAVE dated event governance vote V4 launch upgrade late September October 2026",
+    "d": "2026-09-23",
+    "q": "AAVE dated governance vote proposal deadline late September October 2026",
     "n": 0
    },
    "TRX": {
-    "d": "2026-09-21",
-    "q": "TRON TRX dated event network upgrade governance listing ETF late September October 2026",
+    "d": "2026-09-23",
+    "q": "TRX Tron upcoming dated event late September 2026 upgrade vote listing unlock",
     "n": 0
    },
    "BNB": {
-    "d": "2026-09-21",
-    "q": "BNB Chain dated event hard fork upgrade burn listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "BNB Binance Coin BNB Chain dated upgrade hard fork event October 2026",
     "n": 0
    },
    "XLM": {
-    "d": "2026-09-21",
-    "q": "Stellar XLM dated event protocol 24 upgrade vote listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "XLM Stellar upcoming dated event protocol upgrade vote September October 2026",
     "n": 0
    },
    "HBAR": {
-    "d": "2026-09-21",
-    "q": "Hedera HBAR dated event council ETF decision upgrade late September October 2026",
+    "d": "2026-09-23",
+    "q": "HBAR Hedera dated event council decision upgrade ETF October 2026",
     "n": 0
    },
    "ALGO": {
-    "d": "2026-09-21",
-    "q": "Algorand ALGO dated event upgrade xGov vote unlock late September October 2026",
+    "d": "2026-09-23",
+    "q": "ALGO Algorand upcoming dated event September October 2026 upgrade governance vote unlock",
     "n": 0
    },
    "XMR": {
-    "d": "2026-09-21",
-    "q": "Monero XMR dated event hard fork upgrade exchange delisting late September October 2026",
-    "n": 2
+    "d": "2026-09-23",
+    "q": "XMR Monero dated event network upgrade hard fork release October 2026",
+    "n": 0
    },
    "BCH": {
-    "d": "2026-09-21",
-    "q": "Bitcoin Cash BCH dated event November 15 upgrade ETF listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "BCH Bitcoin Cash dated event upgrade November 2026 activation schedule",
     "n": 0
    },
    "ARB": {
-    "d": "2026-09-21",
-    "q": "Arbitrum ARB dated event DAO vote unlock upgrade late September October 2026",
-    "n": 2
+    "d": "2026-09-23",
+    "q": "ARB Arbitrum dated event DAO vote unlock upgrade Timeboost October 2026",
+    "n": 1
    },
    "HYPE": {
-    "d": "2026-09-21",
-    "q": "Hyperliquid HYPE dated event unlock buyback listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "HYPE Hyperliquid dated event HIP upgrade unlock buyback October 2026",
     "n": 1
    },
    "SKY": {
-    "d": "2026-09-21",
-    "q": "Sky Protocol SKY token dated event executive spell vote upgrade late September October 2026",
+    "d": "2026-09-23",
+    "q": "SKY Sky protocol Maker spell executive vote September 24 2026 Grove Spark",
     "n": 0
    },
    "MORPHO": {
-    "d": "2026-09-21",
-    "q": "Morpho MORPHO dated event DAO vote unlock listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "MORPHO Morpho Labs dated governance vote upgrade unlock October 2026",
     "n": 0
    },
    "GRAM": {
-    "d": "2026-09-21",
-    "q": "Toncoin TON GRAM dated event upgrade unlock listing late September October 2026",
+    "d": "2026-09-23",
+    "q": "Toncoin TON GRAM dated event upgrade unlock listing October 2026",
     "n": 1
    },
    "YFI": {
-    "d": "2026-09-21",
-    "q": "Yearn Finance YFI dated event vote buyback treasury late September October 2026",
+    "d": "2026-09-23",
+    "q": "YFI yearn finance dated governance vote release event October 2026",
     "n": 0
    },
    "LIT": {
-    "d": "2026-09-21",
-    "q": "LIT token Binance futures dated event unlock delisting September October 2026",
+    "d": "2026-09-23",
+    "q": "LIT crypto token Binance futures LITUSDT protocol dated event October 2026",
     "n": 0
    },
    "us-legislation": {
-    "d": "2026-09-21",
-    "q": "US crypto legislation Senate CLARITY Act market structure vote schedule SEC CFTC calendar late September October 2026",
+    "d": "2026-09-23",
+    "q": "US crypto legislation CLARITY Act market structure bill Senate vote schedule late September 2026",
     "n": 0
    },
    "etf-decisions": {
-    "d": "2026-09-21",
-    "q": "crypto ETF decision deadline dates late September October 2026 SEC 19b-4 S-1 altcoin ETF launches",
+    "d": "2026-09-23",
+    "q": "crypto ETF decision dates SEC deadline late September October 2026 spot altcoin",
     "n": 0
    },
    "macro-7d": {
-    "d": "2026-09-21",
-    "q": "US economic calendar September 22-28 2026 releases PCE jobless claims Fed speakers durable goods",
+    "d": "2026-09-23",
+    "q": "US macro economic calendar week September 23 30 2026 CPI PCE jobs Fed speakers",
     "n": 2
    },
    "exchange-wide": {
-    "d": "2026-09-21",
-    "q": "Binance listing delisting announcement September 21 2026 new futures perpetual policy change",
-    "n": 1
+    "d": "2026-09-23",
+    "q": "Binance new listing delisting announcement September 23 2026 futures perpetual",
+    "n": 2
    }
   }
  }
