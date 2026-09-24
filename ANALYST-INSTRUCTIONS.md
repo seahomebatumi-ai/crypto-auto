@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-28-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-29-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -14,28 +14,25 @@ text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
 
-**`2026-09-28-a` is the owner's decision of 24.09.2026, and it retires this engine's memory of
-its own book.** The run of 24.09, 02:02 Tbilisi, obeyed `-27-a` and printed what that revision
-produces: a first line of fifteen positions and limits from the answers of 18–21.09 — reopenings,
-fills, «если держишь», targets taken, stops hit — above a book with no trade, an empty maturing
-section, and a catalyst section led by an event of 22.09; on the owner's count, the fifth answer
-of that shape in a row. Each of the three is a rule of this file, not a lapse of the run. **(1)
-Every trigger is an independent analysis** (§0): the run reads no earlier recommendation,
-`analyst/state.json` carries no trade object, nothing tracks a fill or a position the Boss never
-reported, and no line of the answer is about an earlier answer. Carried zones, the fill test, the
-reopening rule, `gap`, the closure list, `archive`, the state-backed `ИЗБЕГАТЬ` and every inter-run
-status word go with it (§2, §4, §11). **(2) `СОЗРЕВАЕТ` is the forward search and the first
-question of the run** (§0, §2, §4, §6): a dated event inside seven days, hunted across the list AND
-the liquid Binance perpetual book, converted into the price at which the coin becomes a trade on
-the event's side — and no longer closed by market stress, which describes the minute of the freeze
-and not the week. An empty section prints what was searched. **(3) Catalysts print forward only**
-(§2, §6): the holding window from the freeze, plus the last 24 hours where the payload shows the
-reaction; every printed item read at its publisher THIS run; discovery on every trigger instead of
-once per UTC day; a passed date leaves state on the run it passes. **§6 moves, so `sec6_md5` moves
-and every lane is stale on the first run under this revision**, which re-reads them all. §7
-retires items 12, 17, 25, 27, 28, 30, 34, 47, 51, 81, 93 and 94, gains 96–98, and corrects 11, 14,
-22, 23, 24, 26, 29, 45, 48, 57, 64, 71, 72, 75, 89 and 91 in place; `REVIEW` runs the full
-cycle (§9); the state moves to schema v2 (§11).
+**`2026-09-29-a` answers the owner's complaints of 24.09.2026 against the run of 24.09, 14:21
+Tbilisi — the first under `-28-a` — and neither is a lapse of the run alone.** Binance opened
+HYPE's spot market 38 minutes after that run's freeze, on an announcement published that morning,
+and the answer carried no line on HYPE; Ondo's release on portfolios built by BlackRock went out at
+13:00 UTC, 2 h 38 min after the freeze, and ONDO rose about 20 % on it. **The first was inside the
+run's reach, and three rules of this file kept it out.** (1) The exchange's own announcement list
+sat among the cached lanes, stale, neither read nor named, and a web search stood in for it: it is
+now read on every run, first, never cached and never replaced by a search (§6a). (2) The hunt had
+no order, so twenty-five of thirty list coins — HYPE and ONDO among them — got no discovery search
+while four hosts were read for one owner vector: it now runs in a fixed order, head before tail,
+the coins no channel serves first (§5 step 5). (3) The declared futures assets had no structural
+row and so produced nothing, whatever their day or their events: they are now screened and cut on
+their own day from `c` (§3A, §4). **The second was outside every run that froze before it, and no
+source changes that** (§5 step 5): the next run meets it as a mover whose cause it must search
+for, on the list as in the book (item 98), and a partnership the payload reacted to is a catalyst,
+as the owner's requirements name it (§6). §7 gains 99–102 and corrects 89, 91 and 98 in place; the
+exchange lane gains `ts` within schema v2 (§11). **§6 moves, so `sec6_md5` moves and every lane is
+stale on the first run under this revision**, whose catalyst section may end «Поиск не завершён.» —
+with the head of the hunt read first.
 **The history of earlier revisions lives in git and in the day logs, not here.**
 
 **This file is methodology, not contract.** Authority, repository operations, the
@@ -108,7 +105,7 @@ best trade is published again because today's evidence says so; a coin that is n
 its absence is not announced. **The engine does not track the Boss's positions** — he does not
 report them and it is not the engine's job — so no line is addressed to a holder. **The run asks
 four questions in this order:** (1) what is developing next — the forward hunt of `СОЗРЕВАЕТ`
-across the list and the liquid perpetual book (§6); (2) what the market is doing now — BTC's
+across the list and the liquid perpetual book, in §5's fixed order (§5 step 5, §6); (2) what the market is doing now — BTC's
 regime, structure, relative strength, liquidity, risk; (3) which developing candidates are
 actionable now; (4) where the engine enters now. §5's freeze precedes all four because it captures
 the whole book at one minute, so the hunt of (1) can price whatever it finds (§5 step 4). **What
@@ -230,6 +227,8 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 Вход $X–$X · Стоп $X (−X.X%) · Цель $X → $X
 **XXX — ШОРТ ⚠ · ЖДАТЬ**
 Вход $X–$X · Стоп $X (+X.X%) · Цель $X → $X
+**XXX — ЛОНГ · ПОВЫШЕННЫЙ РИСК · СЕЙЧАС $X**
+Вход $X · Стоп $X (−X.X% при суточном ходе X%) · Цель $X (+X.X%)
 ⚠ — против режима рынка: повышенный риск
 Свой ход сильнее BTC: XXX · XXX · слабее: XXX · одновременно X лонгов / X шортов, из них X идут с рынком
 В тренде, входа сегодня нет: XXX $X (−X.X%) · XXX $X (−X.X%) · ни по какой цене: XXX
@@ -575,8 +574,9 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   cancels. A clause that only restates the tag in words is deleted.
 - **A dated item whose coin carries NO row in this answer names the price at which that coin
   would become a row**, and the price is the anchor §4 already cut for it — its pullback
-  zone's near edge, or its cool-off entry — printed with the frozen price and the distance in
-  per cent, exactly as a `СОЗРЕВАЕТ` trigger is (§2). Where §4 produced no anchor at all the
+  zone's near edge, its cool-off entry, or the day price §4 cuts for a coin with no structural
+  row — printed with the frozen price and the distance in per cent, exactly as a `СОЗРЕВАЕТ`
+  trigger is (§2). Where §4 produced no anchor at all the
   item says the side and the window and carries no price, which is a different statement and
   is read as one. An event the Boss cannot act on published beside a coin the engine will not
   trade is a headline, and the one thing that turns it back into a decision is the number at
@@ -631,16 +631,14 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   about it is stored between runs, and a name no stage of this run examined cannot stand in the
   field.
 - **A coin the engine cannot BUILD a setup for is not a prohibition and never enters
-  `ИЗБЕГАТЬ`.** The five declared futures-only assets carry no `cd` row by construction
-  (§5, map §3.14), so no long can be cut for them and the regime closes the other side;
-  that is this engine's coverage, not a finding about the coin, and §5 already refuses to
-  report the same absence as a gap for the same reason — a line that fires every run about a
-  fact that is true every run is a label, not an alarm (map inv. 41). Printing them tells
-  the Boss to avoid the assets he trades as perpetuals because a spot journal has no row for
-  them, which is the engine's blindness published as advice. The per-coin refusal is
-  recorded in the appendix as §3A requires and reaches the Architect there; the field carries
-  prohibitions the run can argue. **Measured 04.09:** five of the nine names in `ИЗБЕГАТЬ`
-  were these, and they will be these every run for as long as the declaration stands.
+  `ИЗБЕГАТЬ`.** A limit of this engine's coverage is not a finding about the coin — a line that
+  fires every run about a fact that is true every run is a label, not an alarm (map inv. 41) —
+  and printing it tells the Boss to avoid a coin because the engine cannot see it, which is the
+  engine's blindness published as advice. **Measured 04.09:** five of the nine names in
+  `ИЗБЕГАТЬ` were the declared futures-only assets, refused for having no `cd` row.
+  **They are no longer that case** (§3A): each is cut on its own day from `c`, and a day that
+  admits neither lane produces nothing, exactly as a coin in its own range produces nothing — the
+  appendix names the lane that refused it, and the field carries it only for a reason of its own.
 - **A coin refused because the MODEL has no target left is not a prohibition either.**
   `tradeGeometry` vetoes a setup whose 90-day extremum already sits behind price, and in a
   trend that veto lands on the coins LEADING the list. The refusal is correct — with no
@@ -861,6 +859,29 @@ and the `ЖДАТЬ` field of `ИТОГ` read `нет`. Nothing in this file had
 list had simply never been asked the question one coin at a time.
 Analyse every coin internally; publish every setup that clears the bar and nothing
 that does not. Not a single best pick, not a quota.
+
+**The declared futures assets are screened and cut on their OWN DAY, exactly as a book row is —
+the owner trades them, so the engine's coverage may not be their verdict.** `fut:true` in
+`tokens[]` declares an asset the owner trades as a perpetual, and the structural file carries no
+`cd` row for it (§5, map §3.14), so no structural setup exists for it; §3B's construction needs
+none. Each such coin takes §3B's day screen on its own row of `c` — last price, 24-hour high and
+low, change and turnover, the quantities §3B names, read under the payload's own keys — and where
+the screen admits a lane, its levels are cut by §3B's construction unchanged: the entry, the day's
+extremes, the `INV_FLOOR_SD` floor, the falling-day condition of the short and the leg against the
+list median. Filters 1 to 3 hold by membership — the list is the owner's own universe of named
+crypto perpetuals — filter 4 applies as written, and the market word gates the row no more than it
+gates §3B. **The row is a LIST row of the lowest grade.** It prints in `СТРАТЕГИЯ` as the two-line
+block of §2 —
+«**XXX — ЛОНГ · ПОВЫШЕННЫЙ РИСК · СЕЙЧАС $X**» / «Вход $X · Стоп $X (−X.X% при суточном ходе X%) · Цель $X (+X.X%)»
+— after every structural row, the day-cut rows ranked among themselves by the table's key with a
+zone chance of 1, the entry being the frozen price; it never enters `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` and
+never takes a `ТОП-3` slot; it carries `ПОВЫШЕННЫЙ РИСК` for §3B's reason — one day of one row —
+and no `Структура`; and it counts in the strategy line's totals per side, never in its «идут с
+рынком» share, which needs a `residual7` class it cannot have (§2). A dated event on it makes it a
+forward candidate like any other (§4). A day in the middle third, or a lane §3B's rules refuse,
+produces nothing — exactly as for a book row — and the appendix names which (item 101).
+**Measured 24.09, 14:21 Tbilisi:** HYPE, XMR, LIT, MORPHO and ARB were recorded as «no structural
+row» and nothing else, and Binance opened HYPE's spot market 38 minutes after the freeze.
 
 **B. Outside the list — mandatory search, up to three per side, CATALYST FIRST.** Search
 the broader market on every run, and search it in this order: **first the forward hunt
@@ -1303,14 +1324,15 @@ carries nine copies of one constant while the log carries the computation (§12)
   takes the anchor this section already cuts on that side — pullback, cool-off, retest, or
   `P_trend` (below) where its own regime does not yet read the event's side — and every gate is
   re-run AT that anchor under the waiting-row rule below, the coin's own regime first. **A book
-  coin** has no structural row and takes §3B's construction on its frozen `x` row: a long becomes a
+  coin, and a declared futures asset of the list (§3A),** has no structural row and takes §3B's
+  construction on its frozen row — `x` for a book coin, `c` for a list coin: a long becomes a
   trade where price sits in the lower third of its day, `low + 0.35 × (high − low)`; a short where
   it sits in the upper third, `low + 0.65 × (high − low)`, and only on a falling day — §3B's short
   condition, unchanged; stop and target are cut there exactly as §3B cuts them, `INV_FLOOR_SD`
-  floor included, and the item prints `ВНЕ СПИСКА · ПОВЫШЕННЫЙ РИСК` and no probability, as every
-  outside-list row does. **A coin that is a row at the freeze — table or `ТОП-3` — is a row, not an
+  floor included, and the item prints `ПОВЫШЕННЫЙ РИСК` — `ВНЕ СПИСКА` beside it for a book coin —
+  and no probability, as every row without a structural line does. **A coin that is a row at the freeze — table or `ТОП-3` — is a row, not an
   item**, and its event names itself in `Почему`. An item's zone passes the one-sigma test over
-  seven days (above) — for a book coin with `σ_day` from §3B's range identity — and one that fails
+  seven days (above) — for a coin with no structural row, with `σ_day` from §3B's range identity — and one that fails
   it, or a coin at which no price passes, prints in `# КАТАЛИЗАТОРЫ` with its price and distance or
   with its side and no price (§2). **No figure the event carries — the size of an unlock, the value
   of a launch — moves a level:** the event says where to look and which way, and nothing else.
@@ -1561,7 +1583,8 @@ serves    90d and 30d extremes, betas and their paired R², volatility, the week
 covers    the 25 spot assets of the list. The declared futures-only assets have no row
           by construction (map §3.14, inv. 41), so their absence is DECLARED coverage
           and is never reported as a gap — a line that fires every run about a fact
-          that is true every run is a label, not an alarm
+          that is true every run is a label, not an alarm — and each is cut on its own
+          day from `c` instead (§3A)
 ```
 
 **`btc` is ONE row of that file and `cd` is the other twenty-five.** A run that reads
@@ -1570,8 +1593,8 @@ structure: the regime says which SIDE may be published, and the per-coin rows ar
 side is published ON. Every coin reaching candidacy is read from its own `cd` row — the
 extremes an invalidation is cut from, the volatility that distance is clipped by, the
 returns a relative-strength read is made from — and a coin whose row is absent by
-declaration carries no structural stop and is refused on that ground, by name (map
-§3.14). **Measured 03.09, third run, on the first day this file was readable:** the run
+declaration carries no structural stop and is cut on its own day from `c` instead, by §3B's
+construction (§3A). **Measured 03.09, third run, on the first day this file was readable:** the run
 found it, read `btc`, produced the regime correctly, and consumed not one `cd` row.
 
 **This is a read of a file in the tree and not a fetch, and that distinction is the whole
@@ -1684,11 +1707,41 @@ cut is.
 asking about, so hunting first spends searches choosing what to search for. The stage order
 is otherwise unchanged and the freeze still precedes both.
 
-**5 · Catalysts.** Hunted by §6's daily discovery search and admitted only by source class
+**5 · Catalysts.** Hunted by §6 and admitted only by source class
 — primary, archive or reported (§6); repetition across aggregators is not confirmation and the
 same host twice is one host (map inv. 39). Each event is placed relative to the analysis moment (§2). On a
 row already cut, this stage and every stage after it is subtractive; what it may ADD is a forward
 candidate cut from the frozen payload (step 4).
+
+**The hunt runs in a FIXED ORDER, and a run short of capacity loses its tail, never its
+head.** A step starts only when the step before it is complete — every read in it answered, or
+refused and named — and the appendix records each step and the one the run stopped in (§12):
+
+1. **the exchange's own announcement list** (§6a) — one read that names a listing, a delisting or
+   a new contract for every coin at once;
+2. **the horizon store's entries dated inside the holding window**, each re-read at its `src`
+   (§11);
+3. **§6's book and systemic searches**, every hit followed to its publisher;
+4. **every list coin's discovery search** (§6) — first the coins no channel serves, a coin with no
+   row in §6a's channel table or one item 90 left `неохваченная`, because the search is their only
+   eye; then the rest in descending 24-hour turnover of the coin's row of `c`;
+5. **item 98's movers**, the list's before the book's — one search each where the hunt so far holds
+   nothing on the coin;
+6. **the owner's vectors** (§11);
+7. **the stale lanes**, coin lanes in step 4's order, then the type lanes;
+8. **item 90's coverage measurement.**
+
+The order is value per read and not cost: step 1 is one fetch for the whole universe, step 4 is
+the one search per coin that no lane replaces, and a vector or a stale lane is a question the next
+run can finish. **«Поиск не завершён.» keeps its meaning** (§2) — a run may stop before the tail,
+never before the head. **A run sees what was published before its freeze and nothing after it:**
+an announcement published later reaches the NEXT run, as a mover whose cause that run must search
+for (item 98), and no source this file names can move it earlier. **Measured 24.09, 14:21
+Tbilisi:** five of thirty list coins were searched — twenty-five, HYPE and ONDO among them, were
+not — while four aggregator hosts were read for one owner vector on UNI, and ONDO had no channel by
+§6a's own record. Binance opened HYPE's spot market 38 minutes after the freeze, on an announcement
+already published; Ondo's release on BlackRock-built portfolios went out 2 h 38 min after it, with
+ONDO at −3.5 % on the day at the freeze.
 
 **6 · Signals, flows, positioning.** Funding, open interest, liquidation structure,
 ETF flows, dominance: current at the analysis moment or absent from the answer.
@@ -1806,12 +1859,13 @@ per coin   every coin cut from tokens[] at run time: ONE web search per RUN nami
            or tokenomics change, listing or delisting, ETF, court or regulator decision
 book       ONE web search per RUN for each of, across the Binance USDⓈ-M perpetual book,
            dated in the next 7 days: token unlocks · mainnets, upgrades and hard forks ·
-           Binance listing, delisting and contract announcements · governance votes and
-           tokenomics changes; every coin named that is a row of x passing §3B's four
-           filters is a forward candidate (§4)
+           listings and delistings on OTHER venues — Binance's own are read at its list,
+           first, and never searched for (§6a) · governance votes and tokenomics changes;
+           every coin named that is a row of x passing §3B's four filters is a forward
+           candidate (§4)
 systemic   ONE web search per RUN for each of: US crypto legislation and the SEC and CFTC
            calendars · crypto ETF decision dates · the macro and central-bank calendar of
-           the next seven days · exchange-wide listings, delistings and policy changes
+           the next seven days · policy changes of the other venues
 record     state.sweeps.discovery.<key> = { d, q, n } (§11) keeps the last search per key
            for the audit and exempts nothing — a search an earlier run made is not a
            search of this run; the appendix carries every query and every hit taken —
@@ -1851,7 +1905,7 @@ kind an item is, so that «important» and «noise» stop being a matter of tast
 
 | Class | What it is | Admission |
 |---|---|---|
-| A — asset-specific | an unlock, vote, upgrade, listing, delisting, court or regulator decision NAMING a coin | published whenever dated and sourced; no cap |
+| A — asset-specific | an unlock, vote, upgrade, launch, integration, listing, delisting, court or regulator decision NAMING a coin — and a partnership naming it, on the reaction test below | published whenever dated and sourced; no cap |
 | **S — scheduled systemic** | a DATED decision or proceeding of a regulator, legislature, court, exchange or central bank that names no single coin and governs the asset class: a bill, a rule-making deadline, an ETF decision date, a licensing regime, an exchange-wide policy | published whenever dated and sourced; **no cap, and never compressed into B's** |
 | B — scheduled macro print | a release every calendar already carries: employment, inflation, a central-bank meeting | **at most two, and only in the collapsed line unless the event lands inside 48 h** |
 | C — world event | a shock nobody scheduled: conflict, an exchange failure, a chain halt | published only when its market reaction is VISIBLE IN THE FROZEN PAYLOAD |
@@ -1894,7 +1948,8 @@ finds what every calendar already carries and finds an asset-specific event only
 some earlier thesis happened to leave a lane behind for that coin. Every coin of the
 universe therefore carries a horizon lane of its own (§6a), holding the channel the
 PROTOCOL itself publishes on — its governance forum, its release or upgrade blog, its
-token contract, and the exchange's own announcement list for a listing or a delisting.
+token contract; a listing or a delisting is read at the exchange's own list, on every run
+(§6a).
 **A channel is established once and reused**, exactly as the horizon store is built once
 and maintained: a protocol's forum does not move, and re-deriving where it publishes is
 the cost §6a exists to remove. A coin whose channel has not been established is named
@@ -1917,8 +1972,12 @@ stored, and it prints only inside the `Почему` of a row this run publishes
 fact its trend is in — found by this run's discovery search, read on the coin's own channel,
 `primary` on this section's terms. Admission is unchanged: a change in the protocol's own state —
 code shipped, a product live, a listing or a delisting, a filing accepted, an unlock executed —
-**and a metric, a milestone, a TVL figure, a price move, a partnership, an endorsement and a
-roadmap are not state changes and stay out.** It creates no trade and moves no level (§4, map
+**and a metric, a milestone, a TVL figure, a price move, an endorsement and a roadmap are not
+state changes and stay out.** **A partnership naming the coin is the one announcement admitted
+without being a state change, and only on class C's test: inside the 24 hours, with its reaction
+in the frozen payload** — the owner's decision of 24.09.2026 names major partnerships among the
+catalysts, the market's own reaction is the one mechanical reading of «major», and a partnership
+no payload reacted to is a press release. It creates no trade and moves no level (§4, map
 inv. 32). **Measured 24.09, 02:02 Tbilisi:** AVAX's Helicon activation of 22.09 headed the section
 as `СВЕРШИЛОСЬ` two days after it shipped.
 
@@ -2093,12 +2152,13 @@ see which lanes are open, and the Boss is never told which door was shut.
 
 ### 6a. The supply scan — mandatory, cached, never re-derived per run
 
-Four structural sweeps run after the freeze (§5 step 4) and before any setup is
+The sweeps below run after the freeze (§5 step 4) and before any setup is
 published. **They are not priced inputs and they do not obey the 15-minute rule**: a
 vesting schedule does not change between morning and afternoon, and treating it as if it
 did would spend the freshness window on data that has none. Each carries its own age
 limit, is stored in `analyst/state.json` with the date it was read, and is refreshed only
-when stale. A run that finds every sweep fresh performs no fetch at all and says nothing
+when stale — except the exchange list, which has no cache and is read on every run
+(below). A run that finds every other sweep fresh performs no other fetch and says nothing
 about it.
 
 **A sweep is also stale when the rule that defines it has changed — and the rule that
@@ -2153,11 +2213,12 @@ being read; a hash is written only by the read that produced it.
 
 | Sweep | Question | Max age | Primary source |
 |---|---|---|---|
+| **Exchange** | every listing, delisting, new perpetual, contract change, tag and airdrop the exchange announced for a symbol of `c` or of a row of `x` past §3B's filters | **none — read on EVERY run, first** (§5 step 5) | the exchange's own announcement list (below) |
 | Vesting | cliff unlocks in the next **28 days**, share of float released, resulting emission | 7 days | the protocol's own vesting schedule or the on-chain contract |
 | Capital | TVL direction over 7 and 30 days, for the coins TVL applies to | 24 hours | DefiLlama's API — the publisher of the series, not a repeater of it |
 | Backing | which cohort holds the tokens a cliff releases, and how far above its entry the price sits | 30 days | round terms as disclosed by the protocol or the fund |
 | **Horizon** | every dated event known to fall in the next **90 days**, whether or not it is reportable today | 7 days | the named hosts of §6 |
-| **Coin horizon** | for EVERY coin of `tokens[]`: the dated events its own publication channels carry in the next **90 days** | 7 days | its rows in the channel table below, and the exchange list for a listing or a delisting |
+| **Coin horizon** | for EVERY coin of `tokens[]`: the dated events its own publication channels carry in the next **90 days** | 7 days | its rows in the channel table below, and the exchange row above for a listing or a delisting |
 
 **The horizon sweep is built once and maintained, never rebuilt.** Its purpose is that
 nothing arrives as a surprise and nothing is discovered twice: an event found today at
@@ -2293,17 +2354,32 @@ hour, measured by TZ-45 — so a refusal there is one refusal, counted once on
 `api.github.com`, and it holds all eleven lanes. A coin whose channel this section does not
 name costs no request at all, so an unestablished lane is never counted against that quota.
 
-**One exchange list names every coin for a listing or a delisting.**
+**The exchange's own announcement list is read on EVERY run, first, and it is never cached** —
+the one read in this section with no age limit, because it is the one channel that names a
+listing, a delisting or a new contract for every coin at once, and a listing moves its coin on the
+day it is announced. The request is unchanged —
 `https://www.binance.com/bapi/composite/v1/public/cms/article/list/query?type=1&pageNo=1&pageSize=50`
-answered this machine with dated records. It is one read for the whole universe, stored under
-`horizon` as the lane for listings and delistings with `www.binance.com` as its host, and
-filtered per coin to titles naming the symbol as a whole word. It dates listings and
-delistings and nothing a protocol decides, and a zero count means none among the latest fifty
-per catalogue, never that none exists.
+— and it is stored as `sweeps.horizon.outside-list`, host `www.binance.com`, with `ts`, the moment
+of the read, beside the five fields (§11); the lane is stale whenever `ts` precedes this run's
+freeze, whatever its date. **Every record whose title names a symbol of `c`, or of a row of `x`
+past §3B's four filters — the coin or its perpetual, as a whole word — is followed to its article
+on the exchange's own host**, unless the title itself dates it outside the window, and read there
+for the minute it takes effect: it is `primary` and class A, and it is placed against the freeze
+like every item — `ВПЕРЕДИ СЕГОДНЯ`, `ДАЛЬШЕ` or `УЖЕ БЫЛО СЕГОДНЯ` (§2). An article that cannot be
+read leaves its title and `releaseDate`, which print as the announcement's own day. **A web search
+never stands in for this read.** Only where the list itself refuses does step 1 of §5's hunt
+complete as a refusal — the lane named unread — and one search on the exchange's announcements of
+the last seven days takes its place, every hit followed like a discovery hit (§6). The list dates
+what the exchange decides and nothing a protocol decides, and a zero count means none among the
+latest fifty per catalogue, never that none exists. **Measured 24.09, 14:21 Tbilisi:** Binance had
+announced HYPE's spot listing that morning and opened the market at 11:00 UTC, 38 minutes after
+the freeze; the lane had last been read on 21.09, stood stale under `-28-a`'s digest and was
+neither read nor named, and the search run in its place returned one unrelated record.
 
 **ONDO, HYPE and LIT have no protocol channel, and the exchange list is the only channel that
 names them.** Each is named unserved in the appendix on every run (item 63), and its unlocks,
-votes and upgrades reach state only through §6's type lanes, on §6's source rule.
+votes and upgrades reach state through §6's type lanes and through its own discovery search,
+which §5's hunt runs before any served coin's (§5 step 5), on §6's source rule.
 
 | Coin | What each protocol class returned |
 |---|---|
@@ -2844,11 +2920,15 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     twelve at which the file refuses to enter. **Under `ПЕРЕГРЕТ` or `ВЫСОКИЙ РИСК` the market word is not one of those gates** (§2):
     it closes every price, is stated once, and read here would move every name after «ни по какой
     цене:» (corrected in place at `2026-09-27-a`).
-89. **Every state change SHIPPED in the last 24 hours on a coin's own channel, with its reaction
-    in the frozen payload, prints under `УЖЕ БЫЛО СЕГОДНЯ`, or the appendix names the rule that
-    refused it** (§6); an older one prints only inside the `Почему` of a row this run publishes, and
-    never as a catalyst item. An element admitted on a metric, a milestone, a TVL figure, a
-    partnership or a price move fails this item as the news ban. **Corrected in place at `2026-09-28-a`.**
+89. **Every state change SHIPPED in the last 24 hours — read at its publisher, on the coin's own
+    channel or through this run's search — and every partnership naming the coin, each with its
+    reaction in the frozen payload, prints under `УЖЕ БЫЛО СЕГОДНЯ`, or the appendix names the rule
+    that refused it** (§6); an older one prints only inside the `Почему` of a row this run
+    publishes, and never as a catalyst item. An element admitted on a metric, a milestone, a TVL
+    figure or a price move, or on a partnership no payload reacted to, fails this item as the news
+    ban. **Corrected in place at `2026-09-29-a`:** the item reached a shipped change only through
+    the coin's own channel, which ONDO does not have, and banned the partnership the owner names as
+    a catalyst.
 90. **Lane coverage is measured for every coin whose §6a row has not yet been tested against
     that coin's own largest single-day move of the last thirty days** (§6a), and every coin the
     measurement leaves `неохваченная` is named in the appendix with the move, its date and the
@@ -2859,7 +2939,8 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     never as a measurement skipped; it is re-tried every run at no cost, because the move and the
     windows are both in hand. **Corrected in place at `2026-09-27-a`.**
 91. **`# КАТАЛИЗАТОРЫ` prints «Поиск не завершён.» exactly when `analyst/state.json`, as this run
-    wrote it, shows a lane stale by date or by `sec6_md5`, a coin, book or systemic lane without this
+    wrote it, shows a lane stale by date or by `sec6_md5` — the exchange lane by its `ts` (§6a) —
+    a coin, book or systemic lane without this
     run's discovery search, or a coin item 90 required, COULD measure and did not** (§2) — a coin at
     `неизмеримо` is not one. The audit reads the state and the answer side by side, and a
     disagreement fails this item in either direction. **Corrected in place at `2026-09-27-a`:** three
@@ -2886,12 +2967,49 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     holding window; each forward candidate was published, printed in `# КАТАЛИЗАТОРЫ` with its
     price, or refused by a named rule; and no item was closed by the market word. An empty section
     without its three counts fails this item.
-98. **The three largest movers of `x` passing §3B's four filters carry a line in the appendix** —
-    the move, and the dated event this run's hunt held for the coin or one search found after it
-    (§12). A mover whose primary-dated event lay inside the window and was not in the hunt is a
-    coverage gap named for the Architect, never printed (§1): a forward search that finds nothing
-    while the alts move is a failure to investigate, and this line is where the investigation
-    starts.
+98. **The three largest movers of `x` passing §3B's four filters, and the three coins of the list
+    whose 24-hour change in `c` lies furthest from the median of `c`, carry a line in the
+    appendix** — the move, and the event this run's hunt held for the coin or the one search run
+    after it (§5 step 5, §12). **Where the hunt held nothing, the search is RUN: «nothing in the
+    hunt» is the reason for the search, never its result** — the exchange list this run read is
+    checked for the symbol first, at no cost, and a list coin's search asks what moved it in the
+    last 24 hours; what it finds is placed by §6's rules, and a state change or a partnership with
+    its reaction in the payload prints under `УЖЕ БЫЛО СЕГОДНЯ`. A mover whose primary-dated event
+    lay inside the window and was not in the hunt is a coverage gap named for the Architect, never
+    printed (§1): a forward search that finds nothing while the alts move is a failure to
+    investigate, and this line is where the investigation starts. **Corrected in place at
+    `2026-09-29-a`:** the run of 24.09, 14:21 Tbilisi passed TAKE at −67 %, NIL at +50 % and NOM at
+    +39 % on «no event in the hunt» with no search run, and no line was required for a coin of the
+    list at all.
+99. **The exchange list was read THIS run, first, and every record naming a symbol of `c` or of a
+    filtered row of `x` went somewhere** (§6a) — an item, a forward candidate, the `Почему` of a
+    row, or a refusal by a named rule. The artifact is the lane's `ts`, later than this run's
+    freeze; a search standing in its place fails this item, except where the list itself refused
+    and the appendix names the refusal.
+100. **The hunt ran in §5 step 5's order** — every step completed, or named as the step the run
+    stopped in — and no read of a later step was made while an earlier one was incomplete. A
+    vector, a forum or a stale lane read before every list coin's discovery search fails this item.
+101. **Every declared futures asset was screened and cut on its own day from `c`** (§3A): published
+    as a day-cut row after the structural rows, as a `СОЗРЕВАЕТ` item, or as a catalyst line with
+    its price — or the appendix names the middle third or the §3B rule that refused it. «No
+    structural row» is not a refusal. This checklist reads such a row as it reads an outside-list
+    row: its side from its own day in `c` (item 58, the project clause excepted — the coin is the
+    owner's own), the chase test on its day alone (item 4, as §3B executes it), items 78, 83 and
+    85, and every level traced to its row of `c`; item 80 orders it among the day-cut rows alone,
+    and items 40, 42, 43, 50, 52, 54, 55, 68, 71 and 76 — each reading `cd`, `invalidationInfo`,
+    `marketRegime` or `vol` — do not read it.
+102. **`sec6_md5` was computed by §6a's own command**, and the log carries the command verbatim
+    beside its output. **Measured 24.09, 14:21 Tbilisi:** the run hashed a line range,
+    `sed -n 1786,2426p`, whose digest the section's own command does not reproduce, and stamped
+    eight lanes with it.
+
+**99–102 name the owner's complaints of 24.09.2026 against the run of 24.09, 14:21 Tbilisi — the
+first under `-28-a` — and 89, 91 and 98 are corrected in place.** The run broke two rules reaching
+them: item 32 — the nine type lanes of `sweeps.horizon`, the exchange list among them, were neither
+read nor named — and §6a's hash command, which it replaced with a line range. The file broke the
+rest: it kept the exchange list in a cache, gave the hunt no order, cut nothing for five declared
+perpetuals, let a mover pass without a search, reached a shipped change only through a channel,
+and banned the partnership the owner names as a catalyst.
 
 **96–98 name the owner's complaint of 24.09.2026 against the run of 24.09, 02:02 Tbilisi, and that
 run broke no rule.** It obeyed a file that told it to carry fifteen objects from four earlier
@@ -3047,7 +3165,7 @@ fill and no closed item (§0).
 { "v":2, "k":"state", "d":"YYYY-MM-DD", "ts":"ISO-8601Z",
   "horizon":[ { "id","sym","e","d","dclass","src","next" } ],
   "oi":{ "<SYM>":{ "ts","oi" } },
-  "sweeps":{ "horizon":{ "<lane>":{ "d","sec6_md5","host","n","from" } },
+  "sweeps":{ "horizon":{ "<lane>":{ "d","sec6_md5","host","n","from","ts" } },
              "coins":{ "<SYM>":{ "d","sec6_md5","host","n","from",
                                  "c2":{ "d","sec6_md5","host","n","from" },
                                  "coverage":{ "d","status","move","carried_by" } } },
@@ -3058,7 +3176,9 @@ fill and no closed item (§0).
 a systemic event, `e` the event in one line, `d` its date, `dclass` who established the date
 (below), `src` the address that established it, `next` the next-attempt date where §6a sets one.
 **`oi` is the positioning memory of §5 step 6.** Both are additive within v2, fields not applicable
-are omitted and never nulled, and a field leaves only by a version this file names.
+are omitted and never nulled, and a field leaves only by a version this file names. **`ts` is
+written on the exchange lane alone** — the moment of its read, against which that lane's
+staleness is judged (§6a); every other lane omits it.
 
 **The first run under this revision migrates a v1 file, once.** Every `items` entry of type
 `catalyst` whose date has not passed and whose `dclass` is not `none` becomes a `horizon` entry;
@@ -3185,10 +3305,15 @@ what analyst/state.json held at step 3, per key; every horizon entry deleted or 
   v1 migration counts where it ran (§11)
 every discovery search (§6), per coin, per book lane and per systemic lane: query, moment,
   and each hit taken with host, date, one line and class
+the exchange list read (§6a): request, landing host, ts, records per catalogue and the oldest
+  window date, and every record naming a symbol of c or x — title, the minute from its article
+  or that it was not read, its class and where it went
+the hunt in §5 step 5's order: each step, completed or not, and the step the run stopped in
+the sec6_md5 this run computed, with §6a's command verbatim
 every forward candidate (§4): its event, side and anchor, the gate that decided it, and where it
   went — row, СОЗРЕВАЕТ item, catalyst line with its price, or refusal
-the three largest movers of x passing §3B's filters, and the dated event the hunt held for each
-  or one search found after it (§7 item 98)
+the three largest movers of x passing §3B's filters and the three list coins furthest from the
+  median of c, and for each the event the hunt held or the search run after it (§7 item 98)
 any catalysts.json proposal (§6)
 every event found beyond the holding window, as written to the horizon store
 ```
