@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-29-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-30-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -14,25 +14,22 @@ text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
 
-**`2026-09-29-a` answers the owner's complaints of 24.09.2026 against the run of 24.09, 14:21
-Tbilisi — the first under `-28-a` — and neither is a lapse of the run alone.** Binance opened
-HYPE's spot market 38 minutes after that run's freeze, on an announcement published that morning,
-and the answer carried no line on HYPE; Ondo's release on portfolios built by BlackRock went out at
-13:00 UTC, 2 h 38 min after the freeze, and ONDO rose about 20 % on it. **The first was inside the
-run's reach, and three rules of this file kept it out.** (1) The exchange's own announcement list
-sat among the cached lanes, stale, neither read nor named, and a web search stood in for it: it is
-now read on every run, first, never cached and never replaced by a search (§6a). (2) The hunt had
-no order, so twenty-five of thirty list coins — HYPE and ONDO among them — got no discovery search
-while four hosts were read for one owner vector: it now runs in a fixed order, head before tail,
-the coins no channel serves first (§5 step 5). (3) The declared futures assets had no structural
-row and so produced nothing, whatever their day or their events: they are now screened and cut on
-their own day from `c` (§3A, §4). **The second was outside every run that froze before it, and no
-source changes that** (§5 step 5): the next run meets it as a mover whose cause it must search
-for, on the list as in the book (item 98), and a partnership the payload reacted to is a catalyst,
-as the owner's requirements name it (§6). §7 gains 99–102 and corrects 89, 91 and 98 in place; the
-exchange lane gains `ts` within schema v2 (§11). **§6 moves, so `sec6_md5` moves and every lane is
-stale on the first run under this revision**, whose catalyst section may end «Поиск не завершён.» —
-with the head of the hunt read first.
+**`2026-09-30-a` answers the audit of the run of 25.09, 01:30 Tbilisi — the first under `-29-a` —
+and the owner's complaint of 24.09.2026 read against it.** The run carried nothing from an earlier
+answer, printed no past event and found its one forward item; what it did not do is answer the
+owner's question — where it would put its own money. **Below a BTC price 0.24 % away its book was
+twenty-three long limits opening on that one price, its own verdict was that it would hold one of
+them, and the answer never said which** (§2
+`# BTC`, item 103). Four more defects were this file's. The long `ТОП-3` heading printed «Нет
+достойных кандидатов.» over a lane of twenty-three rows, because the stress word closed them before
+any test ran and the section had no other state (§2, §3B, items 14 and 36). The `СОЗРЕВАЕТ` item
+printed a target 13.5 % above a 90-day high it never named — the level a row prints first, as the
+place to reduce (§2, item 60). The book's largest mover, TAKE at −37.7 %, was unwinding a rally into
+an unlock carried for the next day, and its search asked only what had happened (item 98). And the
+`# РЕЖИМ` names were cut by a rule with no computation and named two coins the same answer told the
+owner to avoid (§2, item 35). **One defect was the run's:** it opened the previous log, answer
+included, to recover commands, and §12 now closes the reason it had to (item 96). **§6 does not
+move, so `sec6_md5` and every lane stand.**
 **The history of earlier revisions lives in git and in the day logs, not here.**
 
 **This file is methodology, not contract.** Authority, repository operations, the
@@ -218,7 +215,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 
 # СОЗРЕВАЕТ ≤7 ДНЕЙ
 **МОНЕТА — ЛОНГ [· ВНЕ СПИСКА] [· ПОВЫШЕННЫЙ РИСК]** — ДД.ММ событие, одним предложением.
-Станет сделкой: цена $X (сейчас $X, ±X.X%) [· при BTC ниже/выше $X] · зона $X–$X · инвалидация $X · цель $X (±X.X% от зоны).
+Станет сделкой: цена $X (сейчас $X, ±X.X%) [· при BTC ниже/выше $X] · зона $X–$X · инвалидация $X (±X.X%) · цель $X → $X (±X.X% → ±X.X% от зоны).
 Шанс дойти до зоны за 7 дней: XX%
 [нет пунктов → «Нет достойных кандидатов. Проверено: список N · вне списка M · событий ≤7 дней K.»]
 
@@ -265,23 +262,27 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   not the moment the answer was sent** — that is the moment every level in the answer
   belongs to, and printing any other would attach the levels to a price they were never
   computed against.
-- **`# РЕЖИМ` is TWO LINES and never explains itself.** It carries the spread, the coins
-  away from the extreme, and nothing else. A sentence saying why the list has no trade —
+- **`# РЕЖИМ` is TWO LINES and never explains itself.** It carries the word, the condition
+  that lifts it and the spread, and nothing else. The condition prints only where the word
+  closes the list (below). A sentence saying why the list has no trade —
   «направленной сделки нет, и причина одна на всех», «границу диапазона я не торгую» — is
   the engine reasoning out loud at the top of the answer, which §1 bans and which the owner
   has now asked twice to be removed. The refusal reaches him as an empty section and a
   `СОЗРЕВАЕТ` price, which is the actionable form of the same fact; the reasoning belongs to
   the appendix, where the Architect reads it.
-- **`# РЕЖИМ` names the SPREAD, and names the coins outside it.** One line carries
-  BTC's own 24-hour change against the median of `c`, and every coin sitting away from
-  the list's extreme is named. In a trend the LEVEL of the list is the same fact every
+- **`# РЕЖИМ` names the SPREAD and no coin.** One line carries BTC's own 24-hour change
+  against the median of `c`. In a trend the LEVEL of the list is the same fact every
   morning and its DISPERSION is the only thing that moves: a day on which BTC adds 4.6 %
   and the median alt adds 8 % is a different market from one BTC leads, and both print
-  «всё растёт» without the spread. **A coin not at the extreme on a day the list is at it
-  is the only non-chasing entry that exists**, so it is named whether or not it becomes a
-  setup. Measured 03.09: four such coins were computed row by row, none reached the
-  answer, and the regime line asserted «весь список без исключения» four lines above the
-  appendix that listed the exceptions.
+  «всё растёт» without the spread. **The names that stood beside the spread are retired at
+  `2026-09-30-a`:** «away from the extreme» named no computation, so each run invented its
+  own cut, and every coin such a cut can name already reaches the answer on its own terms —
+  at its price in the trend line, in `ИЗБЕГАТЬ`, or nowhere because no lane admits it (§3A,
+  §4). **Measured 25.09, 01:30 Tbilisi:** eleven names on a cut of half the median, two of
+  them in the same answer's `ИЗБЕГАТЬ` and four with no lane at all. What the names were
+  written against stays banned: a regime sentence asserting «весь список» is checked
+  against the computed rows (item 35) — measured 03.09, the line asserted «весь список без
+  исключения» four lines above the appendix that listed the exceptions.
 - **ЛУЧШИЕ СДЕЛКИ СЕЙЧАС** carries only trades that clear the quality bar right now.
   None clear it → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** and nothing beside it, then
   the strategy table carries the pending triggers. **The sentence of reason that stood
@@ -357,7 +358,14 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   reach, then the level `RR_MIN` was computed against. A seventh column would not survive
   a phone, and the two levels are one decision — where to reduce and where the trade is
   measured to. Where the nearer extreme sits behind price, or beyond the level `RR_MIN` was computed
-  against, the cell carries that level alone (§4).
+  against, the cell carries that level alone (§4). **A `СОЗРЕВАЕТ` item's target is the `Цель`
+  cell's two levels**, on the same rule and in the same order, each with its distance from the
+  zone — «цель $1650.65 → $1873.26 (+10.6% → +25.5% от зоны)» — with the zone standing where
+  price stands for a row. The item is the one place the Boss reads the trade it becomes, and a
+  level a row would print as the place to reduce does not vanish because the row has not armed
+  yet; a coin with no structural row has no extreme to print and carries the one level.
+  **Measured 25.09, 01:30 Tbilisi:** the ZEC item printed $1873.26 alone, 13.5 % above a 90-day
+  high of $1650.65 that appeared nowhere in the answer.
 - **Every printed stop carries its distance from the entry in per cent** — `$6.832 (−12.7%)`,
   measured from the row's anchor (§4). The distance is the number a futures position is sized
   from and the one the owner cannot read off the price cells himself. **Measured 19.09:** the
@@ -379,7 +387,12 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   that move with BTC are one position bought at several spreads, and the number he sizes from
   is the total, not the row. **Measured 19.09, second run:** eight long rows, no short, three
   of them (`BNB`, `FET`, `TRX`) classed `market` by the run's own `residual7`, and nothing in
-  the answer said so. `В тренде, входа сегодня нет` names every coin in its own trend at
+  the answer said so. **Under `ПЕРЕГРЕТ` or `ВЫСОКИЙ РИСК` the clause is not printed** — no row
+  can be published under a stress word, so it would read «0 лонгов / 0 шортов» on every such
+  run, a constant of the rule (item 79), while the book the Boss can place is the conditional
+  one, whose concentration `# BTC` states (item 103). **Measured 25.09, 01:30 Tbilisi:**
+  «одновременно 0 лонгов / 0 шортов» over twenty-three same-side limits opening on one price.
+  `В тренде, входа сегодня нет` names every coin in its own trend at
   the freeze that carries no row, no `СОЗРЕВАЕТ` item and no `ИЗБЕГАТЬ` reason of its own (§4),
   **and every name in it carries the price at which that coin BECOMES a trade** — the activating
   price of its cool-off, its trend floor or its retest (§4), whichever its own refusing condition
@@ -415,12 +428,13 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 - **ТОП-3 ВНЕ СПИСКА is mandatory to search and never mandatory to fill.** One
   genuine candidate beats three manufactured ones; zero genuine candidates prints
   «Нет достойных кандидатов.» in one line.
-- **A mandatory search resolves to exactly THREE states, and the third is printed.**
+- **A mandatory search resolves to exactly THREE states, and the third is printed** — the
+  two `ТОП-3` headings to a FOURTH under a stress word (below).
   `ТОП-3 ВНЕ СПИСКА` (both sides) and `СОЗРЕВАЕТ ≤7 ДНЕЙ` each end in one of:
-  candidates printed · **«Нет достойных кандидатов.»** — the search ran and returned
-  nothing · **«Поиск не завершён.»** — the stage did not complete this run. Those two
-  sentences are fixed strings: no reason follows either, no host is named, no apology is
-  offered. **An omitted section is not a permitted fourth state for these two headings**
+  candidates printed · **«Нет достойных кандидатов.»** — the search ran and no candidate
+  survived it · **«Поиск не завершён.»** — the stage did not complete this run. Those
+  sentences are fixed strings: no reason follows any of them, no host is named, no apology is
+  offered. **An omitted section is never a permitted state for these headings**
   — everywhere else in §2 an empty section disappears, and that is why the omission had
   to be given a word here: a mandatory search that vanishes reads exactly like a search
   that found nothing, and the Boss acts on the difference. §6's rule that an empty sweep
@@ -433,6 +447,16 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   window (§6). A maturing section that prints «nothing» run after run while the alts move is
   indistinguishable from a search that never ran, and three counts are the one form in which the
   two differ; they are coverage, not machinery, and they change with every run.
+  **Under a stress word the two `ТОП-3` headings have a FOURTH state, «Закрыто до BTC ниже $X.»**
+  — «выше $X» under `ВЫСОКИЙ РИСК` — with `X` the price at which `# BTC` prints the word lifting.
+  The word closes both sides at the freeze (below) and it is applied last: every other test of
+  §3B runs first, and this state prints only where a candidate survived all of them and the word
+  alone refused it; where none survived, «Нет достойных кандидатов.» is true and prints. It is a
+  condition and not an explanation — the form `ИТОГ` closes its `ЖДАТЬ` field with — and it tells
+  the Boss the one thing he can act on: the section reopens at that price, on the next run.
+  **Measured 25.09, 01:30 Tbilisi:** the long lane held twenty-three rows, the word refused all
+  of them before filter 3, the divergence leg or the stop floor ran on any, and the heading
+  printed the string that says the screen found nothing.
 - **`# КАТАЛИЗАТОРЫ` is the fourth mandatory search, and its incomplete state is printed.** Every
   item prints on this run's reading of its publisher (§6), and **the section ends with «Поиск не завершён.» whenever the hunt that would have found
   a NEW item did not complete this run**: any lane of §6a stale by date or by `sec6_md5`, any coin
@@ -533,6 +557,21 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   **This is the honest form of «куда идёт биткойн», asked by the owner on 20.09:** a
   conditional map with a measured reach. A run that prints a direction instead has
   manufactured one.
+- **Under a stress word the conditional book is ONE position per side, and `Действие` names it.**
+  Under `ПЕРЕГРЕТ` or `ВЫСОКИЙ РИСК` every name in `ИТОГ`'s `ЖДАТЬ` field activates on the one
+  BTC price at which the word lifts, so the names on one side are one bet on one move, whatever
+  their count — arithmetic of the shared condition, not a judgement about correlation. The
+  `Действие` line says so and names the position the engine would hold: the FIRST name of the
+  field on that side that carries a structural row (the field's order is `ИТОГ`'s, below), with
+  its zone — or, where no name on that side carries one, its first name with `ПОВЫШЕННЫЙ РИСК`:
+  «Действие: выше $84 177 — ни одного нового входа; ниже — одна позиция в лонг: ZEC
+  1455.00–1493.02; остальные лимиты ЖДАТЬ — та же ставка.» Under `ВЫСОКИЙ РИСК` the two sides of
+  the price change places. The other names stay where they stand, at their prices, because a coin
+  in its own trend is never hidden (above); what the line adds is the answer to the owner's own
+  question — which of them the engine's money would take (§0). **Measured 25.09, 01:30 Tbilisi:**
+  twenty-three long limits opened on one BTC price 0.24 % away, the appendix recorded that the
+  run would take the first and stop, and the answer printed «это одна ставка на BTC, а не
+  двадцать три» without the name.
 - **КАТАЛИЗАТОРЫ: 3–5 items, each tied to an action and placed relative to the
   analysis moment** — уже было сегодня / идёт сейчас / впереди сегодня / дальше.
   Same-day items carry a clock time, later items a date. **The window is the holding window —
@@ -677,7 +716,9 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   while a missing `ЖДАТЬ:` says nothing twice.
 - **The `ЖДАТЬ` field of `ИТОГ` carries the activating price beside every name**, in
   the form `AAVE 122–124`. **Every activating price the answer publishes stands in that
-  field, `СОЗРЕВАЕТ` triggers included.** **So does every price of the
+  field, `СОЗРЕВАЕТ` triggers included.** **`СОЗРЕВАЕТ` triggers stand first in the field, in their
+  own section's order**, and the trend line's names follow them — the order `# BTC` reads its one
+  position from under a stress word (§2 `# BTC`, item 103). **So does every price of the
   `В тренде, входа сегодня нет` line, in that line's order, and under `ПЕРЕГРЕТ` or `ВЫСОКИЙ РИСК`
   the field keeps every name at its own price and ends ONCE with the BTC price at which the word
   lifts** —
@@ -729,7 +770,9 @@ two weekly sigmas is a shock, not a direction — measured 03.09, `ПЕРЕГР�
 and three outside-list shorts were published beneath it: the word closes both sides or it is the
 wrong word. **It closes them AT THE FREEZE and nowhere else:** `СОЗРЕВАЕТ` is a statement about
 the week, so the word never closes it, and each item there carries the BTC price at which the
-word lifts (§2).
+word lifts (§2) — **and it is applied LAST**: every other test of a list coin and of a `ТОП-3`
+candidate runs first, so the answer knows what the word alone refused and says so in the one form
+§2 gives it — a coin's own lift price in the trend line, a `ТОП-3` heading's fourth state.
 
 **Both regimes are read at the FROZEN price, never at the row's.** The structural row is written
 once a day and may be up to 24 hours older than the freeze (§5), and its returns belong to the
@@ -1075,14 +1118,17 @@ govern them and they are deliberately uncalibrated. Fewer than eight rows cleari
 floor and the screen says so rather than reporting a thin list as a finding (map inv. 22).
 
 **A candidate the screen produced and the filters passed is PUBLISHED, or refused by a
-NAMED rule.** «Нет достойных кандидатов.» asserts that the screen returned nothing, and
-it is the one sentence in §2 whose meaning a run can quietly change by declining what it
-found. A refusal is one line in the appendix naming the rule it rests on — filter 3, an
-admissibility leg, a catalyst veto, the side the regime admits (§2) — and a refusal that
-can name none of them is not a refusal, it is a preference. **Measured 03.09:** the long
-lane produced one row clearing every filter at $116M of turnover, the run declined it
-without naming a rule, and the section printed «Нет достойных кандидатов.» on a day whose
-headline was that there were no trades at all.
+NAMED rule.** «Нет достойных кандидатов.» asserts that no candidate SURVIVED the screen, the
+filters and the section's tests, and it is the one sentence in §2 whose meaning a run can quietly
+change by declining what it found. A refusal is one line in the appendix naming the rule it rests
+on — filter 3, an admissibility leg, a catalyst veto, the side the regime admits (§2) — and a
+refusal that can name none of them is not a refusal, it is a preference. **A stress word is
+applied after every other test and never instead of them** (§2): a candidate it alone refused
+prints as the heading's fourth state, and a run that let the word stand in for filter 3, the
+divergence leg or the stop floor has not refused anything — it has not looked. **Measured
+03.09:** the long lane produced one row clearing every filter at $116M of turnover, the run
+declined it without naming a rule, and the section printed «Нет достойных кандидатов.» on a day
+whose headline was that there were no trades at all.
 
 **The field names are read from the payload at run time, never typed here.** The rule
 owns which quantities are needed — symbol, last, high, low, turnover — and the payload
@@ -2574,9 +2620,10 @@ which is the shape §7 exists to replace.
 13. **Every name in the `ЖДАТЬ` field of `ИТОГ` carries its activating price** (§2).
     No price and no date → the name leaves the field.
 14. **Each of the three mandatory searches — `ТОП-3` long, `ТОП-3` short,
-    `СОЗРЕВАЕТ` — resolved to one of its three printable states** (§2). None of them
-    is silently absent, and `СОЗРЕВАЕТ`'s «Нет достойных кандидатов.» carries its three coverage
-    counts (§2). **Corrected in place at `2026-09-28-a`.**
+    `СОЗРЕВАЕТ` — resolved to one of its printable states** (§2) — the two `ТОП-3` headings to
+    four under a stress word, «Закрыто до BTC ниже $X.» the fourth («выше» under `ВЫСОКИЙ РИСК`).
+    None of them is silently absent, and `СОЗРЕВАЕТ`'s «Нет достойных кандидатов.» carries its
+    three coverage counts (§2). **Corrected in place at `2026-09-28-a` and `2026-09-30-a`.**
 15. **Every lane of the §6 coverage list is fresh under §6a**, including its recorded
     contract MD5. A stale lane is refreshed or the run states which lane it is short
     of, in the appendix, by name.
@@ -2634,12 +2681,18 @@ which is the shape §7 exists to replace.
     `btc` object** (§2), never judged, at the frozen price (§2), and every setup against it
     carries the tier mark (map inv. 30).
 34. **RETIRED at `2026-09-28-a` by the owner's decision of 24.09.2026** — `gap` and `gap_prev` are retired (§4).
-35. **`# РЕЖИМ` carries the spread and names every coin away from the list's extreme**
+35. **`# РЕЖИМ` carries the spread and names no coin**
     (§2). A regime sentence asserting «весь список» is checked against the computed rows
-    and never written from the impression of them.
+    and never written from the impression of them. **Corrected in place at `2026-09-30-a`:**
+    the names it required had no computation, and on 25.09 two of eleven stood in the same
+    answer's `ИЗБЕГАТЬ`.
 36. **Every candidate that cleared all four §3B filters and its lane test was published,
-    or refused by a rule named in the appendix** (§3B). «Нет достойных кандидатов.» was
-    printed only where the screen itself produced none.
+    or refused by a rule named in the appendix** (§3B), every §3B test run before the stress
+    word. «Нет достойных кандидатов.» was printed only where no candidate survived them, and
+    «Закрыто до BTC ниже $X.» («выше» under `ВЫСОКИЙ РИСК`) only where one survived every test
+    but the word (§2). **Corrected in place at `2026-09-30-a`:** the run of 25.09, 01:30 Tbilisi
+    refused twenty-three long-lane rows on the word before any test ran and printed the first
+    string.
 37. **The structural file was read by command** (§5), its path and row count recorded,
     and an absent or stale file named as a gap with the command's output — never worked
     around, and never mentioned to the Boss (§1).
@@ -2747,7 +2800,8 @@ gap no checklist could have caught, because no rule had ever named the computati
     section of the answer explains why it is empty. Checked against the composed text.
 60. **Every published target prints its distance in per cent and is labelled a structural
     level** (§2) — from the entry for a trade row, from the zone for a `СОЗРЕВАЕТ` item —
-    and no target is presented as an objective for the holding window.
+    in the `Цель` cell's form, a `СОЗРЕВАЕТ` item's included (§2), and no target is presented as an
+    objective for the holding window. **Corrected in place at `2026-09-30-a`.**
 61. **No catalyst item's side slot reads `ЖДАТЬ` alone** (§2), and every item carries its
     strength word.
 
@@ -2869,7 +2923,9 @@ reading the answer the way the owner trades it, which is the one audit no checkl
 81. **RETIRED at `2026-09-28-a` by the owner's decision of 24.09.2026** — the first line carries nothing about an
     earlier answer (§2, item 64).
 82. **The own-move line ends with the book's concentration** (§2): rows per side, and how many
-    of them `residual7` classes `market`, counted from the rows this answer published.
+    of them `residual7` classes `market`, counted from the rows this answer published — and
+    under a stress word it is not printed and `# BTC` carries the conditional book (item 103).
+    **Corrected in place at `2026-09-30-a`:** under a stress word it read 0/0 by construction.
 83. **Every outside-list setup stands on the day's own extremes and every short stands on a
     FALLING day** (§3B): entry the frozen price, invalidation the entry-side extreme, target
     the opposite one, each read from the payload row, the stop printed with the coin's own
@@ -2959,9 +3015,13 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     it prints its distance from the frozen price** (§2), and `ИТОГ`'s `ЖДАТЬ` field carries the same
     names at the same prices in the same order.
 96. **The run read no earlier recommendation** (§0): no zone, entry, stop, target, status, fill or
-    refusal of an earlier answer was an input to this one, and the appendix records what
+    refusal of an earlier answer was an input to this one, and no file under `analyst/log/` was
+    opened by this run (§12) — the appendix's record of what it read is the artifact, and a run that
+    opened one fails this item whatever it took from it. The appendix also records what
     `analyst/state.json` held at step 3 — horizon entries, sweeps and `oi`, nothing else (§11). A
     trade object found there is dropped before composition and named in the appendix.
+    **Corrected in place at `2026-09-30-a`:** the run of 25.09, 01:30 Tbilisi opened the previous
+    log for its commands and passed this item with an asterisk.
 97. **`СОЗРЕВАЕТ` was the run's first question and covered both universes** (§0, §2, §6): every
     list coin's discovery search, the book lanes and the store's outside-list entries inside the
     holding window; each forward candidate was published, printed in `# КАТАЛИЗАТОРЫ` with its
@@ -2972,15 +3032,19 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     appendix** — the move, and the event this run's hunt held for the coin or the one search run
     after it (§5 step 5, §12). **Where the hunt held nothing, the search is RUN: «nothing in the
     hunt» is the reason for the search, never its result** — the exchange list this run read is
-    checked for the symbol first, at no cost, and a list coin's search asks what moved it in the
-    last 24 hours; what it finds is placed by §6's rules, and a state change or a partnership with
+    checked for the symbol first, at no cost, and a mover's search — list or book — asks what moved
+    it in the last 24 hours and what is dated for it inside the holding window: a move INTO a dated
+    event is the market pricing that event, and the event is a forward candidate (§4). What it
+    finds is placed by §6's rules, and a state change or a partnership with
     its reaction in the payload prints under `УЖЕ БЫЛО СЕГОДНЯ`. A mover whose primary-dated event
     lay inside the window and was not in the hunt is a coverage gap named for the Architect, never
     printed (§1): a forward search that finds nothing while the alts move is a failure to
     investigate, and this line is where the investigation starts. **Corrected in place at
     `2026-09-29-a`:** the run of 24.09, 14:21 Tbilisi passed TAKE at −67 %, NIL at +50 % and NOM at
     +39 % on «no event in the hunt» with no search run, and no line was required for a coin of the
-    list at all.
+    list at all. **Corrected in place at `2026-09-30-a`:** on 25.09, 01:30 Tbilisi TAKE, the book's
+    largest mover at −37.7 %, was unwinding a rally into an unlock aggregators carried for the next
+    day, and its one search asked what had happened on 24.09.
 99. **The exchange list was read THIS run, first, and every record naming a symbol of `c` or of a
     filtered row of `x` went somewhere** (§6a) — an item, a forward candidate, the `Почему` of a
     row, or a refusal by a named rule. The artifact is the lane's `ts`, later than this run's
@@ -3002,6 +3066,24 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     beside its output. **Measured 24.09, 14:21 Tbilisi:** the run hashed a line range,
     `sed -n 1786,2426p`, whose digest the section's own command does not reproduce, and stamped
     eight lanes with it.
+103. **Under `ПЕРЕГРЕТ` or `ВЫСОКИЙ РИСК`, `# BTC`'s `Действие` line states that the names of
+    `ИТОГ`'s `ЖДАТЬ` field are one position per side and names the one the engine would hold** (§2)
+    — the first name of the field on that side carrying a structural row, or its first name with
+    `ПОВЫШЕННЫЙ РИСК` where none does — with its zone; and the own-move line carries no
+    concentration clause (item 82). A `Действие` line that counts the names, or calls them one bet,
+    without naming the position fails this item.
+
+**103 names the audit of the run of 25.09, 01:30 Tbilisi — the first under `-29-a` — and 14, 35,
+36, 60, 82, 96 and 98 are corrected in place.** The run broke two rules: it opened the previous
+log, answer included, to recover commands (§12, item 96), and it followed step 3's hits after
+step 4's searches (item 100). The file broke the rest, and the run found four of them itself — a
+book of twenty-three limits on one BTC price with no position named, a lane of twenty-three rows
+reported as empty under a stress word, a regime line cut by a rule with no computation, and a
+concentration count that read 0/0 by construction. The audit found the other two: a forward item
+whose target sat 13.5 % above a 90-day high it never named, and a mover whose search looked back
+at a move that was pricing the next day's unlock. **103 is the item §7 was short of:** the run
+wrote «одна ставка» by judgement, and a rule a run obeys by judgement is the next item on this
+list.
 
 **99–102 name the owner's complaints of 24.09.2026 against the run of 24.09, 14:21 Tbilisi — the
 first under `-28-a` — and 89, 91 and 98 are corrected in place.** The run broke two rules reaching
@@ -3270,10 +3352,16 @@ exists to prevent.
 `analyst/log/YYYY-MM-DD.md`, written once per run, never reopened (map inv. 38). A
 second run on the same date writes `YYYY-MM-DD-2.md`.
 
-**No run reads an earlier log's content** (§0). The log is evidence for the Architect's audit —
+**No run OPENS an earlier log, for any purpose** (§0). The log is evidence for the Architect's audit —
 the research the owner's decision of 24.09.2026 allows to be kept — and never an input to a
-recommendation. The one fact a run takes about an earlier run is whether its commit landed on
-`main` (map inv. 54), read with `git` and never from the log's text.
+recommendation, **and a command is no exception:** every command a run needs is derived from this
+file and from this run's `index.html` — a production function's span found by its NAME there (§4),
+never recovered from an earlier record — so no run has a reason to open one. The one fact a run
+takes about an earlier run is whether its commit landed on `main` (map inv. 54), read with `git`
+and never from the log's text. **Measured 25.09, 01:30 Tbilisi:** the run opened 140 lines of the
+previous log, that run's answer among them, to recover `sed` spans and a harness path, and said so;
+no level came from it on the run's own account, and once an answer has been read an account is all
+an audit can check.
 
 **This section is the only specification of the log's contents.** The contract says
 where it lives and how long; it deliberately carries no field list, because a list
