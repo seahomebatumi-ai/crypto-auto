@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-30-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-30-c.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -14,20 +14,20 @@ text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
 
-**`2026-09-30-b` answers TZ-52 — each coin's own site, the declared perpetuals' klines and the
-engine's own coverage record, measured from the Executor's machine on 25.09.2026 — and it changes
-which channels the engine reads.** A protocol announces what it ships on its own site, and neither
-a forum nor a release stream carries that, so seven coins gain a site row: SUI, LINK, AAVE, ADA,
-SOL, XLM, and ONDO, which had no protocol channel at all (§6a). SKY's forum row leaves the table,
-because its host's `robots.txt` refuses every client but one crawler and a written refusal is
-respected like any other (§6). **Item 90 was measuring a lane's activity, not whether it carried
-the announcement:** any record inside the window passed, and the state recorded NEAR `охвачена` by
-the forum §6a records as unable to carry NEAR's launch. The test now names the record that
-announced the change, the move has a named computation, and the five declared perpetuals take
-theirs from the exchange's daily klines, which TZ-52 measured this machine able to read (§5, §6a,
-items 90 and 91). The third status word is `неизмерима`, the form the state already holds (§11).
-**§6 moves, so `sec6_md5` changes, and every lane and every `coverage` record is re-read on the
-next run.**
+**`2026-09-30-c` answers the audit of the run of 25.09.2026, 22:22 Tbilisi, and it gives the
+engine the catalyst class it could not see: supply.** That run executed its contract item by item
+and published FET long three days before a cliff unlock it never saw, because no lane of this file
+read an unlock — the vesting dataset was closed on a page that carries no schedule, and the per-coin
+search found a cliff only where a query happened to ask for one. **The coin page of that dataset
+states the next cliff of every coin it carries in its served text** — date, tokens, recipient and
+the supply already released — so §6a now reads it for every coin of `tokens[]` on every run, keyed
+by the CoinGecko id `main.py` already holds, and a cliff of at least 1 % of released supply inside
+the holding window closes the coin's long side (§6a, item 104). The same audit found two dated
+facts the run held and did not use: ENA's partnership, the cause of the list's largest move, missed
+by a mover search that asked about a price, and SUI's Basecamp date, carried since 27.08 by a feed
+the run read. Item 98 now names the mover query and opens the coin's own records, and a lane read
+takes the text a page returns with its records (§6a). **§6 moves, so `sec6_md5` changes, and every
+lane and every `coverage` record is re-read on the next run.**
 **The history of earlier revisions lives in git and in the day logs, not here.**
 
 **This file is methodology, not contract.** Authority, repository operations, the
@@ -369,6 +369,17 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   from and the one the owner cannot read off the price cells himself. **Measured 19.09:** the
   table printed stops 12–33 % from entry with nothing to say so, beside a survival of 99 % that
   was the same fact read backwards.
+- **A row whose coin has a cliff unlock inside the holding window names it at the end of its first
+  line** — «**FET — ЛОНГ · ЖДАТЬ · разлок 28.09 (0.1%)**» — the date and the cliff's share of the
+  supply already released, both from §6a's unlock lane; a `ЛУЧШИЕ СДЕЛКИ` line and a `СОЗРЕВАЕТ`
+  item carry it the same way, a short as well as a long. **It is the one place a cliff below §6a's
+  `UNLOCK_MATERIAL` prints**, and it prints because the owner cannot otherwise tell a cliff the
+  engine read and found small from one it never looked for; it is a size read beside a trade the
+  cliff does not change, not a catalyst item, and carries no source mark (§8). **Measured 25.09,
+  22:22 Tbilisi:** FET was published long three days before 2.47M FET reached the AGIX migration
+  pool — 0.11 % of released supply, about 0.5 % of one day's FET futures turnover — the owner
+  learned of the cliff elsewhere, and the row was in fact blind to it. A cliff at or above
+  `UNLOCK_MATERIAL` never reaches this form: it has already closed the long (§6a).
 - **Two lines under the table name the list's own-trend facts the table cannot hold**, each
   omitted when empty. `Свой ход сильнее BTC` names every list coin whose `residual7` class is
   `own` — production's function, executed on the coin's row and on `btc`, both re-expressed at
@@ -1767,21 +1778,23 @@ refused and named — and the appendix records each step and the one the run sto
 
 1. **the exchange's own announcement list** (§6a) — one read that names a listing, a delisting or
    a new contract for every coin at once;
-2. **the horizon store's entries dated inside the holding window**, each re-read at its `src`
+2. **the unlock lane** (§6a) — one read per coin of `tokens[]`, which names the next cliff of every
+   coin the vesting dataset carries;
+3. **the horizon store's entries dated inside the holding window**, each re-read at its `src`
    (§11);
-3. **§6's book and systemic searches**, every hit followed to its publisher;
-4. **every list coin's discovery search** (§6) — first the coins no channel serves, a coin with no
+4. **§6's book and systemic searches**, every hit followed to its publisher;
+5. **every list coin's discovery search** (§6) — first the coins no channel serves, a coin with no
    row in §6a's channel table or one item 90 left `неохваченная`, because the search is their only
    eye; then the rest in descending 24-hour turnover of the coin's row of `c`;
-5. **item 98's movers**, the list's before the book's — one search each where the hunt so far holds
-   nothing on the coin;
-6. **the owner's vectors** (§11);
-7. **the stale lanes**, coin lanes in step 4's order, then the type lanes;
-8. **item 90's coverage measurement.**
+6. **item 98's movers**, the list's before the book's — one search each where the hunt so far holds
+   nothing on the coin, and the coin's own records where that search holds nothing either;
+7. **the owner's vectors** (§11);
+8. **the stale lanes**, coin lanes in step 5's order, then the type lanes;
+9. **item 90's coverage measurement.**
 
-The order is value per read and not cost: step 1 is one fetch for the whole universe, step 4 is
-the one search per coin that no lane replaces, and a vector or a stale lane is a question the next
-run can finish. **«Поиск не завершён.» keeps its meaning** (§2) — a run may stop before the tail,
+The order is value per read and not cost: step 1 is one fetch for the whole universe, step 2 one
+read per coin for the one event class that is always scheduled in advance, step 5 the one search
+per coin that no lane replaces, and a vector or a stale lane is a question the next run can finish. **«Поиск не завершён.» keeps its meaning** (§2) — a run may stop before the tail,
 never before the head. **A run sees what was published before its freeze and nothing after it:**
 an announcement published later reaches the NEXT run, as a mover whose cause that run must search
 for (item 98), and no source this file names can move it earlier. **Measured 24.09, 14:21
@@ -1820,7 +1833,7 @@ chart.
 | `СЕЙЧАС`, «цена в зоне», R:R — every claim about price | **anchored, not aged** | **its own anchor (§4), printed with the claim** (§2) | `analyst/live.json` |
 | 24 h high / low, volume, funding, open interest, mark | 1 hour | reading | `analyst/live.json` |
 | Structure — 90d/30d extremes, β, R², volatility, the BTC regime object | 24 hours | reading | `journal/data/YYYY-MM-DD.jsonl`, read from the tree (§5) |
-| Catalyst dates, filings, votes, listings, unlocks | current | — | primary source only |
+| Catalyst dates, filings, votes, listings, unlocks | current | — | primary source only — an unlock's cliff also on the unlock lane, at `reported` (§6a) |
 
 **There is exactly ONE clock in a run and it stops at the freeze.** The fifteen minutes
 govern the distance between the payload's own timestamp and the freeze — that is the only
@@ -1919,6 +1932,12 @@ record     state.sweeps.discovery.<key> = { d, q, n } (§11) keeps the last sear
            search of this run; the appendix carries every query and every hit taken —
            host · date · one line · the class it was given (§12)
 ```
+
+**An unlock is READ before it is searched for:** the unlock lane (§6a) states the next cliff of
+every coin the vesting dataset carries, on every run, so the per-coin search's «unlock» is the
+second route — and the only one for the coins the dataset does not carry. **Measured 25.09, 22:22
+Tbilisi:** twenty of the thirty per-coin queries asked for no unlock, FET's among them, and FET's
+cliff of 28.09 reached no stage of the run.
 
 **Discovery finds and never publishes.** A dated hit is followed to the publisher it names and
 READ there, and it enters state with the class of what was read — §6's source rule below,
@@ -2044,7 +2063,8 @@ Coverage that must be checked every time:
 - regulatory votes, filings, comment-period deadlines and court dates;
 - **ETF and fund plumbing** — issuer registration amendments, new ticker launches,
   conversions, index inclusion and rebalance dates — not only the daily flow number;
-- token unlocks inside the holding window, and changes to emission, buyback or burn schedules;
+- token unlocks inside the holding window — read per coin on the unlock lane (§6a) — and changes
+  to emission, buyback or burn schedules;
 - protocol upgrades, launches, integrations and governance votes, at the date the publisher
   gives this run;
 - listings, delistings and exchange roadmap announcements.
@@ -2098,7 +2118,7 @@ from the token contract — directly, or through a block explorer's machine-read
 endpoint returning that contract's state — is `dclass:'primary'`: it is not a report about
 the protocol, it is the protocol. **This lane exists because the DATE class this engine
 publishes most often is the one it can source least often.** Five carried unlock items
-stood at `dclass:'none'` on 02.09; both aggregator discovery hosts are closed (§6a); and
+stood at `dclass:'none'` on 02.09; both aggregator discovery hosts were closed then (§6a); and
 the two protocol sites attempted that run answered with an empty client-rendered page and
 with HTTP 429. Nothing in that chain is repairable by searching harder — the schedule is
 on-chain and the websites are renderings of it. **A host for this LANE is established by a TZ measurement and never by assumption** (map
@@ -2132,11 +2152,16 @@ side, never to open one.** A committee or floor vote, a hearing, a rule-making
 deadline: each is scheduled by a body that publishes its own calendar, so when every one
 of those publishers answers with a managed challenge the date does not stop existing and
 no amount of searching converts a refusal into a reading. **Admission requires all four:** the issuer is named, the event is named, two sources that are not aggregators of one
-another carry the same date, and no publisher contradicts it. **The consequences are
+another carry the same date, and no publisher contradicts it. **An unlock needs one source, not
+two:** the vesting dataset of §6a naming the recipient, the tokens and the date is the third
+condition's whole content — a per-allocation schedule transcribed from the protocol's vesting terms
+is not a headline repeated, and the class it earns can only close a side. **The consequences are
 entirely subtractive.** The item appears in the
 collapsed line with the status `НЕ ПОДТВЕРЖДЕНО` and an `Эффект` of
-`ЖДАТЬ · [сторона при исходе]`; it may hold a setup at `ЖДАТЬ`, weaken one, or close a
-side. **It may never create or move a level, carry a figure, back a `XXX до ДД.ММ`
+`ЖДАТЬ · [сторона при исходе]` — an unlock's `ШОРТ · ВЫСОКОЕ` where it closes a long (§6a), because
+supply arrives on either outcome; it may hold a setup at `ЖДАТЬ`, weaken one, or close a
+side. **It may never create or move a level, carry a figure (an unlock's share of released supply
+excepted, §6a), back a `XXX до ДД.ММ`
 prohibition, or be the dated event a setup rests on** — every one of those still requires
 `primary` or `archive`. Nothing here reopens the aggregator ban: an aggregator's date on an event no named issuer scheduled is `none` as before, because the
 class turns on who SCHEDULES the event and not on who reported it. **An unlock is scheduled that
@@ -2209,9 +2234,10 @@ published. **They are not priced inputs and they do not obey the 15-minute rule*
 vesting schedule does not change between morning and afternoon, and treating it as if it
 did would spend the freshness window on data that has none. Each carries its own age
 limit, is stored in `analyst/state.json` with the date it was read, and is refreshed only
-when stale — except the exchange list, which has no cache and is read on every run
-(below). A run that finds every other sweep fresh performs no other fetch and says nothing
-about it.
+when stale — except the exchange list and the unlock lane, which have no cache and are read on
+every run (below): a cliff's date does not change between morning and afternoon, but which cliff
+is NEXT does, the day one passes. A run that finds every other sweep fresh performs no other fetch
+and says nothing about it.
 
 **A sweep is also stale when the rule that defines it has changed — and the rule that
 defines it is §6 and this section, not this whole file.** Each stored sweep records the
@@ -2266,7 +2292,7 @@ being read; a hash is written only by the read that produced it.
 | Sweep | Question | Max age | Primary source |
 |---|---|---|---|
 | **Exchange** | every listing, delisting, new perpetual, contract change, tag and airdrop the exchange announced for a symbol of `c` or of a row of `x` past §3B's filters | **none — read on EVERY run, first** (§5 step 5) | the exchange's own announcement list (below) |
-| Vesting | cliff unlocks in the next **28 days**, share of float released, resulting emission | 7 days | the protocol's own vesting schedule or the on-chain contract |
+| **Unlock** | every coin of `tokens[]`: its next cliff — date, tokens, recipient — and the supply already released | **none — read on EVERY run, second** (§5 step 5) | the vesting dataset's coin page (below); the protocol's own schedule for a date a setup or `XXX до ДД.ММ` rests on |
 | Capital | TVL direction over 7 and 30 days, for the coins TVL applies to | 24 hours | DefiLlama's API — the publisher of the series, not a repeater of it |
 | Backing | which cohort holds the tokens a cliff releases, and how far above its entry the price sits | 30 days | round terms as disclosed by the protocol or the fund |
 | **Horizon** | every dated event known to fall in the next **90 days**, whether or not it is reportable today | 7 days | the named hosts of §6 |
@@ -2413,6 +2439,17 @@ date for someone else's event is a report that happens to be hosted there, and s
 on §6's terms. **A release is not an upgrade by construction** — patch releases share the
 stream, and only the content says which one changes the protocol.
 
+**A record's own text is read for a date AHEAD, on every lane read, wherever the page returns the
+text** — an RSS item's `description`, a release's `body` — and a date inside ninety days that a
+protocol's own record states enters the horizon store at `primary` with the record as `src` (§11).
+It costs no request: the text arrives with the page. A sitemap record and a forum topic return a
+path and a title, and are read by title alone unless item 98 opens them. **Measured 25.09, 22:22
+Tbilisi:** SUI's site feed, read that run for the first time, carried since 27.08 the item «The
+Agentic Economy Takes Center Stage at Sui Basecamp 2026, Singapore», whose description reads «Two
+days at Marina Bay Sands in Singapore on October 7-8 with TOKEN2049», and the store held no
+Basecamp entry — a launch event dated on the protocol's own channel inside the store's ninety days,
+which reports had already tied to SUI's rally of 21.09.
+
 | Class | Record list | Record date | Window date |
 |---|---|---|---|
 | 1 · forum (Discourse) | `topic_list.topics[]` | `created_at` | `bumped_at` |
@@ -2469,7 +2506,8 @@ neither read nor named, and the search run in its place returned one unrelated r
 **HYPE, LIT and SKY have no admitted protocol channel, and the exchange list is the only channel
 that names them.** Each is named unserved in the appendix on every run (item 63), and its unlocks,
 votes and upgrades reach state through §6's type lanes and through its own discovery search,
-which §5's hunt runs before any served coin's (§5 step 5), on §6's source rule.
+which §5's hunt runs before any served coin's (§5 step 5), on §6's source rule. Their cliffs are
+read on the unlock lane (below) — HYPE's and LIT's; the dataset does not carry SKY.
 
 | Coin | What each protocol class returned |
 |---|---|
@@ -2503,14 +2541,73 @@ placeholder under a comment saying so, no feed, its Medium publication behind a 
 announcements reach state only through its discovery search; what TZ-52 read on the other sites
 and did not admit is recorded in the map (§10).
 
-**Vesting scans 28 days and publishes by proximity, not by discovery.** A cliff three weeks
-out is written to state as a future catalyst the moment it is known and becomes reportable
-when its nearness changes the trade (§11) — never printed the day it is found merely
-because it was found. The publication window is the holding window, seven days (§6); the scan window is wider so
-that nothing arrives as a surprise inside it. Discovery may come from a vesting aggregator or from the discovery search (§6); **publication
-requires the protocol's own schedule**, exactly as it did for the SUI unlock, **or — where that
-schedule cannot be read — the collapsed line at `reported`** (§6), which can close a side and
-never opens one.
+**The unlock lane reads the next cliff of every coin, on every run, from the vesting dataset's own
+coin page — the host TZ-24 closed, reopened on the page that carries the data.** TZ-24 probed
+`tokenomist.ai/sui/unlock-events`, found a boolean and no schedule, and closed the host; the COIN
+page of the same host serves, in its HTML and without JavaScript, one sentence per coin it carries
+that names the next cliff. **Measured 25.09.2026 by the Architect, `curl -sS -L -m 20`, one request
+per id:** the thirty CoinGecko ids of `main.py` `TOKENS`, requested at `https://tokenomist.ai/<id>`,
+are the site's own slugs for every coin it carries — 22 of 30 — and returned seven `Next unlock`
+sentences and fifteen `is fully unlocked.`; the eight ids the site does not carry answered 200 with
+neither. `robots.txt` gives `*` `Allow: /` and disallows only `/api/` and `/cdn-cgi/`, and TZ-24 read
+the host answering this machine's `curl` with no challenge. **The first read under this revision is
+the lane's measurement on this machine**: its landing host, status and bytes go to the log (§12),
+and a host is not assumed to answer until a read of it has.
+
+```
+request   https://tokenomist.ai/<id>      <id> the coin's CoinGecko id in main.py TOKENS, cut at
+                                          run time and never typed here
+command   curl -sS -L -m 20 -o <file> -w '%{http_code} %{url_effective}' <request>
+next      grep -o 'Next unlock: [^<"]*total supply released ([0-9.]*%)' <file> | head -1
+          → «Next unlock: <n> <SYM> ($<v>) on <Month D, YYYY>, allocated to <recipient>.
+             <released> of <total> total supply released (<p>%)»
+none      grep -o '[^<>"]\{1,60\} is fully unlocked\.' <file> | head -1
+status    next · fully unlocked — the dataset knows no further cliff · not covered — 200 and
+          neither sentence · refused — any other code, a challenge, or a landing off tokenomist.ai
+share     n / released × 100, one decimal — the cliff's tokens over the supply the same sentence
+          counts as released
+stale     any coin's record whose d precedes this run's freeze — the lane has no cache (§11)
+```
+
+**The dataset is discovery with a class, never a primary.** It transcribes a protocol's vesting
+terms per allocation, so a cliff it names is `reported` on its own (§6): it may close a side and
+prints with `НЕ ПОДТВЕРЖДЕНО`, and it may never back a level, a zone, a `СОЗРЕВАЕТ` item or
+`XXX до ДД.ММ` — those need the protocol's own schedule, read once per material cliff as §6's
+per-item lookup. **`fully unlocked` and `not covered` are statements ABOUT THE DATASET:** neither
+means no unlock exists, the coin's discovery search still runs (§6), and a coin the dataset does
+not carry is named unserved on this lane in the appendix. **A read that returns neither sentence
+for every coin at once has met a changed page, not thirty absences** — the lane is refused for the
+run and named, never recorded as thirty `not covered` (map inv. 22).
+
+**`UNLOCK_MATERIAL` = 1.0 % of released supply, and it is a decision about value, not a
+measurement** (map inv. 49). On the seven cliffs the lane returned on 25.09.2026 it separates the
+routine monthly releases — FET 0.11 %, AVAX 0.30 %, SUI 0.32 %, ENA 0.45 % — from the insider
+cliffs — ARB 1.56 %, HYPE 2.09 %, ONDO 36.4 % — and any value in that gap draws the same line.
+Whether a cliff of either size moves a coin of this list inside a week is an archive question
+nobody has measured (map §10), and no edge is claimed from it (map inv. 32).
+
+**What a cliff inside the holding window does — seven days from the freeze, on the date the
+dataset gives THIS run:**
+
+- **at or above `UNLOCK_MATERIAL` it closes the coin's LONG side at every anchor** — no long row,
+  no long `СОЗРЕВАЕТ` item, no price in the trend line — refused by name in the appendix. The coin
+  prints in `ИЗБЕГАТЬ` wherever its other side is closed too, bare at `reported` and `XXX до ДД.ММ`
+  once the protocol's own schedule dates it (§2), and the cliff prints in `# КАТАЛИЗАТОРЫ` as a
+  class-A item — «разлок X.X% предложения (<recipient>)», `Эффект: ШОРТ · ВЫСОКОЕ`,
+  `НЕ ПОДТВЕРЖДЕНО` until that schedule is read. **It opens no short:** the fade ban and the coin's
+  own regime decide the short side exactly as before (§2), and a short resting on the cliff's date
+  needs its primary (item 46). This is production's own standing for an unlock — a registry entry
+  vetoes the long and creates no short (`index.html`, the catalyst block) — reached here without
+  the registry, which the analyst never writes (§13);
+- **below it, it changes nothing but the row:** a row or item on the coin carries it at the end of
+  its first line (§2), and nothing else prints for it.
+
+**Every cliff the lane returns inside ninety days is also a horizon entry** (§11) — `e` the cliff
+in one line with its share and recipient, `dclass` `reported` until the protocol's schedule is
+read, `src` the coin page — so the store holds every coming cliff of the list with its size, and a
+cliff three weeks out is known before its week arrives. **Measured 25.09:** the store carried
+HYPE's cliff of 06.10 from two press hosts with no size; the lane returns it as 9 916 666 HYPE to
+core contributors, 2.09 % of released supply.
 
 **TVL is an EVENT input, never a ranking input.** A protocol losing a large share of its
 deposits inside a week is a dated fact that can end a thesis, and it is admitted on that
@@ -2528,19 +2625,19 @@ fires on nearly everything and separates nothing. Round terms from aggregators a
 frequently partial — tranches, discounts and side letters are not disclosed — so a figure
 is used only where the protocol or the fund stated it.
 
-**Two aggregators are measured and CLOSED, and a run never re-probes them.** `tokenomist.ai`
-and `cryptorank.io` both answer this machine, and the first admits agents operating under a
-Claude name by `robots.txt`. Neither serves the sweep's DATA in its rendered HTML (TZ-24): an
-unlock-events page carries a boolean stating whether a schedule exists and carries no schedule,
-and a fund's rounds page carries dated round records whose element schema holds no amount, no
-valuation and no investor key. Both sites load those figures client-side from a credentialed API
-this repository has no key for, so neither is a discovery source without a headless browser and a
-credential — and neither is named above. Rediscovering a closed lane every day is the failure
-this repository exists to prevent. **The sweeps lose nothing:** their sources were always the
-protocol's own schedule and the protocol's or the fund's own disclosure, and an aggregator was
-only ever a convenience on the way to them.
+**Of the two aggregators TZ-24 measured, one is reopened on a different page and one stays closed,
+and a run never re-probes the closed one.** `cryptorank.io` serves dated round records whose
+element schema holds no amount, no valuation and no investor key, and loads its figures client-side
+from a credentialed API this repository has no key for (TZ-24). `tokenomist.ai` loads its schedule
+tables the same way, and the unlock-events page TZ-24 probed carries a boolean and no tranche —
+**but its coin page states the next cliff in its served text**, which is the unlock lane above. The
+lane reads that sentence and nothing else: a figure only the credentialed API serves is still not
+read, and rediscovering a closed lane every day is the failure this repository exists to prevent.
+**The primaries lose nothing:** a published date was always the protocol's own schedule and the
+protocol's or the fund's own disclosure; what the reopened page adds is that every coming cliff is
+KNOWN, with its size, before the run has to ask for it.
 
-**With both discovery hosts closed, `backing` stops being a SWEEP and becomes a per-item
+**With no host serving round terms, `backing` stops being a SWEEP and becomes a per-item
 lookup.** A sweep scans for what is not yet known and needs a host that lists many
 protocols; the primaries above answer only about a protocol already named. So there is
 nothing left to scan, and a run reporting «не выполнена» about it every day is reporting
@@ -2888,9 +2985,10 @@ gap no checklist could have caught, because no rule had ever named the computati
     in the appendix. No item is published or refused on a judgement about whether its zone
     «will fill», and a run that believes the test wrong records the objection and obeys it.
 66. **Every item at `dclass:'reported'` prints in the collapsed line with `НЕ ПОДТВЕРЖДЕНО`
-    and creates nothing** (§6, §11) — no level, no zone, no target, no figure, no
-    `XXX до ДД.ММ`. A setup whose thesis is that date fails this item; a side the date
-    closes is the one thing it may do.
+    and creates nothing** (§6, §11) — no level, no zone, no target, no figure but an unlock's share
+    of released supply (§6a), no `XXX до ДД.ММ`. A setup whose thesis is that date fails this item;
+    a side the date closes is the one thing it may do. **Corrected in place at `2026-09-30-c`**, when
+    the unlock lane made the share the figure that decides whether a cliff closes anything.
 67. **`ИТОГ`'s `ЖДАТЬ` field carries every activating price the answer publishes**,
     `СОЗРЕВАЕТ` triggers included (§2). «ЖДАТЬ: нет» printed over an answer that carries a
     trigger price fails this item. **So is every price of the `В тренде, входа сегодня нет` line,
@@ -3056,8 +3154,8 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     to carry NEAR's launch, and it held the five declared perpetuals at `неизмерима` for a move
     TZ-52 measured this machine able to take.
 91. **`# КАТАЛИЗАТОРЫ` prints «Поиск не завершён.» exactly when `analyst/state.json`, as this run
-    wrote it, shows a lane stale by date or by `sec6_md5` — the exchange lane by its `ts` (§6a) —
-    a coin, book or systemic lane without this
+    wrote it, shows a lane stale by date or by `sec6_md5` — the exchange lane by its `ts` and the
+    unlock lane by each coin's `d` (§6a) — a coin, book or systemic lane without this
     run's discovery search, or a coin item 90 required, COULD measure and did not** (§2) — a coin at
     `неизмерима` is not one. The audit reads the state and the answer side by side, and a
     disagreement fails this item in either direction. **Corrected in place at `2026-09-27-a`:** three
@@ -3095,7 +3193,14 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     hunt» is the reason for the search, never its result** — the exchange list this run read is
     checked for the symbol first, at no cost, and a mover's search — list or book — asks what moved
     it in the last 24 hours and what is dated for it inside the holding window: a move INTO a dated
-    event is the market pricing that event, and the event is a forward candidate (§4). What it
+    event is the market pricing that event, and the event is a forward candidate (§4). **The search
+    is one query in a named form, «<project> news <D Month YYYY>» on the UTC day of the freeze, and it
+    carries no price, no percentage and no «why»** — `<project>` a list coin's CoinGecko id in
+    `main.py` `TOKENS` with its hyphens read as spaces and a trailing `-<digit>` dropped, a book
+    coin's the project its filter-3 lookup named (§3B). **Where that search holds nothing, the coin's
+    own §6a lanes are opened rather than searched again:** every record of the last thirty days on
+    each of its rows is read at its own address for what it announces and for a date ahead, and the
+    read refreshes no lane. What it
     finds is placed by §6's rules, and a state change or a partnership with
     its reaction in the payload prints under `УЖЕ БЫЛО СЕГОДНЯ`. A mover whose primary-dated event
     lay inside the window and was not in the hunt is a coverage gap named for the Architect, never
@@ -3105,7 +3210,12 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     +39 % on «no event in the hunt» with no search run, and no line was required for a coin of the
     list at all. **Corrected in place at `2026-09-30-a`:** on 25.09, 01:30 Tbilisi TAKE, the book's
     largest mover at −37.7 %, was unwinding a rally into an unlock aggregators carried for the next
-    day, and its one search asked what had happened on 24.09.
+    day, and its one search asked what had happened on 24.09. **Corrected in place at
+    `2026-09-30-c`:** on 25.09, 22:22 Tbilisi «Ethena ENA price jumps 20% September 25 2026 why»
+    returned nothing while Ethena's partnership with Binance — USDe backed by tokenized stocks and
+    equity perpetuals — stood in the press from 15:00 UTC under titles naming Ethena and Binance and
+    no figure; ENA, the list's largest mover at +21.4 %, reached the answer with no cause and the
+    partnership never reached `УЖЕ БЫЛО СЕГОДНЯ`.
 99. **The exchange list was read THIS run, first, and every record naming a symbol of `c` or of a
     filtered row of `x` went somewhere** (§6a) — an item, a forward candidate, the `Почему` of a
     row, or a refusal by a named rule. The artifact is the lane's `ts`, later than this run's
@@ -3133,6 +3243,20 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     `ПОВЫШЕННЫЙ РИСК` where none does — with its zone; and the own-move line carries no
     concentration clause (item 82). A `Действие` line that counts the names, or calls them one bet,
     without naming the position fails this item.
+104. **Every coin of `tokens[]` carries THIS run's unlock read** (§6a) — its status, and for `next`
+    the date, tokens, recipient and share — or the appendix names the refusal; **every cliff at or
+    above `UNLOCK_MATERIAL` inside the holding window closed its coin's long side, and every row or
+    item published on a coin with a smaller one there carries it at the end of its first line** (§2).
+    A long published through a material cliff, a row silent about a cliff the lane returned, and a
+    lane recorded as thirty `not covered` each fail this item.
+
+**104 names the audit of the run of 25.09, 22:22 Tbilisi — the first under `-30-b` — and 66, 91 and
+98 are corrected in place.** The run broke no rule. It published FET long three days before a cliff
+it had no lane to read, searched ENA's +21 % with a question about the price, and read SUI's feed
+without the line that dated Basecamp — three places where this file named a question and no
+instrument, the class map inv. 58 names. **The engine obeyed every gate and was still blind to
+supply**, and a book that cannot see supply is not one a professional puts money behind, however
+green its checklist reads.
 
 **103 names the audit of the run of 25.09, 01:30 Tbilisi — the first under `-29-a` — and 14, 35,
 36, 60, 82, 96 and 98 are corrected in place.** The run broke two rules: it opened the previous
@@ -3228,7 +3352,8 @@ distinction is the whole reason this list exists.
 | Direction | ЛОНГ / ШОРТ / СДЕЛОК НЕТ |
 | Status | СЕЙЧАС / ЖДАТЬ / ИЗБЕГАТЬ |
 | Prohibition class | `XXX` — вход · `XXX до ДД.ММ` — событие (§2) |
-| Catalyst source mark | НЕ ПОДТВЕРЖДЕНО — only on a `reported` date (§6); no status word exists |
+| Catalyst source mark | НЕ ПОДТВЕРЖДЕНО — only on a `reported` date in `# КАТАЛИЗАТОРЫ` (§6); a row's unlock suffix carries none (§2); no status word exists |
+| Unlock on a row | `· разлок ДД.ММ (X.X%)` — the end of the row's first line (§2) |
 | Regime | БЫЧИЙ / МЕДВЕЖИЙ / ДИАПАЗОН / ПЕРЕГРЕТ / ВЫСОКИЙ РИСК |
 | Confidence | ВЫСОКАЯ / СРЕДНЯЯ |
 | Venue | Фьючерсы / Спот |
@@ -3313,6 +3438,7 @@ fill and no closed item (§0).
                                  "c2":{ "d","sec6_md5","host","n","from" },
                                  "c3":{ "d","sec6_md5","host","n","from" },
                                  "coverage":{ "d","sec6_md5","status","move","carried_by" } } },
+             "unlock":{ "<SYM>":{ "d","host","status","ud","n","to","rel","pct" } },
              "discovery":{ "<SYM>|<lane>":{ "d","q","n" } } } }
 ```
 
@@ -3356,6 +3482,14 @@ the lane (§6a).
 **`discovery` holds the last discovery search per coin, per book lane and per systemic lane (§6)**
 — its moment `d`, its query `q` and its count of dated hits `n` — for the audit, and exempts
 nothing: every run searches again.
+
+**`unlock` is §6a's unlock lane, one record per coin, overwritten by every read** — `d` the moment
+of the read, `host` where it landed, `status` exactly one of `next`, `fully unlocked`,
+`not covered` and `refused`, and for `next` the cliff's date `ud`, its tokens `n`, its recipient
+`to`, the supply the same sentence counts as released `rel`, and the share `pct` (§6a). It is
+additive within v2, and **`sweeps.horizon.vesting` is retired at `2026-09-30-c`** — the question
+that type lane asked for the list is now asked per coin here, and the book's is `discovery`'s
+`book|unlocks` (§6); a file still carrying it is read without it and nothing is said.
 
 **`dclass` records WHO ESTABLISHED THE DATE.** `dclass ∈ primary | archive | reported | none` — the
 class of the source that first put this event on this date, in §6's vocabulary: the publisher
@@ -3457,6 +3591,9 @@ what analyst/state.json held at step 3, per key; every horizon entry deleted or 
   v1 migration counts where it ran (§11)
 every discovery search (§6), per coin, per book lane and per systemic lane: query, moment,
   and each hit taken with host, date, one line and class
+the unlock lane (§6a): per coin, the request, landing host, status, the sentence's fields and
+  the share, and what each cliff inside the holding window did — closed the long, printed on a
+  row, or nothing
 the exchange list read (§6a): request, landing host, ts, records per catalogue and the oldest
   window date, and every record naming a symbol of c or x — title, the minute from its article
   or that it was not read, its class and where it went
