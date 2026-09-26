@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-30-c.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-30-d.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -14,20 +14,18 @@ text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
 
-**`2026-09-30-c` answers the audit of the run of 25.09.2026, 22:22 Tbilisi, and it gives the
-engine the catalyst class it could not see: supply.** That run executed its contract item by item
-and published FET long three days before a cliff unlock it never saw, because no lane of this file
-read an unlock — the vesting dataset was closed on a page that carries no schedule, and the per-coin
-search found a cliff only where a query happened to ask for one. **The coin page of that dataset
-states the next cliff of every coin it carries in its served text** — date, tokens, recipient and
-the supply already released — so §6a now reads it for every coin of `tokens[]` on every run, keyed
-by the CoinGecko id `main.py` already holds, and a cliff of at least 1 % of released supply inside
-the holding window closes the coin's long side (§6a, item 104). The same audit found two dated
-facts the run held and did not use: ENA's partnership, the cause of the list's largest move, missed
-by a mover search that asked about a price, and SUI's Basecamp date, carried since 27.08 by a feed
-the run read. Item 98 now names the mover query and opens the coin's own records, and a lane read
-takes the text a page returns with its records (§6a). **§6 moves, so `sec6_md5` changes, and every
-lane and every `coverage` record is re-read on the next run.**
+**`2026-09-30-d` answers the audit of the run of 26.09.2026, 12:27 Tbilisi — the first under
+`-30-c` — and it widens what the hunt REACHES; the answer's form does not move.** Every item that
+run printed was true and read at its publisher, and the unlock lane answered thirty coins of thirty on its
+first read from this machine. Three gaps stood behind a correct page. The mover search asked about
+the freeze's UTC day while most of the twenty-four hours it explains lay on the day before, and the
+list's largest cause reached the answer only through this file's own text (items 98 and 105). A
+refusing host's backoff suppressed a date §6's `reported` class admits, and the week's largest
+scheduled print reached a book of seventeen same-side longs in no form (§6a, item 24). The unlock
+lane stopped at the list's edge, so two outside-list longs were published with no read and the
+book's cliffs stood on aggregators alone (§6a, item 104). One objection of that run is ruled: a
+treasury escrow that re-locks most of each release is not a cliff (§6a). **§6a moves, so
+`sec6_md5` changes, and every lane and every `coverage` record is re-read on the next run.**
 **The history of earlier revisions lives in git and in the day logs, not here.**
 
 **This file is methodology, not contract.** Authority, repository operations, the
@@ -371,9 +369,9 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   was the same fact read backwards.
 - **A row whose coin has a cliff unlock inside the holding window names it at the end of its first
   line** — «**FET — ЛОНГ · ЖДАТЬ · разлок 28.09 (0.1%)**» — the date and the cliff's share of the
-  supply already released, both from §6a's unlock lane; a `ЛУЧШИЕ СДЕЛКИ` line and a `СОЗРЕВАЕТ`
-  item carry it the same way, a short as well as a long. **It is the one place a cliff below §6a's
-  `UNLOCK_MATERIAL` prints**, and it prints because the owner cannot otherwise tell a cliff the
+  supply already released, both from §6a's unlock lane; a `ЛУЧШИЕ СДЕЛКИ` line, a `ТОП-3` row and a
+  `СОЗРЕВАЕТ` item carry it the same way, a short as well as a long. **It is the one place a cliff
+  below §6a's `UNLOCK_MATERIAL` prints**, and it prints because the owner cannot otherwise tell a cliff the
   engine read and found small from one it never looked for; it is a size read beside a trade the
   cliff does not change, not a catalyst item, and carries no source mark (§8). **Measured 25.09,
   22:22 Tbilisi:** FET was published long three days before 2.47M FET reached the AGIX migration
@@ -1778,16 +1776,18 @@ refused and named — and the appendix records each step and the one the run sto
 
 1. **the exchange's own announcement list** (§6a) — one read that names a listing, a delisting or
    a new contract for every coin at once;
-2. **the unlock lane** (§6a) — one read per coin of `tokens[]`, which names the next cliff of every
-   coin the vesting dataset carries;
+2. **the unlock lane** (§6a) — one read per coin of `tokens[]` and per outside-list candidate the
+   screen produced, which names the next cliff of every coin the vesting dataset carries;
 3. **the horizon store's entries dated inside the holding window**, each re-read at its `src`
    (§11);
-4. **§6's book and systemic searches**, every hit followed to its publisher;
+4. **§6's book and systemic searches**, every hit followed to its publisher — a cliff a book hit
+   dates goes first to the unlock lane (§6a);
 5. **every list coin's discovery search** (§6) — first the coins no channel serves, a coin with no
    row in §6a's channel table or one item 90 left `неохваченная`, because the search is their only
    eye; then the rest in descending 24-hour turnover of the coin's row of `c`;
-6. **item 98's movers**, the list's before the book's — one search each where the hunt so far holds
-   nothing on the coin, and the coin's own records where that search holds nothing either;
+6. **item 98's movers**, the list's before the book's — one search pair each (item 98) where the
+   hunt so far holds nothing on the coin, and the coin's own records where that pair holds nothing
+   either;
 7. **the owner's vectors** (§11);
 8. **the stale lanes**, coin lanes in step 5's order, then the type lanes;
 9. **item 90's coverage measurement.**
@@ -2292,7 +2292,7 @@ being read; a hash is written only by the read that produced it.
 | Sweep | Question | Max age | Primary source |
 |---|---|---|---|
 | **Exchange** | every listing, delisting, new perpetual, contract change, tag and airdrop the exchange announced for a symbol of `c` or of a row of `x` past §3B's filters | **none — read on EVERY run, first** (§5 step 5) | the exchange's own announcement list (below) |
-| **Unlock** | every coin of `tokens[]`: its next cliff — date, tokens, recipient — and the supply already released | **none — read on EVERY run, second** (§5 step 5) | the vesting dataset's coin page (below); the protocol's own schedule for a date a setup or `XXX до ДД.ММ` rests on |
+| **Unlock** | every coin of `tokens[]`, every outside-list candidate and every book coin a hit dates a cliff for: its next cliff — date, tokens, recipient — and the supply already released | **none — read on EVERY run, second** (§5 step 5) | the vesting dataset's coin page (below); the protocol's own schedule for a date a setup or `XXX до ДД.ММ` rests on |
 | Capital | TVL direction over 7 and 30 days, for the coins TVL applies to | 24 hours | DefiLlama's API — the publisher of the series, not a repeater of it |
 | Backing | which cohort holds the tokens a cliff releases, and how far above its entry the price sits | 30 days | round terms as disclosed by the protocol or the fund |
 | **Horizon** | every dated event known to fall in the next **90 days**, whether or not it is reportable today | 7 days | the named hosts of §6 |
@@ -2579,12 +2579,31 @@ not carry is named unserved on this lane in the appendix. **A read that returns 
 for every coin at once has met a changed page, not thirty absences** — the lane is refused for the
 run and named, never recorded as thirty `not covered` (map inv. 22).
 
+**The lane reaches the book wherever the book reaches the answer:** every outside-list candidate
+the screen produced is read before it can be published (§5 step 2), and every book coin a discovery
+hit dates a cliff for inside the holding window is read before the hit is classed (§5 step 4).
+`<id>` for a book coin is the slug of the CoinGecko page its filter-3 lookup returned, or of the page
+one search on the symbol and «coingecko» returns where that lookup returned none, and a 404 there is
+`not covered`. **Nothing else changes with the reach:** a cliff at or above `UNLOCK_MATERIAL` closes
+a book row's long exactly as a list row's, a smaller one prints at the end of its line (§2), and a
+book cliff's date and size are the dataset's and never an aggregator's — a material one gets the
+per-item lookup above, which is the only route to a `СОЗРЕВАЕТ` item or a printed short on its
+date. **Measured 26.09, 12:27 Tbilisi:** two outside-list longs were published with no read, and
+the book's five cliffs stood on aggregators alone; read from the Architect's session the same day,
+the dataset confirms one of those dates and puts another eleven days later.
+
 **`UNLOCK_MATERIAL` = 1.0 % of released supply, and it is a decision about value, not a
 measurement** (map inv. 49). On the seven cliffs the lane returned on 25.09.2026 it separates the
 routine monthly releases — FET 0.11 %, AVAX 0.30 %, SUI 0.32 %, ENA 0.45 % — from the insider
 cliffs — ARB 1.56 %, HYPE 2.09 %, ONDO 36.4 % — and any value in that gap draws the same line.
 Whether a cliff of either size moves a coin of this list inside a week is an archive question
 nobody has measured (map §10), and no edge is claimed from it (map inv. 32).
+
+**A treasury escrow that returns most of each scheduled release to escrow is not a cliff** —
+Ripple's monthly XRP release is the case, raised by the run of 26.09.2026: counted gross it would
+read above `UNLOCK_MATERIAL`, and gross is not what reaches the market, because most of it is
+locked again within the month. It closes no side, prints nowhere and is no horizon entry — a
+decision about value, on the same standing as the threshold.
 
 **What a cliff inside the holding window does — seven days from the freeze, on the date the
 dataset gives THIS run:**
@@ -2667,10 +2686,17 @@ through a publisher that will not answer this machine — `home.treasury.gov` ti
 seven consecutive runs and was attempted on all seven, and `bls.gov` has returned 403 for
 longer than that. A host that refuses on three consecutive runs is given a next-attempt
 date two days out, recorded on the lane beside the response it gave; until then the lane
-is declared unserved in the appendix, its items publish no figure and no date, and no
-search is spent on it. **The budget freed is spent on class A** (§6), which is where this
-engine's own coins are, and that is the whole point of the rule: a refusal costs one line
-of bookkeeping instead of one search per run forever.
+is declared unserved in the appendix, its items publish no figure, and no search is spent on
+it. **The budget freed is spent on class A** (§6), which is where this engine's own coins are,
+and that is the whole point of the rule: a refusal costs one line of bookkeeping instead of one
+search per run forever. **The backoff suspends the HOST and never the DATE:** an event the
+refusing host's own issuer scheduled is `reported` wherever two sources that are not aggregators
+of one another carry its date and no publisher contradicts it (§6), and it prints as a `reported`
+date prints — the next-attempt date governs when the host is asked again, never whether the date
+is printed. **Measured 26.09, 12:27 Tbilisi:** the employment report inside that run's window —
+dated by two independent calendars in the run's own state, and by its issuer's own schedule as
+the Architect's session read it the same day — stood at `none` behind `bls.gov`'s backoff, and a
+book of seventeen same-side longs reached the week's largest scheduled print in no form.
 
 **A host that refuses THREE next-attempt dates in a row is RE-SOURCED, not waited on.** The
 backoff above was written to stop a run spending a search on a publisher that will not
@@ -2810,9 +2836,12 @@ which is the shape §7 exists to replace.
     moves a level (§1). Measured 04.09: three setups were published, `oi_prev` was written
     to state for all three, and no reading of any kind appears in the log or the answer.
 24. **Every horizon entry dated inside the holding window was re-read this run and prints, or the
-    appendix names why it does not** (§6, §11) — at `dclass:none` it never prints. **An item whose
+    appendix names why it does not** (§6, §11) — at `dclass:none` it never prints, and an entry a
+    named issuer scheduled is not at `none` while two sources that are not aggregators of one another
+    carry its date, whatever its own host answered (§6a). **An item whose
     coin carries no row in this answer also carries the price that would give it one** (§2), taken
-    from the anchor §4 cut, or states in the same clause that §4 produced no anchor. **Corrected in place at `2026-09-28-a`.**
+    from the anchor §4 cut, or states in the same clause that §4 produced no anchor. **Corrected in
+    place at `2026-09-28-a` and `2026-09-30-d`.**
 25. **RETIRED at `2026-09-28-a` by the owner's decision of 24.09.2026** — no trade object is carried, so no
     lifecycle change of one exists to account for (§11).
 26. **The §3B screen read the forward hunt before the movers** (§3B), and every outside-list
@@ -3188,16 +3217,18 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     without its three counts fails this item.
 98. **The three largest movers of `x` passing §3B's four filters, and the three coins of the list
     whose 24-hour change in `c` lies furthest from the median of `c`, carry a line in the
-    appendix** — the move, and the event this run's hunt held for the coin or the one search run
+    appendix** — the move, and the event this run's hunt held for the coin or the search pair run
     after it (§5 step 5, §12). **Where the hunt held nothing, the search is RUN: «nothing in the
     hunt» is the reason for the search, never its result** — the exchange list this run read is
     checked for the symbol first, at no cost, and a mover's search — list or book — asks what moved
     it in the last 24 hours and what is dated for it inside the holding window: a move INTO a dated
     event is the market pricing that event, and the event is a forward candidate (§4). **The search
-    is one query in a named form, «<project> news <D Month YYYY>» on the UTC day of the freeze, and it
-    carries no price, no percentage and no «why»** — `<project>` a list coin's CoinGecko id in
-    `main.py` `TOKENS` with its hyphens read as spaces and a trailing `-<digit>` dropped, a book
-    coin's the project its filter-3 lookup named (§3B). **Where that search holds nothing, the coin's
+    is two queries in one named form, «<project> <TICKER> crypto news <D Month YYYY>», one for each
+    UTC day the twenty-four hours before the freeze touch — the freeze's own day and the day before
+    it — and neither carries a price, a percentage or a «why»** — `<project>` a list coin's
+    CoinGecko id in `main.py` `TOKENS` with its hyphens read as spaces and a trailing `-<digit>`
+    dropped, a book coin's the project its filter-3 lookup named (§3B), and `<TICKER>` the base of
+    the coin's row in the payload. **Where that pair holds nothing, the coin's
     own §6a lanes are opened rather than searched again:** every record of the last thirty days on
     each of its rows is read at its own address for what it announces and for a date ahead, and the
     read refreshes no lane. What it
@@ -3215,7 +3246,11 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     returned nothing while Ethena's partnership with Binance — USDe backed by tokenized stocks and
     equity perpetuals — stood in the press from 15:00 UTC under titles naming Ethena and Binance and
     no figure; ENA, the list's largest mover at +21.4 %, reached the answer with no cause and the
-    partnership never reached `УЖЕ БЫЛО СЕГОДНЯ`.
+    partnership never reached `УЖЕ БЫЛО СЕГОДНЯ`. **Corrected in place at `2026-09-30-d`:** on
+    26.09, 12:27 Tbilisi «ethena news 26 September 2026» returned a market wrap and ENA's own forum
+    held nothing, while the cause — Ethena's own post of 25.09, 11:00:27Z, with fifteen and a half
+    of the twenty-four hours before the freeze lying on that day — reached `УЖЕ БЫЛО СЕГОДНЯ` only
+    because this file's header named it; «sky news 26 September 2026» returned astronomy.
 99. **The exchange list was read THIS run, first, and every record naming a symbol of `c` or of a
     filtered row of `x` went somewhere** (§6a) — an item, a forward candidate, the `Почему` of a
     row, or a refusal by a named rule. The artifact is the lane's `ts`, later than this run's
@@ -3243,12 +3278,32 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     `ПОВЫШЕННЫЙ РИСК` where none does — with its zone; and the own-move line carries no
     concentration clause (item 82). A `Действие` line that counts the names, or calls them one bet,
     without naming the position fails this item.
-104. **Every coin of `tokens[]` carries THIS run's unlock read** (§6a) — its status, and for `next`
-    the date, tokens, recipient and share — or the appendix names the refusal; **every cliff at or
+104. **Every coin of `tokens[]`, every outside-list row published and every book coin the hunt
+    dated a cliff for inside the window carries THIS run's unlock read** (§6a) — its status, and for
+    `next` the date, tokens, recipient and share — or the appendix names the refusal; **every cliff at or
     above `UNLOCK_MATERIAL` inside the holding window closed its coin's long side, and every row or
     item published on a coin with a smaller one there carries it at the end of its first line** (§2).
-    A long published through a material cliff, a row silent about a cliff the lane returned, and a
-    lane recorded as thirty `not covered` each fail this item.
+    A long published through a material cliff, a row silent about a cliff the lane returned, a book
+    cliff left at an aggregator's date, and a lane recorded as thirty `not covered` each fail this
+    item. **Corrected in place at `2026-09-30-d`:** on 26.09, 12:27 Tbilisi two outside-list longs
+    were published with no unlock read and the book's five cliffs stood on aggregators alone.
+105. **Every event the answer carries that this run reached through this file's own text rather
+    than through its hunt is named so in the appendix** (§12). This file names events to explain its
+    rules, and a run that follows one to its publisher is right to use what it reads there; what it
+    may not do is let the audit read the file's hint as the hunt's find, because the hunt is the
+    thing the audit measures. **Measured 26.09, 12:27 Tbilisi:** the list's largest mover had its
+    cause published the day before the freeze, the named mover search found nothing, and the cause
+    reached `УЖЕ БЫЛО СЕГОДНЯ` because this file's header named it — which that run recorded
+    unprompted.
+
+**105 names the audit of the run of 26.09.2026, 12:27 Tbilisi — the first under `-30-c` — and 24,
+98 and 104 are corrected in place.** Everything the answer printed was true and read at its
+publisher, and the unlock lane answered thirty of thirty on its first read. The run broke one rule:
+§6's per-item lookup for an unlock a discovery hit names, skipped for all five book cliffs. The file
+broke the rest — a mover search on the wrong UTC day, a backoff that suspended a date with its host,
+and an unlock lane that stopped at the list's edge while the book's longs were published. **105 is
+the item §7 was short of:** the run found the list's largest cause through this file's own text and
+said so by judgement.
 
 **104 names the audit of the run of 25.09, 22:22 Tbilisi — the first under `-30-b` — and 66, 91 and
 98 are corrected in place.** The run broke no rule. It published FET long three days before a cliff
@@ -3489,7 +3544,9 @@ of the read, `host` where it landed, `status` exactly one of `next`, `fully unlo
 `to`, the supply the same sentence counts as released `rel`, and the share `pct` (§6a). It is
 additive within v2, and **`sweeps.horizon.vesting` is retired at `2026-09-30-c`** — the question
 that type lane asked for the list is now asked per coin here, and the book's is `discovery`'s
-`book|unlocks` (§6); a file still carrying it is read without it and nothing is said.
+`book|unlocks` (§6); a file still carrying it is read without it and nothing is said. Since
+`2026-09-30-d` a book coin read this run is recorded under its base symbol on the same terms, and
+its record leaves the map on the first run that does not read it.
 
 **`dclass` records WHO ESTABLISHED THE DATE.** `dclass ∈ primary | archive | reported | none` — the
 class of the source that first put this event on this date, in §6's vocabulary: the publisher
@@ -3605,6 +3662,7 @@ the three largest movers of x passing §3B's filters and the three list coins fu
   median of c, and for each the event the hunt held or the search run after it (§7 item 98)
 any catalysts.json proposal (§6)
 every event found beyond the holding window, as written to the horizon store
+every event the answer carries that the run reached through this file's own text (§7 item 105)
 ```
 
 **The previous run's landing is reported here because this record cannot report its
