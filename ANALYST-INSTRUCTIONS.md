@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-30-d.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-09-30-e.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -14,18 +14,16 @@ text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
 
-**`2026-09-30-d` answers the audit of the run of 26.09.2026, 12:27 Tbilisi — the first under
-`-30-c` — and it widens what the hunt REACHES; the answer's form does not move.** Every item that
-run printed was true and read at its publisher, and the unlock lane answered thirty coins of thirty on its
-first read from this machine. Three gaps stood behind a correct page. The mover search asked about
-the freeze's UTC day while most of the twenty-four hours it explains lay on the day before, and the
-list's largest cause reached the answer only through this file's own text (items 98 and 105). A
-refusing host's backoff suppressed a date §6's `reported` class admits, and the week's largest
-scheduled print reached a book of seventeen same-side longs in no form (§6a, item 24). The unlock
-lane stopped at the list's edge, so two outside-list longs were published with no read and the
-book's cliffs stood on aggregators alone (§6a, item 104). One objection of that run is ruled: a
-treasury escrow that re-locks most of each release is not a cliff (§6a). **§6a moves, so
-`sec6_md5` changes, and every lane and every `coverage` record is re-read on the next run.**
+**`2026-09-30-e` answers the owner's decision of 30.09.2026, and every published trade now carries
+its SIZE.** He declared his capital, 10 000 USDT, and delegated the risk policy to the Architect, so
+`analyst/owner.json` carries both (§11) and every priced trade object carries the quantity the Boss
+types into his order, computed from its own stop at its own anchor (§4). Until now the answer printed
+a stop's distance in per cent and stopped there, and the replay of the engine's first month the
+Architect took on 28.09.2026 priced that gap: up to 24 positions open at once and a drawdown of
+−11.21 R, with the risk of each row left to the owner and the risk of the book to nobody. The side and
+book budgets now spend in the answer's own order, and what they do not cover prints «резерв» (§4,
+item 106). **§6 and §6a do not move, so `sec6_md5` is unchanged and no lane is re-read on its
+account.**
 **The history of earlier revisions lives in git and in the day logs, not here.**
 
 **This file is methodology, not contract.** Authority, repository operations, the
@@ -206,28 +204,33 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 # ЛУЧШИЕ СДЕЛКИ СЕЙЧАС
 **1. МОНЕТА — ЛОНГ [· ПОВЫШЕННЫЙ РИСК]**
 Вход $X–$X · Стоп $X (−X.X%) · Цель $X (+X.X% от входа) · Уверенность [ВЫСОКАЯ / СРЕДНЯЯ]
+Размер N МОНЕТА ($X) [· плечо N×]
 Цель — структурный уровень, не недельный ориентир
 Почему: одно предложение.
 
 # СОЗРЕВАЕТ ≤7 ДНЕЙ
 **МОНЕТА — ЛОНГ [· ВНЕ СПИСКА] [· ПОВЫШЕННЫЙ РИСК]** — ДД.ММ событие, одним предложением.
 Станет сделкой: цена $X (сейчас $X, ±X.X%) [· при BTC ниже/выше $X] · зона $X–$X · инвалидация $X (±X.X%) · цель $X → $X (±X.X% → ±X.X% от зоны).
+Размер N МОНЕТА ($X) [· плечо N×]
 Шанс дойти до зоны за 7 дней: XX%
 [нет пунктов → «Нет достойных кандидатов. Проверено: список N · вне списка M · событий ≤7 дней K.»]
 
 # СТРАТЕГИЯ — МОЙ СПИСОК
 **XXX — ЛОНГ · СЕЙЧАС $X**
 Вход $X–$X · Стоп $X (−X.X%) · Цель $X → $X
+Размер N XXX ($X)
 **XXX — ШОРТ ⚠ · ЖДАТЬ**
 Вход $X–$X · Стоп $X (+X.X%) · Цель $X → $X
+Размер N XXX ($X) · плечо 2×
 **XXX — ЛОНГ · ПОВЫШЕННЫЙ РИСК · СЕЙЧАС $X**
 Вход $X · Стоп $X (−X.X% при суточном ходе X%) · Цель $X (+X.X%)
+Размер: резерв
 ⚠ — против режима рынка: повышенный риск
 Свой ход сильнее BTC: XXX · XXX · слабее: XXX · одновременно X лонгов / X шортов, из них X идут с рынком
 В тренде, входа сегодня нет: XXX $X (−X.X%) · XXX $X (−X.X%) · ни по какой цене: XXX
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
-**МОНЕТА · ПОВЫШЕННЫЙ РИСК** — вход $X–$X · стоп $X (−X.X%) · цель $X (+X.X%). Почему: одно предложение.
+**МОНЕТА · ПОВЫШЕННЫЙ РИСК** — вход $X–$X · стоп $X (−X.X%) · цель $X (+X.X%) · размер N МОНЕТА ($X) · плечо 2×. Почему: одно предложение.
 
 # ТОП-3 ВНЕ СПИСКА — ШОРТ
 [same form]
@@ -329,9 +332,9 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   the Вход cell — «ЖДАТЬ» alone is a violation.
 - **A setup against the market word carries `ПОВЫШЕННЫЙ РИСК` wherever it is named** — in its
   header line in `ЛУЧШИЕ СДЕЛКИ` and `СОЗРЕВАЕТ`, as `⚠` after the side word in the strategy
-  table with the one legend line beneath it, and as `⚠` after the name in `ИТОГ`. The tier is a
-  label and nothing else: it moves no level and adds no size and no leverage (§4), and it is
-  decided by the regime table below, never by judgement.
+  table with the one legend line beneath it, and as `⚠` after the name in `ИТОГ`. The tier moves no
+  level: it sizes the row at `risk_pct_high` instead of `risk_pct` (§4) and does nothing else, and
+  it is decided by the regime table below, never by judgement.
 - **`СЕЙЧАС` carries the frozen price in its own cell — `СЕЙЧАС $0.1998` — and the
   decision between the two words is taken ONCE, at the freeze, and is never re-taken.**
   The header already names the minute the price belongs to (§5 step 4), so the cell and
@@ -367,6 +370,15 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   from and the one the owner cannot read off the price cells himself. **Measured 19.09:** the
   table printed stops 12–33 % from entry with nothing to say so, beside a survival of 99 % that
   was the same fact read backwards.
+- **Every priced trade object carries its SIZE directly after its levels** — «Размер 0.288 ZEC
+  ($440)», and «· плечо 2×» only where the leverage is below the owner's ceiling — computed by §4
+  from `analyst/owner.json` at the object's own anchor, never chosen. It is the number the Boss types
+  into his order, and the one thing a stop's distance in per cent never told him. **What is the same
+  on every row is not printed** (item 79): the risk per row and the leverage ceiling are the owner's
+  policy, held in his file and stated to him once; a row prints the quantity they produce, which
+  differs on every row. An object the budget no longer covers prints «Размер: резерв» (§4). The
+  size is the third line of a strategy block and of a `ЛУЧШИЕ СДЕЛКИ` entry, its own line after
+  «Станет сделкой» in a `СОЗРЕВАЕТ` item, and a clause inside a `ТОП-3` line before «Почему».
 - **A row whose coin has a cliff unlock inside the holding window names it at the end of its first
   line** — «**FET — ЛОНГ · ЖДАТЬ · разлок 28.09 (0.1%)**» — the date and the cliff's share of the
   supply already released, both from §6a's unlock lane; a `ЛУЧШИЕ СДЕЛКИ` line, a `ТОП-3` row and a
@@ -511,8 +523,9 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   first — coin, side, entry — arrived spread over two and a half screens of horizontal
   scroll, with the coin name pushed away from its own side by the padding of the widest cell
   underneath it. **The block is the form `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` has always used: first line
-  the coin, its side and its status; second line entry, stop and target.** Nothing is dropped
-  and nothing is added — the same six cells in two lines that WRAP instead of scrolling, so
+  the coin, its side and its status; second line entry, stop and target; third line, since
+  `2026-09-30-e`, its size (§4).** Nothing is dropped — the same cells in lines that WRAP
+  instead of scrolling, so
   the section cannot be wider than the screen whatever the prices are. **Every rule in this
   file written about «the strategy table» governs this block unchanged** — its order (§7
   item 80), its levels (§4), its `⚠`, its `СЕЙЧАС` and `ЖДАТЬ` statuses: only the
@@ -920,9 +933,9 @@ the screen admits a lane, its levels are cut by §3B's construction unchanged: t
 extremes, the `INV_FLOOR_SD` floor, the falling-day condition of the short and the leg against the
 list median. Filters 1 to 3 hold by membership — the list is the owner's own universe of named
 crypto perpetuals — filter 4 applies as written, and the market word gates the row no more than it
-gates §3B. **The row is a LIST row of the lowest grade.** It prints in `СТРАТЕГИЯ` as the two-line
+gates §3B. **The row is a LIST row of the lowest grade.** It prints in `СТРАТЕГИЯ` as the
 block of §2 —
-«**XXX — ЛОНГ · ПОВЫШЕННЫЙ РИСК · СЕЙЧАС $X**» / «Вход $X · Стоп $X (−X.X% при суточном ходе X%) · Цель $X (+X.X%)»
+«**XXX — ЛОНГ · ПОВЫШЕННЫЙ РИСК · СЕЙЧАС $X**» / «Вход $X · Стоп $X (−X.X% при суточном ходе X%) · Цель $X (+X.X%)» / «Размер N XXX ($X) · плечо 2×»
 — after every structural row, the day-cut rows ranked among themselves by the table's key with a
 zone chance of 1, the entry being the frozen price; it never enters `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` and
 never takes a `ТОП-3` slot; it carries `ПОВЫШЕННЫЙ РИСК` for §3B's reason — one day of one row —
@@ -1545,9 +1558,39 @@ carries nine copies of one constant while the log carries the computation (§12)
   the run. **Measured 04.09:** the geometry harness was built by porting the functions
   «verbatim» and listing five constants beside them in the log. Every number was right, and
   nothing in the run could have reported it if one had not been.
-- **Leverage is never issued unless the Boss explicitly asks.** It is then computed
-  per System Map §3.2/§3.4 from a live board reading — never chosen, never
-  reconstructed. Above `L_CAP` it is never issued however requested.
+- **Every priced trade object is SIZED from `analyst/owner.json`, and nothing in the size is
+  chosen** — the owner's decision of 30.09.2026, which declared the capital and delegated the policy
+  to the Architect (§11). A row, a `ТОП-3` line and a `СОЗРЕВАЕТ` item are sized at their own anchor,
+  on the distance their stop line prints:
+
+  ```
+  risk   = capital × risk_pct          risk_pct_high on an object carrying ПОВЫШЕННЫЙ РИСК or ⚠
+  d      = |anchor − stop| / anchor    the distance the object prints (§2)
+  size$  = risk / (d + 2 × FEE_TAKER)  both legs taker
+  qty    = size$ / anchor              rounded DOWN to three significant digits; printed with
+                                       qty × anchor in whole dollars
+  L      = min(lev_max, the L field leverageDecision returns at the anchor on the object's own
+           substituted structure — the call the own-trend stop bullet already makes);
+           an object with no structural row takes L_MIN
+  ```
+
+  `FEE_TAKER`, `L_MIN` and `leverageDecision` are production's and are cut by the extraction bullet
+  above, never typed (map inv. 20, 21): the answer prints no leverage production would not issue,
+  and the owner's `lev_max` only lowers it. **Margin is isolated**, so a stop that fails costs the
+  position and never the account, and production's structure ceiling keeps the liquidation beyond
+  the stop (map §3.2). «плечо» prints only where `L` is below `lev_max` (§2).
+
+  **The book has a budget and spends it in the answer's own order.** The sized objects of one side
+  spend at most `side_max_pct` of capital in risk and both sides together at most `book_max_pct`,
+  taken in the order the answer ranks them — `ЛУЧШИЕ СДЕЛКИ`, then the strategy block in item 80's
+  order, then `ТОП-3`, then `СОЗРЕВАЕТ`, a coin spending once however often it is named. An object
+  the budget no longer covers prints «Размер: резерв»: the Boss places it only after a sized
+  position of that side has closed. **The budget is a property of this answer and of nothing the
+  Boss holds** (§0) — the engine cannot know his book, so counting what he already holds against the
+  same budgets is his rule, told to him once and never printed. Under a stress word the conditional
+  book is one position per side (§2), sized like any row. **A missing or unreadable `capital` or
+  `risk` prints no size anywhere** and the appendix names the key: a size computed from a typed number
+  is the defect this bullet exists to prevent.
 
 **Banned as conclusions** (and their English equivalents): «интересно» · «стоит
 следить» · «потенциальный сетап» · «может двинуться» · «подождём и посмотрим» ·
@@ -1735,7 +1778,7 @@ memory — and never a trade object, so nothing read here becomes a candidate (�
 read or parse it stops and says so in one line (`EXECUTOR-INSTRUCTIONS.md` §4b): without it every
 lane and date already established would be re-derived from nothing.
 **`analyst/owner.json` is read in the same step** (§11): its `vectors` enter the catalyst
-stage as questions. Its absence is normal and silent; an unparseable copy is stated in the
+stage as questions, and its `capital` and `risk` size every published object (§4). Its absence is normal and silent; an unparseable copy is stated in the
 first line and the run continues.
 
 **4 · Geometry — the freeze.** Every coin of the list and every row the §3B screen admits gets its
@@ -3144,8 +3187,8 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     and the appendix carries the row and the reason. **A run that answers «yes» to items 1
     to 85 and cannot answer «yes» here has found a defect in THIS FILE, not in the market:**
     it publishes what it can stand behind, and records the objection beside it (§0, §7).
-87. **`# СТРАТЕГИЯ — МОЙ СПИСОК` is published as the two-line block of §2 and never as a
-    pipe table.** First line coin, side and status; second line entry, stop and target. A
+87. **`# СТРАТЕГИЯ — МОЙ СПИСОК` is published as the block of §2 and never as a
+    pipe table.** First line coin, side and status; second line entry, stop and target; third line the size (§4). A
     Markdown table in this section fails this item whatever it contains, because the failure
     it caused is not about content: six columns of price levels do not fit an iPhone and the
     Boss read the section sideways for as long as it existed.
@@ -3295,6 +3338,19 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     cause published the day before the freeze, the named mover search found nothing, and the cause
     reached `УЖЕ БЫЛО СЕГОДНЯ` because this file's header named it — which that run recorded
     unprompted.
+106. **Every row, `ТОП-3` line and `СОЗРЕВАЕТ` item published carries its size or «Размер: резерв»**
+    (§2, §4), computed from `analyst/owner.json` at its own anchor: `qty` from the stop distance it
+    prints and the risk its tier gives it, `L` the `L` field `leverageDecision` returned there — `L_MIN`
+    with no structural row — capped at `lev_max` and printed only below it; and the sized objects of a
+    side stay within `side_max_pct`, both sides within `book_max_pct`, spent in the answer's order.
+    The appendix carries per object the risk, `d`, `size$`, `qty`, `L` and the budget left after it. A
+    size resting on another risk, distance or leverage, a sized object past the budget, a leverage
+    production would not issue, or a size printed while the owner file was unreadable fails this item.
+
+**106 names the owner's decision of 30.09.2026 and no broken rule.** He declared the capital and
+delegated the policy; the item exists because a size is the one number in the answer whose input is
+his money rather than the market, and a number nobody checks against its input is a number nobody
+has checked.
 
 **105 names the audit of the run of 26.09.2026, 12:27 Tbilisi — the first under `-30-c` — and 24,
 98 and 104 are corrected in place.** Everything the answer printed was true and read at its
@@ -3409,6 +3465,7 @@ distinction is the whole reason this list exists.
 | Prohibition class | `XXX` — вход · `XXX до ДД.ММ` — событие (§2) |
 | Catalyst source mark | НЕ ПОДТВЕРЖДЕНО — only on a `reported` date in `# КАТАЛИЗАТОРЫ` (§6); a row's unlock suffix carries none (§2); no status word exists |
 | Unlock on a row | `· разлок ДД.ММ (X.X%)` — the end of the row's first line (§2) |
+| Size | `Размер N XXX ($X)` · `· плечо N×` only below the owner's ceiling · `Размер: резерв` (§2, §4) |
 | Regime | БЫЧИЙ / МЕДВЕЖИЙ / ДИАПАЗОН / ПЕРЕГРЕТ / ВЫСОКИЙ РИСК |
 | Confidence | ВЫСОКАЯ / СРЕДНЯЯ |
 | Venue | Фьючерсы / Спот |
@@ -3451,7 +3508,8 @@ under every rule of this file.
 
 - Forecasts are built internally as scenarios with probabilities and invalidation
   levels. The Boss receives one verdict plus its invalidation, never a menu.
-- Risk first: sizing from the stop, liquidation with MMR, funding as a cost.
+- Risk first: every published object is sized from its stop and the owner's policy (§4),
+  liquidation stays production's, funding is a cost.
 - High Conf is not an entry signal — it measures correlation-model quality, not
   direction. МДЛ ✕ → direction must come from catalysts.
 - Liquidation is a TOUCH event and its probability is a lower bound (map §3.3).
@@ -3572,9 +3630,18 @@ move**, and it was, in the Architect's own answer.
 ```
 analyst/owner.json — written by the Architect, uploaded by the Boss, read here, never written here
 
-{ "v":1, "k":"owner", "updated":"YYYY-MM-DD",
+{ "v":2, "k":"owner", "updated":"YYYY-MM-DD",
+  "capital":{ "usdt", "asof":"YYYY-MM-DD" },
+  "risk":{ "risk_pct", "risk_pct_high", "side_max_pct", "book_max_pct", "lev_max",
+           "margin":"isolated" },
   "vectors":[ { "id", "sym"|null, "claim", "raised" } ] }
 ```
+
+**`capital` and `risk` arrived at v2, the owner's decision of 30.09.2026**, and they are the only
+content of this file taken as given: he declared the capital and delegated the policy to the
+Architect, so both are his facts and neither is a hypothesis. They are read at gate step 3 and used by
+§4 alone; the engine never writes, rounds or re-derives them, and the capital moves when the owner
+declares it, never from anything a run computes about his results. Percentages are of `capital.usdt`.
 
 **`positions` was removed at `2026-09-24-a` by the owner's decision of 20.09.2026** — he
 does not declare the coins he has entered, so the array, the `type:"position"` item it
@@ -3642,6 +3709,7 @@ every lane NOT read this run, with its previous read date and its stored sec6_md
 every §6a channel that landed on another host or whose page stopped short of its previous read
 the fr, oi and mark read per published setup, and the state oi each was compared against
 every production function cut from index.html, with the command and the span it cut
+the size of every published object: its risk, d, size$, qty, L and the budget left after it (§4)
 the §7 checklist, one line per item with its verdict
 the derivation of every price printed in # BTC
 what analyst/state.json held at step 3, per key; every horizon entry deleted or added; the
