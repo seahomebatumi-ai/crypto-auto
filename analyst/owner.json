@@ -1,17 +1,18 @@
 {
-  "v": 2,
+  "v": 3,
   "k": "owner",
-  "updated": "2026-09-30",
-  "rule": "capital and risk are the owner's own facts: he declared the capital and delegated the risk policy to the Architect on 2026-09-30. The capital changes only on his declaration of his account size; the policy changes only by an owner decision or at the scorecard gate of SYSTEM-MAP-CRYPTOCALCUL.md section 10. The engine reads this file and never writes it. A vectors entry is a hypothesis with no authority: it is resolved against a primary source or reported unresolved with the host that was read.",
+  "updated": "2026-10-01",
+  "rule": "capital and risk are the owner's own facts: he declared the capital and delegated the risk policy to the Architect on 2026-09-30, and on 2026-10-01 asked that size follow the quality of the setup rather than be restricted by default. An object graded strong is sized at risk_pct_strong, one graded medium at risk_pct_medium, and either is multiplied by risk_mult_high where the exceptional-risk label prints (ANALYST-INSTRUCTIONS.md sections 2, 4 and 8). The capital changes only on his declaration of his account size; the policy changes only by an owner decision or at the scorecard gate of SYSTEM-MAP-CRYPTOCALCUL.md section 10. The engine reads this file and never writes it. A vectors entry is a hypothesis with no authority: it is resolved against a primary source or reported unresolved with the host that was read.",
   "capital": {
     "usdt": 10000,
     "asof": "2026-09-30"
   },
   "risk": {
-    "risk_pct": 0.5,
-    "risk_pct_high": 0.25,
-    "side_max_pct": 2.0,
-    "book_max_pct": 3.0,
+    "risk_pct_strong": 1.0,
+    "risk_pct_medium": 0.5,
+    "risk_mult_high": 0.5,
+    "side_max_pct": 3.0,
+    "book_max_pct": 5.0,
     "lev_max": 3,
     "margin": "isolated"
   },
