@@ -1,8 +1,22 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 23.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 24.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v24 moves the floor TZ-54 waits on, in the order map inv. 59 fixes.** The owner decided on
+01.10.2026 that the assistant is built on the VPS — a payload writer, scheduled analysis runs, a
+Telegram bot and an exchange watcher — and three clauses of v23 could only refuse it. Item 6
+placed every credential in GitHub Actions, while the Telegram bot token and the exchange's
+read-only key exist only to be used on the VPS; it now admits exactly those two and says where
+they live, how they arrive and what may never read them. Item 9 gave an external fact one
+standing — a workflow step — while the VPS writer is a program in this repository whose output
+its unit commits; it now has that standing on the same terms, and a session running the same
+code by hand still has none. And nothing said how code reaches the VPS: item 15 makes merge the
+deployment there as it is for Pages, so no session leaves a branch running on the host. §2
+classes `vps/**` and the second writer of `analyst/live.json`, §3 names the one thing a trigger
+message may carry beside the trigger, §4 says how a unit starts role 2, and §4b step 8 says
+what a run does when another run's state reached `main` first. Nothing else in v23 changed.
 
 **v23 fixes how §5 step 2 CUTS the anchor list — v22 named the source and not the cut.**
 v22 said the list comes from the map's own table, and TZ-46's gate obeyed it by reading that
@@ -190,7 +204,11 @@ Applying an unapproved method produces advice nobody specified and nobody can au
 
 **The roles never run in one turn.** An analysis run writes no production code, opens
 no branch and no pull request. An implementation run publishes no market advice and
-writes nothing under `analyst/`. If a turn appears to call for both, the
+writes nothing under `analyst/`. A program under `vps/` writes `analyst/live.json` in its own
+unit and never through the session, and a headless role-2 run that a unit starts is a separate
+process and a separate turn (§4): an implementation session that starts either for a
+measurement its TZ names never reads, relays or edits the answer that run publishes, and edits
+nothing it writes. If a turn appears to call for both, the
 implementation role wins and the analysis is refused in one line: a session that ships
 code and issues trades in the same turn has no reviewable boundary.
 
@@ -214,12 +232,13 @@ table is created without a TZ that names it.
 | Journal code | `journal/write.js`, `journal/README.md` | you | branch + PR | live |
 | Journal records | `journal/data/**`, `journal/out/**`, `journal/runs.jsonl` | `journal.yml` | machine, direct to `main` | **permanent, immutable** |
 | Analyst methodology | `ANALYST-INSTRUCTIONS.md` | Architect | Boss upload to `main` | one copy, replaced in place |
-| Live payload | `analyst/live.json` | Boss's Shortcut | machine, direct to `main` | one copy, replaced in place |
+| Live payload | `analyst/live.json` | Boss's Shortcut · the VPS writer (`vps/writer.py`) | machine, direct to `main` | one copy, replaced in place |
 | Analytical state | `analyst/state.json` | you (role 2) | you, direct to `main` | one copy, replaced in place |
 | Day log | `analyst/log/**` | you (role 2) | you, direct to `main` | **permanent, immutable** |
 | Owner channel | `analyst/owner.json` | Architect | Boss upload to `main` | one copy, replaced in place |
 | Live-data gate | `analyst/live-gate.sh` | you | branch + PR | live |
 | Analyst README | `analyst/README.md` | you | branch + PR | live |
+| VPS programs | `vps/**` | you | branch + PR; installed on the VPS from `main` only (§7 item 15) | live |
 | Assets | `image.PNG`, `README.md` (root) | you | branch + PR | live |
 | Hygiene | `.gitignore` | you | branch + PR | live |
 | Generated artifacts | `bench/_*`, `bench/cache/`, `__pycache__/` | — | tooling | ignored, never committed |
@@ -238,7 +257,8 @@ strictly increasing and never reused.
 
 **The Boss uploads each TZ once, into `CryptoTZ/`, through the GitHub web
 interface.** Nothing is attached to the session; he sends the trigger and nothing
-else — no explanation, no re-sent contract, no path.
+else — no explanation, no re-sent contract, no path — except the credentials a TZ names,
+which arrive under the trigger line and nowhere else (§7 item 6).
 
 Therefore, **before you can say anything is missing, you must have fetched**:
 `git fetch --all --prune`, every time, without exception. A session clone is a
@@ -286,6 +306,14 @@ cycle already had, and it runs `ANALYST-INSTRUCTIONS.md` §2's skeleton in full,
 identically to the short forms. A trigger that changed the workflow by being worded
 differently would put a second methodology in the chat window. `REVIEW` remains the one
 full-cycle exception and runs methodology §9 alone.
+
+**A unit on the VPS starts role 2 the way the Boss does, and in no other way.** It passes one
+of the three full-cycle strings, verbatim, as the prompt of a headless session, beside one
+appended system-prompt sentence that names this file as the session's contract; it passes
+nothing else, because any further instruction in a unit's prompt is a second methodology
+written into a unit file. The session runs §4b in full and is selected by that string alone,
+exactly as by a message. Step 9's answer is its final message: the unit delivers it to the Boss,
+verbatim and whole, and nothing else the session prints is delivered.
 
 An unrecognised trigger is not guessed. Say in one line which triggers exist and stop.
 
@@ -378,7 +406,11 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
    Boss's Shortcut putting a newer `analyst/live.json` there. You wrote
    `analyst/state.json` and one dated log file that did not exist before, so
    `git pull --rebase` cannot conflict with that payload; rebase, confirm the tree is
-   clean, push again. **A second rejection is reported in one line and the answer is
+   clean, push again. **A rebase that stops on `analyst/state.json` means another analysis
+   run wrote it first** — a run a unit started beside one the Boss started, the one way two
+   writers of that file can meet: abort the rebase and send the answer. This run's state is
+   not pushed and the next run reads the other's, which costs the research store one refresh
+   — the cheap direction. **A second rejection is reported in one line and the answer is
    still sent** — the market answer is the Boss's, the commit is the engine's bookkeeping,
    and holding the first hostage to the second helps nobody. What you never do is fall
    through to §8's pull-request fallback: that clause is role 1's, and a state file
@@ -499,7 +531,25 @@ TZs and reports.
    of any new field, and the bot's error result stays key-synchronous with its
    success result (inv. 1, 9).
 6. **Never commit secrets.** Credentials live only in GitHub Actions environment
-   variables (inv. 7).
+   variables (inv. 7), **with exactly two exceptions, both on the VPS and both since v24:**
+   the Telegram bot token, and the Binance API key created with reading permission only and
+   bound to the VPS's address — its key and secret are one credential. Each value lives in
+   its own file under `/etc/crypto-auto/credentials/`, outside the repository, mode `0600`,
+   owned by root, and reaches the one unit that uses it as a systemd credential
+   (`LoadCredential=`), never as an environment variable. **No value is ever printed,
+   logged, committed or quoted** — in a report, a day log, a commit, a unit file or the
+   chat — and **no unit that runs a model session can read that directory**: such a unit
+   carries it in `InaccessiblePaths=`, because a session that can read a file can print it.
+   **A value arrives once, from the Boss, in the trigger message of the TZ that names it** —
+   one `NAME=value` line under the trigger line — and that message is the only place a
+   credential is ever typed. The session writes each value to its file without echoing it;
+   afterwards the file is read only by a command that prints a count — a check that needs
+   the value compares against the file, and a report proves every value absent from
+   everything the session wrote by searching for the value itself. The conversation that
+   carried it is the one other copy, which is why the key carries reading only and the
+   address binding. A value that appears anywhere else is revoked and replaced, never
+   cleaned up, and a third credential on the VPS — a key with trading rights above all —
+   is a contract version, never a TZ.
 7. **Russian UI strings inside JavaScript are `\uXXXX` escapes.** Never introduce raw
    Cyrillic into a JS string literal.
 8. **Never modify `.github/workflows/backtest_bench.yml`** unless the TZ names it.
@@ -511,7 +561,11 @@ TZs and reports.
    implementation TZ asking for such a fetch in-session is BLOCKED before it starts. The
    reason is REPRODUCIBILITY, not reach: a runner fetch is recorded and repeatable by
    anyone holding the repository, a session fetch is neither, because the session ends and
-   the market moves.
+   the market moves. **A program in this repository that a VPS unit runs, and whose output
+   that unit commits, has a workflow step's standing on the same terms** (inv. 44, since
+   v24): its code is named in the repository, its output is committed beside that code, and
+   anyone holding the repository can run it again. A session running the same code by hand
+   has none of that standing, and a TZ asking it to stays BLOCKED.
    **Reachability is not the test and is never assumed in either direction.** Hosts a
    session could not reach in one measurement answered 200 in the next; a rule resting on
    a measurement falls with it (inv. 52).
@@ -577,6 +631,13 @@ TZs and reports.
     workflow, the map, this file — means the run has silently become an
     implementation, and an implementation with no TZ behind it is unauthorised by
     §6 whichever role performed it.
+15. **Merge is deployment on the VPS as it is on Pages** (since v24). Code under `vps/` runs
+    on the VPS only from `main`: the deployer fast-forwards its own clone and installs what
+    changed, and nothing else installs anything. An implementation session never enables,
+    starts or leaves running a persistent unit, timer or service from a branch; it may start
+    TRANSIENT units from its branch for a measurement its TZ names, and its report proves
+    none is left behind. The one exception is the deployer's bootstrap, installed once by
+    the TZ that names it, which acts on `main` and on nothing else.
 
 ---
 
@@ -620,7 +681,11 @@ Boss had to merge by hand.
   `CryptoReports/**` needs an entry anywhere: everything unnamed is already out, and the
   guarantee is now structural instead of enumerated. Read the workflow and confirm the
   list is still an allow-list before the first push of a session; if either fact ever
-  stops holding, report it instead of pushing.
+  stops holding, report it instead of pushing. **The VPS writer pushes `analyst/live.json`
+  on this path under the same rules** — `git push origin HEAD:main`, a rebase on rejection,
+  never a branch and never a force — and a rebase that conflicts with the Shortcut's payload
+  discards the writer's commit, because the payload already on `main` is gated on `ts` like
+  its own (inv. 51).
 - The report exists on `main` **before** you post your closing message, so the path
   you give the Boss resolves the moment he opens it. One report, one path, one copy:
   never also in the implementation branch, never a second copy under another name
