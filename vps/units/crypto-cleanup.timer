@@ -1,0 +1,10 @@
+[Unit]
+Description=Crypto assistant: daily retention
+
+[Timer]
+OnCalendar=*-*-* 03:17:00 UTC
+Persistent=true
+Unit=crypto-cleanup.service
+
+[Install]
+WantedBy=timers.target

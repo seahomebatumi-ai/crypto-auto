@@ -1,0 +1,7 @@
+[Unit]
+Description=Crypto assistant: retention of run records and spool
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/cleanup.py
+Environment=PYTHONDONTWRITEBYTECODE=1

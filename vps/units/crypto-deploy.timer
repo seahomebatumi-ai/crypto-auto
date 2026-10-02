@@ -1,0 +1,10 @@
+[Unit]
+Description=Crypto assistant: deployer tick
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=crypto-deploy.service
+
+[Install]
+WantedBy=timers.target

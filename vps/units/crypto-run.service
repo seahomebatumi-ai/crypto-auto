@@ -1,0 +1,24 @@
+[Unit]
+Description=Crypto assistant: one headless analysis run
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=3
+
+[Service]
+Type=exec
+WorkingDirectory=/srv/crypto-auto-run
+Environment=HOME=/root
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/run.py
+RuntimeDirectory=crypto-run
+PrivateTmp=yes
+InaccessiblePaths=-/etc/crypto-auto/credentials
+MemoryAccounting=yes
+MemoryMax=1409286144
+MemorySwapMax=0
+RuntimeMaxSec=5400
+OOMScoreAdjust=500
+Nice=5
+SuccessExitStatus=75

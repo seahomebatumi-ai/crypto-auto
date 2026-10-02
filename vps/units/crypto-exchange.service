@@ -1,0 +1,23 @@
+[Unit]
+Description=Crypto assistant: exchangeInfo watcher
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+User=cryptoauto
+Group=cryptoauto
+ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/exchange.py
+Environment=PYTHONDONTWRITEBYTECODE=1
+Restart=always
+RestartSec=15
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/spool/crypto-auto /var/lib/crypto-auto
+MemoryAccounting=yes
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target
