@@ -1,8 +1,21 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 25.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 26.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v26 closes the gap v25 left in the deployer's check, and names the signal that ends a
+task.** v25 had the deployer verify only the newest commit on `main`'s first-parent line that
+changed `vps/`, so an unsigned change pushed from the VPS was refused only until the next
+legitimate merge: that merge's signature covered a tree carrying the unsigned change, and the
+deployer would have installed it as root. TZ-55's audit found it. Item 15 now verifies every
+such commit since the one the deployer last accepted. §2 classes `.claude/settings.json`, which
+turns Claude Code's auto memory off for every session in this repository: a session's own
+notes, loaded into the next session, are an input nobody specified and nobody can audit, and an
+analysis run must not carry what an earlier run concluded (owner's decision of 24.09.2026).
+§11's closing message gains the line the Boss sends the Architect, `DONE TZ-NN`, because the
+Architect now reads the report from the repository and the Boss no longer forwards it (owner's
+message of 03.10.2026). Nothing else in v25 changed.
 
 **v25 repairs the floor TZ-54 measured, in the order map inv. 59 fixes.** TZ-54's report
 found the run unit able to read every credential v24 meant to hide from it: v24 named
@@ -253,7 +266,15 @@ table is created without a TZ that names it.
 | VPS programs | `vps/**` | you | branch + PR; installed on the VPS from `main` only (§7 item 15) | live |
 | Assets | `image.PNG`, `README.md` (root) | you | branch + PR | live |
 | Hygiene | `.gitignore` | you | branch + PR | live |
+| Claude Code project settings | `.claude/settings.json` | you | branch + PR | live |
 | Generated artifacts | `bench/_*`, `bench/cache/`, `__pycache__/` | — | tooling | ignored, never committed |
+
+**`.claude/settings.json` holds `"autoMemoryEnabled": false` and is the one Claude Code setting
+this repository carries** (since v26). Auto memory loads notes a session wrote into every later
+session of the same repository, every worktree and both roles included, so an analysis run
+would start from what an earlier run concluded — the owner's decision of 24.09.2026 forbids
+exactly that input — and an implementation run would start from a recollection instead of a
+reading. A TZ that adds another key to this file names it and says why.
 
 `CryptoTZ/` and `CryptoReports/` are created by you on first use; the Boss never
 creates a directory and never types a path. A file that fits no class: **report it,
@@ -662,16 +683,20 @@ TZs and reports.
     TRANSIENT units from its branch for a measurement its TZ names, and its report proves
     none is left behind. The one exception is the deployer's bootstrap, installed once by
     the TZ that names it, which acts on `main` and on nothing else.
-    **The deployer installs a `vps` tree only from a commit GitHub signed** (since v25): the
-    newest commit on `main`'s first-parent line that changed `vps/` must carry GitHub's own
+    **The deployer installs a `vps` tree only from commits GitHub signed** (since v25; every
+    such commit since v26): each commit on `main`'s first-parent line that changed `vps/` since
+    the commit the deployer last accepted — its own clone's `HEAD` — must carry GitHub's own
     signature — a pull request merged on GitHub, or a file the Boss uploaded there — verified
     against GitHub's key, which the TZ adding the check installs outside the repository and
     which is never read from the tree it verifies. The analysis run pushes to `main` with the
     deploy key and the deployer installs `main` as root, so without this check one push from a
     model session would run as root on its next tick; a branch's own commits carry no such
-    signature, which is why the first-parent line is the one read. A tree that fails the check
-    is neither fast-forwarded into the deployer's clone, whose files the services run, nor
-    installed, and the Boss is told once per tree.
+    signature, which is why the first-parent line is the one read. **Every commit, never the
+    newest alone:** a signed merge's tree carries whatever reached `main` before it, so a check
+    of the newest commit would install an unsigned change at the next legitimate merge. A tree
+    that fails the check is neither fast-forwarded into the deployer's clone, whose files the
+    services run, nor installed, and the Boss is told once per tree; it stays refused until a
+    TZ names the unsigned commit and says what is done with it.
 
 ---
 
@@ -878,17 +903,20 @@ After the report is committed to `main`, post one short message in the session. 
 message, and only this message, is written in Russian** — the report, the commits and
 every other artifact stay in English.
 
-It contains exactly four facts and nothing else: the task is finished, the report
-exists, its exact path, and whether the Boss must do anything. No technical
-explanation, no findings, no counts, no narrative — the Architect reads the report.
+It contains these facts and nothing else: the task is finished, the report exists, its
+exact path, the signal the Boss sends the Architect, and whether the Boss must do anything
+more. No technical explanation, no findings, no counts, no narrative — the Architect reads
+the report **from the repository**, so the Boss never forwards it (since v26).
 
 ```
 Босс, TZ-NN выполнено. Отчёт: `CryptoReports/TZ-NN-<name>-report.md`
+Архитектору: `DONE TZ-NN`
 ```
 
-Add a second line only when the Boss must act — for example that a pull request is
-open (or, under the §8 fallback, that a branch and compare URL await) and the
-Architect's verdict precedes the merge.
+The second line is always present and always exactly that signal, whatever the status:
+it is how the Architect learns the report is on `main`. Add a third line only when the
+Boss must act — for example that a pull request is open (or, under the §8 fallback, that
+a branch and compare URL await) and the Architect's verdict precedes the merge.
 
 If the status is BLOCKED or PARTIAL, say so in the first line and name the one thing
 that would unblock it. Never ask the Boss a technical question and never ask him to
