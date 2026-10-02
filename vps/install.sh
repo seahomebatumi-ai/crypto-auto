@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 #
-# vps/install.sh — installs the VPS assistant from the checkout it sits in (TZ-54 B9).
+# vps/install.sh — installs the VPS assistant from the checkout it sits in (TZ-54 B9, TZ-55 B5).
 #
 #   install.sh              called by the deployer from /srv/crypto-auto: selftest, provision,
 #                           verify, install units, enable the manifest, disable the rest
-#   install.sh --bootstrap  once, from the TZ-54 branch: user, directories, clone, worktree,
+#   install.sh --bootstrap  once, from the TZ-54 branch: users, directories, clone,
 #                           deploy.sh, crypto-deploy.service and .timer, the timer enabled
+#   install.sh --provision  users, groups, directories, the run's own clone and its
+#                           known_hosts — nothing installed, enabled, copied or removed
 #   install.sh --dry-run    prints what the default mode would do and changes nothing
+#
+# The run has its own unprivileged user, cryptorun, and its own clone under its home
+# (contract §7 item 6, since v25); nothing creates /srv/crypto-auto-run any more.
 #
 # `disable --now` applies to units that carry an [Install] section: a unit without one
 # (crypto-run.service, crypto-cleanup.service, crypto-deploy.service) is started only by
@@ -21,15 +26,18 @@ MANIFEST="$HERE/manifest"
 SYSTEMD=/etc/systemd/system
 LIBEXEC=/usr/local/libexec/crypto-auto
 CLONE=/srv/crypto-auto
-RUN_TREE=/srv/crypto-auto-run
 REMOTE=git@github.com:seahomebatumi-ai/crypto-auto.git
 IDENTITY_SOURCE=/root/crypto-auto
 RUNS_ENABLED=/var/lib/crypto-auto/runs-enabled
+RUN_HOME=/var/lib/cryptorun
+RUN_CLONE="$RUN_HOME/crypto-auto"
+RUN_FETCH=https://github.com/seahomebatumi-ai/crypto-auto.git
+ROOT_KNOWN_HOSTS=/root/.ssh/known_hosts
 
 mode="${1-}"
 case "$mode" in
-    ""|--bootstrap|--dry-run) ;;
-    *) echo "usage: install.sh [--bootstrap|--dry-run]" >&2; exit 9 ;;
+    ""|--bootstrap|--provision|--dry-run) ;;
+    *) echo "usage: install.sh [--bootstrap|--provision|--dry-run]" >&2; exit 9 ;;
 esac
 
 say() { echo "install: $*"; }
@@ -45,6 +53,19 @@ provision_user() {
         useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin cryptoauto
         say "user cryptoauto created"
     fi
+    if ! getent group cryptorun >/dev/null; then
+        groupadd --system cryptorun
+        say "group cryptorun created"
+    fi
+    if ! id -u cryptorun >/dev/null 2>&1; then
+        useradd --system --gid cryptorun --groups cryptoauto --no-create-home --home-dir "$RUN_HOME" \
+            --shell /usr/sbin/nologin cryptorun
+        say "user cryptorun created"
+    fi
+    case " $(id -nG cryptorun) " in
+        *" cryptoauto "*) ;;
+        *) usermod -a -G cryptoauto cryptorun; say "user cryptorun added to group cryptoauto" ;;
+    esac
 }
 
 provision_dirs() {
@@ -55,6 +76,7 @@ provision_dirs() {
     dir_as 2770 cryptoauto cryptoauto /var/spool/crypto-auto/requests
     dir_as 0750 cryptoauto cryptoauto /var/lib/crypto-auto
     dir_as 0755 root root "$LIBEXEC"
+    dir_as 0750 cryptorun cryptorun "$RUN_HOME"
 }
 
 provision_clone() {
@@ -76,12 +98,48 @@ provision_clone() {
     done
 }
 
-provision_worktree() {
-    if [ ! -e "$RUN_TREE/.git" ]; then
-        git -C "$CLONE" worktree prune
-        git -C "$CLONE" fetch -q origin main
-        git -C "$CLONE" worktree add -q --detach "$RUN_TREE" origin/main
-        say "worktree $RUN_TREE created, detached at origin/main"
+# Root works on the clone cryptorun owns, so git's ownership check is told this one path.
+run_git() { git -c safe.directory="$RUN_CLONE" -C "$RUN_CLONE" "$@"; }
+
+provision_run_clone() {
+    if [ ! -d "$RUN_CLONE/.git" ]; then
+        git clone -q "$RUN_FETCH" "$RUN_CLONE"
+        say "run clone $RUN_CLONE created"
+    fi
+    if ! run_git config --local --get remote.origin.pushurl >/dev/null; then
+        run_git config --local remote.origin.pushurl "$REMOTE"
+        say "run clone push URL set"
+    fi
+    # The writer and the session commit from this clone; its committer identity is taken
+    # from the clone that already commits on this host, values never printed (TZ-54 D-8).
+    local key value
+    for key in user.name user.email; do
+        if ! run_git config --local --get "$key" >/dev/null; then
+            value="$(git -C "$IDENTITY_SOURCE" config --get "$key" || true)"
+            if [ -n "$value" ]; then
+                run_git config --local "$key" "$value"
+                say "run clone $key set"
+            fi
+        fi
+    done
+    chown -R cryptorun:cryptorun "$RUN_CLONE"
+    # GitHub's host keys for cryptorun's pushes: root's own github.com lines.
+    if [ ! -e "$RUN_HOME/.ssh/known_hosts" ]; then
+        local lines tmp
+        lines="$(ssh-keygen -F github.com -f "$ROOT_KNOWN_HOSTS" | grep -v '^#' || true)"
+        if [ -z "$lines" ]; then
+            say "no github.com line in $ROOT_KNOWN_HOSTS; known_hosts for cryptorun not written"
+            return 1
+        fi
+        dir_as 0700 cryptorun cryptorun "$RUN_HOME/.ssh"
+        tmp="$(mktemp "$RUN_HOME/.ssh/.known_hosts.XXXXXX")"
+        if printf '%s\n' "$lines" > "$tmp" && chown cryptorun:cryptorun "$tmp" && chmod 0644 "$tmp" \
+            && mv -f -- "$tmp" "$RUN_HOME/.ssh/known_hosts"; then
+            say "known_hosts for cryptorun written: $(printf '%s\n' "$lines" | wc -l) github.com lines"
+        else
+            rm -f -- "$tmp"
+            return 1
+        fi
     fi
 }
 
@@ -94,11 +152,18 @@ installable() { grep -q '^\[Install\]' "$UNITS/$1"; }
 
 listed_units() { grep -v -E '^[[:space:]]*(#|$)' "$MANIFEST"; }
 
+if [ "$mode" = "--provision" ]; then
+    provision_user
+    provision_dirs
+    provision_run_clone
+    say "provision done"
+    exit 0
+fi
+
 if [ "$mode" = "--bootstrap" ]; then
     provision_user
     provision_dirs
     provision_clone
-    provision_worktree
     copy_deploy
     install -m 0644 -o root -g root "$UNITS/crypto-deploy.service" "$SYSTEMD/crypto-deploy.service"
     install -m 0644 -o root -g root "$UNITS/crypto-deploy.timer" "$SYSTEMD/crypto-deploy.timer"
@@ -142,7 +207,7 @@ if ! python3 "$HERE/selftest.py"; then
 fi
 provision_user
 provision_dirs
-provision_worktree
+provision_run_clone
 if ! systemd-analyze verify "$UNITS"/*; then
     say "systemd-analyze verify red, nothing installed"
     exit 1

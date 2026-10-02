@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Retention of run records and the spool (TZ-54 B7).
+"""Retention of run records and the spool (TZ-54 B7, TZ-55 B6).
 
     cleanup.py [--dry-run]
 
-Touches exactly: the run unit's own record directory under /root/.claude/projects/,
-the outbox and requests spools, and announcements.jsonl. No other directory under
-/root/.claude/ and no worktree. --dry-run prints what would be removed and removes nothing.
+Touches exactly: the run unit's own record directory under the run user's
+/var/lib/cryptorun/.claude/projects/, the outbox and requests spools (a .dead
+outbox file ages out like any other), and announcements.jsonl. No other
+directory under any .claude/ and no clone. --dry-run prints what would be
+removed and removes nothing.
 """
 import argparse
 import json
@@ -17,9 +19,9 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common  # noqa: E402
 
-# The directory the headless run of crypto-run.service creates (TZ-54 E4: read after D2,
-# one session record per run; the run also creates -srv-crypto-auto/memory/, not touched here).
-RUN_RECORDS = "/root/.claude/projects/-srv-crypto-auto-run"
+# The directory the headless run of crypto-run.service creates as cryptorun (TZ-55 E4:
+# the directory TZ-55 D2's reading named).
+RUN_RECORDS = "/var/lib/cryptorun/.claude/projects/-var-lib-cryptorun-crypto-auto"
 # [Architect's decision: about 20 runs, two weeks]
 KEEP_NEWEST = 40
 KEEP_AGE_S = 14 * 86400

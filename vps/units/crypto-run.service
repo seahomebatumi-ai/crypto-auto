@@ -7,17 +7,28 @@ StartLimitBurst=3
 
 [Service]
 Type=exec
-WorkingDirectory=/srv/crypto-auto-run
-Environment=HOME=/root
+User=cryptorun
+Group=cryptorun
+SupplementaryGroups=cryptoauto
+WorkingDirectory=/var/lib/cryptorun/crypto-auto
+Environment=HOME=/var/lib/cryptorun
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
 Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=DISABLE_AUTOUPDATER=1
+Environment="GIT_SSH_COMMAND=ssh -i %d/deploy-key -o IdentitiesOnly=yes -o UserKnownHostsFile=/var/lib/cryptorun/.ssh/known_hosts"
+LoadCredential=claude-oauth-token:/etc/crypto-auto/credentials/claude-oauth-token
+LoadCredential=deploy-key:/etc/crypto-auto/credentials/deploy-key
 ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/run.py
 RuntimeDirectory=crypto-run
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
 PrivateTmp=yes
-InaccessiblePaths=-/etc/crypto-auto/credentials
+ReadWritePaths=/var/lib/cryptorun /var/spool/crypto-auto
 MemoryAccounting=yes
-MemoryMax=1409286144
-MemorySwapMax=0
+MemoryMax=452984832
+MemorySwapMax=251658240
 RuntimeMaxSec=5400
 OOMScoreAdjust=500
 Nice=5
