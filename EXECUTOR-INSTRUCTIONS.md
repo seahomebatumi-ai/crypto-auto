@@ -1,8 +1,20 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 24.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 25.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v25 repairs the floor TZ-54 measured, in the order map inv. 59 fixes.** TZ-54's report
+found the run unit able to read every credential v24 meant to hide from it: v24 named
+`InaccessiblePaths=` as the boundary and the unit built to it ran as root, which reads the
+host's files whatever is masked — systemd's documentation says a privileged process can undo
+the setting — and the trigger's own values sat in a session record under `/root` that the unit
+could read. Item 6 now puts a model session under its own unprivileged user holding two
+credentials of its own: the deploy key the VPS's clones already pushed with, which v24's
+«exactly two» failed to name, and a Claude login minted for the run alone that never travels
+through a message. Item 15 closes the one path that user would still have to root: it pushes
+to `main`, the deployer installs `main` as root, and so the deployer now installs only a tree
+GitHub itself signed. Nothing else in v24 changed.
 
 **v24 moves the floor TZ-54 waits on, in the order map inv. 59 fixes.** The owner decided on
 01.10.2026 that the assistant is built on the VPS — a payload writer, scheduled analysis runs, a
@@ -531,24 +543,36 @@ TZs and reports.
    of any new field, and the bot's error result stays key-synchronous with its
    success result (inv. 1, 9).
 6. **Never commit secrets.** Credentials live only in GitHub Actions environment
-   variables (inv. 7), **with exactly two exceptions, both on the VPS and both since v24:**
-   the Telegram bot token, and the Binance API key created with reading permission only and
-   bound to the VPS's address — its key and secret are one credential. Each value lives in
-   its own file under `/etc/crypto-auto/credentials/`, outside the repository, mode `0600`,
-   owned by root, and reaches the one unit that uses it as a systemd credential
-   (`LoadCredential=`), never as an environment variable. **No value is ever printed,
-   logged, committed or quoted** — in a report, a day log, a commit, a unit file or the
-   chat — and **no unit that runs a model session can read that directory**: such a unit
-   carries it in `InaccessiblePaths=`, because a session that can read a file can print it.
+   variables (inv. 7), **with exactly four exceptions, all on the VPS:** the Telegram bot
+   token, and the Binance API key created with reading permission only and bound to the VPS's
+   address — its key and secret are one credential — both since v24; the repository's deploy
+   key, which the VPS's clones pushed with before v24 and which v24's «exactly two» failed to
+   name; and, since v25, the analysis run's own Claude login, a long-lived token minted for
+   that run alone. Each value lives in its own file under `/etc/crypto-auto/credentials/`,
+   outside the repository, mode `0600`, owned by root — the deploy key also stays where root's
+   clones read it — and reaches the one unit that uses it as a systemd credential
+   (`LoadCredential=`), never as an environment variable of a unit; the run's program hands
+   its own Claude login to the session it starts and to nothing else. **No value is ever
+   printed, logged, committed or quoted** — in a report, a day log, a commit, a unit file or
+   the chat. **A unit that runs a model session runs as its own unprivileged user, never root,
+   and holds exactly two credentials: its own Claude login and the deploy key** (since v25),
+   because a session that can read a file can print it and root reads every file on the host.
+   `InaccessiblePaths=` hides a path from a privileged process only until that process undoes
+   it — systemd's own documentation says such a process can — so on such a unit it is defence
+   in depth and never the boundary; v24 named it as the boundary and the run unit TZ-54 built
+   to it ran as root, which is the defect this clause repairs.
    **A value arrives once, from the Boss, in the trigger message of the TZ that names it** —
    one `NAME=value` line under the trigger line — and that message is the only place a
-   credential is ever typed. The session writes each value to its file without echoing it;
+   credential is ever typed. **The Claude login never travels at all:** `claude setup-token`
+   mints it on the VPS while the Boss approves in his own browser, the code he passes back is
+   single-use, and the token goes from the command's output to its file without being
+   displayed. The session writes each value to its file without echoing it;
    afterwards the file is read only by a command that prints a count — a check that needs
    the value compares against the file, and a report proves every value absent from
    everything the session wrote by searching for the value itself. The conversation that
    carried it is the one other copy, which is why the key carries reading only and the
    address binding. A value that appears anywhere else is revoked and replaced, never
-   cleaned up, and a third credential on the VPS — a key with trading rights above all —
+   cleaned up, and a fifth credential on the VPS — a key with trading rights above all —
    is a contract version, never a TZ.
 7. **Russian UI strings inside JavaScript are `\uXXXX` escapes.** Never introduce raw
    Cyrillic into a JS string literal.
@@ -638,6 +662,16 @@ TZs and reports.
     TRANSIENT units from its branch for a measurement its TZ names, and its report proves
     none is left behind. The one exception is the deployer's bootstrap, installed once by
     the TZ that names it, which acts on `main` and on nothing else.
+    **The deployer installs a `vps` tree only from a commit GitHub signed** (since v25): the
+    newest commit on `main`'s first-parent line that changed `vps/` must carry GitHub's own
+    signature — a pull request merged on GitHub, or a file the Boss uploaded there — verified
+    against GitHub's key, which the TZ adding the check installs outside the repository and
+    which is never read from the tree it verifies. The analysis run pushes to `main` with the
+    deploy key and the deployer installs `main` as root, so without this check one push from a
+    model session would run as root on its next tick; a branch's own commits carry no such
+    signature, which is why the first-parent line is the one read. A tree that fails the check
+    is neither fast-forwarded into the deployer's clone, whose files the services run, nor
+    installed, and the Boss is told once per tree.
 
 ---
 
