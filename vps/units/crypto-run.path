@@ -1,0 +1,9 @@
+[Unit]
+Description=Crypto assistant: a run requested by the bot or the watcher
+
+[Path]
+PathExistsGlob=/var/spool/crypto-auto/requests/*.req
+Unit=crypto-run.service
+
+[Install]
+WantedBy=paths.target

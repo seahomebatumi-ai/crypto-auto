@@ -1,0 +1,26 @@
+[Unit]
+Description=Crypto assistant: Binance announcement stream
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+User=cryptoauto
+Group=cryptoauto
+ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/announce.py
+LoadCredential=binance-api-key:/etc/crypto-auto/credentials/binance-api-key
+LoadCredential=binance-api-secret:/etc/crypto-auto/credentials/binance-api-secret
+Environment=PYTHONDONTWRITEBYTECODE=1
+Restart=always
+RestartSec=15
+RestartPreventExitStatus=3
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/spool/crypto-auto /var/lib/crypto-auto
+MemoryAccounting=yes
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

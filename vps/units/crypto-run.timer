@@ -1,0 +1,11 @@
+[Unit]
+Description=Crypto assistant: scheduled analysis runs
+
+[Timer]
+OnCalendar=*-*-* 06:00:00 UTC
+OnCalendar=*-*-* 14:30:00 UTC
+Persistent=true
+Unit=crypto-run.service
+
+[Install]
+WantedBy=timers.target
