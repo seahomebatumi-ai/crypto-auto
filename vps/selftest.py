@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
-"""The VPS assistant's selftest (TZ-54 B10): the sections of TZ-54 §12.14, each
-printing `section <X>: checks <n> failed <m>`, then the total.
+"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7): the sections of TZ-54
+§12.14 with TZ-55 §12.7's changed and new ones, each printing
+`section <X>: checks <n> failed <m>`, then the total.
 
     python3 vps/selftest.py
 
 Exit non-zero on any failure and on any section that compared nothing (inv. 22).
 Offline: every fixture is built here or read from the checkout this file sits in.
 """
+import contextlib
 import copy
+import io
 import json
 import os
 import re
 import shutil
+import signal
+import subprocess
 import sys
 import tempfile
 import time
@@ -25,6 +30,7 @@ import announce  # noqa: E402
 import bot  # noqa: E402
 import cleanup  # noqa: E402
 import common  # noqa: E402
+import run  # noqa: E402
 import writer  # noqa: E402
 
 MiB = common.MiB
@@ -273,10 +279,21 @@ def section_i(s):
     s.check("enableReading false: REFUSED", announce.verdict(dict(accepted, enableReading=False)) == "REFUSED")
 
 
-# --- J: derive_limits ---------------------------------------------------------------
+# --- J: derive_limits and test_limits ---------------------------------------------
 def section_j(s):
     s.check("derive_limits(400 MiB, 1200 s)", common.derive_limits(400 * MiB, 1200) == (637534208, 5400))
     s.check("derive_limits(100 MiB, 2100 s)", common.derive_limits(100 * MiB, 2100) == (167772160, 6000))
+    # TZ-55 §12.4's four known answers, computed by the Architect.
+    s.check("test_limits(466161664, 604.899672, 419430400)",
+            common.test_limits(466161664, 604.899672, 419430400) == (704643072, 352321536, 352321536, 5400))
+    s.check("test_limits(291307520, 604.899672, 1073741824)",
+            common.test_limits(291307520, 604.899672, 1073741824) == (452984832, 452984832, 0, 5400))
+    s.check("test_limits(466161664, 604.899672, 379584512)",
+            common.test_limits(466161664, 604.899672, 379584512) == (704643072, 301989888, 402653184, 5400))
+    low = common.test_limits(466161664, 604.899672, 209715200)
+    s.check("test_limits(466161664, 604.899672, 209715200): memory_max 134217728", low[1] == 134217728)
+    s.check("that memory_max is below the floor of 167772160, so D2 does not run",
+            common.MEMORY_MAX_FLOOR_BYTES == 167772160 and low[1] < common.MEMORY_MAX_FLOOR_BYTES)
 
 
 # --- K: cleanup's selection -----------------------------------------------------------
@@ -331,25 +348,208 @@ def section_m(s):
     n = {k: int(v) for k, v in r.items() if re.fullmatch(r"-?\d+", v)}
     with open(manifest_path, encoding="utf-8") as fh:
         listed = {line.strip() for line in fh if line.strip() and not line.startswith("#")}
-    s.check("run_footprint_bytes = max(cgroup, hwm)",
-            n["run_footprint_bytes"] == max(n["run_cgroup_footprint_bytes"], n["run_process_hwm_bytes"]))
+    # TZ-55 §12.7's rule, which replaces TZ-54's.
+    s.check("run_footprint_bytes = max(cgroup, kernel peak)",
+            n["run_footprint_bytes"] == max(n["run_cgroup_footprint_bytes"], n["run_kernel_peak_bytes"]))
     s.check("host_free_bytes = mem_available + session_rss",
             n["host_free_bytes"] == n["mem_available_bytes"] + n["session_rss_bytes"])
-    limits = common.derive_limits(n["run_footprint_bytes"], r["run_duration_s"])
-    s.check("derive_limits(run_footprint, run_duration) equals the record",
-            limits == (n["memory_max_bytes"], n["runtime_max_s"]))
-    s.check("MemoryMax= equals memory_max_bytes", unit_value(unit_path, "MemoryMax") == str(limits[0]))
-    s.check("RuntimeMaxSec= equals runtime_max_s", unit_value(unit_path, "RuntimeMaxSec") == str(limits[1]))
-    fits = "yes" if r["run_completed"] == "yes" and n["memory_max_bytes"] <= n["host_free_bytes"] else "no"
-    s.check("fits equals the rule", r["fits"] == fits)
-    s.check("hog_footprint_bytes >= hog_bytes", n["hog_footprint_bytes"] >= n["hog_bytes"])
+    budget_in, memory_max, _, _ = common.test_limits(n["input_footprint_bytes"], r["input_duration_s"],
+                                                     n["host_free_bytes"])
+    s.check("memory_max_bytes = test_limits(input_footprint, input_duration, host_free)'s second term",
+            n["memory_max_bytes"] == memory_max)
+    budget_run, runtime_max = common.derive_limits(n["run_footprint_bytes"], r["run_duration_s"])
+    s.check("budget_bytes = the larger budget of input and run footprints",
+            n["budget_bytes"] == max(budget_in, budget_run))
+    s.check("memory_swap_max_bytes = budget - memory_max",
+            n["memory_swap_max_bytes"] == n["budget_bytes"] - n["memory_max_bytes"])
+    s.check("runtime_max_s from run_duration_s", n["runtime_max_s"] == runtime_max)
+    s.check("MemoryMax= equals memory_max_bytes", unit_value(unit_path, "MemoryMax") == str(n["memory_max_bytes"]))
+    s.check("MemorySwapMax= equals memory_swap_max_bytes",
+            unit_value(unit_path, "MemorySwapMax") == str(n["memory_swap_max_bytes"]))
+    s.check("RuntimeMaxSec= equals runtime_max_s", unit_value(unit_path, "RuntimeMaxSec") == str(n["runtime_max_s"]))
+    s.check("hog_footprint_bytes >= hog_bytes > hog3_footprint_bytes / 2",
+            n["hog_footprint_bytes"] >= n["hog_bytes"] and 2 * n["hog_bytes"] > n["hog3_footprint_bytes"])
+    fits = r.get("fits")
+    if fits is not None:
+        s.check("fits=yes exactly when the last run completed (TZ-55 12.4)", (fits == "yes") == (r["run_completed"] == "yes"))
     for unit in ("crypto-run.timer", "crypto-run.path"):
-        s.check("manifest lists %s exactly when fits=yes" % unit, (unit in listed) == (r["fits"] == "yes"))
+        s.check("manifest lists %s exactly when fits=yes" % unit, (unit in listed) == (fits == "yes"))
+
+
+# --- N: the bot on a mock API: one undeliverable file holds nothing behind it ----
+class MockApi(bot.Api):
+    """Answers sendMessage like the Bot API: HTTP 400 for any text carrying the
+    refused marker, a network error (status 0) for the cut marker, 200 otherwise."""
+    REFUSED, CUT = "SELFTEST-REFUSED", "SELFTEST-CUT"
+
+    def __init__(self):
+        bot.Api.__init__(self, "selftest-token")
+        self.sent = []
+
+    def call(self, method, params, timeout=common.HTTP_TIMEOUT_S):
+        text = params.get("text", "")
+        self.sent.append((params.get("parse_mode"), text))
+        if self.REFUSED in text:
+            return 400, {"ok": False, "error_code": 400, "description": "Bad Request: selftest"}
+        if self.CUT in text:
+            return 0, {"description": "URLError"}
+        return 200, {"ok": True, "result": {"message_id": len(self.sent)}}
+
+
+def outbox_doc(directory, name, kind, text):
+    with open(os.path.join(directory, name), "w", encoding="utf-8") as fh:
+        json.dump({"kind": kind, "text": text, "created_ms": 1}, fh)
+
+
+def section_n(s):
+    saved = (common.OUTBOX_DIR, bot.CHUNK_SPACING_S)
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-n.")
+    try:
+        common.OUTBOX_DIR, bot.CHUNK_SPACING_S = tmp, 0
+        refused, nxt = "1000-answer-1.json", "1001-notice-1.json"
+        outbox_doc(tmp, refused, "answer", "first line\n" + MockApi.REFUSED + " <b>bad</b>")
+        outbox_doc(tmp, nxt, "notice", "the next file")
+        api = MockApi()
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            ran_through = bot.deliver_outbox(api, 4242)
+        s.check("the refused file ends as <name>.dead", os.path.exists(os.path.join(tmp, refused + ".dead")))
+        s.check("refused in both forms: HTML, then plain text",
+                [mode for mode, text in api.sent if MockApi.REFUSED in text] == ["HTML", None])
+        s.check("the next file is sent", any(text == "the next file" for _, text in api.sent)
+                and not os.path.exists(os.path.join(tmp, nxt)))
+        s.check("the pass ran through", ran_through is True)
+        s.check("the outbox holds the .dead file alone", sorted(os.listdir(tmp)) == [refused + ".dead"])
+        s.check("outbox_files() does not list it", bot.outbox_files() == [])
+        s.check("logged once by name", out.getvalue().count(refused + " refused in both forms") == 1)
+        # A network error keeps TZ-54's behaviour: the file is kept and the pass ends.
+        for name in os.listdir(tmp):
+            os.unlink(os.path.join(tmp, name))
+        outbox_doc(tmp, "2000-answer-1.json", "answer", MockApi.CUT)
+        outbox_doc(tmp, "2001-notice-1.json", "notice", "behind the cut")
+        api = MockApi()
+        with contextlib.redirect_stdout(io.StringIO()):
+            ran_through = bot.deliver_outbox(api, 4242)
+        s.check("network error: the pass ends", ran_through is False)
+        s.check("network error: both files kept, no .dead",
+                sorted(os.listdir(tmp)) == ["2000-answer-1.json", "2001-notice-1.json"])
+        s.check("network error: the file behind it is not sent", not any("behind the cut" in t for _, t in api.sent))
+    finally:
+        common.OUTBOX_DIR, bot.CHUNK_SPACING_S = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+# --- O: run.py with a stub claude and a stub writer on PATH --------------------------
+STUB_CLAUDE = """#!/usr/bin/env python3
+import json, os, sys
+with open(os.environ["SELFTEST_O_CLAUDE_SAW"], "w") as fh:
+    fh.write(os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "<absent>"))
+json.dump({"type": "result", "subtype": "stub_subtype", "is_error": False, "result": "SELFTEST-O-RESULT-TEXT",
+           "num_turns": 3, "duration_ms": 1234, "api_error_status": 418, "terminal_reason": "stub_terminal",
+           "stop_reason": "stub_stop", "modelUsage": {}, "permission_denials": []}, sys.stdout)
+"""
+STUB_WRITER = """#!/usr/bin/env python3
+import json, os
+with open(os.environ["SELFTEST_O_WRITER_SAW"], "w") as fh:
+    json.dump(dict(os.environ), fh)
+"""
+
+
+def _git(cwd, *args):
+    return subprocess.run(["git", "-c", "user.name=selftest", "-c", "user.email=selftest@invalid"] + list(args),
+                          cwd=cwd, capture_output=True, text=True).returncode
+
+
+def section_o(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-o.")
+    env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", run.LOGIN_ENV,
+                "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW")
+    saved_env = {k: os.environ.get(k) for k in env_keys}
+    patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (run, "WRITER"), (run, "own_memory_max"),
+               (run, "own_swap_max"), (run, "mem_available"), (run, "swap_free"), (run, "ADMISSION_POLL_S"),
+               (run, "ADMISSION_MAX_S")]
+    saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
+    saved_term = signal.getsignal(signal.SIGTERM)
+    try:
+        paths = {k: os.path.join(tmp, k) for k in ("bin", "creds", "runtime", "outbox", "requests")}
+        for p in paths.values():
+            os.makedirs(p)
+        planted = "sk-ant-oat01-selftest-planted-" + os.urandom(6).hex()
+        decoy = "sk-ant-oat01-selftest-decoy-" + os.urandom(6).hex()
+        with open(os.path.join(paths["creds"], run.LOGIN_CREDENTIAL), "w") as fh:
+            fh.write(planted)
+        for name, body in (("claude", STUB_CLAUDE), ("writer-stub.py", STUB_WRITER)):
+            with open(os.path.join(paths["bin"], name), "w") as fh:
+                fh.write(body)
+            os.chmod(os.path.join(paths["bin"], name), 0o755)
+        with open(os.path.join(paths["requests"], "1-bot-1.req"), "w") as fh:
+            fh.write("{}")
+        origin, tree = os.path.join(tmp, "origin.git"), os.path.join(tmp, "tree")
+        _git(tmp, "init", "-q", "--bare", "-b", "main", origin)
+        _git(tmp, "init", "-q", "-b", "main", tree)
+        with open(os.path.join(tree, "README"), "w") as fh:
+            fh.write("selftest\n")
+        _git(tree, "add", "README")
+        _git(tree, "commit", "-q", "-m", "init")
+        _git(tree, "remote", "add", "origin", origin)
+        s.check("a local origin to fetch from", _git(tree, "push", "-q", "origin", "main") == 0)
+
+        claude_saw = os.path.join(tmp, "claude-saw")
+        writer_saw = os.path.join(tmp, "writer-saw")
+        os.environ.update({"PATH": paths["bin"] + os.pathsep + (saved_env["PATH"] or ""),
+                           "CREDENTIALS_DIRECTORY": paths["creds"], "RUNTIME_DIRECTORY": paths["runtime"],
+                           run.LOGIN_ENV: decoy,          # a value already in the unit's environment is not the login
+                           "SELFTEST_O_CLAUDE_SAW": claude_saw, "SELFTEST_O_WRITER_SAW": writer_saw})
+        common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
+        run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+        run.own_memory_max = run.own_swap_max = lambda: None
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = run.main(["--tree", tree])
+        summary = out.getvalue()
+        with open(claude_saw) as fh:
+            seen_by_claude = fh.read()
+        with open(writer_saw) as fh:
+            writer_env = json.load(fh)
+        s.check("the run answered: exit 0", code == 0)
+        s.check("the stub claude sees CLAUDE_CODE_OAUTH_TOKEN equal to the planted credential", seen_by_claude == planted)
+        s.check("the stub writer does not see CLAUDE_CODE_OAUTH_TOKEN", run.LOGIN_ENV not in writer_env)
+        s.check("the stub writer holds neither value under any name",
+                not any(planted in v or decoy in v for v in writer_env.values()))
+        s.check("run.py put no login into its own environment", os.environ.get(run.LOGIN_ENV) == decoy)
+        for field, value in (("subtype", "stub_subtype"), ("api_error_status", "418"),
+                             ("terminal_reason", "stub_terminal"), ("stop_reason", "stub_stop")):
+            s.check("the summary carries %s=%s" % (field, value), (" %s=%s" % (field, value)) in summary)
+        s.check("the summary never carries the result", "SELFTEST-O-RESULT-TEXT" not in summary)
+        s.check("the summary never carries the login", planted not in summary and decoy not in summary)
+        s.check("the request was consumed first", "requests=1 " in summary and os.listdir(paths["requests"]) == [])
+        answers = [n for n in os.listdir(paths["outbox"]) if "-answer-" in n]
+        s.check("the answer went to the outbox", len(answers) == 1)
+
+        # Admission (TZ-55 B2.2), decided at once: one poll, no wait.
+        run.ADMISSION_POLL_S, run.ADMISSION_MAX_S = 1, 0
+        cases = ((512 * MiB, 64 * MiB, 256 * MiB, 128 * MiB, False, "SwapFree below memory.swap.max: refused"),
+                 (512 * MiB, 128 * MiB, 256 * MiB, 128 * MiB, True, "SwapFree covering memory.swap.max: admitted"),
+                 (128 * MiB, 4096 * MiB, 256 * MiB, 128 * MiB, False, "MemAvailable below memory.max: refused"),
+                 (512 * MiB, 0, 256 * MiB, 0, True, "memory.swap.max 0: no swap condition"),
+                 (512 * MiB, 0, 256 * MiB, None, True, "memory.swap.max `max`: no swap condition"))
+        for available, free_swap, ceiling, swap_ceiling, want, label in cases:
+            run.mem_available, run.swap_free = (lambda v=available: v), (lambda v=free_swap: v)
+            run.own_memory_max, run.own_swap_max = (lambda v=ceiling: v), (lambda v=swap_ceiling: v)
+            s.check(label, run.admit() == (want, 0))
+    finally:
+        for mod, name, value in saved_attrs:
+            setattr(mod, name, value)
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        signal.signal(signal.SIGTERM, saved_term)
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
-            ("K", section_k), ("L", section_l), ("M", section_m))
+            ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o))
 
 
 def main():

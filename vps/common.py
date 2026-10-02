@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Paths and the shared helpers of the VPS assistant (TZ-54 B1), and nothing else.
+"""Paths and the shared helpers of the VPS assistant (TZ-54 B1, TZ-55 B1), and nothing else.
 
 Python 3.12's standard library only. Every Russian string is written as \\uXXXX
-escapes (TZ-54 rule 6, hard floor item 7's rule) and equals TZ-54 §12.1
-character for character. Time is UTC everywhere (rule 8).
+escapes (TZ-54 rule 6, hard floor item 7's rule) and equals TZ-54 §12.1 or
+TZ-55 §12.1 character for character. Time is UTC everywhere (rule 8).
 """
 import fcntl
 import json
@@ -26,11 +26,19 @@ RUN_ACTIVE = "/run/crypto-run"            # crypto-run.service's RuntimeDirector
 CREDENTIALS_ROOT = "/etc/crypto-auto/credentials"
 OWNER_BINDING = CREDENTIALS_ROOT + "/owner-chat-id"
 DEPLOY_CLONE = "/srv/crypto-auto"
-RUN_TREE = "/srv/crypto-auto-run"
+# The run's own user and its own clone (TZ-55 B1): crypto-run.service runs as cryptorun.
+RUN_HOME = "/var/lib/cryptorun"
+RUN_TREE = RUN_HOME + "/crypto-auto"
 GIT_LOCK = "/run/lock/crypto-auto-git.lock"
 
 HTTP_TIMEOUT_S = 20                       # rule 3: every program read times out at 20 s
 MiB = 1048576
+# TZ-55 §12.4. [Architect's decision: headroom left to the host's page cache and the small
+# services, whose ceilings are 128M each and whose measured peaks were 13-22 MB.]
+RESERVE_BYTES = 64 * MiB
+# TZ-55 §12.4, derived: the measuring session's own Claude process held 161 374 208 bytes
+# resident at TZ-54 A2, and a ceiling below one Claude process cannot hold the run's.
+MEMORY_MAX_FLOOR_BYTES = 160 * MiB
 OUTBOX_KINDS = ("answer", "alert", "notice")
 # [Architect's decision: a budget on the owner's subscription, not a statistic]
 WATCHER_DAILY_CAP = 6
@@ -58,6 +66,10 @@ S10 = ("\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u043
        "\u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e: "
        "\u0441\u0430\u043c\u043e\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 "
        "\u043d\u0435 \u043f\u0440\u043e\u0448\u043b\u0430.")
+# TZ-55 §12.1, character for character: a vps tree refused for its signature.
+S11 = ("\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 "
+       "\u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e: "
+       "\u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0435 \u043d\u0435 \u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043e GitHub.")
 # Alert templates: TZ-54 §12.1's placeholders (the Tbilisi time, the date, SYMBOL, OLD,
 # NEW, catalogName and title) are the format fields below.
 A1 = ("\u26a1 Binance \u00b7 {hhmm} \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 "
@@ -213,6 +225,18 @@ def derive_limits(footprint_bytes, duration_s):
     memory_max = math.ceil(Fraction(3, 2) * footprint / step) * step
     runtime_max = max(math.ceil(2 * duration / 300) * 300, 3600) + 1800   # 1 800 s: B3's admission wait
     return int(memory_max), int(runtime_max)
+
+
+# --- TZ-55 §12.4, the test mode: the one implementation ------------------------
+def test_limits(footprint_bytes, duration_s, host_free_bytes):
+    """(budget, memory_max, memory_swap_max, runtime_max_s). The budget is
+    derive_limits' ceiling, unchanged; the resident part is the smaller of the
+    budget and what the host frees less RESERVE_BYTES, rounded down to 16 MiB;
+    the rest of the budget is the run's own swap."""
+    step = 16 * MiB
+    budget, runtime_max = derive_limits(footprint_bytes, duration_s)
+    memory_max = min(budget, ((int(host_free_bytes) - RESERVE_BYTES) // step) * step)
+    return budget, memory_max, budget - memory_max, runtime_max
 
 
 # --- runs ---------------------------------------------------------------------

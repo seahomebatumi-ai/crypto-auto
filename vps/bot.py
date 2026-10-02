@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""The Telegram bot (TZ-54 B4): answers the owner's chat and nothing else,
-starts a run from one button and delivers the outbox.
+"""The Telegram bot (TZ-54 B4, TZ-55 B3): answers the owner's chat and nothing
+else, starts a run from one button and delivers the outbox. An outbox file one
+of whose chunks is refused in both forms is set aside as <name>.dead, so it
+never holds the files behind it.
 
     bot.py                       the service: long poll, owner filter, outbox delivery
     bot.py --bind                bind the one private chat that sent /start (exit 3: zero or several)
@@ -34,6 +36,7 @@ OFFSET_FILE = os.path.join(common.STATE_DIR, "bot-offset")
 COUNTERS_FILE = os.path.join(common.STATE_DIR, "bot-counters.json")
 KEYBOARD = {"keyboard": [[{"text": common.S1}]], "resize_keyboard": True, "is_persistent": True}
 NO_PREVIEW = {"is_disabled": True}
+DEAD_SUFFIX = ".dead"                 # TZ-55 B3: outbox_files() never lists it; cleanup.py ages it out
 
 
 # --- TZ-54 §12.3: conversion ---------------------------------------------------
@@ -218,16 +221,24 @@ def send_chunk(api, chat_id, html_text, plain):
 def send_file(api, chat_id, path):
     """Every chunk of one outbox file. The file is deleted only once every chunk
     was accepted, and rewritten atomically with the unsent chunks after a
-    partial send. Returns a stats dict."""
+    partial send. A chunk refused in both forms — HTML, then plain text, both
+    HTTP 400 — renames the file <name>.dead beside itself, logged once by name
+    (TZ-55 B3). Returns a stats dict."""
     with open(path, encoding="utf-8") as fh:
         doc = json.load(fh)
     chunks = chunk(doc.get("text", ""))
     stats = {"kind": doc.get("kind", "-"), "chunks": len(chunks), "accepted": 0, "plain": 0,
-             "ids": [], "complete": False, "status": 200}
+             "ids": [], "complete": False, "dead": False, "status": 200}
     for index, (html_text, plain) in enumerate(chunks):
         accepted, plain_used, message_id, status = send_chunk(api, chat_id, html_text, plain)
         if not accepted:
             stats["status"] = status
+            if status == 400 and plain_used:
+                os.replace(path, path + DEAD_SUFFIX)
+                stats["dead"] = True
+                name = os.path.basename(path)
+                common.log("bot: outbox file %s refused in both forms, renamed %s%s" % (name, name, DEAD_SUFFIX))
+                return stats
             if index > 0:
                 rest = "\n".join(p for _, p in chunks[index:])
                 common.atomic_write(path, {"kind": doc.get("kind"), "text": rest,
@@ -239,6 +250,26 @@ def send_file(api, chat_id, path):
     os.unlink(path)
     stats["complete"] = True
     return stats
+
+
+def deliver_outbox(api, owner):
+    """One pass over the outbox, oldest first. A file set aside as .dead lets the
+    pass go on to the next file; any other failure — a network error, a refusal
+    that is not a double 400 — ends the pass and returns False, so the caller
+    backs off with the file kept (TZ-54's behaviour). True when the pass ran through."""
+    for path in outbox_files():
+        try:
+            stats = send_file(api, owner, path)
+        except (OSError, ValueError) as exc:
+            common.log("bot: outbox file %s unreadable (%s)" % (os.path.basename(path), exc.__class__.__name__))
+            continue
+        common.log("bot: sent %s kind=%s chunks=%d accepted=%d plain_fallbacks=%d"
+                   % (os.path.basename(path), stats["kind"], stats["chunks"], stats["accepted"], stats["plain"]))
+        if stats["dead"]:
+            continue
+        if not stats["complete"]:
+            return False
+    return True
 
 
 def outbox_files():
@@ -369,18 +400,9 @@ def service():
             common.log("bot: getUpdates status=%s" % status)
             backoff = min(BACKOFF_MAX_S, max(5, backoff * 2))
             time.sleep(backoff)
-        for path in outbox_files():
-            try:
-                stats = send_file(api, owner, path)
-            except (OSError, ValueError) as exc:
-                common.log("bot: outbox file %s unreadable (%s)" % (os.path.basename(path), exc.__class__.__name__))
-                continue
-            common.log("bot: sent %s kind=%s chunks=%d accepted=%d plain_fallbacks=%d"
-                       % (os.path.basename(path), stats["kind"], stats["chunks"], stats["accepted"], stats["plain"]))
-            if not stats["complete"]:
-                backoff = min(BACKOFF_MAX_S, max(5, backoff * 2))
-                time.sleep(backoff)
-                break
+        if not deliver_outbox(api, owner):
+            backoff = min(BACKOFF_MAX_S, max(5, backoff * 2))
+            time.sleep(backoff)
 
 
 def main(argv=None):

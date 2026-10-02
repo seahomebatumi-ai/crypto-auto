@@ -1,15 +1,20 @@
-# TZ-54 measurement record of crypto-run.service (map inv. 46). Written at Stage E; never edited by hand.
-measured_utc=2026-10-01T20:19:25Z
+# TZ-55 measurement record of crypto-run.service (map inv. 46). Written at Stage E; never edited by hand.
+measured_utc=2026-10-02T16:10:43Z
 hog_bytes=100663296
-hog_footprint_bytes=111804416
+hog_footprint_bytes=105697280
+hog3_footprint_bytes=117477376
+input_footprint_bytes=466161664
+input_duration_s=604.899672
+run_attempts=2
 run_completed=no
-run_duration_s=604.899672
-run_cgroup_footprint_bytes=291307520
-run_process_hwm_bytes=938381312
-run_footprint_bytes=938381312
-mem_available_bytes=65216512
-session_rss_bytes=190078976
-host_free_bytes=255295488
-memory_max_bytes=1409286144
+run_duration_s=1088.339229
+run_cgroup_footprint_bytes=307892224
+run_kernel_peak_bytes=322416640
+run_footprint_bytes=322416640
+mem_available_bytes=240775168
+session_rss_bytes=294580224
+host_free_bytes=535355392
+budget_bytes=704643072
+memory_max_bytes=452984832
+memory_swap_max_bytes=251658240
 runtime_max_s=5400
-fits=no
