@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7): the sections of TZ-54
-§12.14 with TZ-55 §12.7's changed and new ones, each printing
-`section <X>: checks <n> failed <m>`, then the total.
+"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5): the sections of
+TZ-54 §12.14 with TZ-55 §12.7's and TZ-56 §12.6's changed and new ones, each
+printing `section <X>: checks <n> failed <m>`, then the total.
 
     python3 vps/selftest.py
 
@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import types
 import urllib.parse
 from datetime import datetime, timezone
 
@@ -279,7 +280,7 @@ def section_i(s):
     s.check("enableReading false: REFUSED", announce.verdict(dict(accepted, enableReading=False)) == "REFUSED")
 
 
-# --- J: derive_limits and test_limits ---------------------------------------------
+# --- J: derive_limits, test_limits and start_limits -------------------------------
 def section_j(s):
     s.check("derive_limits(400 MiB, 1200 s)", common.derive_limits(400 * MiB, 1200) == (637534208, 5400))
     s.check("derive_limits(100 MiB, 2100 s)", common.derive_limits(100 * MiB, 2100) == (167772160, 6000))
@@ -294,6 +295,17 @@ def section_j(s):
     s.check("test_limits(466161664, 604.899672, 209715200): memory_max 134217728", low[1] == 134217728)
     s.check("that memory_max is below the floor of 167772160, so D2 does not run",
             common.MEMORY_MAX_FLOOR_BYTES == 167772160 and low[1] < common.MEMORY_MAX_FLOOR_BYTES)
+    # TZ-56 §12.2's four known answers, computed by the Architect.
+    s.check("start_limits(535355392, 704643072)", common.start_limits(535355392, 704643072) == (452984832, 251658240))
+    s.check("start_limits(240775168, 704643072)", common.start_limits(240775168, 704643072) == (167772160, 536870912))
+    s.check("start_limits(209678336, 704643072)", common.start_limits(209678336, 704643072) == (167772160, 536870912))
+    s.check("start_limits(2147483648, 704643072)", common.start_limits(2147483648, 704643072) == (704643072, 0))
+    budget = 704643072
+    for k in range(10):
+        available = k * 4096 * MiB // 9
+        memory_max, swap_max = common.start_limits(available, budget)
+        s.check("start_limits(%d, %d) within [160 MiB, budget]" % (available, budget),
+                common.MEMORY_MAX_FLOOR_BYTES <= memory_max <= budget and memory_max + swap_max == budget)
 
 
 # --- K: cleanup's selection -----------------------------------------------------------
@@ -318,17 +330,6 @@ def section_l(s):
 
 
 # --- M: the measurement record against the run unit and the manifest ----------------
-def read_record(path):
-    out = {}
-    with open(path, encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                key, _, value = line.partition("=")
-                out[key] = value
-    return out
-
-
 def unit_value(path, key):
     with open(path, encoding="utf-8") as fh:
         for line in fh:
@@ -344,7 +345,7 @@ def section_m(s):
     if not (os.path.exists(record_path) and os.path.exists(unit_path) and os.path.exists(manifest_path)):
         sys.stderr.write("section M: memory-record.txt, crypto-run.service or manifest absent\n")
         return
-    r = read_record(record_path)
+    r = common.read_record(record_path)
     n = {k: int(v) for k, v in r.items() if re.fullmatch(r"-?\d+", v)}
     with open(manifest_path, encoding="utf-8") as fh:
         listed = {line.strip() for line in fh if line.strip() and not line.startswith("#")}
@@ -363,17 +364,24 @@ def section_m(s):
     s.check("memory_swap_max_bytes = budget - memory_max",
             n["memory_swap_max_bytes"] == n["budget_bytes"] - n["memory_max_bytes"])
     s.check("runtime_max_s from run_duration_s", n["runtime_max_s"] == runtime_max)
-    s.check("MemoryMax= equals memory_max_bytes", unit_value(unit_path, "MemoryMax") == str(n["memory_max_bytes"]))
-    s.check("MemorySwapMax= equals memory_swap_max_bytes",
-            unit_value(unit_path, "MemorySwapMax") == str(n["memory_swap_max_bytes"]))
-    s.check("RuntimeMaxSec= equals runtime_max_s", unit_value(unit_path, "RuntimeMaxSec") == str(n["runtime_max_s"]))
     s.check("hog_footprint_bytes >= hog_bytes > hog3_footprint_bytes / 2",
             n["hog_footprint_bytes"] >= n["hog_bytes"] and 2 * n["hog_bytes"] > n["hog3_footprint_bytes"])
     fits = r.get("fits")
     if fits is not None:
         s.check("fits=yes exactly when the last run completed (TZ-55 12.4)", (fits == "yes") == (r["run_completed"] == "yes"))
-    for unit in ("crypto-run.timer", "crypto-run.path"):
-        s.check("manifest lists %s exactly when fits=yes" % unit, (unit in listed) == (fits == "yes"))
+    # TZ-56 §12.6: the unit carries the floor and the budget's rest; each start sets its own pair.
+    s.check("MemoryMax= equals MEMORY_MAX_FLOOR_BYTES",
+            unit_value(unit_path, "MemoryMax") == str(common.MEMORY_MAX_FLOOR_BYTES))
+    s.check("MemorySwapMax= equals budget_bytes - MEMORY_MAX_FLOOR_BYTES",
+            unit_value(unit_path, "MemorySwapMax") == str(n["budget_bytes"] - common.MEMORY_MAX_FLOOR_BYTES))
+    s.check("RuntimeMaxSec= equals runtime_max_s", unit_value(unit_path, "RuntimeMaxSec") == str(n["runtime_max_s"]))
+    with open(unit_path, encoding="utf-8") as fh:
+        unit_lines = [line.rstrip("\n") for line in fh]
+    s.check("exactly one ExecStartPre=-+/usr/bin/python3 /srv/crypto-auto/vps/run.py --limits",
+            unit_lines.count("ExecStartPre=-+/usr/bin/python3 /srv/crypto-auto/vps/run.py --limits") == 1)
+    s.check("exactly one Environment=CLAUDE_CODE_DISABLE_AUTO_MEMORY=1",
+            unit_lines.count("Environment=CLAUDE_CODE_DISABLE_AUTO_MEMORY=1") == 1)
+    s.check("manifest lists crypto-run.timer only when fits=yes", "crypto-run.timer" not in listed or fits == "yes")
 
 
 # --- N: the bot on a mock API: one undeliverable file holds nothing behind it ----
@@ -445,7 +453,9 @@ with open(os.environ["SELFTEST_O_CLAUDE_SAW"], "w") as fh:
     fh.write(os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "<absent>"))
 json.dump({"type": "result", "subtype": "stub_subtype", "is_error": False, "result": "SELFTEST-O-RESULT-TEXT",
            "num_turns": 3, "duration_ms": 1234, "api_error_status": 418, "terminal_reason": "stub_terminal",
-           "stop_reason": "stub_stop", "modelUsage": {}, "permission_denials": []}, sys.stdout)
+           "stop_reason": "stub_stop", "modelUsage": {}, "permission_denials": [],
+           "usage": {"input_tokens": 11, "output_tokens": 22, "cache_read_input_tokens": 33,
+                     "cache_creation_input_tokens": 44}, "total_cost_usd": 0.5}, sys.stdout)
 """
 STUB_WRITER = """#!/usr/bin/env python3
 import json, os
@@ -519,18 +529,29 @@ def section_o(s):
                              ("terminal_reason", "stub_terminal"), ("stop_reason", "stub_stop")):
             s.check("the summary carries %s=%s" % (field, value), (" %s=%s" % (field, value)) in summary)
         s.check("the summary never carries the result", "SELFTEST-O-RESULT-TEXT" not in summary)
+        # TZ-56 §12.4: the third summary line carries the stub's usage and cost.
+        third = [l for l in summary.splitlines() if l.startswith("crypto-run: memory_max=")]
+        s.check("one third summary line", len(third) == 1)
+        s.check("it carries input_tokens=11 output_tokens=22 cache_read_tokens=33 cache_creation_tokens=44 "
+                "cost_usd=0.5", len(third) == 1 and third[0].endswith(
+                    " input_tokens=11 output_tokens=22 cache_read_tokens=33 cache_creation_tokens=44 cost_usd=0.5"))
         s.check("the summary never carries the login", planted not in summary and decoy not in summary)
         s.check("the request was consumed first", "requests=1 " in summary and os.listdir(paths["requests"]) == [])
         answers = [n for n in os.listdir(paths["outbox"]) if "-answer-" in n]
         s.check("the answer went to the outbox", len(answers) == 1)
 
-        # Admission (TZ-55 B2.2), decided at once: one poll, no wait.
+        # Admission (TZ-56 B2.2, §12.2), decided at once: one poll, no wait.
         run.ADMISSION_POLL_S, run.ADMISSION_MAX_S = 1, 0
         cases = ((512 * MiB, 64 * MiB, 256 * MiB, 128 * MiB, False, "SwapFree below memory.swap.max: refused"),
                  (512 * MiB, 128 * MiB, 256 * MiB, 128 * MiB, True, "SwapFree covering memory.swap.max: admitted"),
                  (128 * MiB, 4096 * MiB, 256 * MiB, 128 * MiB, False, "MemAvailable below memory.max: refused"),
                  (512 * MiB, 0, 256 * MiB, 0, True, "memory.swap.max 0: no swap condition"),
-                 (512 * MiB, 0, 256 * MiB, None, True, "memory.swap.max `max`: no swap condition"))
+                 (512 * MiB, 0, 256 * MiB, "max", True, "memory.swap.max `max`: no swap condition"),
+                 (512 * MiB, 0, 256 * MiB, None, True, "memory.swap.max absent: no swap condition"),
+                 (256 * MiB + 64 * MiB, 4096 * MiB, 256 * MiB, 128 * MiB, True,
+                  "MemAvailable = memory.max + 64 MiB: admitted"),
+                 (256 * MiB + 64 * MiB - 1, 4096 * MiB, 256 * MiB, 128 * MiB, False,
+                  "MemAvailable = memory.max + 64 MiB - 1: refused"))
         for available, free_swap, ceiling, swap_ceiling, want, label in cases:
             run.mem_available, run.swap_free = (lambda v=available: v), (lambda v=free_swap: v)
             run.own_memory_max, run.own_swap_max = (lambda v=ceiling: v), (lambda v=swap_ceiling: v)
@@ -547,9 +568,95 @@ def section_o(s):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# --- P: announce.answer_of under the branch's ANSWER_SUBTYPE (TZ-56 A5: R1) ----------
+def command(sub_type, data):
+    return json.dumps({"type": "COMMAND", "subType": sub_type, "data": data, "code": "00000000"})
+
+
+class FakeSocket:
+    """Hands out the given frames, then times out; records what is sent."""
+
+    def __init__(self, frames, timeout_exc):
+        self.frames, self.timeout_exc, self.sent, self.closed = list(frames), timeout_exc, [], False
+
+    def settimeout(self, value):
+        pass
+
+    def recv(self):
+        if not self.frames:
+            raise self.timeout_exc()
+        return self.frames.pop(0)
+
+    def send(self, data):
+        self.sent.append(data)
+
+    def close(self):
+        self.closed = True
+
+
+def connect_on(frames):
+    """Stream.connect() against a fake websocket module: (returned, sent, pending)."""
+    fake = types.ModuleType("websocket")
+    fake.WebSocketTimeoutException = type("WebSocketTimeoutException", (Exception,), {})
+    sock = FakeSocket(frames, fake.WebSocketTimeoutException)
+    fake.create_connection = lambda url, header=None, timeout=None: sock
+    saved = sys.modules.get("websocket")
+    sys.modules["websocket"] = fake
+    try:
+        stream = announce.Stream("selftest-key", "selftest-secret")
+        with contextlib.redirect_stdout(io.StringIO()):
+            returned = stream.connect()
+    finally:
+        if saved is None:
+            sys.modules.pop("websocket", None)
+        else:
+            sys.modules["websocket"] = saved
+    return returned, sock.sent, stream.pending
+
+
+def section_p(s):
+    sub = announce.ANSWER_SUBTYPE
+    s.check("the branch A5 chose: ANSWER_SUBTYPE is REGISTER", sub == "REGISTER")
+    s.check("no SUBSCRIBE command is defined", not hasattr(announce, "SUBSCRIBE"))
+    data = json.dumps({"type": "DATA", "data": "{}"})
+    answer, pending, skipped = announce.answer_of([command("REGISTER", "SUCCESS")], sub)
+    s.check("REGISTER/SUCCESS answers", answer is not None and answer.get("subType") == "REGISTER"
+            and answer.get("data") == "SUCCESS" and pending == [] and skipped == [])
+    answer, pending, skipped = announce.answer_of([command("REGISTER", "FAIL")], sub)
+    s.check("REGISTER/FAIL answers", answer is not None and answer.get("data") == "FAIL")
+    answer, pending, skipped = announce.answer_of([data, command("REGISTER", "SUCCESS")], sub)
+    s.check("a DATA frame before the answer stays in pending", answer is not None and pending == [data])
+    answer, pending, skipped = announce.answer_of([], sub)
+    s.check("no frame gives None", answer is None and pending == [] and skipped == [])
+    returned, sent, pending = connect_on([command("REGISTER", "SUCCESS")])
+    s.check("connect(): REGISTER/SUCCESS succeeds", returned is True)
+    s.check("connect(): no command is sent", sent == [])
+    returned, sent, pending = connect_on([command("REGISTER", "FAIL")])
+    s.check("connect(): REGISTER/FAIL does not succeed", returned is False)
+    returned, sent, pending = connect_on([data, command("REGISTER", "SUCCESS")])
+    s.check("connect(): the DATA frame before the answer is kept pending", returned is True and pending == [data])
+    returned, sent, pending = connect_on([])
+    s.check("connect(): no answer inside the deadline does not succeed", returned is False)
+
+
+# --- Q: the repository's .claude/settings.json (contract §2, TZ-56 §12.7) -------------
+def section_q(s):
+    path = os.path.join(REPO, ".claude", "settings.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            doc = json.load(fh)
+        valid = True
+    except (OSError, ValueError):
+        doc, valid = None, False
+    s.check(".claude/settings.json is valid JSON", valid)
+    s.check("its only key is autoMemoryEnabled", isinstance(doc, dict) and list(doc) == ["autoMemoryEnabled"])
+    s.check("autoMemoryEnabled is false", isinstance(doc, dict) and doc.get("autoMemoryEnabled") is False)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
-            ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o))
+            ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
+            ("P", section_p), ("Q", section_q))
 
 
 def main():

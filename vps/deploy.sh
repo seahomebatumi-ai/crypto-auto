@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 #
-# vps/deploy.sh — the deployer's tick (TZ-54 B8, TZ-55 §12.9). Installed as
+# vps/deploy.sh — the deployer's tick (TZ-54 B8, TZ-55 §12.9, TZ-56 §12.5). Installed as
 # /usr/local/libexec/crypto-auto/deploy.sh and run by crypto-deploy.timer.
 # Merge is deployment (contract §7 item 15): this acts on origin/main only, and
-# installs a vps tree only from a commit GitHub signed.
+# installs a vps tree only when every commit that changed vps/ since the one it last
+# accepted carries GitHub's signature.
 #
-#   deploy.sh           one tick
-#   deploy.sh --check   steps 2 and 4 only: prints `deploy: check commit=<h> signed=<yes|no>`
-#                       and exits 0 when signed, 1 otherwise; it fast-forwards, writes and
-#                       installs nothing
+#   deploy.sh                                one tick
+#   deploy.sh --check                        steps 2 and 4 only, on the deployer's clone
+#   deploy.sh --check <clone> <gnupghome>    step 4 only, on <clone> with <gnupghome> as the
+#                                            signers: no fetch and no lock
+#
+# --check prints `deploy: check base=<h> commits=<n> unsigned=<k> signed=<yes|no>` and exits
+# 0 when unsigned=0, 1 otherwise; it fast-forwards, writes and installs nothing.
 #
 set -euo pipefail
 export HOME="${HOME:-/root}"
@@ -26,9 +30,10 @@ S10_JSON='\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0
 S11_JSON='\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e: \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0435 \u043d\u0435 \u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043e GitHub.'
 
 mode="${1-}"
-case "$mode" in
-    ""|--check) ;;
-    *) echo "usage: deploy.sh [--check]" >&2; exit 9 ;;
+case "$mode:$#" in
+    :0|--check:1) ;;
+    --check:3) CLONE="$2"; SIGNERS="$3" ;;
+    *) echo "usage: deploy.sh [--check [<clone> <gnupghome>]]" >&2; exit 9 ;;
 esac
 
 # Writes <content> to <target> through a temporary file beside it and a rename;
@@ -56,14 +61,29 @@ tell_once() {   # <tree> <JSON-escaped text>
     fi
 }
 
-# The newest commit on origin/main's first-parent line that changed vps/: a merged
-# pull request or a Boss upload, never a branch's own commit.
-vps_commit() {
-    git -C "$CLONE" log --first-parent -1 --format=%H origin/main -- vps
-}
-
 signed() {   # <commit>
     [ -n "$1" ] && GNUPGHOME="$SIGNERS" git -C "$CLONE" verify-commit "$1" >/dev/null 2>&1
+}
+
+# Step 4: every commit on origin/main's first-parent line that changed vps/ since the
+# clone's HEAD — the commit this deployer last accepted — is verified: a merged pull
+# request or a Boss upload, never a branch's own commit, and never the newest alone
+# (contract §7 item 15). Sets base, commits, unsigned and newest_unsigned; a git failure
+# ends the script non-zero, so an unread range never passes.
+range_check() {
+    local list c
+    base="$(git -C "$CLONE" rev-parse HEAD)"
+    list="$(git -C "$CLONE" log --first-parent --format=%H "$base..origin/main" -- vps)"
+    commits=0
+    unsigned=0
+    newest_unsigned=""
+    for c in $list; do
+        commits=$((commits + 1))
+        if ! signed "$c"; then
+            unsigned=$((unsigned + 1))
+            [ -n "$newest_unsigned" ] || newest_unsigned="$c"
+        fi
+    done
 }
 
 # 1. A run is active: the tick is skipped.
@@ -72,18 +92,20 @@ if [ "$mode" != "--check" ] && [ -e /run/crypto-run ]; then
     exit 0
 fi
 
-# 2. Under the git lock: fetch.
-exec 9>"$LOCK"
-flock 9
-git -C "$CLONE" fetch -q origin main
+# 2. Under the git lock: fetch — except a check on a named clone, which takes neither.
+if [ "$#" -ne 3 ]; then
+    exec 9>"$LOCK"
+    flock 9
+    git -C "$CLONE" fetch -q origin main
+fi
 
 if [ "$mode" = "--check" ]; then
-    c="$(vps_commit)"
-    if signed "$c"; then
-        echo "deploy: check commit=$c signed=yes"
+    range_check
+    if [ "$unsigned" -eq 0 ]; then
+        echo "deploy: check base=$base commits=$commits unsigned=0 signed=yes"
         exit 0
     fi
-    echo "deploy: check commit=${c:--} signed=no"
+    echo "deploy: check base=$base commits=$commits unsigned=$unsigned signed=no"
     exit 1
 fi
 
@@ -95,11 +117,11 @@ if [ -z "$tree" ]; then
     exit 0
 fi
 
-# 4. The commit that put this vps tree on main must carry GitHub's signature;
-#    otherwise no fast-forward and no install (contract §7 item 15).
-c="$(vps_commit)"
-if ! signed "$c"; then
-    echo "deploy: unsigned vps commit ${c:--}, not installed"
+# 4. Every vps commit since the one last accepted must carry GitHub's signature;
+#    any one unverified: no fast-forward and no install (contract §7 item 15).
+range_check
+if [ "$unsigned" -ne 0 ]; then
+    echo "deploy: unsigned vps commit $newest_unsigned, not installed"
     tell_once "$tree" "$S11_JSON"
     exit 1
 fi

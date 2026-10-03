@@ -2,3 +2,4 @@ crypto-deploy.timer
 crypto-cleanup.timer
 crypto-exchange.service
 crypto-bot.service
+crypto-run.path
