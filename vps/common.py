@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Paths and the shared helpers of the VPS assistant (TZ-54 B1, TZ-55 B1, TZ-56 B1), and nothing else.
+"""Paths and the shared helpers of the VPS assistant (TZ-54 B1, TZ-55 B1, TZ-56 B1, TZ-57 B1), and nothing else.
 
 Python 3.12's standard library only. Every Russian string is written as \\uXXXX
 escapes (TZ-54 rule 6, hard floor item 7's rule) and equals TZ-54 §12.1 or
 TZ-55 §12.1 character for character. Time is UTC everywhere (rule 8).
 """
-import fcntl
 import json
 import math
 import os
@@ -42,8 +41,6 @@ RESERVE_BYTES = 64 * MiB
 # resident at TZ-54 A2, and a ceiling below one Claude process cannot hold the run's.
 MEMORY_MAX_FLOOR_BYTES = 160 * MiB
 OUTBOX_KINDS = ("answer", "alert", "notice")
-# [Architect's decision: a budget on the owner's subscription, not a statistic]
-WATCHER_DAILY_CAP = 6
 
 # --- TZ-54 §12.1, character for character --------------------------------
 S1 = "\u25b6 \u0410\u043d\u0430\u043b\u0438\u0437 \u0440\u044b\u043d\u043a\u0430"
@@ -80,9 +77,6 @@ A2 = "\u26a1 Binance Futures \u00b7 {symbol}: \u043d\u043e\u0432\u044b\u0439 \u0
 A3 = ("\u26a1 Binance Futures \u00b7 {symbol}: \u0434\u0430\u0442\u0430 "
       "\u0434\u0435\u043b\u0438\u0441\u0442\u0438\u043d\u0433\u0430 {ddmmyyyy}")
 A4 = "\u26a1 Binance Futures \u00b7 {symbol}: \u0441\u0442\u0430\u0442\u0443\u0441 {old} \u2192 {new}"
-R1 = "\u2192 \u0430\u043d\u0430\u043b\u0438\u0437 \u0437\u0430\u043f\u0443\u0449\u0435\u043d"
-R2 = ("\u2192 \u043b\u0438\u043c\u0438\u0442 \u0437\u0430\u043f\u0443\u0441\u043a\u043e\u0432 "
-      "\u043d\u0430 \u0441\u0435\u0433\u043e\u0434\u043d\u044f \u0438\u0441\u0447\u0435\u0440\u043f\u0430\u043d")
 
 
 # --- rule 5: atomic writes (inv. 72) ----------------------------------------
@@ -252,6 +246,39 @@ def start_limits(available_bytes, budget_bytes):
     return memory_max, budget - memory_max
 
 
+# --- TZ-57 §12.4, the record's budget rule: the one implementation -----------------
+def _record_int(value):
+    """An integer field of the record, or None when absent or not an integer ("-")."""
+    text = "" if value is None else str(value).strip()
+    return int(text) if re.fullmatch(r"\d+", text) else None
+
+
+def _record_number(value):
+    """A numeric field of the record, or None when absent or not a number ("-")."""
+    text = "" if value is None else str(value).strip()
+    return text if re.fullmatch(r"\d+(\.\d+)?", text) else None
+
+
+def record_limits(record):
+    """(budget_bytes, runtime_max_s) of the record dict read_record() returns:
+    the larger of derive_limits' budgets for TZ-54's input and TZ-55's run, then
+    the product's own chosen run (TZ-57 §12.3) when it completed or was killed by
+    memory, never one killed by time, whose figures are its limits rather than its
+    need; runtime_max_s takes a completed run's duration the same way. An absent
+    product key is an absent term."""
+    budget_in, _ = derive_limits(record["input_footprint_bytes"], record["input_duration_s"])
+    budget_run, runtime = derive_limits(record["run_footprint_bytes"], record["run_duration_s"])
+    budget = max(budget_in, budget_run)
+    product_class = record.get("product_class")
+    footprint = _record_int(record.get("product_footprint_bytes"))
+    if product_class in ("C", "K-oom") and footprint is not None:
+        budget = max(budget, derive_limits(footprint, 0)[0])
+    duration = _record_number(record.get("product_duration_s"))
+    if product_class == "C" and duration is not None:
+        runtime = max(runtime, derive_limits(0, duration)[1])
+    return budget, runtime
+
+
 def read_record(path=RECORD_PATH):
     """The record's name=value lines as a dict, blank lines and comments skipped:
     the one parser of vps/memory-record.txt."""
@@ -279,27 +306,13 @@ def utc_now():
 
 
 def request_run(source):
-    """One .req file into the requests directory when runs are enabled. The
-    watcher's requests are counted per UTC day under a lock and refused past
-    WATCHER_DAILY_CAP; the bot's are uncapped. Returns requested, capped or
-    disabled."""
+    """One .req file into the requests directory when runs are enabled: returns
+    requested, or disabled when they are not. Only the owner's button requests a
+    run (TZ-57, the owner's decision of 03.10.2026): the bot is the one caller,
+    the watchers alert and request nothing, and no timer starts a run."""
     if not runs_enabled():
         return "disabled"
-    if source != "watcher":
-        _write_request(source)
-        return "requested"
-    count_path = os.path.join(STATE_DIR, "run-requests-" + utc_now().strftime("%Y-%m-%d"))
-    with open(os.path.join(STATE_DIR, "run-requests.lock"), "a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        try:
-            with open(count_path, encoding="utf-8") as fh:
-                count = int(fh.read().strip() or "0")
-        except FileNotFoundError:
-            count = 0
-        if count >= WATCHER_DAILY_CAP:
-            return "capped"
-        atomic_write(count_path, "%d\n" % (count + 1))
-        _write_request(source)
+    _write_request(source)
     return "requested"
 
 
