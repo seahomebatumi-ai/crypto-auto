@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paths and the shared helpers of the VPS assistant (TZ-54 B1, TZ-55 B1), and nothing else.
+"""Paths and the shared helpers of the VPS assistant (TZ-54 B1, TZ-55 B1, TZ-56 B1), and nothing else.
 
 Python 3.12's standard library only. Every Russian string is written as \\uXXXX
 escapes (TZ-54 rule 6, hard floor item 7's rule) and equals TZ-54 §12.1 or
@@ -30,6 +30,8 @@ DEPLOY_CLONE = "/srv/crypto-auto"
 RUN_HOME = "/var/lib/cryptorun"
 RUN_TREE = RUN_HOME + "/crypto-auto"
 GIT_LOCK = "/run/lock/crypto-auto-git.lock"
+# TZ-55's measurement record (map inv. 46), beside this file.
+RECORD_PATH = os.path.join(VPS_DIR, "memory-record.txt")
 
 HTTP_TIMEOUT_S = 20                       # rule 3: every program read times out at 20 s
 MiB = 1048576
@@ -237,6 +239,30 @@ def test_limits(footprint_bytes, duration_s, host_free_bytes):
     budget, runtime_max = derive_limits(footprint_bytes, duration_s)
     memory_max = min(budget, ((int(host_free_bytes) - RESERVE_BYTES) // step) * step)
     return budget, memory_max, budget - memory_max, runtime_max
+
+
+# --- TZ-56 §12.2, the start limits: the one implementation ----------------------
+def start_limits(available_bytes, budget_bytes):
+    """(memory_max, memory_swap_max) set at each start: what the host frees less
+    RESERVE_BYTES, rounded down to 16 MiB, never below MEMORY_MAX_FLOOR_BYTES and
+    never above the budget; the rest of the budget is the run's own swap."""
+    step = 16 * MiB
+    budget = int(budget_bytes)
+    memory_max = min(budget, max(MEMORY_MAX_FLOOR_BYTES, ((int(available_bytes) - RESERVE_BYTES) // step) * step))
+    return memory_max, budget - memory_max
+
+
+def read_record(path=RECORD_PATH):
+    """The record's name=value lines as a dict, blank lines and comments skipped:
+    the one parser of vps/memory-record.txt."""
+    out = {}
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                key, _, value = line.partition("=")
+                out[key] = value
+    return out
 
 
 # --- runs ---------------------------------------------------------------------

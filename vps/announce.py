@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""The announcement watcher (TZ-54 B6): Binance's announcement stream held on
-the read-only key, after the key's own rights were read from the exchange.
+"""The announcement watcher (TZ-54 B6, TZ-56 B3): Binance's announcement stream
+held on the read-only key, after the key's own rights were read from the exchange.
+The topic in the signed query is the subscription: the stream answers
+REGISTER/SUCCESS to a connection that sends no command (TZ-56 A5, branch R1).
 
     announce.py [--state-dir <dir>]                    the service
     announce.py --measure <seconds> <max_data> [...]   key check and stream, no outbox, no requests
@@ -31,7 +33,8 @@ import common  # noqa: E402
 RESTRICTIONS_URL = "https://api.binance.com/sapi/v1/account/apiRestrictions"
 STREAM_URL = "wss://api.binance.com/sapi/wss"
 TOPIC = "com_announcement_en"
-SUBSCRIBE = {"command": "SUBSCRIBE", "value": TOPIC}
+# TZ-56 A5, branch R1: the COMMAND answer a connection waits for.
+ANSWER_SUBTYPE = "REGISTER"
 FIELDS = ("catalogId", "catalogName", "publishDate", "title", "body", "disclaimer")
 PING_S = 30
 REFRESH_S = 23 * 3600 + 30 * 60          # a fresh connection before 23 h 30 min
@@ -137,6 +140,41 @@ def perpetual_pairs(state_dir):
 
 
 # --- the stream -----------------------------------------------------------------
+def answer_of(frames, sub_type):
+    """(answer, pending, skipped) from raw frames: `answer` the first COMMAND frame
+    whose subType equals sub_type, or None when the frames end first; `pending` the
+    raw non-COMMAND frames before it; `skipped` the COMMAND frames of another
+    subType. Reads no frame after the answer."""
+    pending, skipped = [], []
+    for raw in frames:
+        try:
+            doc = json.loads(raw) if raw else {}
+        except ValueError:
+            doc = {}
+        if isinstance(doc, dict) and doc.get("type") == "COMMAND":
+            if doc.get("subType") == sub_type:
+                return doc, pending, skipped
+            skipped.append(doc)
+            continue
+        pending.append(raw)
+    return None, pending, skipped
+
+
+def frames_until(ws, deadline):
+    """Text frames of one connection until the monotonic deadline."""
+    import websocket  # python3-websocket
+    while True:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            return
+        ws.settimeout(left)
+        try:
+            raw = ws.recv()
+        except websocket.WebSocketTimeoutException:
+            return
+        yield raw
+
+
 class Stream:
     def __init__(self, key, secret):
         self.key, self.secret = key, secret
@@ -148,8 +186,9 @@ class Stream:
         self.pending = []
 
     def connect(self):
-        """Open with the signed query and the key header, subscribe, record the
-        answer. Returns True on the documented SUCCESS."""
+        """Open with the signed query, whose topic is the subscription, and the key
+        header; send no command; record the answer. Returns True when the
+        ANSWER_SUBTYPE answer arrives inside 20 s with data SUCCESS."""
         import websocket  # python3-websocket
         wait = RECONNECT_FIRST_S - (time.monotonic() - self.last_attempt)
         if self.last_attempt and wait > 0:
@@ -162,25 +201,18 @@ class Stream:
             self.ws = websocket.create_connection(STREAM_URL + "?" + signed_query(params, self.secret),
                                                   header=["X-MBX-APIKEY: " + self.key],
                                                   timeout=common.HTTP_TIMEOUT_S)
-            self.ws.send(json.dumps(SUBSCRIBE, separators=(",", ":")))
             deadline = time.monotonic() + common.HTTP_TIMEOUT_S
-            while time.monotonic() < deadline:
-                raw = self.ws.recv()
-                try:
-                    doc = json.loads(raw) if raw else {}
-                except ValueError:
-                    doc = {}
-                if isinstance(doc, dict) and doc.get("type") == "COMMAND":
-                    self.subscribe_answer = doc
-                    break
-                self.pending.append(raw)
+            answer, pending, skipped = answer_of(frames_until(self.ws, deadline), ANSWER_SUBTYPE)
         except Exception as exc:
             common.log("announce: connect failed (%s)" % common.redact(exc.__class__.__name__))
             self.close()
             return False
+        self.pending.extend(pending)
+        for doc in skipped:
+            common.log("announce: command answer %s" % json.dumps(doc, sort_keys=True))
+        self.subscribe_answer = answer
         common.log("announce: subscribe answer %s" % json.dumps(self.subscribe_answer, sort_keys=True))
-        answer = self.subscribe_answer if isinstance(self.subscribe_answer, dict) else {}
-        if answer.get("data") != "SUCCESS" or answer.get("subType") != "SUBSCRIBE":
+        if answer is None or answer.get("data") != "SUCCESS":
             self.close()
             return False
         self.ws.settimeout(1.0)
