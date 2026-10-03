@@ -509,6 +509,12 @@ def _git(cwd, *args):
 
 
 def section_o(s):
+    cmd = run.CLAUDE
+    s.check("run.CLAUDE carries --model immediately followed by claude-opus-5-5",
+            any(cmd[i] == "--model" and cmd[i + 1] == "claude-opus-5-5" for i in range(len(cmd) - 1)))
+    s.check("run.CLAUDE carries --effort immediately followed by high",
+            any(cmd[i] == "--effort" and cmd[i + 1] == "high" for i in range(len(cmd) - 1)))
+    s.check("no element of run.CLAUDE equals opus", "opus" not in cmd)
     tmp = tempfile.mkdtemp(prefix="vps-selftest-o.")
     env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", run.LOGIN_ENV,
                 "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW")

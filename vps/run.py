@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2): the writer, then one
+"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1): the writer, then one
 headless role-2 session, admitted only when the host's available memory less
 RESERVE_BYTES covers this unit's ceiling and its free swap covers this unit's swap
 ceiling; the answer goes to the outbox. The run has its own user and its own clone.
@@ -42,8 +42,10 @@ PROMPT = ("ANALYZE TODAY'S CRYPTO MARKET AND DETERMINE THE STRATEGY FOR ENTERING
           "ON BINANCE FUTURES.")
 APPEND = ("Read EXECUTOR-INSTRUCTIONS.md at the repository root in full before anything else: "
           "it is your contract, and the user message is a trigger from its \u00a74.")
+MODEL  = "claude-opus-5-5"
+EFFORT = "high"
 CLAUDE = ["claude", "-p", PROMPT,
-          "--output-format", "json", "--model", "opus",
+          "--output-format", "json", "--model", MODEL, "--effort", EFFORT,
           "--allowedTools", "Bash Read Write Edit Glob Grep WebSearch WebFetch",
           "--append-system-prompt", APPEND]
 
