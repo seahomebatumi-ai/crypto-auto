@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
-"""The exchangeInfo watcher (TZ-54 B5, TZ-57 B3): Binance Futures' dated listing
-state, polled every 900 s and compared with the stored snapshot.
+"""The exchangeInfo watcher (TZ-54 B5, TZ-57 B3, TZ-58 B1): Binance Futures' dated
+listing state, polled every 900 s and compared with the stored snapshot; and the
+exchange's own list (TZ-58): Binance's English announcement sitemap, a path its
+robots.txt permits, read hourly after an exchangeInfo poll, each new generation's
+added and removed articles logged.
 
 Alerts only (TZ-57): a change reaches the owner as an alert and he decides
-whether to press the button; this program requests no run.
+whether to press the button; this program requests no run. The list alerts
+nothing: its lines are the record a later TZ reads beside the stream's.
 
-    exchange.py [--once] [--state-dir <dir>]      default /var/lib/crypto-auto
+    exchange.py [--once] [--list-once] [--state-dir <dir>]      default /var/lib/crypto-auto
 
 The first poll stores a baseline and alerts nothing. --once polls once and
-prints counts.
+prints counts. --list-once reads the list once and prints its line.
 """
 import argparse
+import email.utils
+import hashlib
 import json
 import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import date, datetime, timezone
 
@@ -27,6 +34,13 @@ POLL_S = 900
 NO_DELIVERY = date(2100, 12, 25)          # TZ-53 C5: a deliveryDate on this UTC date means none
 SNAPSHOT = "exchange-snapshot.json"
 PERPETUALS = "perpetuals.json"
+
+# TZ-58 §12.5: the exchange's own list.
+LIST_INDEX_URL = "https://www.binance.com/sitemap_output/domain=www.binance.com/sitemap_SupportAndAnnouncement_index.xml"
+LIST_CHILD     = re.compile(r"<loc>\s*(https://www\.binance\.com/sitemap_output/domain=www\.binance\.com/sitemap_SupportAndAnnouncement_en_[0-9]+\.xml)\s*</loc>")
+LIST_ARTICLE   = re.compile(r"<loc>\s*https://www\.binance\.com/en/support/announcement/detail/([0-9A-Za-z]+)\s*</loc>")
+LIST_STATE     = "list-generation.json"
+LIST_POLL_S    = 3600
 
 
 def fetch_info():
@@ -124,20 +138,123 @@ def poll(state_dir):
                   len(found["status_changed"][0]), len(found["status_changed"][1]), alerts))
 
 
+class ListUnreadable(Exception):
+    pass
+
+
+def list_children(index_text):
+    """The LIST_CHILD URLs in order of first appearance, each once."""
+    out = []
+    for url in LIST_CHILD.findall(index_text):
+        if url not in out:
+            out.append(url)
+    return out
+
+
+def list_articles(child_text):
+    """The set of LIST_ARTICLE ids."""
+    return set(LIST_ARTICLE.findall(child_text))
+
+
+def list_diff(prev_ids, cur_ids):
+    """(added, removed) counts, or ("-", "-") when there is no previous set."""
+    if prev_ids is None:
+        return "-", "-"
+    return len(set(cur_ids) - set(prev_ids)), len(set(prev_ids) - set(cur_ids))
+
+
+def list_get(url):
+    """One GET with urllib's default headers: (body, headers). A non-200 answer
+    raises ListUnreadable."""
+    try:
+        with urllib.request.urlopen(url, timeout=common.HTTP_TIMEOUT_S) as resp:
+            status, headers, body = resp.status, resp.headers, resp.read()
+    except urllib.error.HTTPError as exc:
+        raise ListUnreadable("HTTP %d" % exc.code) from None
+    if status != 200:
+        raise ListUnreadable("HTTP %d" % status)
+    return body, headers
+
+
+def list_generation(last_modified):
+    """The index's Last-Modified as YYYY-MM-DDTHH:MM:SSZ, or "-" when absent or unparseable."""
+    try:
+        when = email.utils.parsedate_to_datetime(last_modified)
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=timezone.utc)
+        return when.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except (TypeError, ValueError, IndexError, OverflowError):
+        return "-"
+
+
+def list_poll(state_dir):
+    """One read of the list (TZ-58 §12.5); returns the line it would log. The
+    children are read only when the index's body changed; a failure raises and
+    leaves the stored state as it was."""
+    path = os.path.join(state_dir, LIST_STATE)
+    try:
+        with open(path, encoding="utf-8") as fh:
+            stored = json.load(fh)
+        prev_ids = set(stored["articles"])
+    except (OSError, ValueError, KeyError, TypeError):
+        stored, prev_ids = None, None
+    body, headers = list_get(LIST_INDEX_URL)
+    digest = hashlib.sha256(body).hexdigest()
+    if stored is not None and stored.get("digest") == digest:
+        return "exchange: list unchanged generation=%s articles=%d" % (stored.get("generation"), len(prev_ids))
+    children = list_children(body.decode("utf-8", "replace"))
+    if not children:
+        raise ListUnreadable("no child")
+    union = set()
+    for url in children:
+        child, _ = list_get(url)
+        union |= list_articles(child.decode("utf-8", "replace"))
+    if not union:
+        raise ListUnreadable("empty union")
+    generation = list_generation(headers.get("Last-Modified"))
+    read = common.utc_now().strftime("%Y-%m-%dT%H:%M:%SZ")
+    added, removed = list_diff(prev_ids, union)
+    common.atomic_write(path, {"digest": digest, "generation": generation, "read": read,
+                               "children": len(children), "articles": sorted(union)})
+    return ("exchange: list generation=%s read=%s children=%d articles=%d new=%s gone=%s baseline=%s"
+            % (generation, read, len(children), len(union), added, removed, "yes" if prev_ids is None else "no"))
+
+
+def list_failed(exc):
+    return "exchange: list read failed (%s)" % exc.__class__.__name__
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="the exchangeInfo watcher")
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--list-once", action="store_true")
     parser.add_argument("--state-dir", default=common.STATE_DIR)
     args = parser.parse_args(argv)
     if args.once:
         poll(args.state_dir)
         return 0
+    if args.list_once:
+        try:
+            common.log(list_poll(args.state_dir))
+        except Exception as exc:
+            common.log(list_failed(exc))
+            return 1
+        return 0
+    list_attempt = None
     while True:
         started = time.monotonic()
         try:
             poll(args.state_dir)
         except Exception as exc:
             common.log("exchange: poll failed (%s)" % exc.__class__.__name__)
+        if list_attempt is None or time.monotonic() - list_attempt >= LIST_POLL_S:
+            list_attempt = time.monotonic()
+            try:
+                line = list_poll(args.state_dir)
+                if not line.startswith("exchange: list unchanged"):
+                    common.log(line)
+            except Exception as exc:
+                common.log(list_failed(exc))
         time.sleep(max(1.0, POLL_S - (time.monotonic() - started)))
 
 
