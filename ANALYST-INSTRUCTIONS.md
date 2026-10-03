@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-01-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-03-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,17 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-10-03-a` answers the owner's request of 03.10.2026, made on the first answer the bot
+delivered: the strong trades first, each with a short reason, long or short, whenever there are any.**
+That answer opened on a `СРЕДНЯЯ` long, because the first section held only what could be entered at
+the freeze, and its three `СИЛЬНАЯ` longs stood twelve lines lower, past the maturing section, among `ЖДАТЬ` blocks
+with no reason beside them. **`# СИЛЬНЫЕ СДЕЛКИ` is now the first section after `# РЕЖИМ`** (§2): every `СИЛЬНАЯ`
+row of the answer, either side, `СЕЙЧАС` or `ЖДАТЬ`, ranked by what it is worth, each with one `Почему`
+naming the edge that earned the grade — and «СИЛЬНЫХ СДЕЛОК НЕТ.» when there is none. A row printed
+there is printed nowhere else but `ИТОГ`, and the budget spends there first (§4); the grade's
+definition does not move (§8), and item 108 checks the section. **§6 and §6a do not move, so
+`sec6_md5` is unchanged.**
 
 **`2026-10-01-a` answers the owner's clarification of 01.10.2026 — what he trades on is the quality
 of the call, and the answer now reads the way he executes it.** Every published object prints what
@@ -206,8 +217,15 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 **[БЫЧИЙ / МЕДВЕЖИЙ / ДИАПАЗОН / ПЕРЕГРЕТ / ВЫСОКИЙ РИСК]** — одна–две строки:
 что это значит для альтов сейчас.
 
+# СИЛЬНЫЕ СДЕЛКИ
+**1. МОНЕТА — ЛОНГ / ШОРТ · СЕЙЧАС / ЖДАТЬ · СИЛЬНАЯ [· разлок ДД.ММ (X.X%)]**
+Вход $X · Цель $X (±X.X%[; частично $X]) · Стоп $X (±X.X%)
+Размер N МОНЕТА ($X) [· плечо N×]
+Почему: одно предложение — перевес, за который строка получила СИЛЬНАЯ.
+[нет таких строк → «СИЛЬНЫХ СДЕЛОК НЕТ.»]
+
 # ЛУЧШИЕ СДЕЛКИ СЕЙЧАС
-**1. МОНЕТА — ЛОНГ [⚠] · [СИЛЬНАЯ / СРЕДНЯЯ] [· ПОВЫШЕННЫЙ РИСК: причина]**
+**1. МОНЕТА — ЛОНГ [⚠] · СРЕДНЯЯ [· ПОВЫШЕННЫЙ РИСК: причина]**
 Вход $X · Цель $X (+X.X%[; частично $X]) · Стоп $X (−X.X%)
 Размер N МОНЕТА ($X) [· плечо N×]
 Почему: одно предложение.
@@ -286,8 +304,31 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   written against stays banned: a regime sentence asserting «весь список» is checked
   against the computed rows (item 35) — measured 03.09, the line asserted «весь список без
   исключения» four lines above the appendix that listed the exceptions.
-- **ЛУЧШИЕ СДЕЛКИ СЕЙЧАС** carries only trades that clear the quality bar right now.
-  None clear it → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** and nothing beside it, then
+- **`# СИЛЬНЫЕ СДЕЛКИ` is the first section after `# РЕЖИМ`, and its heading is never omitted** — the
+  owner's request of 03.10.2026: the strong trades first, each with a short reason, long or short,
+  whenever there are any. It carries every row of the list this answer publishes at `СИЛЬНАЯ` (§8) —
+  `СЕЙЧАС` or `ЖДАТЬ`, long or short — numbered, in the block form of a strategy row with its status in
+  the header line, and a fourth line, **`Почему`: one sentence naming in the owner's words the edge
+  that earned the grade** — the coin's own week moving the side's way against BTC (§8, condition 4) —
+  and what the entry is: a pullback inside that move, a retest, a break. A dated event in the side's
+  direction may stand in it beside the edge and never in its place, because no catalyst earns the
+  grade (§8); no statistic stands in it (§1). **It is ranked by §2's key** — the chance of the zone
+  inside seven days times the anchor-to-target distance — which is what «most profitable» can mean
+  without a score: the target alone would put the trade least likely to fill at the top. **A row
+  printed here is printed in no other section but `ИТОГ`** — it leaves `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` and the
+  strategy block, and still counts in the own-move line's totals — because the same trade in two
+  places reads as two trades. **No `СИЛЬНАЯ` row → the one line «СИЛЬНЫХ СДЕЛОК НЕТ.»** and nothing
+  beside it: the owner reads this heading first, and an absent section cannot be told from an absent
+  search. `ТОП-3` lines and `СОЗРЕВАЕТ` items never reach it — the first are `СРЕДНЯЯ` by
+  construction and the second are not trades yet (§4) — and under `ПЕРЕГРЕТ` or `ВЫСОКИЙ РИСК`
+  nothing is `СИЛЬНАЯ` (§8), so the line prints. **Measured 03.10, 15:40 Tbilisi, the first answer
+  the bot delivered:** the first section held a `СРЕДНЯЯ` long because it alone could be entered at
+  the freeze, and the three `СИЛЬНАЯ` longs — AAVE, ALGO, SKY — stood twelve lines below it, past the
+  maturing section, among `ЖДАТЬ` blocks with no reason beside them.
+- **ЛУЧШИЕ СДЕЛКИ СЕЙЧАС** carries only trades that clear the quality bar right now **at `СРЕДНЯЯ`**:
+  one that clears it at `СИЛЬНАЯ` prints in `# СИЛЬНЫЕ СДЕЛКИ` instead, and where every such trade is
+  there this section is omitted. None clear it at all → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** and
+  nothing beside it, then
   the strategy table carries the pending triggers. **The sentence of reason that stood
   here is deleted, not moved:** item 59 bans a section that explains why it is empty,
   this clause required exactly that sentence, and the run of 15.09 had to choose between
@@ -413,7 +454,8 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   on every row is not printed** (item 79): the risk per row and the leverage ceiling are the owner's
   policy, held in his file and stated to him once; a row prints the quantity they produce, which
   differs on every row. An object the budget no longer covers prints «Размер: резерв» (§4). The
-  size is the third line of a strategy block and of a `ЛУЧШИЕ СДЕЛКИ` entry, its own line after
+  size is the third line of a strategy block, of a `СИЛЬНЫЕ СДЕЛКИ` entry and of a `ЛУЧШИЕ СДЕЛКИ`
+  entry, its own line after
   «Станет сделкой» in a `СОЗРЕВАЕТ` item, and a clause inside a `ТОП-3` line before «Почему».
 - **A row whose coin has a cliff unlock inside the holding window names it at the end of its first
   line** — «**FET — ЛОНГ · ЖДАТЬ · СРЕДНЯЯ · разлок 28.09 (0.1%)**» — the date and the cliff's share of the
@@ -1624,7 +1666,8 @@ carries nine copies of one constant while the log carries the computation (§12)
 
   **The book has a budget and spends it in the answer's own order.** The sized objects of one side
   spend at most `side_max_pct` of capital in risk and both sides together at most `book_max_pct`,
-  taken in the order the answer ranks them — `ЛУЧШИЕ СДЕЛКИ`, then the strategy block in item 80's
+  taken in the order the answer ranks them — `СИЛЬНЫЕ СДЕЛКИ`, then `ЛУЧШИЕ СДЕЛКИ`, then the
+  strategy block in item 80's
   order, then `ТОП-3`, then `СОЗРЕВАЕТ`, **each section ranking `СИЛЬНАЯ` first** (§2) — a coin
   spending once however often it is named. The answer's first object is therefore always sized, and
   capital reaches the setups the run can name an edge for before the ones it cannot (§8). An object
@@ -3404,6 +3447,18 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     for being outside the list or against the market, a cause applying with no label, a cause with
     nothing behind it in the appendix, a `СИЛЬНАЯ` the appendix cannot trace to `residual7`, a
     `СИЛЬНАЯ` beside `⚠` or the label, and a `СИЛЬНАЯ` under a stress word each fail this item.
+108. **`# СИЛЬНЫЕ СДЕЛКИ` is the first section after `# РЕЖИМ` and holds exactly the `СИЛЬНАЯ` rows the
+    answer publishes** (§2) — every one and nothing else, each with its status, levels, size and one
+    `Почему` naming the edge §8's condition (4) recorded for it, ordered by §2's key with the key per row
+    in the log — **and none of them appears in another section but `ИТОГ`.** A `СИЛЬНАЯ` row left in the
+    strategy block or in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС`, a `СРЕДНЯЯ` object in this section, a `Почему` resting on
+    a catalyst or on anything the grade did not rest on, and an omitted heading where «СИЛЬНЫХ СДЕЛОК
+    НЕТ.» was owed each fail this item.
+
+**108 names the owner's request of 03.10.2026 against the answer of that day, 15:40 Tbilisi — the first
+the bot delivered — and no broken rule.** The run graded and ranked correctly inside every section; this
+file put first the trades enterable at the freeze, so the owner's first read was a `СРЕДНЯЯ` long, and the
+edge the run had found three times reached him as a word with no reason beside it.
 
 **107 names the owner's clarification of 01.10.2026 against the answer of 30.09, 22:15 Tbilisi, and
 19, 52, 60, 78 and 80 are corrected in place.** That run broke no rule. It printed a confidence on three objects
