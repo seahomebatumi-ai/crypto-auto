@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
-"""The exchangeInfo watcher (TZ-54 B5): Binance Futures' dated listing state,
-polled every 900 s and compared with the stored snapshot.
+"""The exchangeInfo watcher (TZ-54 B5, TZ-57 B3): Binance Futures' dated listing
+state, polled every 900 s and compared with the stored snapshot.
+
+Alerts only (TZ-57): a change reaches the owner as an alert and he decides
+whether to press the button; this program requests no run.
 
     exchange.py [--once] [--state-dir <dir>]      default /var/lib/crypto-auto
 
@@ -76,17 +79,10 @@ def changes(prev, cur, list_symbols):
     return out
 
 
-def with_request(text, outcome):
-    if outcome == "requested":
-        return text + "\n" + common.R1
-    if outcome == "capped":
-        return text + "\n" + common.R2
-    return text
-
-
 def act(found, cur):
-    """Alerts and run requests by TZ-54 B5's table. Returns (alerts, requests)."""
-    alerts = requests = 0
+    """Alerts by TZ-54 B5's table, without a run request (TZ-57). Returns the
+    number of alerts."""
+    alerts = 0
     for symbol in found["new_perpetual"][1]:
         common.write_outbox("alert", common.A2.format(symbol=symbol))
         alerts += 1
@@ -95,18 +91,12 @@ def act(found, cur):
             if side == 1 and cur[symbol][1] != "PERPETUAL":
                 continue
             text = common.A3.format(symbol=symbol, ddmmyyyy=utc_date(cur[symbol][2]).strftime("%d.%m.%Y"))
-            if side == 0:
-                outcome = common.request_run("watcher")
-                requests += outcome == "requested"
-                text = with_request(text, outcome)
             common.write_outbox("alert", text)
             alerts += 1
     for symbol, old, new in found["status_changed"][0]:
-        outcome = common.request_run("watcher")
-        requests += outcome == "requested"
-        common.write_outbox("alert", with_request(common.A4.format(symbol=symbol, old=old, new=new), outcome))
+        common.write_outbox("alert", common.A4.format(symbol=symbol, old=old, new=new))
         alerts += 1
-    return alerts, requests
+    return alerts
 
 
 def poll(state_dir):
@@ -121,17 +111,17 @@ def poll(state_dir):
     except (OSError, ValueError, KeyError):
         prev, baseline = None, True
     found = changes(prev, cur, list_symbols) if not baseline else changes(cur, cur, list_symbols)
-    alerts, requests = (0, 0) if baseline else act(found, cur)
+    alerts = 0 if baseline else act(found, cur)
     common.atomic_write(path, {"ts": common.utc_now().strftime("%Y-%m-%dT%H:%M:%SZ"), "symbols": cur})
     perps = perpetuals(info)
     common.atomic_write(os.path.join(state_dir, PERPETUALS), perps)
     common.log("exchange: symbols=%d usdt=%d trading_perpetuals=%d baseline=%s "
                "new_perpetual=list:%d/other:%d delivery_set=list:%d/other:%d status_changed=list:%d/other:%d "
-               "alerts=%d requests=%d"
+               "alerts=%d"
                % (len(info.get("symbols", [])), len(cur), len(perps), "yes" if baseline else "no",
                   len(found["new_perpetual"][0]), len(found["new_perpetual"][1]),
                   len(found["delivery_set"][0]), len(found["delivery_set"][1]),
-                  len(found["status_changed"][0]), len(found["status_changed"][1]), alerts, requests))
+                  len(found["status_changed"][0]), len(found["status_changed"][1]), alerts))
 
 
 def main(argv=None):

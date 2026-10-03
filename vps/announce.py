@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""The announcement watcher (TZ-54 B6, TZ-56 B3): Binance's announcement stream
-held on the read-only key, after the key's own rights were read from the exchange.
-The topic in the signed query is the subscription: the stream answers
-REGISTER/SUCCESS to a connection that sends no command (TZ-56 A5, branch R1).
+"""The announcement watcher (TZ-54 B6, TZ-56 B3, TZ-57 B2): Binance's announcement
+stream held on the read-only key, after the key's own rights were read from the
+exchange. The subscription is the documented one: each connection sends the
+SUBSCRIBE command once and waits for its own SUBSCRIBE answer. REGISTER/SUCCESS
+answers every connection, whether or not it sent a command, so it acknowledges no
+subscription and is only logged (TZ-56's reading, map §10).
+
+Alerts only (TZ-57): a matched announcement reaches the owner as an alert and he
+decides whether to press the button; this program requests no run.
 
     announce.py [--state-dir <dir>]                    the service
-    announce.py --measure <seconds> <max_data> [...]   key check and stream, no outbox, no requests
+    announce.py --measure <seconds> <max_data> [...]   key check and stream, no outbox
 
 --measure exits 0 when at least one message carried all six fields, 2 when none
 did, 3 on a refused key, 4 when connecting or subscribing failed. The service
@@ -33,8 +38,9 @@ import common  # noqa: E402
 RESTRICTIONS_URL = "https://api.binance.com/sapi/v1/account/apiRestrictions"
 STREAM_URL = "wss://api.binance.com/sapi/wss"
 TOPIC = "com_announcement_en"
-# TZ-56 A5, branch R1: the COMMAND answer a connection waits for.
-ANSWER_SUBTYPE = "REGISTER"
+# TZ-57 §12.6: the documented subscription, and the COMMAND answer a connection waits for.
+ANSWER_SUBTYPE = "SUBSCRIBE"
+SUBSCRIBE = json.dumps({"command": "SUBSCRIBE", "value": TOPIC})
 FIELDS = ("catalogId", "catalogName", "publishDate", "title", "body", "disclaimer")
 PING_S = 30
 REFRESH_S = 23 * 3600 + 30 * 60          # a fresh connection before 23 h 30 min
@@ -186,9 +192,11 @@ class Stream:
         self.pending = []
 
     def connect(self):
-        """Open with the signed query, whose topic is the subscription, and the key
-        header; send no command; record the answer. Returns True when the
-        ANSWER_SUBTYPE answer arrives inside 20 s with data SUCCESS."""
+        """Open with the signed query and the key header, send the documented
+        SUBSCRIBE command once, and record its answer. REGISTER answers every
+        connection and is logged as a command answer, never taken for the
+        subscription (TZ-57 §12.6). Returns True when the ANSWER_SUBTYPE answer
+        arrives inside 20 s with data SUCCESS."""
         import websocket  # python3-websocket
         wait = RECONNECT_FIRST_S - (time.monotonic() - self.last_attempt)
         if self.last_attempt and wait > 0:
@@ -201,6 +209,7 @@ class Stream:
             self.ws = websocket.create_connection(STREAM_URL + "?" + signed_query(params, self.secret),
                                                   header=["X-MBX-APIKEY: " + self.key],
                                                   timeout=common.HTTP_TIMEOUT_S)
+            self.ws.send(SUBSCRIBE)
             deadline = time.monotonic() + common.HTTP_TIMEOUT_S
             answer, pending, skipped = answer_of(frames_until(self.ws, deadline), ANSWER_SUBTYPE)
         except Exception as exc:
@@ -322,8 +331,8 @@ def utc_text(ms):
 
 
 def act(data, cls, ticker):
-    """A list match → A1, plus a run request in a listing catalogue; a perpetual
-    match in such a catalogue → A1 and a run request; anything else is recorded only."""
+    """A list match → A1; a perpetual match in a listing catalogue → A1; anything
+    else is recorded only. Alerts only: no run is requested (TZ-57)."""
     catalog = str(data.get("catalogName") or "")
     listing = "listing" in catalog.lower()
     if cls == "none" or (cls == "perpetual" and not listing):
@@ -331,12 +340,6 @@ def act(data, cls, ticker):
     hhmm = datetime.fromtimestamp(int(data.get("publishDate") or time.time() * 1000) / 1000,
                                   tz=TBILISI).strftime("%H:%M")
     text = common.A1.format(hhmm=hhmm, catalog_name=catalog, title=str(data.get("title") or ""))
-    if listing:
-        outcome = common.request_run("watcher")
-        if outcome == "requested":
-            text += "\n" + common.R1
-        elif outcome == "capped":
-            text += "\n" + common.R2
     common.write_outbox("alert", text)
     return "alerted"
 

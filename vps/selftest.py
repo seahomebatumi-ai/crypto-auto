@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5): the sections of
-TZ-54 §12.14 with TZ-55 §12.7's and TZ-56 §12.6's changed and new ones, each
-printing `section <X>: checks <n> failed <m>`, then the total.
+"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5): the
+sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's and TZ-57 §12.8's
+changed and new ones, each printing `section <X>: checks <n> failed <m>`, then
+the total.
 
     python3 vps/selftest.py
 
@@ -31,6 +32,7 @@ import announce  # noqa: E402
 import bot  # noqa: E402
 import cleanup  # noqa: E402
 import common  # noqa: E402
+import exchange  # noqa: E402
 import run  # noqa: E402
 import writer  # noqa: E402
 
@@ -280,7 +282,10 @@ def section_i(s):
     s.check("enableReading false: REFUSED", announce.verdict(dict(accepted, enableReading=False)) == "REFUSED")
 
 
-# --- J: derive_limits, test_limits and start_limits -------------------------------
+# --- J: derive_limits, test_limits, start_limits and record_limits ------------------
+# TZ-57 §12.4's base: the record's TZ-55 lines at 4c67ebe.
+J_BASE = {"input_footprint_bytes": "466161664", "input_duration_s": "604.899672",
+          "run_footprint_bytes": "322416640", "run_duration_s": "1088.339229"}
 def section_j(s):
     s.check("derive_limits(400 MiB, 1200 s)", common.derive_limits(400 * MiB, 1200) == (637534208, 5400))
     s.check("derive_limits(100 MiB, 2100 s)", common.derive_limits(100 * MiB, 2100) == (167772160, 6000))
@@ -306,6 +311,20 @@ def section_j(s):
         memory_max, swap_max = common.start_limits(available, budget)
         s.check("start_limits(%d, %d) within [160 MiB, budget]" % (available, budget),
                 common.MEMORY_MAX_FLOOR_BYTES <= memory_max <= budget and memory_max + swap_max == budget)
+    # TZ-57 §12.4's five known answers, computed by the Architect.
+    rows = ((None, None, None, (704643072, 5400)),
+            ("C", "524288000", "1200", (788529152, 5400)),
+            ("C", "400000000", "2500", (704643072, 6900)),
+            ("K-oom", "704643072", "300", (1056964608, 5400)),
+            ("K-timeout", "704643072", "5400", (704643072, 5400)))
+    for product_class, footprint, duration, want in rows:
+        record = dict(J_BASE)
+        if product_class is not None:
+            record.update(product_class=product_class, product_footprint_bytes=footprint,
+                          product_duration_s=duration)
+        s.check("record_limits: product block %s" % ("none" if product_class is None else
+                                                      "%s, footprint %s, duration %s" % (product_class, footprint, duration)),
+                common.record_limits(record) == want)
 
 
 # --- K: cleanup's selection -----------------------------------------------------------
@@ -338,6 +357,12 @@ def unit_value(path, key):
     return None
 
 
+PRODUCT_KEYS = ("product_read_utc", "product_invocations", "product_killed", "product_not_admitted",
+                "product_account_limited", "product_completed", "product_class", "product_run_utc",
+                "product_memory_max_bytes", "product_memory_swap_max_bytes", "product_memory_peak_bytes",
+                "product_memory_swap_peak_bytes", "product_footprint_bytes", "product_duration_s", "fits")
+
+
 def section_m(s):
     record_path = os.path.join(HERE, "memory-record.txt")
     unit_path = os.path.join(HERE, "units", "crypto-run.service")
@@ -358,17 +383,29 @@ def section_m(s):
                                                      n["host_free_bytes"])
     s.check("memory_max_bytes = test_limits(input_footprint, input_duration, host_free)'s second term",
             n["memory_max_bytes"] == memory_max)
-    budget_run, runtime_max = common.derive_limits(n["run_footprint_bytes"], r["run_duration_s"])
-    s.check("budget_bytes = the larger budget of input and run footprints",
-            n["budget_bytes"] == max(budget_in, budget_run))
+    # TZ-57 §12.8: the record's budget rule is common.record_limits, which replaces TZ-55's.
+    budget, runtime_max = common.record_limits(r)
+    s.check("budget_bytes = record_limits(record)[0]", n["budget_bytes"] == budget)
+    s.check("runtime_max_s = record_limits(record)[1]", n["runtime_max_s"] == runtime_max)
     s.check("memory_swap_max_bytes = budget - memory_max",
             n["memory_swap_max_bytes"] == n["budget_bytes"] - n["memory_max_bytes"])
-    s.check("runtime_max_s from run_duration_s", n["runtime_max_s"] == runtime_max)
     s.check("hog_footprint_bytes >= hog_bytes > hog3_footprint_bytes / 2",
             n["hog_footprint_bytes"] >= n["hog_bytes"] and 2 * n["hog_bytes"] > n["hog3_footprint_bytes"])
     fits = r.get("fits")
     if fits is not None:
-        s.check("fits=yes exactly when the last run completed (TZ-55 12.4)", (fits == "yes") == (r["run_completed"] == "yes"))
+        s.check("fits present: every TZ-57 12.3 key present", all(k in r for k in PRODUCT_KEYS))
+        killed, completed = n.get("product_killed"), n.get("product_completed")
+        s.check("fits=no exactly when product_killed >= 1",
+                (fits == "no") == (killed is not None and killed >= 1))
+        s.check("fits=yes exactly when product_killed = 0 and product_completed >= 1",
+                (fits == "yes") == (killed == 0 and completed is not None and completed >= 1))
+        s.check("product_class is C under yes and a K- class under no",
+                (fits == "yes" and r.get("product_class") == "C")
+                or (fits == "no" and r.get("product_class") in ("K-oom", "K-timeout")))
+        peaks = (n.get("product_memory_peak_bytes"), n.get("product_memory_swap_peak_bytes"))
+        if None not in peaks:
+            s.check("product_footprint_bytes = the sum of the two peaks",
+                    n.get("product_footprint_bytes") == peaks[0] + peaks[1])
     # TZ-56 §12.6: the unit carries the floor and the budget's rest; each start sets its own pair.
     s.check("MemoryMax= equals MEMORY_MAX_FLOOR_BYTES",
             unit_value(unit_path, "MemoryMax") == str(common.MEMORY_MAX_FLOOR_BYTES))
@@ -381,7 +418,9 @@ def section_m(s):
             unit_lines.count("ExecStartPre=-+/usr/bin/python3 /srv/crypto-auto/vps/run.py --limits") == 1)
     s.check("exactly one Environment=CLAUDE_CODE_DISABLE_AUTO_MEMORY=1",
             unit_lines.count("Environment=CLAUDE_CODE_DISABLE_AUTO_MEMORY=1") == 1)
-    s.check("manifest lists crypto-run.timer only when fits=yes", "crypto-run.timer" not in listed or fits == "yes")
+    # TZ-57 §12.8: only the owner's button starts a run.
+    s.check("vps/units/ holds no crypto-run.timer", not os.path.exists(os.path.join(HERE, "units", "crypto-run.timer")))
+    s.check("the manifest names no crypto-run.timer", "crypto-run.timer" not in listed)
 
 
 # --- N: the bot on a mock API: one undeliverable file holds nothing behind it ----
@@ -568,7 +607,7 @@ def section_o(s):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-# --- P: announce.answer_of under the branch's ANSWER_SUBTYPE (TZ-56 A5: R1) ----------
+# --- P: the documented subscription, announce.act and common.request_run (TZ-57 §12.8) --
 def command(sub_type, data):
     return json.dumps({"type": "COMMAND", "subType": sub_type, "data": data, "code": "00000000"})
 
@@ -614,29 +653,82 @@ def connect_on(frames):
     return returned, sock.sent, stream.pending
 
 
+@contextlib.contextmanager
+def spool_in(tmp, enabled):
+    """common's state, spool, outbox and requests paths pointed at tmp, runs enabled
+    or not there; restored on exit."""
+    names = ("STATE_DIR", "SPOOL_DIR", "OUTBOX_DIR", "REQUESTS_DIR", "RUNS_ENABLED")
+    saved = {name: getattr(common, name) for name in names}
+    paths = {"STATE_DIR": os.path.join(tmp, "state"), "SPOOL_DIR": os.path.join(tmp, "spool")}
+    paths.update(OUTBOX_DIR=os.path.join(paths["SPOOL_DIR"], "outbox"),
+                 REQUESTS_DIR=os.path.join(paths["SPOOL_DIR"], "requests"),
+                 RUNS_ENABLED=os.path.join(paths["STATE_DIR"], "runs-enabled"))
+    for name in ("STATE_DIR", "OUTBOX_DIR", "REQUESTS_DIR"):
+        os.makedirs(paths[name], exist_ok=True)
+    if enabled:
+        open(paths["RUNS_ENABLED"], "w").close()
+    elif os.path.exists(paths["RUNS_ENABLED"]):
+        os.unlink(paths["RUNS_ENABLED"])
+    try:
+        for name, value in paths.items():
+            setattr(common, name, value)
+        yield paths
+    finally:
+        for name, value in saved.items():
+            setattr(common, name, value)
+
+
 def section_p(s):
     sub = announce.ANSWER_SUBTYPE
-    s.check("the branch A5 chose: ANSWER_SUBTYPE is REGISTER", sub == "REGISTER")
-    s.check("no SUBSCRIBE command is defined", not hasattr(announce, "SUBSCRIBE"))
+    s.check("ANSWER_SUBTYPE is SUBSCRIBE", sub == "SUBSCRIBE")
+    s.check("SUBSCRIBE is the documented command",
+            getattr(announce, "SUBSCRIBE", None) == json.dumps({"command": "SUBSCRIBE", "value": "com_announcement_en"}))
     data = json.dumps({"type": "DATA", "data": "{}"})
+    answer, pending, skipped = announce.answer_of([command("REGISTER", "SUCCESS"), command("SUBSCRIBE", "SUCCESS")], sub)
+    s.check("REGISTER/SUCCESS then SUBSCRIBE/SUCCESS answers, REGISTER in skipped",
+            answer is not None and answer.get("subType") == "SUBSCRIBE" and answer.get("data") == "SUCCESS"
+            and pending == [] and [d.get("subType") for d in skipped] == ["REGISTER"])
     answer, pending, skipped = announce.answer_of([command("REGISTER", "SUCCESS")], sub)
-    s.check("REGISTER/SUCCESS answers", answer is not None and answer.get("subType") == "REGISTER"
-            and answer.get("data") == "SUCCESS" and pending == [] and skipped == [])
-    answer, pending, skipped = announce.answer_of([command("REGISTER", "FAIL")], sub)
-    s.check("REGISTER/FAIL answers", answer is not None and answer.get("data") == "FAIL")
-    answer, pending, skipped = announce.answer_of([data, command("REGISTER", "SUCCESS")], sub)
+    s.check("REGISTER/SUCCESS alone gives None", answer is None)
+    answer, pending, skipped = announce.answer_of([command("SUBSCRIBE", "FAIL")], sub)
+    s.check("SUBSCRIBE/FAIL answers", answer is not None and answer.get("data") == "FAIL")
+    answer, pending, skipped = announce.answer_of([data, command("SUBSCRIBE", "SUCCESS")], sub)
     s.check("a DATA frame before the answer stays in pending", answer is not None and pending == [data])
     answer, pending, skipped = announce.answer_of([], sub)
     s.check("no frame gives None", answer is None and pending == [] and skipped == [])
+    returned, sent, pending = connect_on([command("REGISTER", "SUCCESS"), command("SUBSCRIBE", "SUCCESS")])
+    s.check("connect(): REGISTER, SUBSCRIBE both SUCCESS succeeds", returned is True)
+    s.check("connect(): sent exactly [SUBSCRIBE]", sent == [announce.SUBSCRIBE])
     returned, sent, pending = connect_on([command("REGISTER", "SUCCESS")])
-    s.check("connect(): REGISTER/SUCCESS succeeds", returned is True)
-    s.check("connect(): no command is sent", sent == [])
-    returned, sent, pending = connect_on([command("REGISTER", "FAIL")])
-    s.check("connect(): REGISTER/FAIL does not succeed", returned is False)
-    returned, sent, pending = connect_on([data, command("REGISTER", "SUCCESS")])
-    s.check("connect(): the DATA frame before the answer is kept pending", returned is True and pending == [data])
+    s.check("connect(): REGISTER alone does not succeed", returned is False)
+    returned, sent, pending = connect_on([command("REGISTER", "SUCCESS"), command("SUBSCRIBE", "FAIL")])
+    s.check("connect(): SUBSCRIBE/FAIL does not succeed", returned is False)
     returned, sent, pending = connect_on([])
-    s.check("connect(): no answer inside the deadline does not succeed", returned is False)
+    s.check("connect(): no frame does not succeed", returned is False)
+
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-p.")
+    try:
+        with spool_in(tmp, True) as paths:
+            message = {"catalogId": 48, "catalogName": "New Cryptocurrency Listing",
+                       "publishDate": 1700000000000, "title": "Binance Will List Bitcoin (BTC)"}
+            lists = [("BTC", "BTCUSDT")] + [(row["name"], row["s"]) for row in checkout_tokens()]
+            s.check("the message is classed list BTC", announce.match_title(message["title"], lists, []) == ("list", "BTC"))
+            outcome = announce.act(message, "list", "BTC")
+            alerts = [n for n in os.listdir(paths["OUTBOX_DIR"]) if "-alert-" in n]
+            s.check("act(): alerted", outcome == "alerted")
+            s.check("act(): one alert", len(alerts) == 1)
+            s.check("act(): no request", os.listdir(paths["REQUESTS_DIR"]) == [])
+            s.check("request_run('bot') returns requested", common.request_run("bot") == "requested")
+            s.check("request_run('bot') writes one request",
+                    len([n for n in os.listdir(paths["REQUESTS_DIR"]) if n.endswith(".req")]) == 1)
+        shutil.rmtree(tmp)
+        with spool_in(tmp, False) as paths:
+            s.check("runs disabled: request_run('bot') returns disabled", common.request_run("bot") == "disabled")
+            s.check("runs disabled: no request written", os.listdir(paths["REQUESTS_DIR"]) == [])
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    s.check("common has no WATCHER_DAILY_CAP, R1 or R2",
+            not any(hasattr(common, name) for name in ("WATCHER_DAILY_CAP", "R1", "R2")))
 
 
 # --- Q: the repository's .claude/settings.json (contract §2, TZ-56 §12.7) -------------
@@ -653,10 +745,27 @@ def section_q(s):
     s.check("autoMemoryEnabled is false", isinstance(doc, dict) and doc.get("autoMemoryEnabled") is False)
 
 
+# --- R: exchange.act, alerts only (TZ-57 §12.8) ----------------------------------
+def section_r(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-r.")
+    try:
+        with spool_in(tmp, True) as paths:
+            found = {"new_perpetual": ([], []), "delivery_set": ([], []),
+                     "status_changed": ([("BTCUSDT", "TRADING", "SETTLING")], [])}
+            cur = {"BTCUSDT": ["SETTLING", "PERPETUAL", None, 0]}
+            returned = exchange.act(found, cur)
+            s.check("act() returns 1", returned == 1)
+            s.check("act() writes one alert",
+                    len([n for n in os.listdir(paths["OUTBOX_DIR"]) if "-alert-" in n]) == 1)
+            s.check("act() writes no request", os.listdir(paths["REQUESTS_DIR"]) == [])
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
-            ("P", section_p), ("Q", section_q))
+            ("P", section_p), ("Q", section_q), ("R", section_r))
 
 
 def main():
