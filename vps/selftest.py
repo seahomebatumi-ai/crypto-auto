@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5): the
-sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's and TZ-57 §12.8's
-changed and new ones, each printing `section <X>: checks <n> failed <m>`, then
-the total.
+"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3):
+the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's, TZ-57 §12.8's and
+TZ-58 §12.7's changed and new ones, each printing `section <X>: checks <n> failed
+<m>`, then the total.
 
     python3 vps/selftest.py
 
@@ -745,7 +745,22 @@ def section_q(s):
     s.check("autoMemoryEnabled is false", isinstance(doc, dict) and doc.get("autoMemoryEnabled") is False)
 
 
-# --- R: exchange.act, alerts only (TZ-57 §12.8) ----------------------------------
+# --- R: exchange.act, alerts only (TZ-57 §12.8), and the list (TZ-58 §12.7) ----------
+# TZ-58 §12.7's texts, exactly.
+SM = "https://www.binance.com/sitemap_output/domain=www.binance.com/sitemap_SupportAndAnnouncement_"
+EN0, EN1, RU0 = SM + "en_0.xml", SM + "en_1.xml", SM + "ru_0.xml"
+INDEX = "<sitemapindex>" + "".join("<sitemap><loc>%s</loc><lastmod>2026-10-02</lastmod></sitemap>" % u
+                                   for u in (EN1, RU0, EN0, EN1)) + "</sitemapindex>"
+A, B, C, D = "a" * 32, "0123456789abcdef" * 2, "115000483751", "d" * 32
+DETAIL = "https://www.binance.com/en/support/announcement/detail/"
+def urlset(urls):
+    return "<urlset>" + "".join("<url><loc>%s</loc><lastmod>2026-10-02</lastmod></url>" % u for u in urls) + "</urlset>"
+CHILD0 = urlset([DETAIL + A, DETAIL + B, "https://www.binance.com/en/support/faq/x1",
+                 "https://www.binance.com/en/support/announcement/list/48",
+                 "https://www.binance.com/zh-CN/support/announcement/detail/" + D])
+CHILD1 = "<urlset><url><loc>\n    " + DETAIL + B + "\n  </loc></url>" + urlset([DETAIL + C])[8:]
+
+
 def section_r(s):
     tmp = tempfile.mkdtemp(prefix="vps-selftest-r.")
     try:
@@ -760,6 +775,13 @@ def section_r(s):
             s.check("act() writes no request", os.listdir(paths["REQUESTS_DIR"]) == [])
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+    # TZ-58 §12.7's known answers, computed by the Architect on a prototype of §12.5's patterns.
+    s.check("list_children(INDEX) == [EN1, EN0]", exchange.list_children(INDEX) == [EN1, EN0])
+    s.check("list_articles(CHILD0) == {A, B}", exchange.list_articles(CHILD0) == {A, B})
+    s.check("list_articles(CHILD1) == {B, C}", exchange.list_articles(CHILD1) == {B, C})
+    s.check("list_diff(None, {A, B, C}) == ('-', '-')", exchange.list_diff(None, {A, B, C}) == ("-", "-"))
+    s.check("list_diff({A, B, D}, {A, B, C}) == (1, 1)", exchange.list_diff({A, B, D}, {A, B, C}) == (1, 1))
+    s.check("list_diff({A, B, C}, {A, B, C}) == (0, 0)", exchange.list_diff({A, B, C}, {A, B, C}) == (0, 0))
 
 
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
