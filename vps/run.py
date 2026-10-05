@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1): the writer, then one
+"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1, TZ-60 B3): the writer, then one
 headless role-2 session, admitted only when the host's available memory less
 RESERVE_BYTES covers this unit's ceiling and its free swap covers this unit's swap
 ceiling; the answer goes to the outbox. The run has its own user and its own clone.
@@ -11,7 +11,8 @@ ceiling; the answer goes to the outbox. The run has its own user and its own clo
 The run's own Claude login is read from $CREDENTIALS_DIRECTORY and placed in the
 environment of the claude child alone. Never prints the answer. Exit 0 answer
 handed to the outbox · 1 the session failed (notice S7) · 75 not admitted
-(notice S6; SuccessExitStatus=75).
+(notice S6; SuccessExitStatus=75). A SIGTERM while crypto-stop.service runs is the
+owner's stop (TZ-60 B3): logged, and no notice S7.
 """
 import argparse
 import json
@@ -257,7 +258,9 @@ def main(argv=None):
                       usage["cost_usd"]))
 
     def on_term(signum, frame):
-        if in_session["on"] and not in_session["notified"]:
+        if os.path.exists(common.STOP_ACTIVE):
+            common.log("crypto-run: stopped by the owner")
+        elif in_session["on"] and not in_session["notified"]:
             in_session["notified"] = True
             common.write_outbox("notice", common.S7)
         summary()

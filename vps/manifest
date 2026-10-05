@@ -4,3 +4,4 @@ crypto-exchange.service
 crypto-bot.service
 crypto-run.path
 crypto-announce.service
+crypto-stop.path
