@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""The Telegram bot (TZ-54 B4, TZ-55 B3): answers the owner's chat and nothing
-else, starts a run from one button and delivers the outbox. An outbox file one
-of whose chunks is refused in both forms is set aside as <name>.dead, so it
-never holds the files behind it.
+"""The Telegram bot (TZ-54 B4, TZ-55 B3, TZ-60 B2): answers the owner's chat and
+nothing else, starts a run from one button, asks for the owner's typed stop and
+delivers the outbox. An outbox file one of whose chunks is refused in both forms
+is set aside as <name>.dead, so it never holds the files behind it.
 
     bot.py                       the service: long poll, owner filter, outbox delivery
     bot.py --bind                bind the one private chat that sent /start (exit 3: zero or several)
@@ -37,6 +37,7 @@ COUNTERS_FILE = os.path.join(common.STATE_DIR, "bot-counters.json")
 KEYBOARD = {"keyboard": [[{"text": common.S1}]], "resize_keyboard": True, "is_persistent": True}
 NO_PREVIEW = {"is_disabled": True}
 DEAD_SUFFIX = ".dead"                 # TZ-55 B3: outbox_files() never lists it; cleanup.py ages it out
+STOP_WORDS = ("stop", "/stop", "\u0441\u0442\u043e\u043f")   # TZ-60 §12.6
 
 
 # --- TZ-54 §12.3: conversion ---------------------------------------------------
@@ -141,8 +142,14 @@ def chunk(text, limit=CHUNK_LIMIT):
 
 
 # --- TZ-54 §12.4: the owner filter ---------------------------------------------
+def is_stop(text):
+    """The owner's stop: the text with surrounding whitespace and a trailing «!» or «.» removed,
+    case-folded, is one of STOP_WORDS."""
+    return isinstance(text, str) and text.strip().rstrip("!.").strip().casefold() in STOP_WORDS
+
+
 def classify(update, owner_id, now):
-    """S2, request, S8 or dropped."""
+    """S2, request, stop, S8 or dropped."""
     msg = update.get("message") if isinstance(update, dict) else None
     if not isinstance(msg, dict):
         return "dropped"
@@ -157,6 +164,8 @@ def classify(update, owner_id, now):
         return "S2"
     if text in ("/run", common.S1):
         return "request"
+    if is_stop(text):
+        return "stop"
     return "S8"
 
 
@@ -343,6 +352,28 @@ def send_outbox_once():
     return 0 if all_ok else 1
 
 
+def respond(api, owner, verdict):
+    """The answer to one acted update (TZ-60 §12.6)."""
+    if verdict == "S2":
+        api.send(owner, common.S2, keyboard=True)
+    elif verdict == "S8":
+        api.send(owner, common.S8, keyboard=True)
+    elif verdict == "stop":
+        if common.run_active() or common.pending_requests():
+            common.request_stop("bot")
+            api.send(owner, common.S12, keyboard=True)
+        else:
+            api.send(owner, common.S14, keyboard=True)
+    elif not common.runs_enabled():
+        api.send(owner, common.S5, keyboard=True)
+    elif common.run_active():
+        api.send(owner, common.S4, keyboard=True)
+    elif common.request_run("bot") == "requested":
+        api.send(owner, common.S3, keyboard=True)
+    else:
+        api.send(owner, common.S5, keyboard=True)
+
+
 def read_offset():
     try:
         with open(OFFSET_FILE, encoding="utf-8") as fh:
@@ -380,18 +411,7 @@ def service():
                     counters["dropped"] += 1
                     continue
                 counters["acted"] += 1
-                if verdict == "S2":
-                    api.send(owner, common.S2, keyboard=True)
-                elif verdict == "S8":
-                    api.send(owner, common.S8, keyboard=True)
-                elif not common.runs_enabled():
-                    api.send(owner, common.S5, keyboard=True)
-                elif common.run_active():
-                    api.send(owner, common.S4, keyboard=True)
-                elif common.request_run("bot") == "requested":
-                    api.send(owner, common.S3, keyboard=True)
-                else:
-                    api.send(owner, common.S5, keyboard=True)
+                respond(api, owner, verdict)
             if updates:
                 common.atomic_write(COUNTERS_FILE, counters)
                 common.log("bot: updates=%d acted_total=%d dropped_total=%d"

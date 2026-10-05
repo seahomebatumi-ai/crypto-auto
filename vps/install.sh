@@ -14,8 +14,8 @@
 # (contract §7 item 6, since v25); nothing creates /srv/crypto-auto-run any more.
 #
 # `disable --now` applies to units that carry an [Install] section: a unit without one
-# (crypto-run.service, crypto-cleanup.service, crypto-deploy.service) is started only by
-# its timer or path, and stopping crypto-deploy.service would stop this very script.
+# (crypto-run.service, crypto-stop.service, crypto-cleanup.service, crypto-deploy.service) is
+# started only by its timer or path, and stopping crypto-deploy.service would stop this very script.
 #
 set -euo pipefail
 
@@ -74,6 +74,7 @@ provision_dirs() {
     dir_as 0755 root root /var/spool/crypto-auto
     dir_as 2770 cryptoauto cryptoauto /var/spool/crypto-auto/outbox
     dir_as 2770 cryptoauto cryptoauto /var/spool/crypto-auto/requests
+    dir_as 2770 cryptoauto cryptoauto /var/spool/crypto-auto/stop
     dir_as 0750 cryptoauto cryptoauto /var/lib/crypto-auto
     dir_as 0755 root root "$LIBEXEC"
     dir_as 0750 cryptorun cryptorun "$RUN_HOME"

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3):
-the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's, TZ-57 §12.8's and
-TZ-58 §12.7's changed and new ones, each printing `section <X>: checks <n> failed
-<m>`, then the total.
+"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7):
+the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's, TZ-57 §12.8's,
+TZ-58 §12.7's and TZ-60 §12.11's changed and new ones, each printing `section <X>:
+checks <n> failed <m>`, then the total.
 
     python3 vps/selftest.py
 
@@ -34,6 +34,7 @@ import cleanup  # noqa: E402
 import common  # noqa: E402
 import exchange  # noqa: E402
 import run  # noqa: E402
+import stop  # noqa: E402
 import writer  # noqa: E402
 
 MiB = common.MiB
@@ -232,6 +233,18 @@ def section_f(s):
         ("group, owner's id, now, /run", update("group", owner, now, "/run"), "dropped"),
         ("private, owner, now, \u043f\u0440\u0438\u0432\u0435\u0442",
          update("private", owner, now, "\u043f\u0440\u0438\u0432\u0435\u0442"), "S8"),
+        # TZ-60 §12.11: the owner's stop.
+        ("private, owner, now, STOP", update("private", owner, now, "STOP"), "stop"),
+        ("private, owner, now, \u0441\u0442\u043e\u043f",
+         update("private", owner, now, "\u0441\u0442\u043e\u043f"), "stop"),
+        ("private, owner, now, \u0421\u0422\u041e\u041f",
+         update("private", owner, now, "\u0421\u0422\u041e\u041f"), "stop"),
+        ("private, owner, now, ' Stop! '", update("private", owner, now, " Stop! "), "stop"),
+        ("private, owner, now, /stop", update("private", owner, now, "/stop"), "stop"),
+        ("private, owner, now, \u0441\u0442\u043e\u043f \u0430\u043d\u0430\u043b\u0438\u0437",
+         update("private", owner, now, "\u0441\u0442\u043e\u043f \u0430\u043d\u0430\u043b\u0438\u0437"), "S8"),
+        ("private, another id, now, STOP", update("private", other, now, "STOP"), "dropped"),
+        ("private, owner, now - 601 s, STOP", update("private", owner, now - 601, "STOP"), "dropped"),
     )
     for label, upd, want in rows:
         s.check(label, bot.classify(upd, owner, now) == want)
@@ -508,6 +521,32 @@ def _git(cwd, *args):
                           cwd=cwd, capture_output=True, text=True).returncode
 
 
+def o_fixtures(tmp, stub_claude, planted):
+    """Section O's fixtures under tmp: bin/ with the given stub claude and the stub
+    writer, creds/ holding the planted login, runtime/, outbox/, requests/ with one
+    request, and a tree with a local origin. Returns (paths, tree, the push's exit)."""
+    paths = {k: os.path.join(tmp, k) for k in ("bin", "creds", "runtime", "outbox", "requests")}
+    for p in paths.values():
+        os.makedirs(p)
+    with open(os.path.join(paths["creds"], run.LOGIN_CREDENTIAL), "w") as fh:
+        fh.write(planted)
+    for name, body in (("claude", stub_claude), ("writer-stub.py", STUB_WRITER)):
+        with open(os.path.join(paths["bin"], name), "w") as fh:
+            fh.write(body)
+        os.chmod(os.path.join(paths["bin"], name), 0o755)
+    with open(os.path.join(paths["requests"], "1-bot-1.req"), "w") as fh:
+        fh.write("{}")
+    origin, tree = os.path.join(tmp, "origin.git"), os.path.join(tmp, "tree")
+    _git(tmp, "init", "-q", "--bare", "-b", "main", origin)
+    _git(tmp, "init", "-q", "-b", "main", tree)
+    with open(os.path.join(tree, "README"), "w") as fh:
+        fh.write("selftest\n")
+    _git(tree, "add", "README")
+    _git(tree, "commit", "-q", "-m", "init")
+    _git(tree, "remote", "add", "origin", origin)
+    return paths, tree, _git(tree, "push", "-q", "origin", "main")
+
+
 def section_o(s):
     cmd = run.CLAUDE
     s.check("run.CLAUDE carries --model immediately followed by claude-opus-5-5",
@@ -525,28 +564,10 @@ def section_o(s):
     saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
     saved_term = signal.getsignal(signal.SIGTERM)
     try:
-        paths = {k: os.path.join(tmp, k) for k in ("bin", "creds", "runtime", "outbox", "requests")}
-        for p in paths.values():
-            os.makedirs(p)
         planted = "sk-ant-oat01-selftest-planted-" + os.urandom(6).hex()
         decoy = "sk-ant-oat01-selftest-decoy-" + os.urandom(6).hex()
-        with open(os.path.join(paths["creds"], run.LOGIN_CREDENTIAL), "w") as fh:
-            fh.write(planted)
-        for name, body in (("claude", STUB_CLAUDE), ("writer-stub.py", STUB_WRITER)):
-            with open(os.path.join(paths["bin"], name), "w") as fh:
-                fh.write(body)
-            os.chmod(os.path.join(paths["bin"], name), 0o755)
-        with open(os.path.join(paths["requests"], "1-bot-1.req"), "w") as fh:
-            fh.write("{}")
-        origin, tree = os.path.join(tmp, "origin.git"), os.path.join(tmp, "tree")
-        _git(tmp, "init", "-q", "--bare", "-b", "main", origin)
-        _git(tmp, "init", "-q", "-b", "main", tree)
-        with open(os.path.join(tree, "README"), "w") as fh:
-            fh.write("selftest\n")
-        _git(tree, "add", "README")
-        _git(tree, "commit", "-q", "-m", "init")
-        _git(tree, "remote", "add", "origin", origin)
-        s.check("a local origin to fetch from", _git(tree, "push", "-q", "origin", "main") == 0)
+        paths, tree, pushed = o_fixtures(tmp, STUB_CLAUDE, planted)
+        s.check("a local origin to fetch from", pushed == 0)
 
         claude_saw = os.path.join(tmp, "claude-saw")
         writer_saw = os.path.join(tmp, "writer-saw")
@@ -790,10 +811,194 @@ def section_r(s):
     s.check("list_diff({A, B, C}, {A, B, C}) == (0, 0)", exchange.list_diff({A, B, C}, {A, B, C}) == (0, 0))
 
 
+# --- S: the owner's stop (TZ-60 §12.11) ----------------------------------------------
+STUB_SYSTEMCTL = """#!/usr/bin/env python3
+import json, os, sys
+with open(os.environ["SELFTEST_S_SYSTEMCTL_SAW"], "a") as fh:
+    fh.write(json.dumps(sys.argv[1:]) + "\\n")
+if sys.argv[1:2] == ["is-active"]:
+    with open(os.environ["SELFTEST_S_STATES"]) as fh:
+        states = fh.read().split()
+    with open(os.environ["SELFTEST_S_STATES"], "w") as fh:
+        fh.write(" ".join(states[1:]))
+    print(states[0] if states else "unknown")
+    sys.exit(0 if states[:1] == ["active"] else 3)
+sys.exit(0)
+"""
+STUB_CLAUDE_TERM = """#!/usr/bin/env python3
+import os, signal, time
+os.kill(os.getppid(), signal.SIGTERM)
+time.sleep(30)
+"""
+
+
+def notices(directory):
+    """The texts of the notice files of an outbox directory, in name order."""
+    out = []
+    for name in sorted(n for n in os.listdir(directory) if n.endswith(".json")):
+        with open(os.path.join(directory, name), encoding="utf-8") as fh:
+            doc = json.load(fh)
+        if doc.get("kind") == "notice":
+            out.append(doc.get("text"))
+    return out
+
+
+def files_ending(directory, suffix):
+    return [n for n in os.listdir(directory) if n.endswith(suffix)]
+
+
+def section_s(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-s.")
+    saved = (common.STOP_DIR, common.REQUESTS_DIR, common.run_active, bot.CHUNK_SPACING_S)
+    try:
+        # 1. request_stop and pending_requests.
+        stop_dir, requests_dir = os.path.join(tmp, "stop"), os.path.join(tmp, "requests")
+        os.makedirs(stop_dir)
+        os.makedirs(requests_dir)
+        common.STOP_DIR, common.REQUESTS_DIR, bot.CHUNK_SPACING_S = stop_dir, requests_dir, 0
+        s.check("request_stop('bot') returns requested", common.request_stop("bot") == "requested")
+        s.check("request_stop('bot') writes exactly one .stop file",
+                len(os.listdir(stop_dir)) == 1 and len(files_ending(stop_dir, ".stop")) == 1)
+        s.check("pending_requests() is false on an empty requests directory", common.pending_requests() is False)
+        with open(os.path.join(requests_dir, "1-bot-1.req"), "w") as fh:
+            fh.write("{}")
+        s.check("pending_requests() is true with one .req", common.pending_requests() is True)
+
+        # 2. bot.respond on section N's MockApi.
+        cases = ((True, False, "stop", 1, common.S12, "run active"),
+                 (False, False, "stop", 0, common.S14, "no run, no request"),
+                 (False, True, "stop", 1, common.S12, "no run, one request"),
+                 (False, False, "S8", 0, common.S8, "the verdict S8"))
+        for active, request, verdict, stops, text, label in cases:
+            for directory in (stop_dir, requests_dir):
+                for name in os.listdir(directory):
+                    os.unlink(os.path.join(directory, name))
+            if request:
+                with open(os.path.join(requests_dir, "1-bot-1.req"), "w") as fh:
+                    fh.write("{}")
+            common.run_active = lambda v=active: v
+            api = MockApi()
+            bot.respond(api, 4242, verdict)
+            s.check("respond, %s: %d .stop file(s)" % (label, stops), len(files_ending(stop_dir, ".stop")) == stops)
+            s.check("respond, %s: one message, the expected text" % label, [t for _, t in api.sent] == [text])
+    finally:
+        common.STOP_DIR, common.REQUESTS_DIR, common.run_active, bot.CHUNK_SPACING_S = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    # 3. stop.choose on TZ-60 §12.8's seven rows, probed by the Architect.
+    for before, removed, after, want in (("active", 0, "inactive", "S13"), ("activating", 0, "failed", "S13"),
+                                         ("inactive", 1, "inactive", "S13"), ("inactive", 0, "inactive", "S14"),
+                                         ("failed", 0, "failed", "S14"), ("active", 0, "active", "S15"),
+                                         ("inactive", 1, "activating", "S15")):
+        s.check("choose(%s, %d, %s) == %s" % (before, removed, after, want), stop.choose(before, removed, after) == want)
+
+    # 4. stop.main with a stub systemctl first on PATH.
+    env_keys = ("PATH", "SELFTEST_S_SYSTEMCTL_SAW", "SELFTEST_S_STATES")
+    saved_env = {k: os.environ.get(k) for k in env_keys}
+    unit = "selftest-stop.service"
+    try:
+        for states, plant, want_code, want_notice in ((["active", "inactive"], True, 0, "S13"),
+                                                      (["inactive", "inactive"], False, 0, "S14"),
+                                                      (["active", "active"], False, 1, "S15")):
+            tmp = tempfile.mkdtemp(prefix="vps-selftest-s.")
+            try:
+                spool = os.path.join(tmp, "spool")
+                for d in ("bin", "spool/outbox", "spool/requests", "spool/stop"):
+                    os.makedirs(os.path.join(tmp, d))
+                with open(os.path.join(tmp, "bin", "systemctl"), "w") as fh:
+                    fh.write(STUB_SYSTEMCTL)
+                os.chmod(os.path.join(tmp, "bin", "systemctl"), 0o755)
+                with open(os.path.join(tmp, "states"), "w") as fh:
+                    fh.write(" ".join(states))
+                if plant:
+                    for d, name in (("requests", "1-bot-1.req"), ("stop", "1-bot-1.stop")):
+                        with open(os.path.join(spool, d, name), "w") as fh:
+                            fh.write("{}")
+                saw = os.path.join(tmp, "saw")
+                os.environ.update({"PATH": os.path.join(tmp, "bin") + os.pathsep + (saved_env["PATH"] or ""),
+                                   "SELFTEST_S_SYSTEMCTL_SAW": saw, "SELFTEST_S_STATES": os.path.join(tmp, "states")})
+                with contextlib.redirect_stdout(io.StringIO()) as out:
+                    code = stop.main(["--unit", unit, "--spool", spool])
+                label = "stop.main, states %s: " % ",".join(states)
+                s.check(label + "returns %d" % want_code, code == want_code)
+                s.check(label + "one notice %s" % want_notice,
+                        notices(os.path.join(spool, "outbox")) == [getattr(common, want_notice)]
+                        and len(os.listdir(os.path.join(spool, "outbox"))) == 1)
+                if plant:
+                    with open(saw) as fh:
+                        calls = [json.loads(line) for line in fh]
+                    s.check(label + "is-active, stop, reset-failed, is-active, each on the unit",
+                            calls == [["is-active", unit], ["stop", unit], ["reset-failed", unit], ["is-active", unit]])
+                    s.check(label + "requests/ and stop/ empty",
+                            os.listdir(os.path.join(spool, "requests")) == [] and os.listdir(os.path.join(spool, "stop")) == [])
+                    lines = [l for l in out.getvalue().splitlines() if l.startswith("crypto-stop:")]
+                    s.check(label + "one line crypto-stop: stops=1 requests_removed=1 before=active stop_exit=0 "
+                            "reset_exit=0 after=inactive notice=S13",
+                            len(lines) == 1 and lines[0].startswith(
+                                "crypto-stop: stops=1 requests_removed=1 before=active stop_exit=0 reset_exit=0 "
+                                "after=inactive notice=S13"))
+            finally:
+                shutil.rmtree(tmp, ignore_errors=True)
+    finally:
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    # 5. run.main under section O's fixtures, a stub claude sending SIGTERM to its parent.
+    for stopping in (True, False):
+        tmp = tempfile.mkdtemp(prefix="vps-selftest-s.")
+        env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", "SELFTEST_O_WRITER_SAW")
+        saved_env = {k: os.environ.get(k) for k in env_keys}
+        patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (common, "STOP_ACTIVE"), (run, "WRITER"),
+                   (run, "own_memory_max"), (run, "own_swap_max")]
+        saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
+        saved_term = signal.getsignal(signal.SIGTERM)
+        label = "SIGTERM with STOP_ACTIVE %s: " % ("present" if stopping else "absent")
+        try:
+            paths, tree, _ = o_fixtures(tmp, STUB_CLAUDE_TERM, "sk-ant-oat01-selftest-planted-" + os.urandom(6).hex())
+            os.environ.update({"PATH": paths["bin"] + os.pathsep + (saved_env["PATH"] or ""),
+                               "CREDENTIALS_DIRECTORY": paths["creds"], "RUNTIME_DIRECTORY": paths["runtime"],
+                               "SELFTEST_O_WRITER_SAW": os.path.join(tmp, "writer-saw")})
+            common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
+            common.STOP_ACTIVE = tmp if stopping else os.path.join(tmp, "absent")
+            run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+            run.own_memory_max = run.own_swap_max = lambda: None
+            code = None
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                try:
+                    run.main(["--tree", tree])
+                except SystemExit as exc:
+                    code = exc.code
+            printed = out.getvalue().splitlines()
+            s.check(label + "SystemExit 143", code == 143)
+            owner_lines = printed.count("crypto-run: stopped by the owner")
+            if stopping:
+                s.check(label + "the owner's line printed once", owner_lines == 1)
+                s.check(label + "the three summary lines printed",
+                        all(len([l for l in printed if l.startswith(p)]) == 1
+                            for p in ("crypto-run: requests=", "crypto-run: models=", "crypto-run: memory_max=")))
+                s.check(label + "no notice in the outbox", notices(paths["outbox"]) == [])
+            else:
+                s.check(label + "one notice S7", notices(paths["outbox"]) == [common.S7])
+                s.check(label + "the owner's line absent", owner_lines == 0)
+        finally:
+            signal.signal(signal.SIGTERM, saved_term)
+            for mod, name, value in saved_attrs:
+                setattr(mod, name, value)
+            for k, v in saved_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
-            ("P", section_p), ("Q", section_q), ("R", section_r))
+            ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s))
 
 
 def main():

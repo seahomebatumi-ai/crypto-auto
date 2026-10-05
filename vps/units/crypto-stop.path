@@ -1,0 +1,9 @@
+[Unit]
+Description=Crypto assistant: a stop requested by the owner
+
+[Path]
+PathExistsGlob=/var/spool/crypto-auto/stop/*.stop
+Unit=crypto-stop.service
+
+[Install]
+WantedBy=paths.target

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Paths and the shared helpers of the VPS assistant (TZ-54 B1, TZ-55 B1, TZ-56 B1, TZ-57 B1), and nothing else.
+"""Paths and the shared helpers of the VPS assistant (TZ-54 B1, TZ-55 B1, TZ-56 B1, TZ-57 B1, TZ-60 B1), and nothing else.
 
 Python 3.12's standard library only. Every Russian string is written as \\uXXXX
-escapes (TZ-54 rule 6, hard floor item 7's rule) and equals TZ-54 §12.1 or
-TZ-55 §12.1 character for character. Time is UTC everywhere (rule 8).
+escapes (TZ-54 rule 6, hard floor item 7's rule) and equals TZ-54 §12.1,
+TZ-55 §12.1 or TZ-60 §12.1 character for character. Time is UTC everywhere (rule 8).
 """
 import json
 import math
@@ -20,8 +20,11 @@ STATE_DIR = "/var/lib/crypto-auto"
 SPOOL_DIR = "/var/spool/crypto-auto"
 OUTBOX_DIR = SPOOL_DIR + "/outbox"
 REQUESTS_DIR = SPOOL_DIR + "/requests"
+STOP_DIR = SPOOL_DIR + "/stop"            # TZ-60 §12.5: the owner's stop requests
 RUNS_ENABLED = STATE_DIR + "/runs-enabled"
 RUN_ACTIVE = "/run/crypto-run"            # crypto-run.service's RuntimeDirectory
+STOP_ACTIVE = "/run/crypto-stop"          # crypto-stop.service's RuntimeDirectory
+RUN_UNIT = "crypto-run.service"
 CREDENTIALS_ROOT = "/etc/crypto-auto/credentials"
 OWNER_BINDING = CREDENTIALS_ROOT + "/owner-chat-id"
 DEPLOY_CLONE = "/srv/crypto-auto"
@@ -47,10 +50,13 @@ S1 = "\u25b6 \u0410\u043d\u0430\u043b\u0438\u0437 \u0440\u044b\u043d\u043a\u0430
 S2 = ("\u0413\u043e\u0442\u043e\u0432. \u041a\u043d\u043e\u043f\u043a\u0430 \u0432\u043d\u0438\u0437\u0443 "
       "\u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0435\u0442 \u0430\u043d\u0430\u043b\u0438\u0437 "
       "\u0440\u044b\u043d\u043a\u0430.")
+# S3 and S4 as TZ-60 §12.1 changes them: the messages that confirm a start name the word.
 S3 = ("\u0410\u043d\u0430\u043b\u0438\u0437 \u0437\u0430\u043f\u0443\u0449\u0435\u043d \u2014 "
-      "\u043e\u0442\u0432\u0435\u0442 \u043f\u0440\u0438\u0434\u0451\u0442 \u0441\u044e\u0434\u0430.")
+      "\u043e\u0442\u0432\u0435\u0442 \u043f\u0440\u0438\u0434\u0451\u0442 \u0441\u044e\u0434\u0430. "
+      "\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c: \u0421\u0422\u041e\u041f.")
 S4 = ("\u0410\u043d\u0430\u043b\u0438\u0437 \u0443\u0436\u0435 \u0438\u0434\u0451\u0442 \u2014 "
-      "\u043e\u0442\u0432\u0435\u0442 \u043f\u0440\u0438\u0434\u0451\u0442 \u0441\u044e\u0434\u0430.")
+      "\u043e\u0442\u0432\u0435\u0442 \u043f\u0440\u0438\u0434\u0451\u0442 \u0441\u044e\u0434\u0430. "
+      "\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c: \u0421\u0422\u041e\u041f.")
 S5 = ("\u0417\u0430\u043f\u0443\u0441\u043a \u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 "
       "\u043f\u043e\u043a\u0430 \u0432\u044b\u043a\u043b\u044e\u0447\u0435\u043d.")
 S6 = ("\u0410\u043d\u0430\u043b\u0438\u0437 \u043d\u0435 \u0437\u0430\u043f\u0443\u0449\u0435\u043d: "
@@ -58,7 +64,7 @@ S6 = ("\u0410\u043d\u0430\u043b\u0438\u0437 \u043d\u0435 \u0437\u0430\u043f\u044
       "\u0437\u0430\u043d\u044f\u0442\u0430 \u0434\u0440\u0443\u0433\u043e\u0439 "
       "\u0441\u0435\u0441\u0441\u0438\u0435\u0439.")
 S7 = "\u0410\u043d\u0430\u043b\u0438\u0437 \u043d\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d."
-S8 = "\u041a\u043e\u043c\u0430\u043d\u0434\u0430 \u043e\u0434\u043d\u0430: " + S1
+S8 = "\u041a\u043e\u043c\u0430\u043d\u0434\u044b: " + S1 + " \u00b7 \u0421\u0422\u041e\u041f"   # TZ-60 §12.1
 S9 = ("\u0421\u0432\u044f\u0437\u044c \u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u043e\u043c "
       "\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.")
 S10 = ("\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 "
@@ -69,6 +75,13 @@ S10 = ("\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u043
 S11 = ("\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 "
        "\u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e: "
        "\u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0435 \u043d\u0435 \u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043e GitHub.")
+# TZ-60 §12.1, character for character: the owner's stop.
+S12 = "\u041e\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u044e \u0430\u043d\u0430\u043b\u0438\u0437\u2026"
+S13 = "\u0410\u043d\u0430\u043b\u0438\u0437 \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d."
+S14 = ("\u0410\u043d\u0430\u043b\u0438\u0437 \u043d\u0435 \u0438\u0434\u0451\u0442 \u2014 "
+       "\u043e\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0442\u044c \u043d\u0435\u0447\u0435\u0433\u043e.")
+S15 = ("\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0430\u043d\u0430\u043b\u0438\u0437 "
+       "\u043d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c.")
 # Alert templates: TZ-54 §12.1's placeholders (the Tbilisi time, the date, SYMBOL, OLD,
 # NEW, catalogName and title) are the format fields below.
 A1 = ("\u26a1 Binance \u00b7 {hhmm} \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 "
@@ -301,6 +314,16 @@ def run_active():
     return os.path.exists(RUN_ACTIVE)
 
 
+def pending_requests():
+    """True when the requests directory holds a .req file whose name does not
+    start with "."; a missing directory is false (TZ-60 §12.5)."""
+    try:
+        names = os.listdir(REQUESTS_DIR)
+    except FileNotFoundError:
+        return False
+    return any(name.endswith(".req") and not name.startswith(".") for name in names)
+
+
 def utc_now():
     return datetime.now(timezone.utc)
 
@@ -313,6 +336,18 @@ def request_run(source):
     if not runs_enabled():
         return "disabled"
     _write_request(source)
+    return "requested"
+
+
+def request_stop(source):
+    """One .stop file into the stop directory, named the way a request is named;
+    returns requested. A stop is always allowed: runs_enabled() is never
+    consulted (TZ-60 §12.5)."""
+    created_ms = int(time.time() * 1000)
+    while os.path.exists(os.path.join(STOP_DIR, "%d-%s-%d.stop" % (created_ms, source, os.getpid()))):
+        created_ms += 1
+    name = "%d-%s-%d.stop" % (created_ms, source, os.getpid())
+    atomic_write(os.path.join(STOP_DIR, name), {"source": source, "created_ms": created_ms}, mode=0o660)
     return "requested"
 
 
