@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-03-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-05-a.**
 
 **Authority.** Authoritative in GitHub, mirrored into the Claude Project for audit.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -14,6 +14,18 @@ text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
 
+**`2026-10-05-a` answers the owner's request of 05.10.2026, made on the answer of 04.10, 20:44 Tbilisi:
+every trade that rests on a catalyst says how fresh the catalyst is, so that he never boards the last car
+of a move.** That answer's `СОЗРЕВАЕТ` item — XRP, a ledger amendment activating on 09.10 — named the date
+the event fires and not the date the market learned of it: the amendment gained its majority on 25.09 at
+14:46Z, the run of that evening found it three and a half hours later, the appendix of 04.10 held the
+timestamp, and the owner could not tell nine days from nine minutes. **Every published object whose side
+or entry rests on a dated event now prints when that date became public and the coin's move since** (§2,
+§4) — «Известно с ДД.ММ (N дн.) · с тех пор ±X.X%»: the earliest dated record the run read that states the
+event's date, and the move from the futures close of that hour to the frozen price. It is a measurement of
+this run about an event ahead and never an earlier answer, and item 109 checks it. **§6 and §6a do not
+move, so `sec6_md5` is unchanged.**
+
 **`2026-10-03-a` answers the owner's request of 03.10.2026, made on the first answer the bot
 delivered: the strong trades first, each with a short reason, long or short, whenever there are any.**
 That answer opened on a `СРЕДНЯЯ` long, because the first section held only what could be entered at
@@ -25,21 +37,6 @@ there is printed nowhere else but `ИТОГ`, and the budget spends there first 
 definition does not move (§8), and item 108 checks the section. **§6 and §6a do not move, so
 `sec6_md5` is unchanged.**
 
-**`2026-10-01-a` answers the owner's clarification of 01.10.2026 — what he trades on is the quality
-of the call, and the answer now reads the way he executes it.** Every published object prints what
-he named, in his order: side, entry, target, invalidation, confidence and, from `-30-e`, size (§2).
-The zone is computed and no longer printed: the entry is one price — a `ЖДАТЬ` row's activating
-price, a `СЕЙЧАС` row's frozen price — the price a limit order takes and the one its ratio and size
-hold at; the target is the one level the object's construction measures it to, with a structural
-extreme lying before it named once as the place to reduce. **Confidence is on every object and it
-is earned** (§8): `СИЛЬНАЯ` needs the market word on the side, no exceptional risk, no adverse event
-and the coin's own week moving its way, and every section ranks it first (§2). **`ПОВЫШЕННЫЙ РИСК`
-is exceptional again** (§2): it prints exactly where one of two computed causes applies, and never
-merely because a trade is outside the list or against the market, which carry `СРЕДНЯЯ` and `⚠`
-instead — measured 30.09, 22:15 Tbilisi, the label stood on every trade that was not a list long.
-Size follows the grade (§4, §11). **The owner's other request, a probability for each setup, is not
-printed until the archive has measured one** (map §10): a percentage computed on no data is the one
-output worse than none (§4). **§6 and §6a do not move, so `sec6_md5` is unchanged.**
 **The history of earlier revisions lives in git and in the day logs, not here.**
 
 **This file is methodology, not contract.** Authority, repository operations, the
@@ -232,6 +229,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 
 # СОЗРЕВАЕТ ≤7 ДНЕЙ
 **МОНЕТА — ЛОНГ [⚠] · [СИЛЬНАЯ / СРЕДНЯЯ] [· ВНЕ СПИСКА] [· ПОВЫШЕННЫЙ РИСК: причина]** — ДД.ММ событие, одним предложением.
+Известно с ДД.ММ [ЧЧ:ММ Тбилиси] (N дн.) · с тех пор ±X.X%
 Станет сделкой: вход $X (сейчас $X, ±X.X%) [· при BTC ниже/выше $X] · цель $X (±X.X%[; частично $X]) · стоп $X (±X.X%).
 Размер N МОНЕТА ($X) [· плечо N×]
 Шанс дойти до входа за 7 дней: XX%
@@ -577,6 +575,18 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   The run of 04.09 printed it on its own judgement, no later run repeated it, and the owner
   named that line as the clearest output this engine has produced — a display that has to be
   reinvented every run is a display no run owes.
+- **Every published object whose side or entry rests on a dated event says when the market learned of
+  it and how far the coin has moved since** — the owner's request of 05.10.2026: «Известно с ДД.ММ
+  (N дн.) · с тех пор ±X.X%», the line after a `СОЗРЕВАЕТ` item's header, and a clause after the event
+  inside the `Почему` that names it on a row or a `ТОП-3` line, computed by §4 and nowhere else. The time
+  joins the date — «25.09 18:46 Тбилиси» — when the record carries one, and the age reads in hours under
+  one day, «(5 ч)», and «(<1 ч)» under one hour. **It is the one historical figure the answer carries, and
+  it carries it because it changes the decision** (§1): a catalyst public for nine days with the coin
+  flat is a different trade from one an hour old with the coin up twelve per cent, and the answer of
+  04.10 could not tell them apart. It is an attribute of an event AHEAD, measured this run — never an
+  earlier answer, never the state file — so the rule below that the past reaches the answer in no form
+  does not reach it. A move the run could not take leaves the clause at its date, and the appendix says
+  why.
 - **`СОЗРЕВАЕТ ≤7 ДНЕЙ` is the forward search, it is the run's first question, and it covers
   both universes** — the owner's decision of 24.09.2026 (§0). An item is a coin of the list OR
   of the liquid perpetual book with a DATED event inside seven days that names a side — an unlock,
@@ -1485,6 +1495,23 @@ carries nine copies of one constant while the log carries the computation (§12)
   it, or a coin at which no price passes, prints in `# КАТАЛИЗАТОРЫ` with its price and distance or
   with its side and no price (§2). **No figure the event carries — the size of an unlock, the value
   of a launch — moves a level:** the event says where to look and which way, and nothing else.
+- **The age of an event and the coin's move since it are measured, never estimated** (§2) — the owner's
+  request of 05.10.2026. **Known since** is the earliest publication time among the dated records this
+  run read that state the event's date: the publisher's own record first — an announcement's publish
+  time, a release's or a governance result's own timestamp, the instant a ledger amendment gained its
+  majority — then the one search this rule spends per published object on the event's first
+  announcement, «<project> <event> announced», whose earliest dated hit stating the same date counts if it
+  is earlier. **The date of the event needs §6's class to back a level; the date of its publication backs
+  no level and moves none, so any dated record may set it.** A date the run first saw, a date the state
+  file holds and a date an earlier answer printed are never a publication. **The move** is the frozen
+  price over the close of the hour that contains the publication, on the coin's own USDⓈ-M perpetual —
+  `https://fapi.binance.com/fapi/v1/klines?symbol=<SYMBOL>&interval=1h&startTime=<ms of that hour>&limit=1`,
+  field 4 — or, where the record carries a date and no time, over the open of that UTC day, field 1 of
+  the same request with `interval=1d` and the day's first millisecond; it is read from the host item 90's
+  move is read from, and it stands behind no level. A request that returns no candle leaves the clause at
+  its date, and no other price stands in for it. **The age** is the whole days from the publication to the
+  freeze, or the whole hours under one day. The appendix carries, per object, the record and its
+  timestamp, the search and its earliest dated hit, the request and the price it returned (§12).
 - **A waiting row is a price at which the coin BECOMES a trade, so every gate is re-run AT its
   anchor — the coin's own regime first.** This binds a `ЖДАТЬ` row and a `СОЗРЕВАЕТ` trigger
   alike. The regime moves with the price exactly as the ratio does: a rally into a short trigger
@@ -3454,6 +3481,23 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     strategy block or in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС`, a `СРЕДНЯЯ` object in this section, a `Почему` resting on
     a catalyst or on anything the grade did not rest on, and an omitted heading where «СИЛЬНЫХ СДЕЛОК
     НЕТ.» was owed each fail this item.
+109. **Every published object whose side or entry rests on a dated event prints «Известно с … · с тех пор
+    …» computed by §4** (§2) — the earliest dated record that states the event's date, among the
+    publisher's own record and the object's first-announcement search, and the move to the frozen price
+    from the close of that hour on the coin's own perpetual, or from that day's open where the record
+    carries no time — **and the appendix carries per object the record, its timestamp, the search, its
+    earliest dated hit, the request and the price.** A clause dated by the run's own first sighting, by
+    the state file or by an earlier answer, a move taken from any other price, an object resting on a
+    dated event with no clause and no reason in the appendix, and a clause on an object that rests on no
+    event each fail this item. The clause is an attribute of an event ahead, measured this run, and item
+    64 does not reach it.
+
+**109 names the owner's request of 05.10.2026 against the answer of 04.10, 20:44 Tbilisi, and no broken
+rule.** That run's hunt did what this file asks of it: the run of 25.09 had found the XRP amendment three
+and a half hours after its majority formed and refuted an aggregator's date on the ledger itself, and the
+run of 04.10 carried it into the week it activates. The answer then printed the date it fires and not the
+date it became known, so the one question a trader asks of a catalyst before paying for it — how long the
+market has had it, and what the price has done since — had no answer on the screen.
 
 **108 names the owner's request of 03.10.2026 against the answer of that day, 15:40 Tbilisi — the first
 the bot delivered — and no broken rule.** The run graded and ranked correctly inside every section; this
@@ -3837,6 +3881,8 @@ every §6a channel that landed on another host or whose page stopped short of it
 the fr, oi and mark read per published setup, and the state oi each was compared against
 every production function cut from index.html, with the command and the span it cut
 the size of every published object: its risk, d, size$, qty, L and the budget left after it (§4)
+the age of every published object resting on a dated event: the record and its timestamp, the
+  first-announcement search and its earliest dated hit, the klines request and the price (§4)
 the grade of every published object: each of §8's four conditions with its verdict, the residual7
   class and sign behind (4), and each ПОВЫШЕННЫЙ РИСК cause with the item or the turnover behind it
 the §7 checklist, one line per item with its verdict
