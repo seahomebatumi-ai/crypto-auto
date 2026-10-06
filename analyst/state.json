@@ -1,41 +1,9 @@
 {
  "v": 2,
  "k": "state",
- "d": "2026-10-04",
- "ts": "2026-10-04T17:05:40Z",
+ "d": "2026-10-06",
+ "ts": "2026-10-06T19:59:44Z",
  "horizon": [
-  {
-   "id": "cat-ena-unlock-2026-10-05",
-   "sym": "ENA",
-   "e": "Ethena Foundation: единый финальный релиз инвесторских ENA 05.10 (~1.41 млрд ENA, 15.5% выпущенного предложения; часть — выкупленные Фондом кошельки, доля рынку не раскрыта); датасет 04.10: 171 875 000 ENA (Foundation), 1.9% выпущенного; docs.ethena.fi даты транша не содержит",
-   "d": "2026-10-05",
-   "dclass": "reported",
-   "src": "theblock.co 2026-08-27 + crowdfundinsider.com 2026-08 (независимые); tokenomist.ai/research (01.09) — расчёт 1.41B; первичка Ethena (блог/X 27.08) не прочитана; gov.ethenafoundation.com/t/830 даты не содержит"
-  },
-  {
-   "id": "cat-binance-delist-pumpbtc-2026-10-05",
-   "sym": "PUMPBTC",
-   "e": "Binance Futures: делистинг перпов PROMPTUSDT, PUMPBTCUSDT, 1000000BOBUSDT — новые ордера до 05.10 08:30 UTC, расчёт 09:00 UTC",
-   "d": "2026-10-05",
-   "dclass": "primary",
-   "src": "binance.com cms article 2f1a743334f044abbd82e34093c7b771 (03.10)"
-  },
-  {
-   "id": "cat-us-ism-services-2026-10-05",
-   "sym": null,
-   "e": "США: ISM Services PMI за сентябрь",
-   "d": "2026-10-05",
-   "dclass": "primary",
-   "src": "ismworld.org ROB report calendar (04.10)"
-  },
-  {
-   "id": "cat-xmr-stressnet-2026-10-05",
-   "sym": "XMR",
-   "e": "Monero FCMP++/Carrot: хардфорк бета-стресснета v3.0 на блоке 3102800 (тестовая сеть)",
-   "d": "2026-10-05",
-   "dclass": "primary",
-   "src": "github.com/seraphis-migration/monero release v0.19.0.0-beta.3.0"
-  },
   {
    "id": "cat-eth-glamsterdam-sepolia-2026-10-06",
    "sym": "ETH",
@@ -47,7 +15,7 @@
   {
    "id": "cat-hype-unlock-2026-10-06",
    "sym": "HYPE",
-   "e": "Разлок HYPE 9 916 666 (Core Contributors) 06.10 — 2.1% выпущенного предложения",
+   "e": "Разлок HYPE 06.10 (Core Contributors) — прошёл; датасет 06.10 называет следующий 06.11",
    "d": "2026-10-06",
    "dclass": "reported",
    "src": "tokenomist.ai/hyperliquid (unlock lane, 30.09 18:18Z); hyperliquid.gitbook.io tokenomics 404 — первичка не прочитана"
@@ -69,6 +37,22 @@
    "src": "forum.zcashcommunity.com/t/57655.json"
   },
   {
+   "id": "cat-fomc-minutes-2026-10-07",
+   "sym": null,
+   "e": "ФРС: протокол заседания 15–16.09, 07.10 14:00 ET (18:00 UTC)",
+   "d": "2026-10-07",
+   "dclass": "primary",
+   "src": "federalreserve.gov/newsevents/2026-october.htm (06.10: FOMC Minutes, Meeting of September 15-16, 7 Oct 2:00 p.m.)"
+  },
+  {
+   "id": "cat-gram-unlock-2026-10-07",
+   "sym": "GRAM",
+   "e": "GRAM: ежемесячный выпуск ~37 млн GRAM 07.10 (по Tonviewer в пересказе прессы)",
+   "d": "2026-10-07",
+   "dclass": "none",
+   "src": "cryptopolitan.com (пересказ Tonviewer); первичка не прочитана"
+  },
+  {
    "id": "cat-sui-basecamp-2026-10-07",
    "sym": "SUI",
    "e": "Sui Basecamp 2026, Сингапур, 07–08.10 (вместе с TOKEN2049)",
@@ -77,12 +61,12 @@
    "src": "www.sui.io/blog/rss.xml — «The Agentic Economy Takes Center Stage at Sui Basecamp 2026, Singapore» (27.08)"
   },
   {
-   "id": "cat-fomc-minutes-2026-10-07",
-   "sym": null,
-   "e": "ФРС: протокол заседания 15–16.09, 07.10 14:00 ET (18:00 UTC)",
-   "d": "2026-10-07",
+   "id": "cat-xrp-evernorth-xrpn-2026-10-08",
+   "sym": "XRP",
+   "e": "Evernorth (≈473 млн XRP): закрытие сделки с Armada Acquisition Corp. II 07.10, торги на Nasdaq под XRPN с 08.10",
+   "d": "2026-10-08",
    "dclass": "primary",
-   "src": "federalreserve.gov/newsevents/2026-october.htm (04.10)"
+   "src": "prnewswire.com news-releases 302895260 (Evernorth Holdings, 01.10)"
   },
   {
    "id": "cat-xrpl-permdelegation-2026-10-08",
@@ -90,7 +74,15 @@
    "e": "XRPL: PermissionDelegationV1_1 — включение 08.10 ~21:25 UTC (большинство с 24.09 21:25:01Z)",
    "d": "2026-10-08",
    "dclass": "primary",
-   "src": "s1.ripple.com Amendments object (04.10)"
+   "src": "s1.ripple.com Amendments ledger_entry, ledger 107478871 (06.10): Majority CloseTime 843600301"
+  },
+  {
+   "id": "cat-binance-collateral-2026-10-09",
+   "sym": null,
+   "e": "Binance: залоговый коэффициент Cross/Portfolio Margin ENA, ONDO, BCH 50%→60%, ZEC — ранг PM Pro 7→6; 09.10 06:00 UTC",
+   "d": "2026-10-09",
+   "dclass": "primary",
+   "src": "binance.com cms article 74c7657a53f141e8b2d584bf44e6dd87 (06.10)"
   },
   {
    "id": "cat-xrpl-batchv1_1-2026-10-09",
@@ -98,15 +90,15 @@
    "e": "XRPL: fixBatchV1_2 (большинство с 25.09 14:12:51Z) и BatchV1_1 (с 25.09 14:46:02Z) — включение 09.10 ~14:12–14:46 UTC, если большинство удержится",
    "d": "2026-10-09",
    "dclass": "primary",
-   "src": "xrplcluster.com JSON-RPC feature (04.10) + xrpl.org/es-es/blog/2026/xrpld-3.4.1"
+   "src": "xrplcluster.com feature (06.10) + s1.ripple.com Amendments (06.10): majorities 843660771 / 843662762"
   },
   {
    "id": "cat-ada-treasury-openzeppelin-2026-10-11",
    "sym": "ADA",
-   "e": "Cardano: голосование по выводу 11 787 063 ADA из казны (OpenZeppelin Stack, Intersect), действие 418df598…#0 истекает 11.10 21:44:58Z (эпоха 661); DRep «за» 129.7M против 1 854M ADA",
+   "e": "Cardano: голосование по выводу 11 787 063 ADA из казны (OpenZeppelin Stack, Intersect), действие 418df598…#0 истекает 11.10 21:44:58Z; DRep «за» 168.5M против 1 895.9M ADA (06.10)",
    "d": "2026-10-11",
    "dclass": "primary",
-   "src": "gov.tools (GovTool API /api/proposal/list, чтение 04.10)"
+   "src": "gov.tools/api/proposal/list?search=OpenZeppelin (06.10)"
   },
   {
    "id": "cat-us-cpi-2026-10-14",
@@ -122,7 +114,7 @@
    "e": "Arbitrum: разлок 92 645 833 ARB (Team, Future Team + Advisors) 16.10 — 1.6% выпущенного предложения",
    "d": "2026-10-16",
    "dclass": "reported",
-   "src": "tokenomist.ai/arbitrum (unlock lane, 30.09 18:19Z)"
+   "src": "tokenomist.ai/arbitrum (unlock lane, 06.10 20:03Z)"
   },
   {
    "id": "cat-cme-bch-uni-futures-2026-10-19",
@@ -205,12 +197,28 @@
    "src": "tokenomist.ai/eigenlayer (unlock lane, 04.10)"
   },
   {
+   "id": "cat-ena-unlock-2026-11-02",
+   "sym": "ENA",
+   "e": "Разлок ENA 40 625 000 (Foundation) 02.11 — 0.4% выпущенного предложения",
+   "d": "2026-11-02",
+   "dclass": "reported",
+   "src": "tokenomist.ai/ethena (unlock lane, 06.10)"
+  },
+  {
    "id": "cat-zec-nu7-mainnet-2026-11-05",
    "sym": "ZEC",
    "e": "ZEC NU7: активация мейннета",
    "d": "2026-11-05",
    "dclass": "primary",
    "src": "forum.zcashcommunity.com/t/57655.json"
+  },
+  {
+   "id": "cat-hype-unlock-2026-11-06",
+   "sym": "HYPE",
+   "e": "Разлок HYPE 9 916 667 (Core Contributors) 06.11 — 2.0% выпущенного предложения",
+   "d": "2026-11-06",
+   "dclass": "reported",
+   "src": "tokenomist.ai/hyperliquid (unlock lane, 06.10)"
   },
   {
    "id": "cat-avax-unlock-2026-11-08",
@@ -247,140 +255,140 @@
  ],
  "oi": {
   "BTC": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 98497.369
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 95517.448
   },
   "SUI": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 138337470.6
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 128614650.1
   },
   "ONDO": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 147130160.7
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 144868347.9
   },
   "LINK": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 9667483.27
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 9148414.52
   },
   "RENDER": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 7389803.7
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 8531619.7
   },
   "NEAR": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 54069904.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 54260954.0
   },
   "YFI": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 1056.218
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 1089.834
   },
   "AAVE": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 485647.8
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 478327.1
   },
   "AVAX": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 10245607.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 10595258.0
   },
   "FET": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 164764118.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 157202820.0
   },
   "ENA": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 565688798.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 581313810.0
   },
   "TAO": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 267409.665
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 265671.217
   },
   "GRAM": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 19484257.2
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 19569523.7
   },
   "XRP": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 316041398.5
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 318792311.2
   },
   "ADA": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 385014568.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 458761787.0
   },
   "TRX": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 309579324.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 305438036.0
   },
   "SOL": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 8627794.75
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 8268068.81
   },
   "BCH": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 369448.364
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 365628.315
   },
   "HYPE": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 4095221.1
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 4057765.9
   },
   "SKY": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 264804725.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 271621332.0
   },
   "ETH": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 2287327.632
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 2313782.492
   },
   "HBAR": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 422540861.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 423962951.0
   },
   "XLM": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 248448428.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 219497258.0
   },
   "ALGO": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 93939722.2
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 90840406.3
   },
   "BNB": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 606573.91
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 587514.58
   },
   "ZEC": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 482199.378
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 467151.419
   },
   "UNI": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 28616539.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 29922496.0
   },
   "XMR": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 87636.59
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 85873.291
   },
   "LIT": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 17455774.0
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 17010614.3
   },
   "MORPHO": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 6383504.6
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 6160544.1
   },
   "ARB": {
-   "ts": "2026-10-04T16:43:13Z",
-   "oi": 298783562.6
+   "ts": "2026-10-06T19:56:45Z",
+   "oi": 295037103.4
   }
  },
  "sweeps": {
   "horizon": {
    "outside-list": {
-    "d": "2026-10-04",
+    "d": "2026-10-06",
     "sec6_md5": "01edff1302d41045786d37580aead167",
-    "host": "www.binance.com (bapi/composite/v1/public/cms/article/list/query 200, 66865 bytes, 7 catalogues, 350 records)",
+    "host": "www.binance.com (bapi/composite/v1/public/cms/article/list/query 200, 66877 bytes, 7 catalogues, 350 records)",
     "n": 350,
-    "from": "2026-09-10",
-    "ts": "2026-10-04T16:48:25Z",
-    "note": "новейшая запись 02.10 13:00; совпадения в окне: делистинг перпов (2026-10-05) — статья 2f1a7433 перечитана (05.10 09:00 UTC); CT/ALGO/PUMP — промо и запуск старше 24 ч"
+    "from": "2026-09-14",
+    "ts": "2026-10-06T20:02:15Z",
+    "note": "новейшая запись 06.10 09:30; совпадения в окне: залоговые коэффициенты 09.10 (ENA, ONDO, BCH, ZEC) — статья 74c7657a прочитана; TradFi-перпы 06.10 — акции, не крипто; CT/PUMP/ALGO — промо старше 24 ч"
    },
    "macro-cb": {
     "d": "2026-09-30",
@@ -429,10 +437,10 @@
     "from": "2026-06-29"
    },
    "capital-tvl": {
-    "d": "2026-09-30",
+    "d": "2026-10-06",
     "sec6_md5": "01edff1302d41045786d37580aead167",
-    "host": "api.llama.fi (v2/chains 200, 64084 bytes)",
-    "n": 467
+    "host": "api.llama.fi (v2/chains 200, 64239 bytes)",
+    "n": 468
    }
   },
   "coins": {
@@ -443,10 +451,10 @@
     "n": 30,
     "from": "2026-09-28",
     "c2": {
-     "d": "2026-09-30",
+     "d": "2026-10-06",
      "sec6_md5": "01edff1302d41045786d37580aead167",
      "host": "blog.ethereum.org",
-     "n": 640,
+     "n": 642,
      "from": "2013-12-31"
     },
     "coverage": {
@@ -463,11 +471,11 @@
     "n": 30,
     "from": "2026-06-04",
     "c2": {
-     "d": "2026-09-30",
+     "d": "2026-10-06",
      "sec6_md5": "01edff1302d41045786d37580aead167",
      "host": "www.sui.io",
      "n": 100,
-     "from": "2025-10-30"
+     "from": "2025-11-05"
     },
     "coverage": {
      "d": "2026-09-30",
@@ -881,82 +889,82 @@
   },
   "unlock": {
    "ETH": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "SUI": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "LINK": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "NEAR": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "AAVE": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "XRP": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "ADA": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "YFI": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "TAO": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "FET": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "ENA": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "next",
-    "ud": "2026-10-05",
-    "n": 171875000.0,
+    "ud": "2026-11-02",
+    "n": 40625000.0,
     "to": "Foundation",
-    "rel": 9151562500.0,
-    "pct": 1.9
+    "rel": 9323437500.0,
+    "pct": 0.4
    },
    "GRAM": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "AVAX": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "next",
     "ud": "2026-11-08",
     "n": 1666800.0,
     "to": "Foundation",
-    "rel": 554897977.1934664,
+    "rel": 555110489.5490347,
     "pct": 0.3
    },
    "ONDO": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "next",
     "ud": "2027-01-18",
@@ -966,170 +974,180 @@
     "pct": 36.4
    },
    "RENDER": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "TRX": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "SOL": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "BCH": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "HYPE": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "next",
-    "ud": "2026-10-06",
-    "n": 9916666.0,
+    "ud": "2026-11-06",
+    "n": 9916667.0,
     "to": "Core Contributors",
-    "rel": 474827814.0,
-    "pct": 2.1
+    "rel": 484744480.0,
+    "pct": 2.0
    },
    "SKY": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "HBAR": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "XLM": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "ALGO": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "BNB": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "ZEC": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "XMR": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "UNI": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "LIT": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "MORPHO": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "fully unlocked"
    },
    "ARB": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:03Z",
     "host": "tokenomist.ai",
     "status": "next",
     "ud": "2026-10-16",
     "n": 92645833.0,
     "to": "Team, Future Team + Advisors",
-    "rel": 5946973213.882464,
+    "rel": 5947990684.054934,
     "pct": 1.6
    },
-   "QNT": {
-    "d": "2026-10-04T16:50Z",
+   "RLC": {
+    "d": "2026-10-06T20:05Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
-   "PHA": {
-    "d": "2026-10-04T16:50Z",
+   "NIGHT": {
+    "d": "2026-10-06T20:05Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
-   "ESP": {
-    "d": "2026-10-04T16:50Z",
+   "C98": {
+    "d": "2026-10-06T20:05Z",
+    "host": "tokenomist.ai",
+    "status": "fully unlocked"
+   },
+   "UMA": {
+    "d": "2026-10-06T20:05Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
-   "IO": {
-    "d": "2026-10-04T16:50Z",
+   "OGN": {
+    "d": "2026-10-06T20:05Z",
+    "host": "tokenomist.ai",
+    "status": "not covered"
+   },
+   "ORDI": {
+    "d": "2026-10-06T20:05Z",
+    "host": "tokenomist.ai",
+    "status": "not covered"
+   },
+   "BAND": {
+    "d": "2026-10-06T20:05Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
    "APT": {
-    "d": "2026-10-04T16:50Z",
+    "d": "2026-10-06T20:10Z",
     "host": "tokenomist.ai",
     "status": "not covered"
    },
-   "EIGEN": {
-    "d": "2026-10-04T16:50Z",
+   "UP": {
+    "d": "2026-10-06T20:10Z",
     "host": "tokenomist.ai",
-    "status": "next",
-    "ud": "2026-11-01",
-    "n": 36820227.0,
-    "to": "Investors",
-    "rel": 746132681.71,
-    "pct": 4.9
+    "status": "not covered"
    }
   },
   "discovery": {
    "book|unlocks": {
-    "d": "2026-10-04",
-    "q": "token unlocks October 4-11 2026",
-    "n": 6
+    "d": "2026-10-06",
+    "q": "token unlocks this week October 6-13 2026",
+    "n": 3
    },
    "book|upgrades": {
-    "d": "2026-10-04",
-    "q": "mainnet launch network upgrade hard fork October 2026 crypto week",
-    "n": 1
+    "d": "2026-10-06",
+    "q": "crypto mainnet launch network upgrade hard fork October 2026 date",
+    "n": 0
    },
    "book|listings": {
-    "d": "2026-10-04",
-    "q": "Coinbase Upbit OKX Bybit Robinhood Kraken listing delisting October 2026",
+    "d": "2026-10-06",
+    "q": "Coinbase Upbit Bybit OKX Robinhood listing delisting October 7 8 9 2026",
     "n": 1
    },
    "book|governance": {
-    "d": "2026-10-04",
-    "q": "crypto governance vote tokenomics buyback burn emission change October 2026",
-    "n": 1
+    "d": "2026-10-06",
+    "q": "DAO governance vote tokenomics buyback burn change vote ends October 2026",
+    "n": 0
    },
    "systemic|legislation": {
-    "d": "2026-10-04",
-    "q": "SEC CFTC crypto market structure bill Senate week of October 5 2026",
-    "n": 1
+    "d": "2026-10-06",
+    "q": "Senate crypto market structure bill CLARITY Act vote October 2026 SEC CFTC this week",
+    "n": 0
    },
    "systemic|etf": {
-    "d": "2026-10-04",
-    "q": "crypto ETF SEC decision deadline October 2026",
+    "d": "2026-10-06",
+    "q": "SEC crypto ETF decision deadline October 2026 approval",
     "n": 0
    },
    "systemic|macro": {
-    "d": "2026-10-04",
-    "q": "economic calendar week October 5-9 2026 FOMC minutes Fed speakers ECB",
-    "n": 4
+    "d": "2026-10-06",
+    "q": "economic calendar week October 6-12 2026 FOMC minutes CPI Fed speakers",
+    "n": 2
    },
    "systemic|venues": {
-    "d": "2026-10-04",
-    "q": "crypto exchange policy change margin collateral fee October 2026 announcement",
+    "d": "2026-10-06",
+    "q": "crypto exchange policy change October 2026 Coinbase Kraken OKX Bybit announcement margin fee",
     "n": 0
    },
    "NFP|resource": {
@@ -1138,153 +1156,153 @@
     "n": 1
    },
    "SOL": {
-    "d": "2026-10-04",
-    "q": "Solana SOL October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Solana SOL upcoming events October 7-13 2026 unlock upgrade launch governance vote listing ETF",
     "n": 0
    },
    "HYPE": {
-    "d": "2026-10-04",
-    "q": "Hyperliquid HYPE October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
-    "n": 1
+    "d": "2026-10-06",
+    "q": "Hyperliquid HYPE upcoming events October 7-13 2026 unlock upgrade launch governance vote listing",
+    "n": 0
    },
    "NEAR": {
-    "d": "2026-10-04",
-    "q": "NEAR Protocol NEAR October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
-    "n": 1
+    "d": "2026-10-06",
+    "q": "NEAR Protocol NEAR upcoming events October 7-13 2026 unlock upgrade launch governance vote listing",
+    "n": 0
    },
    "LIT": {
-    "d": "2026-10-04",
-    "q": "Lighter LIT October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Lighter LIT upcoming events October 7-13 2026 unlock upgrade launch governance vote listing",
     "n": 0
    },
    "AVAX": {
-    "d": "2026-10-04",
-    "q": "Avalanche AVAX October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Avalanche AVAX upcoming events October 7-13 2026 upgrade launch unlock ETF listing",
     "n": 0
    },
    "LINK": {
-    "d": "2026-10-04",
-    "q": "Chainlink LINK October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Chainlink LINK upcoming events October 7-13 2026 launch upgrade integration SmartCon ETF",
     "n": 0
    },
    "XLM": {
-    "d": "2026-10-04",
-    "q": "Stellar XLM October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Stellar XLM upcoming events October 7-13 2026 upgrade protocol vote launch listing",
     "n": 0
    },
    "BCH": {
-    "d": "2026-10-04",
-    "q": "Bitcoin Cash BCH October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Bitcoin Cash BCH upcoming events October 7-13 2026 upgrade listing ETF futures",
     "n": 0
    },
    "MORPHO": {
-    "d": "2026-10-04",
-    "q": "Morpho MORPHO October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Morpho MORPHO upcoming events October 7-13 2026 unlock upgrade launch governance vote listing",
     "n": 0
    },
    "SKY": {
-    "d": "2026-10-04",
-    "q": "Sky (ex-Maker) SKY October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Sky SKY (ex-Maker) upcoming events October 7-13 2026 unlock upgrade launch governance vote listing",
     "n": 0
    },
    "ETH": {
-    "d": "2026-10-04",
-    "q": "Ethereum ETH October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
-    "n": 1
-   },
-   "ZEC": {
-    "d": "2026-10-04",
-    "q": "Zcash ZEC October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
-    "n": 1
-   },
-   "XRP": {
-    "d": "2026-10-04",
-    "q": "XRP Ledger Ripple XRP October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
-    "n": 3
-   },
-   "SUI": {
-    "d": "2026-10-04",
-    "q": "Sui SUI October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Ethereum ETH upcoming events October 7-13 2026 upgrade Glamsterdam Hoodi mainnet ETF",
     "n": 0
    },
-   "ENA": {
-    "d": "2026-10-04",
-    "q": "Ethena ENA October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+   "ZEC": {
+    "d": "2026-10-06",
+    "q": "Zcash ZEC upcoming events October 7-13 2026 NU7 upgrade listing ETF governance",
+    "n": 0
+   },
+   "XRP": {
+    "d": "2026-10-06",
+    "q": "XRP Ledger XRP upcoming events October 7-13 2026 amendment activation ETF listing Evernorth",
+    "n": 2
+   },
+   "SUI": {
+    "d": "2026-10-06",
+    "q": "Sui SUI upcoming events October 7-13 2026 unlock upgrade launch Basecamp listing ETF",
     "n": 1
    },
+   "ENA": {
+    "d": "2026-10-06",
+    "q": "Ethena ENA upcoming events October 7-13 2026 unlock launch governance vote listing",
+    "n": 0
+   },
    "BNB": {
-    "d": "2026-10-04",
-    "q": "BNB Chain BNB October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "BNB Chain BNB upcoming events October 7-13 2026 hard fork upgrade burn listing ETF",
     "n": 0
    },
    "UNI": {
-    "d": "2026-10-04",
-    "q": "Uniswap UNI October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Uniswap UNI upcoming events October 7-13 2026 governance vote fee switch upgrade listing",
     "n": 0
    },
    "AAVE": {
-    "d": "2026-10-04",
-    "q": "Aave AAVE October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Aave AAVE upcoming events October 7-13 2026 governance vote V4 launch burn upgrade",
     "n": 0
    },
    "HBAR": {
-    "d": "2026-10-04",
-    "q": "Hedera HBAR October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Hedera HBAR upcoming events October 7-13 2026 upgrade launch ETF governance council",
     "n": 0
    },
    "ADA": {
-    "d": "2026-10-04",
-    "q": "Cardano ADA October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Cardano ADA upcoming events October 7-13 2026 hard fork governance vote ETF listing",
     "n": 0
    },
    "TAO": {
-    "d": "2026-10-04",
-    "q": "Bittensor TAO October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
-    "n": 1
+    "d": "2026-10-06",
+    "q": "Bittensor TAO upcoming events October 7-13 2026 upgrade subnet halving governance listing ETF",
+    "n": 0
    },
    "ONDO": {
-    "d": "2026-10-04",
-    "q": "Ondo Finance ONDO October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Ondo Finance ONDO upcoming events October 7-13 2026 unlock launch integration listing",
     "n": 0
    },
    "ARB": {
-    "d": "2026-10-04",
-    "q": "Arbitrum ARB October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
-    "n": 0
+    "d": "2026-10-06",
+    "q": "Arbitrum ARB upcoming events October 7-13 2026 unlock governance vote upgrade launch",
+    "n": 1
    },
    "FET": {
-    "d": "2026-10-04",
-    "q": "Fetch.ai ASI Alliance FET October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Fetch.ai ASI Alliance FET upcoming events October 7-13 2026 unlock launch upgrade governance",
     "n": 0
    },
    "TRX": {
-    "d": "2026-10-04",
-    "q": "TRON TRX October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "TRON TRX upcoming events October 7-13 2026 upgrade launch ETF listing",
     "n": 0
    },
    "GRAM": {
-    "d": "2026-10-04",
-    "q": "Gram Toncoin The Open Network GRAM October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
-    "n": 0
-   },
-   "XMR": {
-    "d": "2026-10-04",
-    "q": "Monero XMR October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Gram Toncoin GRAM TON upcoming events October 7-13 2026 upgrade launch listing",
     "n": 1
    },
+   "XMR": {
+    "d": "2026-10-06",
+    "q": "Monero XMR upcoming events October 7-13 2026 FCMP++ upgrade delisting exchange",
+    "n": 0
+   },
    "ALGO": {
-    "d": "2026-10-04",
-    "q": "Algorand ALGO October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Algorand ALGO upcoming events October 7-13 2026 upgrade launch governance ETF",
     "n": 0
    },
    "RENDER": {
-    "d": "2026-10-04",
-    "q": "Render Network RENDER October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "Render Network RENDER upcoming events October 7-13 2026 launch upgrade governance RNP listing",
     "n": 0
    },
    "YFI": {
-    "d": "2026-10-04",
-    "q": "yearn.finance YFI October 2026 upcoming unlock upgrade mainnet launch governance vote listing ETF",
+    "d": "2026-10-06",
+    "q": "yearn.finance YFI upcoming events October 7-13 2026 governance vote launch upgrade",
     "n": 0
    },
    "ENA|follow": {
@@ -1318,8 +1336,8 @@
     "n": 0
    },
    "US|mover": {
-    "d": "2026-10-04",
-    "q": "talus US crypto news 4 October 2026 | talus US crypto news 3 October 2026",
+    "d": "2026-10-06",
+    "q": "talus US crypto news 6 October 2026 | talus US crypto news 5 October 2026",
     "n": 0
    },
    "AGT|mover": {
@@ -1348,8 +1366,8 @@
     "n": 0
    },
    "UNI|vector": {
-    "d": "2026-10-04",
-    "q": "UNI whale accumulation Uniswap on-chain October 2026",
+    "d": "2026-10-06",
+    "q": "uniswap UNI crypto news 6/5 October 2026 (mover pair; vector read on its hits)",
     "n": 0
    },
    "HBAR|coverage": {
@@ -1431,6 +1449,81 @@
     "d": "2026-10-04",
     "q": "MUBARAKUSDT Binance futures",
     "n": 0
+   },
+   "RENDER|mover": {
+    "d": "2026-10-06",
+    "q": "render token RENDER crypto news 6 October 2026 | render token RENDER crypto news 5 October 2026",
+    "n": 0
+   },
+   "AVAX|mover": {
+    "d": "2026-10-06",
+    "q": "avalanche AVAX crypto news 6 October 2026 | avalanche AVAX crypto news 5 October 2026",
+    "n": 0
+   },
+   "UNI|mover": {
+    "d": "2026-10-06",
+    "q": "uniswap UNI crypto news 6 October 2026 | uniswap UNI crypto news 5 October 2026",
+    "n": 0
+   },
+   "BR|mover": {
+    "d": "2026-10-06",
+    "q": "bedrock BR crypto news 6 October 2026 | bedrock BR crypto news 5 October 2026",
+    "n": 0
+   },
+   "龙虾|mover": {
+    "d": "2026-10-06",
+    "q": "lobster 龙虾 crypto news 6 October 2026 | lobster 龙虾 crypto news 5 October 2026",
+    "n": 0
+   },
+   "RLC|filter3": {
+    "d": "2026-10-06",
+    "q": "RLCUSDT Binance futures",
+    "n": 0
+   },
+   "NIGHT|filter3": {
+    "d": "2026-10-06",
+    "q": "NIGHTUSDT Binance futures",
+    "n": 0
+   },
+   "C98|filter3": {
+    "d": "2026-10-06",
+    "q": "C98USDT Binance futures",
+    "n": 0
+   },
+   "UMA|filter3": {
+    "d": "2026-10-06",
+    "q": "UMAUSDT Binance futures",
+    "n": 0
+   },
+   "OGN|filter3": {
+    "d": "2026-10-06",
+    "q": "OGNUSDT Binance futures",
+    "n": 0
+   },
+   "ORDI|filter3": {
+    "d": "2026-10-06",
+    "q": "ORDIUSDT Binance futures",
+    "n": 0
+   },
+   "BAND|filter3": {
+    "d": "2026-10-06",
+    "q": "BANDUSDT Binance futures",
+    "n": 0
+   },
+   "BR|filter3": {
+    "d": "2026-10-06",
+    "q": "BRUSDT Binance futures",
+    "n": 0
+   },
+   "龙虾|filter3": {
+    "d": "2026-10-06",
+    "q": "龙虾USDT Binance futures",
+    "n": 0
+   },
+   "XRP|follow": {
+    "d": "2026-10-06",
+    "q": "Evernorth Armada Acquisition Corp II business combination closing XRPN Nasdaq press release October 2026",
+    "n": 1
    }
   }
  }
