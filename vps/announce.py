@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""The announcement watcher (TZ-54 B6, TZ-56 B3, TZ-57 B2): Binance's announcement
+"""The announcement watcher (TZ-54 B6, TZ-56 B3, TZ-57 B2, TZ-62 B1): Binance's announcement
 stream held on the read-only key, after the key's own rights were read from the
 exchange. The subscription is the documented one: each connection sends the
 SUBSCRIBE command once and waits for its own SUBSCRIBE answer. REGISTER/SUCCESS
 answers every connection, whether or not it sent a command, so it acknowledges no
 subscription and is only logged (TZ-56's reading, map §10).
 
-Alerts only (TZ-57): a matched announcement reaches the owner as an alert and he
-decides whether to press the button; this program requests no run.
+Alerts only (TZ-57), by the alert rule (TZ-62): a promotion, a maintenance notice or
+a non-crypto listing never reaches the owner; a new coin, a list coin, a perpetual's
+listing or delisting, or a contract notice on a list contract does, and he decides
+whether to press the button; this program requests no run.
 
     announce.py [--state-dir <dir>]                    the service
     announce.py --measure <seconds> <max_data> [...]   key check and stream, no outbox
@@ -143,6 +145,48 @@ def perpetual_pairs(state_dir):
             return [(row["base"], row["symbol"]) for row in json.load(fh) if row.get("base")]
     except (OSError, ValueError, KeyError, TypeError):
         return []
+
+
+# --- TZ-62 section 12.2: the alert rule -------------------------------------------
+# Case-sensitive throughout: Binance writes its headlines in Title Case and its tickers
+# in capitals, so "Win" is a promotion's word and "WIN" a coin's ticker.
+SILENT_CATALOGS = ("93", "157")          # catalogId as text: Latest Activities, Maintenance Updates
+NEW_COIN_CATALOG = "48"                  # New Cryptocurrency Listing
+NON_CRYPTO = re.compile(r"\bbStocks\b|\bTradFi\b|\bTokenized Securities\b|\bStocks?\b")
+NEW_COIN = re.compile(r"\bWill List\b|^Introducing\b|\bWill Launch\b.*\bPerpetual\b")
+NOISE = re.compile(r"\bRewards?\b|\bVouchers?\b|\bTournament\b|\bCompetition\b|\bCampaign\b|\bPrize\b"
+                   r"|\bPromotion\b|\bWin\b|\bBonus\b|\bExclusive\b|\bAPR\b|\bSimple Earn\b|\bBinance Earn\b"
+                   r"|\bBinance Alpha\b|\bPairs?\b|\bCollateral\b|\bQuarterly\b")
+DELIST = re.compile(r"\bDelist|\bMonitoring Tag\b")
+CONTRACT = re.compile(r"\bFutures\b|\bPerpetual\b")
+CONTRACT_TERMS = re.compile(r"\bDelist|\bFunding\b|\bLeverage\b|\bMargin Tiers?\b|\bTick Size\b|\bPrice Protection\b")
+ALERT_REASONS = ("new-coin", "list", "perpetual", "contract")
+
+
+def alert_rule(data, cls, list_pairs):
+    """(reason, symbols) for one record: the first rule below that applies. A reason in
+    ALERT_REASONS alerts and any other is recorded only; symbols are the list contracts
+    a contract notice's body names, else []. Reads the record and nothing else."""
+    catalog_id = str(data.get("catalogId"))
+    title = str(data.get("title") or "")
+    if catalog_id in SILENT_CATALOGS:
+        return "catalogue", []
+    if NON_CRYPTO.search(title):
+        return "non-crypto", []
+    if catalog_id == NEW_COIN_CATALOG and NEW_COIN.search(title):
+        return "new-coin", []
+    if NOISE.search(title):
+        return "noise", []
+    if cls == "list":
+        return "list", []
+    if cls == "perpetual" and ("listing" in str(data.get("catalogName") or "").lower() or DELIST.search(title)):
+        return "perpetual", []
+    if CONTRACT.search(title) and CONTRACT_TERMS.search(title):
+        body = str(data.get("body") or "")
+        symbols = [symbol for _ticker, symbol in list_pairs if _word(symbol).search(body)]
+        if symbols:
+            return "contract", symbols
+    return "none", []
 
 
 # --- the stream -----------------------------------------------------------------
@@ -330,16 +374,19 @@ def utc_text(ms):
     return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def act(data, cls, ticker):
-    """A list match → A1; a perpetual match in a listing catalogue → A1; anything
-    else is recorded only. Alerts only: no run is requested (TZ-57)."""
-    catalog = str(data.get("catalogName") or "")
-    listing = "listing" in catalog.lower()
-    if cls == "none" or (cls == "perpetual" and not listing):
+def act(data, cls, ticker, list_pairs=()):
+    """alert_rule decides (TZ-62): an alerting reason writes A1, with the list contracts
+    a contract notice's body names appended; any other reason is recorded only. Alerts
+    only: no run is requested (TZ-57)."""
+    reason, symbols = alert_rule(data, cls, list_pairs)
+    if reason not in ALERT_REASONS:
         return "recorded"
     hhmm = datetime.fromtimestamp(int(data.get("publishDate") or time.time() * 1000) / 1000,
                                   tz=TBILISI).strftime("%H:%M")
-    text = common.A1.format(hhmm=hhmm, catalog_name=catalog, title=str(data.get("title") or ""))
+    text = common.A1.format(hhmm=hhmm, catalog_name=str(data.get("catalogName") or ""),
+                            title=str(data.get("title") or ""))
+    if symbols:
+        text += " \u00b7 " + ", ".join(symbols)
     common.write_outbox("alert", text)
     return "alerted"
 
@@ -390,7 +437,7 @@ def main(argv=None):
                               cls + ("" if ticker is None else " " + ticker),
                               sum(data.get(name) is not None for name in FIELDS)))
             else:
-                outcome = act(data, cls, ticker)
+                outcome = act(data, cls, ticker, list_tickers)
                 common.log("announce: data catalogId=%s match=%s %s lag_ms=%s"
                            % (data.get("catalogId"), cls, outcome, lag))
     finally:

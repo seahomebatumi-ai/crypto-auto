@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7):
-the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's, TZ-57 §12.8's,
-TZ-58 §12.7's and TZ-60 §12.11's changed and new ones, each printing `section <X>:
+"""The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
+TZ-62 B2): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's, TZ-57 §12.8's,
+TZ-58 §12.7's, TZ-60 §12.11's and TZ-62 §12.4's changed and new ones, each printing `section <X>:
 checks <n> failed <m>`, then the total.
 
     python3 vps/selftest.py
@@ -995,10 +995,95 @@ def section_s(s):
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+# --- T: the alert rule on the stream's records (TZ-62 section 12.4) ------------------
+T_LA, T_LBN, T_NCL = "Latest Activities", "Latest Binance News", "New Cryptocurrency Listing"
+T_PERPS = [("PEPE", "1000PEPEUSDT"), ("S", "SUSDT"), ("ZRO", "ZROUSDT"), ("STG", "STGUSDT"),
+           ("MET", "METUSDT"), ("USDC", "USDCUSDT"), ("WIN", "WINUSDT")]
+T_DELIST_MANY = "Binance Futures Will Delist Multiple USD\u24c8-M Perpetual Contracts (2026-10-05)"
+T_FUNDING_MANY = "Binance Futures Will Adjust the Funding Rate Interval of Multiple USD\u24c8-M Perpetual Contracts (2026-10-10)"
+T_PROMO_FUTURES = "Trade Futures & Win: Complete Tasks to Share 200 BNB in Rewards!"
+T_PROMO_MET = "MET Trading Tournament: Trade to Share Up to 400 BNB Token Vouchers"
+# (catalogId, catalogName, title, body, reason, symbols). Rows 1-13 are the stream's own
+# records: TZ-61's report, table "Records at or after T1", and the owner's screenshot of
+# 08.10.2026; every other row's catalogue is the fixture's.
+T_ROWS = (
+    (93, T_LA, "Binance Lite Loan Promotion Extended: Enjoy Simple Borrowing with 50% Off Service Fee!", None, "catalogue", []),
+    (93, T_LA, "Word of the Day: Test Your Knowledge on \u201cProactive Security Wins\u201d to Unlock USDC Rewards!", None, "catalogue", []),
+    (93, T_LA, "Binance Pay Exclusive: Get up to 20% Off Mobile Top-Ups in Selected Regions!", None, "catalogue", []),
+    (93, T_LA, "New User bStocks Convert Campaign: Join and Share a Reward Pool of Up to 110 SPCXB", None, "catalogue", []),
+    (49, T_LBN, "Binance Will Support Marvell Technology (MRVL) and Oracle Corporation (ORCL) Cash Dividend Distribution via bStocks", None, "non-crypto", []),
+    (48, T_NCL, "Binance Futures Will Launch Multiple TradFi USD\u24c8-Margined Perpetual Contracts (2026-10-06)", None, "non-crypto", []),
+    (93, T_LA, "APAC Exclusive: Win a Fully Hosted Trip to Binance Blockchain Week 2026", None, "catalogue", []),
+    (49, T_LBN, "Update on the Collateral Ratio Under Cross Margin and Portfolio Margin (2026-10-09)", None, "noise", []),
+    (48, T_NCL, "Binance Exchange Adds JPMorgan Chase (JPMB), Eli Lilly (LLYB), Securitize Corp (SECZB) and StablecoinX Inc (USDEB) bStocks Trading Pairs on Binance Spot/Convert - 2026-10-07", None, "non-crypto", []),
+    (48, T_NCL, "Binance Will Add 4 bStocks Tokenized Securities as Collateral Asset - 2026-10-07", None, "non-crypto", []),
+    (157, "Maintenance Updates", "Binance Has Completed the Stargate Finance (STG) Token Merge to LayerZero (ZRO)", None, "catalogue", []),
+    (93, T_LA, T_PROMO_FUTURES, None, "catalogue", []),
+    (93, T_LA, T_PROMO_MET, None, "catalogue", []),
+    (49, T_LBN, T_PROMO_FUTURES, None, "noise", []),
+    (49, T_LBN, T_PROMO_MET, None, "noise", []),
+    (48, T_NCL, "Binance Will List Hyperliquid (HYPE) with Seed Tag Applied", None, "new-coin", []),
+    (48, T_NCL, "Introducing ETHFI on Binance Launchpool", None, "new-coin", []),
+    (48, T_NCL, "Binance Futures Will Launch USD\u24c8-Margined SUIUSDT Perpetual Contract", None, "new-coin", []),
+    (48, T_NCL, "Introducing Plasma (XPL) on Binance HODLer Airdrops! Earn XPL With Retroactive BNB Simple Earn Subscriptions", None, "new-coin", []),
+    (48, T_NCL, "Binance Will List Bitcoin (BTC)", None, "new-coin", []),
+    (93, T_LA, "Binance Will List Bitcoin (BTC)", None, "catalogue", []),
+    (161, "Delisting", "Binance Will Delist Sonic (S)", None, "perpetual", []),
+    (49, T_LBN, "Binance Will Extend Monitoring Tag to Include Sonic (S)", None, "perpetual", []),
+    (49, T_LBN, "Binance Will Delist WIN on 2026-10-20", None, "perpetual", []),
+    (49, T_LBN, "Binance Futures Will Update the Leverage and Margin Tiers of XRPUSDT Perpetual Contract (2026-10-10)", None, "list", []),
+    (49, T_LBN, T_DELIST_MANY, "Positions in XRPUSDT will be closed at 2026-10-05 09:00 (UTC).", "contract", ["XRPUSDT"]),
+    (49, T_LBN, T_DELIST_MANY, "PROMPTUSDT, PUMPBTCUSDT and 1000000BOBUSDT at 2026-10-05 09:00 (UTC).", "none", []),
+    (49, T_LBN, T_FUNDING_MANY, "ENAUSDT and BTCUSDT will settle funding every 4 hours.", "contract", ["BTCUSDT", "ENAUSDT"]),
+    (49, T_LBN, T_FUNDING_MANY, None, "none", []),
+    (50, "New Fiat Listings", "Binance Adds ARB/EUR Trading Pair", None, "noise", []),
+    (157, "Maintenance Updates", "Binance Will Support the BNB Smart Chain (BSC) Network Upgrade & Hard Fork", None, "catalogue", []),
+    (48, T_NCL, "Binance Futures Will Launch USD\u24c8-M BTCUSDT Quarterly 1226 Futures Contract", None, "noise", []),
+)
+
+
+def section_t(s):
+    lists = [("BTC", "BTCUSDT")] + [(row["name"], row["s"]) for row in checkout_tokens()]
+    for cid, cname, title, body, reason, symbols in T_ROWS:
+        cls, _ticker = announce.match_title(title, lists, T_PERPS)
+        data = {"catalogId": cid, "catalogName": cname, "title": title, "body": body}
+        s.check("%s %s -> %s" % (cid, title, reason), announce.alert_rule(data, cls, lists) == (reason, symbols))
+    hhmm = datetime.fromtimestamp(1700000000, tz=announce.TBILISI).strftime("%H:%M")
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-t.")
+    try:
+        with spool_in(tmp, True) as paths:
+            def alerts():
+                return sorted(n for n in os.listdir(paths["OUTBOX_DIR"]) if "-alert-" in n)
+
+            def text_of(name):
+                with open(os.path.join(paths["OUTBOX_DIR"], name), encoding="utf-8") as fh:
+                    return json.load(fh)["text"]
+
+            promo = {"catalogId": 93, "catalogName": T_LA, "title": T_PROMO_MET, "publishDate": 1700000000000}
+            s.check("act(): the promotion of 08.10 is recorded", announce.act(promo, "list", "BNB", lists) == "recorded")
+            s.check("act(): no alert for it", alerts() == [])
+            listing = {"catalogId": 48, "catalogName": T_NCL, "publishDate": 1700000000000,
+                       "title": "Binance Will List Hyperliquid (HYPE) with Seed Tag Applied"}
+            s.check("act(): a new coin alerts", announce.act(listing, "list", "HYPE", lists) == "alerted")
+            first = alerts()
+            s.check("act(): one alert, A1 exactly", len(first) == 1 and text_of(first[0]) == common.A1.format(
+                hhmm=hhmm, catalog_name=T_NCL, title=listing["title"]))
+            funding = {"catalogId": 49, "catalogName": T_LBN, "title": T_FUNDING_MANY, "publishDate": 1700000000000,
+                       "body": "ENAUSDT and BTCUSDT will settle funding every 4 hours."}
+            s.check("act(): a contract notice on list contracts alerts", announce.act(funding, "none", None, lists) == "alerted")
+            second = [n for n in alerts() if n not in first]
+            s.check("act(): A1 with the contracts appended", len(second) == 1 and text_of(second[0]) == common.A1.format(
+                hhmm=hhmm, catalog_name=T_LBN, title=T_FUNDING_MANY) + " \u00b7 BTCUSDT, ENAUSDT")
+            s.check("act(): no request", os.listdir(paths["REQUESTS_DIR"]) == [])
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
-            ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s))
+            ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
+            ("T", section_t))
 
 
 def main():
