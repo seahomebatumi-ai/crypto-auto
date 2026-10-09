@@ -1,8 +1,18 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 26.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 27.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v27 lets an analysis run launch the two subagents its methodology names.** The owner decided,
+recorded at map `2026-10-09-c`, that the analysis splits into three roles: the session that runs it
+— the trader, the one decision-maker — launches a hunter after the freeze and a sheriff after the
+book is composed, both through the Agent tool, in the same turn and on the same tree
+(`ANALYST-INSTRUCTIONS.md` §15). §1 says what the two may do inside role 2; §4b step 1 says the
+session reads the methodology's §15 first and then its own part — every section but the hunter's and
+the sheriff's briefs, which the subagents read for themselves; steps 7 and 8 say the run's log is
+two files under one commit that only the session makes; and item 14 binds the subagents to the same
+tree. Nothing else in v26 changed.
 
 **v26 closes the gap v25 left in the deployer's check, and names the signal that ends a
 task.** v25 had the deployer verify only the newest commit on `main`'s first-parent line that
@@ -220,6 +230,13 @@ analysis · the published answer · state update · day log — under the method
 levels, ranking, what is published and what is refused. You never ask the Boss to
 decide an analytical question.
 
+**Since v27 the run is one session with two subagents of its own** — the hunter and the sheriff,
+launched exactly as `ANALYST-INSTRUCTIONS.md` §15 fixes, with the prompts it fixes and no other text.
+They run inside this role and this turn: a subagent writes only what §15 lets it under `analyst/`, never
+commits, pushes or sends, and is bound by the hard floor exactly as the session is. **The session alone
+decides what is published**: what a subagent returns is an input it applies under the methodology, never
+an answer it forwards.
+
 **The authority boundary, stated once.** The Architect owns the methodology; you
 execute it. You decide **what today's market means under the approved method**; you
 never decide **what the method is**. A rule you believe is wrong, missing or
@@ -378,7 +395,9 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
 `ANALYST-INSTRUCTIONS.md`; this is only what the repository requires around it.
 
 1. **Read §1, §2, §4, §7, §12, §13 and §14 of this file — the operative set for role 2 —
-   then read `ANALYST-INSTRUCTIONS.md` from the repository in full.** Never from memory,
+   then read `ANALYST-INSTRUCTIONS.md` from the repository: its §15 first, the text between its `## 15.`
+   and `## 16.` headings, then the session's own part by the one command §15 gives — the whole file but
+   §16–§17, the briefs the run's two subagents read for themselves (since v27).** Never from memory,
    never from a previous session's summary. §3, §5, §6, §8, §9, §10 and §11 belong to
    role 1 and do not bind an analysis run: four of them say so in their own opening lines,
    and the other three are TZ machinery a run with no TZ cannot reach. **A section NAMED
@@ -422,11 +441,13 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
    the gate, not a preference: it is what makes a thorough run and a fast run produce
    the same-shaped answer, and reversing it spends the price budget on searches and
    arrives at composition with levels it may no longer publish.
-7. Write `analyst/state.json` and the day log **before** sending the answer. An
+7. Write `analyst/state.json` and the day log — the trader's file and the hunter's record beside it
+   (methodology §12) — **before** sending the answer. An
    answer sent against a state that was never written is an answer the next run
    cannot see.
 8. Commit `analyst/**` directly to `main` (§8), one commit, message `analyst: <date>`,
    and push it with the destination inside the command: **`git push origin HEAD:main`**.
+   **The commit is the session's alone** and carries everything its subagents wrote (since v27).
    The refspec is mandatory and is not a matter of style — it makes the landing place a
    property of the command instead of a property of the checkout, which is what allows
    step 2 to stop caring which branch you stand on. A bare `git push` resolves against the
@@ -667,15 +688,15 @@ TZs and reports.
     change. A discovered event that deserves an entry is a line in the day log; the
     Architect turns it into a TZ or does not.
 14. **An analysis run publishes nothing behind a failed data gate, and edits no
-    contract.** Three prohibitions, each of which has exactly one safe response:
-    a level with no live price behind it is not published at all — it is never
-    approximated, never softened and never carried over from a previous run; the
-    methodology in `ANALYST-INSTRUCTIONS.md` is read, never edited, and a rule you
-    believe is wrong is a finding, not a deviation; and `analyst/` is the only tree
-    an analysis run writes. Writing anything else — production code, a bench, a
-    workflow, the map, this file — means the run has silently become an
-    implementation, and an implementation with no TZ behind it is unauthorised by
-    §6 whichever role performed it.
+    contract.** Three prohibitions, each of which has exactly one safe response: a level
+    with no live price behind it is not published at all — it is never approximated,
+    never softened and never carried over from a previous run; the methodology in
+    `ANALYST-INSTRUCTIONS.md` is read, never edited, and a rule you believe is wrong is
+    a finding, not a deviation; and `analyst/` is the only tree an analysis run writes,
+    its subagents included (since v27). Writing anything else — production code, a
+    bench, a workflow, the map, this file — means the run has silently become an
+    implementation, and an implementation with no TZ behind it is unauthorised by §6
+    whichever role performed it.
 15. **Merge is deployment on the VPS as it is on Pages** (since v24). Code under `vps/` runs
     on the VPS only from `main`: the deployer fast-forwards its own clone and installs what
     changed, and nothing else installs anything. An implementation session never enables,
