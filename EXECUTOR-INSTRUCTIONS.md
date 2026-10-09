@@ -1,8 +1,17 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 27.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 28.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
+
+**v28 makes the session's last message the answer, by rule and by the unit.** The first press under v27,
+on 09.10.2026, sent the methodology's hunter to the background — the default of the Claude Code the VPS
+runs — and ended its turn with a status in English to wait for it; the unit delivered that status to the
+Boss as the answer, and the hunt died with the session, because a headless session's turn is its whole run.
+§1 now says the two subagents run in the foreground, inside the session's turn; §4 says a final message
+carrying no line that opens with the answer's first line is not an answer, and the unit sends the notice
+«Анализ не завершён.» in its place; §4b step 9 says the answer is the session's last message. Nothing else
+in v27 changed.
 
 **v27 lets an analysis run launch the two subagents its methodology names.** The owner decided,
 recorded at map `2026-10-09-c`, that the analysis splits into three roles: the session that runs it
@@ -231,8 +240,9 @@ levels, ranking, what is published and what is refused. You never ask the Boss t
 decide an analytical question.
 
 **Since v27 the run is one session with two subagents of its own** — the hunter and the sheriff,
-launched exactly as `ANALYST-INSTRUCTIONS.md` §15 fixes, with the prompts it fixes and no other text.
-They run inside this role and this turn: a subagent writes only what §15 lets it under `analyst/`, never
+launched exactly as `ANALYST-INSTRUCTIONS.md` §15 fixes, with the prompts it fixes and no other text,
+**in the foreground: each call returns its subagent's report as its own result, and a subagent sent to the
+background is a failed one** (since v28). They run inside this role and this turn: a subagent writes only what §15 lets it under `analyst/`, never
 commits, pushes or sends, and is bound by the hard floor exactly as the session is. **The session alone
 decides what is published**: what a subagent returns is an input it applies under the methodology, never
 an answer it forwards.
@@ -363,7 +373,11 @@ appended system-prompt sentence that names this file as the session's contract; 
 nothing else, because any further instruction in a unit's prompt is a second methodology
 written into a unit file. The session runs §4b in full and is selected by that string alone,
 exactly as by a message. Step 9's answer is its final message: the unit delivers it to the Boss,
-verbatim and whole, and nothing else the session prints is delivered.
+verbatim and whole, and nothing else the session prints is delivered. **A final message carrying no line
+that opens with «Время анализа:» — the answer's first line, `ANALYST-INSTRUCTIONS.md` §2 — is not an
+answer: the unit delivers the notice «Анализ не завершён.» in its place, and never the message** (since
+v28). The methodology changes that line only together with this clause and the unit's code, in the order
+map inv. 59 fixes.
 
 An unrecognised trigger is not guessed. Say in one line which triggers exist and stop.
 
@@ -471,7 +485,9 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
    waiting behind a human merge is invisible to the next run, which then reads a stale
    state and reports known items as discoveries.
 9. Send the answer. It is the whole message: no closing line, no report path, no
-   status, no stage report (§11).
+   status, no stage report (§11) — **and it is the session's last message: the turn ends here and nowhere
+   earlier** (since v28). A headless session's turn is its whole run, so a status written while a subagent
+   works is the run's last word, and the unit refuses it (§4).
 
 **The day log makes no statement about its own commit or push.** It is written at step 7
 and pushed at step 8, so any such sentence is a forecast of a step that has not run, and a
