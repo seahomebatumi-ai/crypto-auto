@@ -36,6 +36,10 @@ LOGIN_CREDENTIAL = "claude-oauth-token"   # TZ-55 B2.3: the run's own Claude log
 LOGIN_ENV = "CLAUDE_CODE_OAUTH_TOKEN"
 # TZ-55 B2.4: categorical fields of result.json for the second summary line; never `result`.
 RESULT_CATEGORIES = ("subtype", "api_error_status", "terminal_reason", "stop_reason")
+# TZ-63: the market answer's first line opens with this head (ANALYST-INSTRUCTIONS.md section 2,
+# contract v28 section 4); a final message with no line opening with it is not an answer.
+ANSWER_HEAD = "\u0412\u0440\u0435\u043c\u044f \u0430\u043d\u0430\u043b\u0438\u0437\u0430:"
+ANSWER_MARKS = " \t*_#>"   # set aside before the head: indentation and markdown emphasis or heading
 
 # TZ-54 §12.2, exactly: the production trigger verbatim, one appended sentence
 # naming the contract (contract §4), nothing else.
@@ -195,6 +199,15 @@ def claude_env():
     return env
 
 
+def is_answer(result):
+    """TZ-63: True when result is a market answer -- a string with a line that opens with
+    ANSWER_HEAD once leading whitespace and markdown marks are set aside. A status, a plan,
+    a one-line refusal or an empty string is not an answer, and the run never delivers one."""
+    if not isinstance(result, str):
+        return False
+    return any(line.lstrip(ANSWER_MARKS).startswith(ANSWER_HEAD) for line in result.splitlines())
+
+
 def category(value):
     """A categorical result.json field as one token for the summary line."""
     if value is None or value == "":
@@ -318,7 +331,9 @@ def main(argv=None):
                        ("cache_creation_tokens", "cache_creation_input_tokens")):
         usage[field] = integer(tokens.get(key))
     usage["cost_usd"] = finite(doc.get("total_cost_usd"))
-    answered =(not is_error) and isinstance(result, str) and result.strip() != ""
+    answered = (not is_error) and is_answer(result)
+    if not is_error and isinstance(result, str) and result.strip() != "" and not answered:
+        common.log("crypto-run: final message is not an answer chars=%d" % len(result))
     if answered:
         common.write_outbox("answer", result)
         line["answer_chars"] = len(result)
