@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-08-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-09-a.**
 
 **Authority.** Authoritative in GitHub and read there alone — a copy anywhere else is not this file.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,32 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-10-09-a` splits the run into three roles — the owner's decision recorded at map `2026-10-09-c` — and
+answers his message of 09.10.2026: the method must be the one a professional trader enters by, and where
+the large players are entering, and in which coins, must be computed and not asserted.** Four changes,
+each stated once where it binds:
+
+- **the roles** (§15, §16, §17): the run is one session, the TRADER, the only decision-maker; after the
+  freeze it launches the HUNTER, a subagent that runs §5 step 5's whole hunt and returns one report, and
+  after composing the book it launches the SHERIFF, a subagent that reads the finished book cold and may
+  only strike a trade or cut its size. The hunter and the sheriff each read only their own part of this
+  file, and the trader no longer runs the hunt or carries the pages it reads — the press of 04.10 did both
+  in one context, cost 11.02 USD, and the account refused the next press;
+- **the positioning read** (§16): what Binance's top traders and its crowd hold — the exchange's own
+  statistics of the two long-to-short ratios and the open interest, and the funding — read for every list
+  coin and every screened book row, each coin classed against its own thirty days: «киты набирают лонг /
+  шорт», «толпа в лонге / в шорте»;
+- **what a class may do** (§2, §3B, §4, §8, item 112): refuse a trade where the large players stand on the
+  other side and the crowd on its side; take `СИЛЬНАЯ` away where the large players are against the side;
+  halve a size where the crowd is crowded into it, as «ПОВЫШЕННЫЙ РИСК: перекос позиций»; give a `ТОП-3`
+  slot first to the row they back; and stand in `Почему` — and never produce a side, a level, a grade or a
+  size until the exchange's own archive of the same series measures what a class is worth (map §10);
+- **the state** (§11): every horizon entry carries its class and, where its publisher gives one, its
+  minute, and the trader writes the four `# BTC` levels — the fields the watcher's alerts wait on.
+
+**§6 and §6a do not move, so `sec6_md5` is unchanged** and every lane read under `2026-10-08-a` stays
+fresh.
 
 **`2026-10-08-a` answers the audit of the run of 07.10.2026 and the owner's request of 07.10.2026, repeated
 on 08.10.2026: a verdict on every significant catalyst ahead and one on BTC, each with an approximate
@@ -60,8 +86,10 @@ two touch, the contract wins and this file is the defect.
 **Language.** This file is English. Chat with the Boss is Russian only. On-screen
 Russian labels («…») are quoted verbatim and are never translated.
 
-**Standing.** This is the methodology of role 2 of the Claude Code Executor, not a
-second agent and not a second contract. Which role runs, on which trigger, and what
+**Standing.** This is the methodology of role 2 of the Claude Code Executor, and not a
+second contract. Role 2 runs it as one session — the trader — which launches two subagents of its own,
+the hunter and the sheriff, for the parts §15 gives them; neither has a methodology of its own and
+neither decides what is published (§15). Which role runs, on which trigger, and what
 each may write is `EXECUTOR-INSTRUCTIONS.md` §1 and §4 — read there, never decided
 here.
 
@@ -82,9 +110,15 @@ The Architect owns methodology, the System Map, invariants, specifications and
 acceptance. The analyst owns execution of the cycle below and owns nothing else:
 
 ```
-trigger → live data → state → catalyst discovery → opportunity discovery
-        → analysis → ALTCOIN STRATEGY → state update → day log
+trigger → live data → state → the freeze and the screen                 TRADER
+        → catalyst discovery and the positioning read                    HUNTER
+        → opportunity discovery → analysis → ALTCOIN STRATEGY             TRADER
+        → the book read cold                                             SHERIFF
+        → state update → day log → the answer                            TRADER
 ```
+
+**Three roles run it and one of them decides** (§15): the hunter supplies, the sheriff may only take
+away, and everything the Boss reads is the trader's.
 
 **СТАНДАРТ ТРЕЙДЕРА — the standard every other rule in this file is read against, and the
 owner's decision of 19.09.2026.** One question decides what a run publishes: *with the Boss's own
@@ -122,7 +156,7 @@ best trade is published again because today's evidence says so; a coin that is n
 its absence is not announced. **The engine does not track the Boss's positions** — he does not
 report them and it is not the engine's job — so no line is addressed to a holder. **The run asks
 four questions in this order:** (1) what is developing next — the forward hunt of `СОЗРЕВАЕТ`
-across the list and the liquid perpetual book, in §5's fixed order (§5 step 5, §6); (2) what the market is doing now — BTC's
+across the list and the liquid perpetual book, in §5's fixed order (§5 step 5, §6), and where the large players are building (§16); (2) what the market is doing now — BTC's
 regime, structure, relative strength, liquidity, risk; (3) which developing candidates are
 actionable now; (4) where the engine enters now. §5's freeze precedes all four because it captures
 the whole book at one minute, so the hunt of (1) can price whatever it finds (§5 step 4). **What
@@ -328,7 +362,8 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   that earned the grade** — the coin's own week moving the side's way against BTC (§8, condition 4) —
   and what the entry is: a pullback inside that move, a retest, a break. A dated event in the side's
   direction may stand in it beside the edge and never in its place, because no catalyst earns the
-  grade (§8); no statistic stands in it (§1). **It is ranked by §2's key** — the chance of the zone
+  grade (§8), and so may the large players' class of the side — «киты набирают лонг» — which earns
+  nothing either (§16); no statistic stands in it (§1). **It is ranked by §2's key** — the chance of the zone
   inside seven days times the anchor-to-target distance — which is what «most profitable» can mean
   without a score: the target alone would put the trade least likely to fill at the top. **A row
   printed here is printed in no other section but `ИТОГ`** — it leaves `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` and the
@@ -424,7 +459,11 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
     событие» and the date stands in `# КАТАЛИЗАТОРЫ` marked `НЕ ПОДТВЕРЖДЕНО`. A market-wide print
     is a regime fact and never a cause, and an unlock is carried by §6a's own rules;
   - **тонкий рынок** — the coin's 24-hour turnover in the payload below §3B's filter-4 floor of
-    $10M: below it the owner's own order moves the book, and a stop can fill far from its price.
+    $10M: below it the owner's own order moves the book, and a stop can fill far from its price;
+  - **перекос позиций** — the crowd class of the object's own side on its coin in this run's
+    positioning read (§16): the crowd is already in the trade and paying for it, which is the fuel of a
+    flush against it. The class is §16's computation, never a judgement, and where the large players
+    stand on the other side as well the object is refused instead (item 112).
 
   **Being outside the list, being day-cut and being against the market are not causes**: they are
   what the object IS, and `СРЕДНЯЯ` and `⚠` already carry them. The label halves the object's risk
@@ -1115,8 +1154,8 @@ this section asks; two consecutive runs returned «нет кандидатов»
 it surfaced was a micro-cap that had already run. A coin with a dated unlock, vote, listing
 or upgrade and a real perpetual is a candidate BEFORE it moves, which is the only kind
 worth publishing here. Admissible on: a dated catalyst, abnormal relative strength or
-weakness, clean structure, real liquidity, derivatives positioning, or an asymmetric
-reversal or continuation setup. **«It moved the most» is not a candidate.** These carry
+weakness, clean structure, real liquidity, derivatives positioning — §16's classes, the one form it has —
+or an asymmetric reversal or continuation setup. **«It moved the most» is not a candidate.** These carry
 chart-and-catalyst reads only — no beta and no liquidation math exists for them, and that
 limitation is stated nowhere, because the answer never claims otherwise.
 
@@ -1225,6 +1264,16 @@ names its thesis, and a candidate without one stands on the other legs of the ad
 — above all relative strength or weakness against the list median — and is refused by name when
 it has none of them. **A forward candidate whose day does not yet admit its event's side is not
 refused: it is a `СОЗРЕВАЕТ` item at the price where its day would admit it (§4).**
+
+**The section's three slots per side go to the surviving candidates in one order — a dated event
+naming the side first, then the large players' class of the side (§16), then turnover — and §2's key
+then orders the lines on the page.** A candidate whose coin carries the large players' class AGAINST its
+side is refused by name, whether or not the crowd is with it: the trade the engine knows least about does
+not get the loosest standard (§0), and one day's row against the exchange's largest accounts is a trade a
+professional leaves alone. The class of the side stands in `Почему` beside the coin's day — «киты
+набирают лонг» — and raises nothing (§4). **Measured 08.10, 22:59 Tbilisi:** fifteen long-lane rows
+passed every test, nothing in this file said which three took the slots, and the run took the first three
+by turnover and recorded the gap as an objection.
 
 **Every published coin must be tradable on a Binance USDⓈ-M perpetual.** A list coin
 that is spot-only by standing decision carries «Спот» in the Сторона cell. A coin
@@ -1533,6 +1582,16 @@ carries nine copies of one constant while the log carries the computation (§12)
   own-trend geometry, and the reading decides, not the plausibility of the method. Until a
   reading exists the honest substitute is the one §2 now prints: the conditional levels and
   the measured reach of each.
+  **The positioning classes of §16 are not such a method, and they enter on a narrower footing.**
+  They read what the exchange's largest accounts and its crowd HOLD — the exchange's own statistics,
+  each coin classed against its own thirty days, a null computed in the same run (map inv. 49) — and
+  never a direction from price history. **They may only take away:** refuse an object (item 112), take
+  `СИЛЬНАЯ` away (§8), halve a size through «ПОВЫШЕННЫЙ РИСК: перекос позиций» (§2), and order which
+  surviving `ТОП-3` candidate takes a slot (§3B). They never produce a side, move a level, raise a grade
+  or a size, or stand in place of the edge a grade rests on — the standing a catalyst has had since map
+  inv. 31, given to a second kind of evidence. **What a class is worth is measured on the exchange's own
+  archive of the same series** before it is credited with more (map §10), and no edge is claimed until
+  then (map inv. 32).
 - **Every published setup carries its two touch probabilities in the LOG** (§12), the
   target's and the stop's, over the holding horizon.
   `touchProb` is cut from `index.html` and executed, exactly as `invalidationInfo` and
@@ -1846,8 +1905,11 @@ header line and correct prices, never as a description of the checking.
 
 ```
 1 ВРЕМЯ  →  2 ЦЕНЫ BINANCE FUTURES  →  3 СОСТОЯНИЕ  →  4 ГЕОМЕТРИЯ (заморозка уровней)
-        →  5 КАТАЛИЗАТОРЫ  →  6 СИГНАЛЫ И ПОТОКИ  →  7 СТРАТЕГИЯ
+        →  5 КАТАЛИЗАТОРЫ  →  6 СИГНАЛЫ И ПОТОКИ  →  7 СТРАТЕГИЯ  →  8 ШЕРИФ
 ```
+
+**Steps 1–4 and 7 are the trader's, 5 and 6 the hunter's, and 8 the sheriff's** (§15); the order is
+unchanged, and step 8 reads a book step 7 has finished.
 
 A later step may not be answered from an earlier run. Fresh time and a fresh BTC
 price do not license stale funding, stale flows or a recycled catalyst: **every
@@ -2050,7 +2112,7 @@ cut is.
 asking about, so hunting first spends searches choosing what to search for. The stage order
 is otherwise unchanged and the freeze still precedes both.
 
-**5 · Catalysts.** Hunted by §6 and admitted only by source class
+**5 · Catalysts.** Hunted by §6 — by the hunter, in the order below (§15, §16) — and admitted only by source class
 — primary, archive or reported (§6); repetition across aggregators is not confirmation and the
 same host twice is one host (map inv. 39). Each event is placed relative to the analysis moment (§2). On a
 row already cut, this stage and every stage after it is subtractive; what it may ADD is a forward
@@ -2099,6 +2161,10 @@ into a falling price is distribution and open interest falling with it is
 capitulation; the two produce different `ЖДАТЬ` triggers on the same chart, and a run
 that prints funding while ignoring the `oi` column beside it has left half of the
 positioning read on the table. Mark against last is the basis and is read the same way.
+**The positioning read is the hunter's (§16):** thirty days of the exchange's own statistics of its top
+traders, its crowd, its open interest and its funding, classed per coin; the payload's `fr`, `oi` and
+`mark` stay the freeze's own snapshot of the same market, and `state.oi` stays the predecessor where §16's
+read is refused.
 
 **Open interest needs a previous reading before it has a direction, so the reading is
 kept.** `state.oi` stores, per symbol read, the open interest and the moment it was read (§11),
@@ -3151,6 +3217,9 @@ which is the shape §7 exists to replace.
     each was compared against, per published setup. It reaches the ANSWER only where it
     moves a level (§1). Measured 04.09: three setups were published, `oi_prev` was written
     to state for all three, and no reading of any kind appears in the log or the answer.
+    **Since `2026-10-09-a` the read carries the hunter's classes** (§16): every published object's
+    coin carries its large players' class and its crowd class, or `unread` with the refusal, in the
+    appendix. **Corrected in place at `2026-10-09-a`.**
 24. **Every horizon entry dated inside the holding window was re-read this run and prints, or the
     appendix names why it does not** (§6, §11) — at `dclass:none` it never prints, and an entry a
     named issuer scheduled is not at `none` while two sources that are not aggregators of one another
@@ -3464,7 +3533,7 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     the appendix says which of the two constructions produced each row. **This item exists
     because item 83 checks that the construction RAN and item 78 checks what the row PRINTS,
     and six rows on 20.09 passed both with stops at 0.41 to 0.53 day-sigmas.**
-86. **THE LAST THING DONE BEFORE THE ANSWER LEAVES, and the only item that is not about a
+86. **THE LAST THING THE TRADER DOES BEFORE THE SHERIFF READS THE BOOK, and the only item that is not about a
     rule: the finished book is read once AS A BOOK and asked the owner's own question —
     would this run put ITS OWN money into what it is about to send?** (§0, the owner's
     decision of 20.09.2026.) Every item above establishes that a rule ran; this one asks
@@ -3475,6 +3544,8 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     and the appendix carries the row and the reason. **A run that answers «yes» to items 1
     to 85 and cannot answer «yes» here has found a defect in THIS FILE, not in the market:**
     it publishes what it can stand behind, and records the objection beside it (§0, §7).
+    **Corrected in place at `2026-10-09-a`:** the sheriff now reads the book after this item, cold, and
+    may only take away (§15, §17); the question stays the trader's own, asked first.
 87. **`# СТРАТЕГИЯ — МОЙ СПИСОК` is published as the block of §2 and never as a
     pipe table.** First line coin, side, status and confidence; second line entry, target and stop; third line the size (§4). A
     Markdown table in this section fails this item whatever it contains, because the failure
@@ -3644,13 +3715,15 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     The appendix carries per object the risk, `d`, `size$`, `qty`, `L` and the budget left after it. A
     size resting on another risk, distance or leverage, a sized object past the budget, a leverage
     production would not issue, or a size printed while the owner file was unreadable fails this item.
-107. **Every published object carries `СИЛЬНАЯ` or `СРЕДНЯЯ` in its header line, graded by §8's four
+107. **Every published object carries `СИЛЬНАЯ` or `СРЕДНЯЯ` in its header line, graded by §8's five
     conditions, and the appendix carries each condition's verdict per object; `⚠` stands exactly
     where the market word opposes the side; and `ПОВЫШЕННЫЙ РИСК` stands exactly where one of §2's
-    two causes applies, the cause printed and its item or turnover in the appendix.** A label printed
-    for being outside the list or against the market, a cause applying with no label, a cause with
+    three causes applies, the cause printed and its item, turnover or class in the appendix.** A label
+    printed for being outside the list or against the market, a cause applying with no label, a cause with
     nothing behind it in the appendix, a `СИЛЬНАЯ` the appendix cannot trace to `residual7`, a
-    `СИЛЬНАЯ` beside `⚠` or the label, and a `СИЛЬНАЯ` under a stress word each fail this item.
+    `СИЛЬНАЯ` beside `⚠` or the label, a `СИЛЬНАЯ` whose coin carries the large players' class against
+    its side (§16), and a `СИЛЬНАЯ` under a stress word each fail this item. **Corrected in place at
+    `2026-10-09-a`.**
 108. **`# СИЛЬНЫЕ СДЕЛКИ` is the first section after `# РЕЖИМ` and holds exactly the `СИЛЬНАЯ` rows the
     answer publishes** (§2) — every one and nothing else, each with its status, levels, size and one
     `Почему` naming the edge §8's condition (4) recorded for it, ordered by §2's key with the key per row
@@ -3683,6 +3756,37 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     `liqPrice(anchor, L_MIN, side)`** (§4) — production's own function, cut and executed — and the appendix carries per such
     object the stop's distance beside the liquidation's. **This is the item §7 was short of:** the run of
     07.10 removed GTC on exactly this ground by judgement under item 86.
+112. **Every published object's coin carries this run's positioning classes, and the object obeys them**
+    (§16, §2, §3B, §8): **refused** where its coin carries the large players' class against its side and
+    the crowd class of its side; refused as well, where it has no structural row, on the large players'
+    class against its side alone; **never `СИЛЬНАЯ`** where that class is against its side; **«ПОВЫШЕННЫЙ
+    РИСК: перекос позиций»** exactly where the crowd class of its side applies; and **nothing raised** —
+    no side, level, grade or size taken from a class. The appendix carries per object both classes and
+    the rule that acted, and a coin `unread` carries why. An object published against a
+    class that refuses it, a label with no class behind it, a class with no label, and a class standing in
+    `Почему` in place of the edge each fail this item.
+113. **The roles ran as §15 fixes.** The hunter was launched after the freeze with §15's prompt and its
+    report is in the appendix verbatim, or its failure is named and §15's fallback applied; the trader
+    wrote nothing while it ran and made no read the hunt owns; the sheriff was launched after item 86 with
+    the composed answer and its tickets and nothing else; and the model each subagent ran on is in the
+    appendix. A trader that hunted, a hunter that published, chose a verdict word or cut a level, and a
+    sheriff handed any other section of this file, the appendix or the state each fail this item.
+114. **Every verdict of the sheriff was applied as §15 fixes, and nothing else changed:** a struck object
+    in no section and no field of `ИТОГ`, its prices gone from `# КАТАЛИЗАТОРЫ`; a cut object at «Размер:
+    резерв», the budget it freed spent on nothing; a verdict quoting no fact logged void and not applied;
+    no object added and no level, side, status or grade moved; and items 13, 14, 18, 21, 67, 80, 82, 95,
+    103, 106, 107 and 108 run again on the book that left. A strike undone, a cut re-sized, a freed budget
+    spent again, and a sheriff's `FINDING` applied each fail this item.
+
+**112–114 name the owner's decision of 09.10.2026 — three roles, recorded at map `2026-10-09-c` — and his
+message of the same day, and no broken rule; 23, 86 and 107 are corrected in place.** The engine passed
+every item of this list on runs that read three hundred kilobytes of this file before a level was cut,
+dropped the tail of its own hunt when it ran short, and checked itself with a list that cannot see what a
+stage skipped; and it read the exchange's funding and open interest on every row and let neither move
+anything — «No level moved by positioning», on the run of 08.10. The owner asked for the method a
+professional enters by — where the large players are entering, and in which coins — and the answer is a
+read of the exchange's own statistics that may refuse a trade and never invent one, and a second reader who
+did not build the book and may only take from it.
 
 **110–111 name the audit of the run of 07.10.2026, 23:08 Tbilisi, and the owner's request of 07.10.2026,
 repeated on 08.10.2026; 37, 45, 46, 49, 56, 61, 66, 79, 84, 91, 98, 99, 103, 104 and 108 are corrected in
@@ -3834,7 +3938,8 @@ distinction is the whole reason this list exists.
 | Regime | БЫЧИЙ / МЕДВЕЖИЙ / ДИАПАЗОН / ПЕРЕГРЕТ / ВЫСОКИЙ РИСК |
 | Verdict (§2) | БЫЧИЙ / МЕДВЕЖИЙ / НЕЙТРАЛЬНЫЙ · ПАМП / ДАМП / БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ — on a catalyst item ahead and in `# BTC` alone, labels ВЕРДИКТ · ОЖИДАЕМАЯ РЕАКЦИЯ · ОЖИДАЕМОЕ ДВИЖЕНИЕ · МОЁ МНЕНИЕ and НАПРАВЛЕНИЕ · ОЖИДАЕМОЕ ДВИЖЕНИЕ · МОЙ ВЕРДИКТ |
 | Confidence | СИЛЬНАЯ / СРЕДНЯЯ — on every published object (below) |
-| Marks | `⚠` — against the market word · `ПОВЫШЕННЫЙ РИСК: событие / тонкий рынок` — exceptional only (§2) |
+| Marks | `⚠` — against the market word · `ПОВЫШЕННЫЙ РИСК: событие / тонкий рынок / перекос позиций` — exceptional only (§2) |
+| Positioning (§16) | «киты набирают лонг / шорт» — Binance's top traders by margin balance building a side, in `Почему` alone; the crowd's class reaches the answer only as `перекос позиций` (§2) |
 | Venue | Фьючерсы / Спот |
 | Book action (REVIEW only) | Набирать / Держать / Сокращать / Избегать |
 
@@ -3842,17 +3947,19 @@ REVIEW verbs are never mixed with ЛОНГ / ШОРТ: «Сокращать» is
 is a new trade.
 
 **`СИЛЬНАЯ` has a definition, and every published object carries it or `СРЕДНЯЯ`** (the owner's
-decision of 01.10.2026). It requires all four: **(1)** the market word is `БЫЧИЙ`, `МЕДВЕЖИЙ` or
+decision of 01.10.2026). It requires all five: **(1)** the market word is `БЫЧИЙ`, `МЕДВЕЖИЙ` or
 `ДИАПАЗОН` and does not oppose the side — no `⚠` (§2); under `ПЕРЕГРЕТ` or `ВЫСОКИЙ РИСК` nothing is
 `СИЛЬНАЯ`; **(2)** no `ПОВЫШЕННЫЙ РИСК` cause applies (§2); **(3)** no item of `# КАТАЛИЗАТОРЫ`
 tagged `СРЕДНЕЕ` bears on the coin inside the holding window with an effect (§6, logged) other than the
 object's side — that tag caps confidence at `СРЕДНЯЯ` by §6's own definition, and a `ВЫСОКОЕ` one is
 (2)'s `событие`; **(4)** the coin's own week moves the side's way: `residual7` class `own` with the
 side's sign, the names the own-move line prints as «сильнее» for a long and «слабее» for a short
-(§2). Anything that publishes without all four is `СРЕДНЯЯ`, so an object with no structural row —
+(§2); **(5)** this run's positioning read finds no large players' class against the side on the coin
+(§16) — a coin `unread` passes (5) and the appendix names it, because a read that did not happen is not
+evidence against a trade. Anything that publishes without all five is `СРЕДНЯЯ`, so an object with no structural row —
 outside the list, day-cut, or a book coin's item — is `СРЕДНЯЯ` by construction. **(4) is a fact
 of the freeze, and no catalyst earns the grade:** step 5 is subtractive and a catalyst can only veto
-(§5, §10), so an event may take `СИЛЬНАЯ` away through (2) or (3) and never give it; whether a dated
+(§5, §10), so an event may take `СИЛЬНАЯ` away through (2) or (3) and never give it, and a positioning class takes it away through (2) or (5) and never gives it (§4); whether a dated
 event in the side's direction deserves the size step is measured on the archive first (map §10).
 **A case resting on a date printed without this run's reading — §6's 48-hour exception — is
 `СРЕДНЯЯ` at best**, because an unread date is exactly what is not known. **The earlier definition
@@ -3886,8 +3993,10 @@ under every rule of this file.
   direction. МДЛ ✕ → direction must come from catalysts.
 - Liquidation is a TOUCH event and its probability is a lower bound (map §3.3).
 - A catalyst can only veto (map inv. 31), and only when confirmed (inv. 39).
-- Squeeze framing comes from the system's own measures, never from vendor
-  liquidation heatmaps; funding is a cost, not a signal.
+- A positioning class can only take away (§4, §16), on the same standing.
+- Squeeze framing comes from the system's own measures — since `2026-10-09-a` the crowd class of §16,
+  read on the exchange's own statistics — never from vendor liquidation heatmaps; funding is a cost and
+  never a direction, and its crowding reading may only halve a size or refuse a trade (§16).
 - The universe is frozen between owner decisions (map inv. 2, inv. 59); the analyst
   never proposes additions, and never writes its size into this file.
 
@@ -3916,8 +4025,9 @@ fill and no closed item (§0).
 
 ```json
 { "v":2, "k":"state", "d":"YYYY-MM-DD", "ts":"ISO-8601Z",
-  "horizon":[ { "id","sym","e","d","dclass","src","next" } ],
+  "horizon":[ { "id","sym","e","d","dclass","src","next","cls","t" } ],
   "oi":{ "<SYM>":{ "ts","oi" } },
+  "regime":{ "ts","word","btc","bull","bear","hot","cold" },
   "sweeps":{ "horizon":{ "<lane>":{ "d","sec6_md5","host","n","from","ts" } },
              "coins":{ "<SYM>":{ "d","sec6_md5","host","n","from",
                                  "c2":{ "d","sec6_md5","host","n","from" },
@@ -3929,12 +4039,27 @@ fill and no closed item (§0).
 
 **`horizon` is §6a's store:** one entry per dated event whose date has not passed — `sym` null for
 a systemic event, `e` the event in one line, `d` its date, `dclass` who established the date
-(below), `src` the address that established it, `next` the next-attempt date where §6a sets one.
+(below), `src` the address that established it, `next` the next-attempt date where §6a sets one, `cls` its class in §6's table — `A`, `S`, `B` or
+`C` — and `t` the minute it takes effect, `HH:MM` UTC, where its publisher gives one; the hunter writes
+both on every entry it adds or re-reads from `2026-10-09-a` on, and an entry written before carries neither
+until it is re-read.
 **`oi` is the positioning memory of §5 step 6.** Both are additive within v2, fields not applicable
 are omitted and never nulled, and a field leaves only by a version this file names. **`ts` is
 written on the two exchange lanes alone** — `sweeps.horizon.outside-list`, the stream record, and
 `sweeps.horizon.exchange-info`, the listing state, added within v2 at `2026-10-08-a` — the moment of
 each read, against which that lane's staleness is judged (§6a); every other lane omits it.
+
+**`regime` is the `# BTC` levels of this run, written by the trader** (§2): `ts` the freeze, `word` the
+market word, `btc` the frozen BTC price, `bull` and `bear` the prices at which `marketRegime`'s `eff`
+reaches `+EFF_TREND` and `−EFF_TREND`, and `hot` and `cold` the stress levels at `z = ±REG_STRESS_Z` —
+the four prices `# BTC` derives and the log records, overwritten by every run. It is a market reading
+and never a recommendation (§0), it is additive within v2, and it is what the watcher's alert on a regime
+boundary reads (map §10).
+
+**The state has one writer at a time, in the run's own order** (§15): the trader at step 3, which writes
+the file back to disk with the lifecycle applied before it launches the hunter; the hunter while it runs —
+`horizon` and `sweeps`; and the trader after the hunter returns, reading the file again from disk before
+it adds `oi` and `regime`. No writer writes from a copy it read before the other wrote.
 
 **The first run under this revision migrates a v1 file, once.** Every `items` entry of type
 `catalyst` whose date has not passed and whose `dclass` is not `none` becomes a `horizon` entry;
@@ -4051,7 +4176,14 @@ exists to prevent.
 `analyst/log/YYYY-MM-DD.md`, written once per run, never reopened (map inv. 38). A
 second run on the same date writes `YYYY-MM-DD-2.md`.
 
-**No run OPENS an earlier log, for any purpose** (§0). The log is evidence for the Architect's audit —
+**Since `2026-10-09-a` a run's log is two files with one stem:** the trader's `<stem>.md` — the answer
+and the appendix — and the hunter's `<stem>.hunt.md`, the hunt record (§16), written before the trader
+composes and committed in the same commit. **The hunt record is the appendix's hunt half:** every line of
+the list below marked (H) is written there and not in the appendix, and where §6, §6a or an item of §7
+says «the appendix» of such a line, the hunt record is meant. The appendix carries the hunt report as
+received and the record's path. A reader counting answers counts the `<stem>.md` files alone.
+
+**No run OPENS an earlier log — a hunt record included — for any purpose** (§0). The log is evidence for the Architect's audit —
 the research the owner's decision of 24.09.2026 allows to be kept — and never an input to a
 recommendation, **and a command is no exception:** every command a run needs is derived from this
 file and from this run's `index.html` — a production function's span found by its NAME there (§4),
@@ -4080,28 +4212,27 @@ the anchor price of every published level, and the two touch probabilities
   printed beside each R:R
 the stop derivation of every published row: the substituted reference, the edge it was
   cut at, the distance returned and the capped / floored flags (§4)
-the source class that answered per catalyst item and per horizon entry read: primary /
+(H) the source class that answered per catalyst item and per horizon entry read: primary /
   archive / reported / none, and per item: the host, what it answered, the field taken from it
-every lane NOT read this run, with its previous read date and its stored sec6_md5
-every §6a channel that landed on another host or whose page stopped short of its previous read
+(H) every lane NOT read this run, with its previous read date and its stored sec6_md5
+(H) every §6a channel that landed on another host or whose page stopped short of its previous read
 the fr, oi and mark read per published setup, and the state oi each was compared against
 every production function cut from index.html, with the command and the span it cut
 the size of every published object: its risk, d, size$, qty, L and the budget left after it (§4)
 the age of every published object resting on a dated event: the record and its timestamp, the
   first-announcement search and its earliest dated hit, the klines request and the price (§4)
-the grade of every published object: each of §8's four conditions with its verdict, the residual7
-  class and sign behind (4), and each ПОВЫШЕННЫЙ РИСК cause with the item or the turnover behind it
+the grade of every published object: each of §8's five conditions with its verdict, the residual7
+  class and sign behind (4), and each ПОВЫШЕННЫЙ РИСК cause with the item, the turnover or the class behind it
 the §7 checklist, one line per item with its verdict
 the derivation of every price printed in # BTC
 what analyst/state.json held at step 3, per key; every horizon entry deleted or added; the
   v1 migration counts where it ran (§11)
-every discovery search (§6), per coin, per book lane and per systemic lane: query, moment,
+(H) every discovery search (§6), per coin, per book lane and per systemic lane: query, moment,
   and each hit taken with host, date, one line and class
-the unlock lane (§6a): the request, landing host, status and bytes of the index read; per coin
-  its status, the row's fields and the share, and what each cliff inside the holding window did —
-  closed the long, printed on a row, or nothing; and per book long on a refused or uncovered read,
+(H) the unlock lane (§6a): the request, landing host, status and bytes of the index read; per coin
+  its status, the row's fields and the share; and per book long on a refused or uncovered read,
   the unlock search and what it found
-the exchange's two reads (§6a): the record's path, line count, from and ts, and exchangeInfo's
+(H) the exchange's two reads (§6a): the record's path, line count, from and ts, and exchangeInfo's
   request, landing host, symbol count and ts; every record line naming a symbol of c or x — title,
   publishDate, the minute its body gives or that it gives none, its class and where it went; and
   every listing or delivery date of such a symbol inside the window
@@ -4111,15 +4242,23 @@ every verdict (§2, §4): the instrument, the klines request, the class and its 
   (the reference is the frozen price and the freeze minute for 48h, the event's UTC day otherwise):
   VERDICT|<instrument>|<event and its UTC day, or 48h>|<word>|<lo %>|<hi %>|<movement word>|<reference>
 every object without a structural row: its stop's distance beside liqPrice at L_MIN (§4, item 111)
-the hunt in §5 step 5's order: each step, completed or not, and the step the run stopped in
-the sec6_md5 this run computed, with §6a's command verbatim
+(H) the hunt in §5 step 5's order: each step, completed or not, and the step the run stopped in
+(H) the sec6_md5 this run computed, with §6a's command verbatim
 every forward candidate (§4): its event, side and anchor, the gate that decided it, and where it
   went — row, СОЗРЕВАЕТ item, catalyst line with its price, or refusal
-the three largest movers of x passing §3B's filters and the three list coins furthest from the
+(H) the three largest movers of x passing §3B's filters and the three list coins furthest from the
   median of c, and for each the event the hunt held or the search run after it (§7 item 98)
 any catalysts.json proposal (§6)
-every event found beyond the holding window, as written to the horizon store
+(H) every event found beyond the holding window, as written to the horizon store
 every event the answer carries that the run reached through this file's own text (§7 item 105)
+(H) the positioning read (§16): per coin the four requests, landing host and status, the row counts, the
+  statistics now with their quartiles, and the classes — and the script that computed them, verbatim
+(H) the book rows' lookups (§16): per row its filter-3 lookup and its unlock read or search, in slot order
+(H) the hunt's fifteen items of §7, one line each with its verdict
+the hunt report as received (§15), the hunt record's path, and the model each subagent ran on
+what every cliff inside the holding window did to the book — closed a long, printed on a row, or nothing
+the positioning classes of every published object's coin and the rule that acted on it (item 112)
+the sheriff's tickets and verdicts as returned, and what the trader did with each — applied, or void (§15)
 ```
 
 **The previous run's landing is reported here because this record cannot report its
@@ -4158,6 +4297,11 @@ being written elsewhere, and an input a system can edit has stopped being an inp
 the run may say about it goes in the day log, and a vector confirmed at a primary reaches
 the answer as any catalyst does — never in the file.
 
+**The subagents write less than the trader, never more** (§15). The hunter writes `analyst/state.json` —
+`horizon` and `sweeps`, while it runs — and its hunt record, and nothing else; the sheriff writes nothing;
+neither commits, pushes or sends, and neither writes `catalysts.json` or `analyst/owner.json`, for the
+reasons above. The run's one commit is the trader's (`EXECUTOR-INSTRUCTIONS.md` §4b).
+
 ---
 
 ## 14. Format of every answer
@@ -4179,3 +4323,372 @@ system holds (a LIVE SNAP run, a board screenshot, `debug.json`) · his own trad
 facts (hold period, capital, risk appetite) · a routing action. Asked
 at the start of the run or not at all — never as the tail of an answer. **A missing
 price blocks the levels, never the verdict.**
+
+---
+
+## 15. The three roles — one run, one decision-maker
+
+**The run is one session, the TRADER, and it is the only decision-maker** — the owner's decision
+recorded at map `2026-10-09-c`. It launches two subagents of its own through the Agent tool, in the
+same turn and on the same tree: the HUNTER after the freeze, and the SHERIFF after the book is
+composed. **The hunter and the sheriff each read only their own part of this file, the trader never
+runs the hunt or holds what it reads, and the reason is measured.** The press of
+04.10.2026 at `high` ran 64 turns on one context that held three hundred kilobytes of this file before
+a single level was cut and every page its hunt read after that — 13 026 278 cached tokens and 11.02 USD —
+and the account refused the next press after 109 turns; a run short of capacity drops the tail of its
+hunt (§5 step 5), and the audit of 25.09.2026 found two dated facts a run held and did not use. **Two
+or more deciding agents are refused** (map inv. 30): summed or voting priors are what printed a long and
+a short on one coin, and averaged opinions are not a measurement. **The hunter supplies and decides
+nothing the Boss reads; the sheriff may only take away; everything the Boss reads is the trader's.**
+
+| Role | Reads | Does | Writes | Never |
+|---|---|---|---|---|
+| **Trader** — this session | this file but §16–§17, by the command below — §6 and §6a as the rules a catalyst is classed and printed by, never as a hunt it runs; the contract's operative set | §5 steps 1–4 and 7 — the gate, the state, the freeze and the screen, the strategy; §7; launches the hunter and the sheriff and applies what they return | `analyst/state.json` before the hunter starts and after it returns; the day log's `<stem>.md`; the run's one commit | hunts — a lane, a discovery search, a mover, a vector or a positioning read of its own; applies a sheriff's verdict in part |
+| **Hunter** — subagent on `sonnet` | §16 and what §16 names: §5 step 5, §3B's four filters, §6 and §6a, §11 and the hunt's items of §7 | §5 step 5's hunt in its order, §16's positioning read, the book rows' lookups; returns the HUNT REPORT | `analyst/state.json` — `horizon` and `sweeps` — while it runs; the hunt record `<stem>.hunt.md` | publishes, cuts a level, chooses a verdict word, opens an earlier log, commits |
+| **Sheriff** — subagent on the session's model | §17 alone, and the book and the tickets it is given | reads the book cold; one verdict per ticket and findings on the book; returns SHERIFF | nothing | adds an object, moves a level, a side, a status or a grade, raises a size, reads any file but §17 |
+
+**Two roles live in code and never in a model:** the watcher on the VPS — the announcement stream and
+the exchange's listing state, which alert the owner and start no run — and the scorecard, not yet built
+(map §10). No run launches either.
+
+**The trader's read** — this one command, and no line of §16 or §17 is the trader's:
+
+```
+sed '/^## 16\./,$d' ANALYST-INSTRUCTIONS.md
+```
+
+**§6 and §6a are the trader's rulebook and the hunter's procedure.** The trader reads them for what a
+catalyst means for the book — its class, its window, its source class and what that class may print, its
+impact tag, what an unlock at or above `UNLOCK_MATERIAL` closes — and never runs a step of them: every lane,
+search, read and record they name is the hunter's (§16).
+
+**The run, in order:**
+
+1. **§5 steps 1–4** — the time, the gate, the state and the owner file, the freeze and the screen. At
+   step 3 the trader applies the lifecycle (§11) and writes the state back to disk: the hunter starts
+   from that file. At step 4 every screened book row is cut and tested on the payload alone — §3B's
+   construction and stop floor, the short's falling day, item 111's liquidation test — and the rows that
+   pass every test the payload can settle are the hunter's book rows, per lane, in turnover order. The
+   trader fixes the run's stem — `YYYY-MM-DD`, or `YYYY-MM-DD-N` where that date's log exists (§12) — by
+   listing `analyst/log/`, which opens no log.
+2. **The hunter.** One Agent call, `subagent_type` `general-purpose`, `model` `sonnet` — where the tool
+   offers no model parameter it runs on the session's model, and the appendix says which — with this
+   prompt and no other text:
+
+   ```
+   You are the HUNTER of analysis run <stem>, freeze <ISO-8601Z>, in the repository at the working
+   directory. Run: sed -n '/^## 16\./,/^## 17\./p' ANALYST-INSTRUCTIONS.md
+   Read what it prints and do exactly what it says. Read nothing of that file it does not name.
+   List coins: <every symbol of c, BTC included, in c's order>
+   Book rows, long lane: <the lane's rows that passed step 4's tests, in turnover order, or none>
+   Book rows, short lane: <the same for the short lane, or none>
+   Return the HUNT REPORT of that section as your final message.
+   ```
+
+   **While the hunter runs the trader writes nothing.** The report is its final message; the trader reads
+   it whole and carries it verbatim into the appendix (§12).
+3. **§5 step 7 — the strategy, on the report.** Its `ITEMS` are the catalysts of §2 — each event's date,
+   minute, class and source class as the hunter read them; the verdict word, the effect, the impact tag
+   and every printed word are the trader's — its `FORWARD` lines the forward candidates of §4, its
+   `UNLOCKS` the unlock lane of §6a, its `EXCHANGE` lines the listing state, its `POSITIONING` and `BOOK`
+   lines the classes §2, §3B, §4 and §8 apply (item 112), its `COVERAGE` the three counts of
+   `СОЗРЕВАЕТ`, its `INCOMPLETE` line the decision on «Поиск не завершён.» (item 91), and its `CHECKS` the
+   hunt's items of §7. **The trader re-reads `analyst/state.json` from disk** and checks items 32, 63, 72,
+   91, 99 and 104 against the file and never against the report alone: where the two disagree, the file
+   decides and the appendix names the disagreement.
+   **The trader's own reads are four, and no other read of the hunt's is the trader's:** item 109's
+   first-announcement search and klines for a published object; each verdict's klines (§4); §3B's
+   filter-3 lookup of a book row the hunter's `BOOK` lines do not reach; and §6a's unlock search for a book
+   long whose read the hunter left `refused` or `not covered` without one.
+4. **§7, then item 86** — the trader's own question about its own money, asked of the book it composed.
+5. **The sheriff.** One Agent call, `subagent_type` `general-purpose`, the session's model, with this
+   prompt and no other text:
+
+   ```
+   You are the SHERIFF of analysis run <stem>. Run this one command and make no other tool call:
+   sed -n '/^## 17\./,$p' ANALYST-INSTRUCTIONS.md
+   Read what it prints and do exactly what it says.
+   === BOOK ===
+   <the composed answer, verbatim>
+   === TICKETS ===
+   <the HEAD line and one ticket per priced object>
+   ```
+
+6. **The verdicts, applied** (below), the items they touch re-run (item 114), the state — `oi` and
+   `regime` (§11) — and the day log written, the commit, the answer.
+
+**One ticket per priced object** — every row, `ТОП-3` line and `СОЗРЕВАЕТ` item, `резерв` included — in
+the answer's order, each field labelled so the sheriff reads it without this file, each value one this
+run computed or printed and nothing else:
+
+```
+HEAD | market <word> | BTC <frozen price> | verdict <НАПРАВЛЕНИЕ> <ОЖИДАЕМОЕ ДВИЖЕНИЕ> | bull <price> |
+     bear <price> | risk long <spent>/<max> · short <spent>/<max> · book <spent>/<max> USDT
+T<n> | <section> | <COIN> <ЛОНГ|ШОРТ> <СЕЙЧАС|ЖДАТЬ|СОЗРЕВАЕТ> <СИЛЬНАЯ|СРЕДНЯЯ> | entry <price> |
+     stop <price> (<±d%>) | target <price> (<±t%>)[; partial <price>] | size <qty> ($<notional>, risk $<r>)[, L<n>]
+     or reserve | basis <structural|day-cut|book day> | own-move <own up|own down|market|quiet|none> |
+     regime market <word>, coin <trend up|trend down|range|day> | large <long|short|none|unread> |
+     crowd <long|short|none|unread> | events <item: effect tag, date; …|none> | zone7d <p%|—> |
+     turnover24h $<m>M | range24h <(high − low) / last, %> | liq@L_MIN <d%|—> | label <cause|none> |
+     why <the Почему line, verbatim|—>
+```
+
+**Applying the verdicts.** The sheriff returns one line per ticket and `FINDING` lines (§17):
+
+- `KEEP` — nothing changes;
+- `STRIKE` — the object leaves every section and every field of `ИТОГ`, and every price of it leaves
+  `# КАТАЛИЗАТОРЫ`, whose item then names the side and no price (§2); a coin the strike leaves refused on
+  both sides stands in `ИЗБЕГАТЬ` bare, the verdict being the reason this run computed (§2);
+- `CUT` — the object prints «Размер: резерв»; the budget it held is spent on nothing — no object behind
+  it is re-sized, because a freed budget spent again is an object added;
+- `FINDING` — written to the appendix for the Architect and applied by nobody;
+- a `STRIKE` or `CUT` that quotes no field of its ticket and no line of the book is **void**: logged as
+  void and not applied, because a verdict nobody can trace to a fact is an opinion.
+
+**No verdict is argued with.** A trader that believes a strike wrong applies it and records the
+objection (§7): the sheriff exists because a book cannot be audited by the reader who built it, and an
+appeal that reader decides is no audit.
+
+**When a subagent fails.** A hunter that returns no report, or a report without its `HUNT REPORT` line,
+is a failed hunt, and the trader hunts nothing itself — §6 is its rulebook, never a hunt it runs. The
+answer then stands on
+what the run holds: `# КАТАЛИЗАТОРЫ` prints only §6's primary dates inside 48 hours from the state and
+ends «Поиск не завершён.»; `СОЗРЕВАЕТ ≤7 ДНЕЙ` prints «Поиск не завершён.»; a `ТОП-3` line stands only on
+the trader's own filter-3 lookup and, for a long, its own unlock search; no list long is published on a
+coin whose stored unlock record carries a cliff at or above `UNLOCK_MATERIAL` inside the holding window;
+and every coin's positioning is `unread`. A sheriff that returns no verdicts leaves the book as composed,
+and no object is sized above `risk_pct_medium` (§4) — a book its control did not read is traded smaller.
+Either failure is one line of the appendix and nothing of the answer.
+
+**The roles are sized against the press of 04.10.2026 and the account that refused the next one.** The
+trader carries no hunt and no page a hunt read; the hunt runs at Sonnet's price, in a context that holds
+§16, what §16 names and the hunt alone; the sheriff reads one book and its tickets. The first press under
+`2026-10-09-a` is measured by the run unit's own summary — its turns, cost, models and memory peak —
+against that press, and no bar is written on it here (map §10).
+
+---
+
+## 16. The hunter
+
+**Read by the hunter alone** (§15). You are the hunter of one analysis run. The trader froze every price
+before you started and nothing you do moves one: **you find what is coming and where the large players
+are building, you write what the hunt writes, and you return one report.** You publish nothing and you
+decide nothing the Boss reads — no level, no side of a trade, no verdict word, no grade, no size, no line
+of the answer. The trader decides all of them from what you return, and your report is wrong wherever it
+reads like an answer.
+
+**Your reading, and nothing else of this file** — each by its command, in this order:
+
+```
+# the hunt and its fixed order: §5 step 5
+sed -n '/^\*\*5 · Catalysts\./,/^\*\*6 · Signals/p' ANALYST-INSTRUCTIONS.md
+# §3B's four filters
+sed -n '/^\*\*Four filters, applied to the row/,/^\*\*Filter 3 is the only one/p' ANALYST-INSTRUCTIONS.md
+# §6 and §6a
+sed -n '/^## 6\./,/^## 7\./p' ANALYST-INSTRUCTIONS.md
+# §11, the state you write
+sed -n '/^## 11\./,/^## 12\./p' ANALYST-INSTRUCTIONS.md
+# §12, the log you write half of
+sed -n '/^## 12\./,/^## 13\./p' ANALYST-INSTRUCTIONS.md
+# the hunt's items of §7
+awk -v want=" 15 22 24 31 32 63 72 90 91 98 99 100 102 104 105 " '/^## 7\./{f=1;next} /^## 8\./{f=0} f&&/^[0-9]+\. /{n=$0;sub(/\..*/,"",n);p=index(want," "n" ")>0} f&&/^\*\*/{p=0} f&&p' ANALYST-INSTRUCTIONS.md
+```
+
+**The last command prints fifteen items; another count is a defect of this file, named first in your
+report.** Where those texts say «the run», they mean you for every step of the hunt; where they say «the
+appendix» of a line §12 marks (H), they mean your hunt record. **What they say about printing is the
+trader's:** for you it fixes what to report about an event — its date, its minute, its classes, the side
+its own content names — and never an instruction to compose. **`analyst/live.json` is read by command and
+never opened** (§5), on the frozen payload the trader read: no read of yours is a second price.
+
+**What you do, in this order — a step starts only when the one before it is complete:**
+
+- **A — the catalyst hunt:** §5 step 5's nine steps in their order, under §6 and §6a unchanged. Its coins
+  are the list coins and the book rows of your prompt; its book coins for the unlock lane are those rows
+  and every coin a hit dates a cliff for, looked up as §6a says. **Every horizon entry you add or re-read
+  carries `cls` and `t`** (§11).
+- **B — the positioning read** (below), for every list coin, every book row of your prompt and every book
+  coin a `FORWARD` line of A names.
+- **C — the book rows' lookups.** Per lane, the rows in the order the slots go (§3B): a dated event of A
+  naming the lane's side first, then the large players' class of the lane's side from B, then turnover —
+  **skipping a row whose coin carries that class against the lane's side**, which no slot can take. For
+  each row in that order: §3B's filter-3 lookup; then its unlock read in the index A already holds, or on
+  `refused` or `not covered` §6a's one search naming its project and «token unlock», for a long. Stop a lane
+  when three of its rows have passed filter 3 with an unlock read or that search behind them, or when its
+  rows run out.
+- **D — the record, the state and the report** (below).
+
+**A run short of capacity loses its tail, never its head** (§5 step 5): stop where you must, name the step
+you stopped in, and return the report. A report naming where it stopped is a complete product; no report
+is the one failure the trader cannot repair (§15).
+
+### The positioning read — where the large players are, on the exchange's own statistics
+
+**The question is the owner's, of 09.10.2026: where are the large players entering, and in which
+coins.** Binance publishes for every USDⓈ-M perpetual, in four-hour rows over the last thirty days, the
+long-to-short ratio of the positions its top traders hold — the accounts in the top 20 % by margin
+balance — the long-to-short ratio of all its accounts, and the open interest; and every funding
+settlement. **They are the exchange's own publications of what its accounts hold** — `primary` on §6's
+terms — and they are read because nothing else in this system says who stands on which side. They are not
+a direction (§4): what a class may do to a trade is the trader's, and it may only take away.
+
+```
+reads     per coin, its perpetual's symbol <S>, each curl -sS -L -m 20, keyless, from fapi.binance.com:
+            oi       /futures/data/openInterestHist?symbol=<S>&period=4h&limit=180
+            large    /futures/data/topLongShortPositionRatio?symbol=<S>&period=4h&limit=180
+            crowd    /futures/data/globalLongShortAccountRatio?symbol=<S>&period=4h&limit=180
+            funding  /fapi/v1/fundingRate?symbol=<S>&startTime=<ms, 30 days before the freeze>&limit=1000
+fields    oi: timestamp, sumOpenInterest — the open interest in coins; large and crowd: timestamp,
+          longShortRatio; funding: fundingTime, fundingRate. Every value arrives as a string: cast and
+          finite, and above zero but for fundingRate, or the row is dropped
+shape     a document whose rows lack those keys has CHANGED SHAPE: the read is refused for the run and
+          named, never recorded as coins classed none (map inv. 22)
+series    each sorted by its time field, oldest first, a row stamped after the freeze dropped — the read is
+          the market of the freeze, as every read of the run is. A coin is `unread` where oi, large or crowd holds
+          fewer than 84 rows — fourteen days — or its fundings reach back fewer than fourteen days
+k         42 rows, seven days of four-hour rows
+change    at every row t ≥ k:   dL(t) = ln(large[t] / large[t−k])
+                                dC(t) = ln(crowd[t] / crowd[t−k])
+                                dQ(t) = ln(oi[t] / oi[t−k])
+now       the newest row
+null      the coin's own values of each change at every t from k to now, now included; the coin's own
+          crowd at every row; the coin's own fundingRate at every settlement read
+q25 q50 q75   the values at rank ⌈0.25 m⌉, ⌈0.50 m⌉ and ⌈0.75 m⌉ of a null's m sorted values
+```
+
+```
+large long    dL(now) ≥ q75(dL)   and   dC(now) ≤ q50(dC)   and   dQ(now) > 0
+large short   dL(now) ≤ q25(dL)   and   dC(now) ≥ q50(dC)   and   dQ(now) > 0
+crowd long    crowd(now) ≥ q75(crowd)   and   the newest fundingRate ≥ q75(fundingRate)
+crowd short   crowd(now) ≤ q25(crowd)   and   the newest fundingRate ≤ q25(fundingRate)
+```
+
+**In the owner's words: the large players are building a side** where their own long-to-short ratio moved
+that way this week further than in three weeks of four of the coin's own month, while the crowd's did not
+follow and new positions were opened; **the crowd is crowded into a side** where the crowd's ratio and the
+funding it pays both stand in the outer quarter of the coin's own month. A coin carries at most one large
+class and at most one crowd class — or none — and `unread` where a read refused or a series fell short.
+
+**No numeral here is a threshold on the answer** (map inv. 49): every band is the coin's own month, computed
+in this run from these reads, and the quartile is the cut §4 already measures a verdict's range with. **What
+a class is WORTH is measured on the exchange's own archive of the same series** — `data.binance.vision`
+keeps, per perpetual and per day, a `metrics` file of five-minute rows carrying the open interest and both
+ratios, back to 2020 for BTC — and until that reading exists no class claims an edge (map §10, inv. 32).
+
+**One script computes every coin**, written by you for this run and run once; its text goes verbatim into
+the hunt record beside its output — per coin the four requests, each landing host and status, the row
+counts, `dL`, `dC` and `dQ` now with their quartiles, the crowd and the funding now with theirs, and the
+classes. **The first read under this revision is the read's measurement on this machine:** its landing host,
+status and bytes, and the keys of each document's first row, go to the record, and a host is not assumed to
+answer until a read of it has (§6a). **A refusal by the host — 403, 418, 429, 451 or a challenge — ends
+that endpoint's reads for the run:** it is recorded once with its status, no further coin is asked of it,
+and every coin it would have served is `unread` — never retried in a loop and never routed around (§6). A
+symbol the endpoint does not carry leaves that coin `unread` and the others unaffected.
+
+**The owner's vector on UNI** — large holders accumulating (§11) — is worked here, on the exchange's own
+statistics, which are a report of the exchange: say what UNI's large players and crowd did this week and
+name the host, and keep the vector open while the claim is about on-chain holders the exchange does not see.
+
+### The hunt record and the state
+
+**The hunt record is `analyst/log/<stem>.hunt.md`**, written once before you return and never reopened
+(§12): every line §12 marks (H), the positioning read above, and one line per item of the fifteen with its
+verdict — «н/п» and the reason where one does not apply. **You write `analyst/state.json` — `horizon` and
+`sweeps` and nothing else** — reading it from disk first, as the trader left it, and writing it whole before
+you return (§11). You open no earlier log and no earlier hunt record, you commit and push nothing, and you
+never write `catalysts.json` or `analyst/owner.json` (§13).
+
+### The HUNT REPORT — your final message, in this form and no other
+
+```
+HUNT REPORT <stem> | freeze <ISO> | sec6_md5 <digest> | model <the model you ran on>
+STEPS       A1 … A9 <done | stopped: reason> · B <done | stopped> · C <done | stopped> · items printed 15
+STATE       horizon <n> (added <n>, re-read <n>) · sweeps written · record analyst/log/<stem>.hunt.md
+ITEMS       one line per event dated inside the holding window or in the last 24 hours:
+            <id> | <SYM or —> | <A|S|B|C> | <primary|archive|reported|none> | <YYYY-MM-DD[ HH:MM UTC]> |
+            <the event in one English sentence a non-specialist reads> | names <ЛОНГ|ШОРТ|—> |
+            src <host> | published <ISO of the publisher's own record, or —>
+BEYOND      <n> events beyond the window, written to the store
+FORWARD     <SYM> | <list|book> | <ЛОНГ|ШОРТ> | <item id> — every coin an item names a side for
+UNLOCKS     <SYM> <next YYYY-MM-DD HH:MM UTC, share %, recipient | no cliff | not covered | refused> — every coin read
+EXCHANGE    <SYM> | <listing | delisting | status> | <YYYY-MM-DD HH:MM UTC> | <what the line says>
+MOVERS      <SYM> <±x.x%> | <item id | search: query → n dated hits | lanes: n records read>
+VECTORS     <id> | <confirmed | refuted | open> | <host>
+POSITIONING read <n> · unread <n>: <SYM …> · large long: <SYM …> · large short: <SYM …> ·
+            crowd long: <SYM …> · crowd short: <SYM …> — every coin read and in no class is none
+BOOK        <long|short> | <SYM> | <project> | filter 3 <pass | refused: the lookup> | unlock <status> | large <class>
+COVERAGE    list <n> · book <m> · events ≤7d <k>
+INCOMPLETE  <yes: the lane, coin or search short | no>
+CHECKS      15 <ok | fail: … | н/п: …> · 22 … · … · 105 …
+PROPOSALS   <catalysts.json proposals | none>
+```
+
+Every line is present, and an empty one reads `none`. **The report carries no verdict word, no price of a
+trade, no grade and no opinion:** `names` is the side the event's own content names, or `—`, and what that
+is worth is the trader's.
+
+---
+
+## 17. The sheriff
+
+**Read by the sheriff alone, and the only text of this file it reads** (§15). You are the risk officer of
+one analysis run. You did not build the book below and you do not know how it was built, and that is why
+you read it. **One question decides every verdict — the owner's: with his own capital, his family's money,
+at stake, would a professional take this trade now?** You answer it per trade from the book and the
+tickets you were given and from nothing else: no file, no search, no tool beyond the command that printed
+this section, and no memory of another run.
+
+**You may only take away.** Each ticket gets exactly one verdict:
+
+- `KEEP` — the trade stands as printed;
+- `STRIKE` — a professional would not take it now, at any size: it leaves the answer;
+- `CUT` — a professional would take it, but not at this size now: it stays, at «Размер: резерв», to be
+  placed only after a sized trade of its side has closed.
+
+You never add a trade, never move an entry, a stop or a target, never change a side, a status or a grade,
+and never raise a size. **`KEEP` is the default and there is no quota:** a book you would trade as printed
+gets a `KEEP` on every ticket, and that is a complete answer. A doubt you cannot tie to a fact in front of
+you is not a verdict.
+
+**Every `STRIKE` and `CUT` names one cause and quotes the fact it rests on** — a field of its ticket or a
+line of the book, copied between «» — or the trader logs it void and applies nothing. The causes are the
+ones a professional names when he refuses a trade:
+
+| Cause | The question | Where the book shows it |
+|---|---|---|
+| `entry` | is the entry where the move offers it, or where the move already went? | `entry`, the status, `zone7d`, `range24h`, `regime` |
+| `stop` | does the stop sit beyond one ordinary day of this coin, and does it fill before liquidation? | `stop`, `range24h`, `basis`, `liq@L_MIN` |
+| `structure` | does the trade rest on the coin's own trend, or on one day of one row? | `basis`, `own-move`, `regime` |
+| `R:R` | can the week deliver the target the stop is sized for? | `target`, `partial`, `zone7d` |
+| `catalyst` | does an event inside the holding window act against the side? | `events`, `label` |
+| `regime` | does the trade need BTC to hold where the book says it will not? | `HEAD` — `verdict`, `bull`, `bear` — and the side |
+| `liquidity` | can the size be filled and left at those levels? | `turnover24h`, `size` |
+| `positioning` | is it the crowd's trade, with the large players on the other side? | `large`, `crowd`, `label` |
+| `concentration` | is this ticket the same bet as tickets ranked above it? | the side, `own-move` and `basis` of every ticket of that side; `HEAD`'s risk |
+
+**Concentration is CUT and never STRUCK.** Several trades of one side on coins that move with BTC —
+`own-move` `market`, `quiet` or `none` — are one bet on BTC in several costumes: the trade is not wrong,
+there is only too much of it. Keep the cluster's first-ranked tickets — as many as one bet on BTC deserves
+at the risk `HEAD` shows — and cut the rest, each cut's sentence naming the cluster and how many of it
+stand. **A cause the
+trader's rules already acted on is not a second verdict:** a `label` printed for it, or a refusal the book
+shows, means the rule did its work — your verdict is for what the rules let through.
+
+**Then read the book as a book, and write what you find as `FINDING` lines.** They change nothing; the
+Architect reads them. A number printed identical on every row — a constant of the rule wearing the shape
+of a measurement; an order of rows that does not rank them the way capital would; a dated event inside the
+holding window on a coin the book neither trades nor prices; a first line that does not say what the Boss
+must do now; a `СОЗРЕВАЕТ` that reads as a label rather than a search; anything that reads as a reference to
+an earlier answer; a field a verdict needed and a ticket did not carry.
+
+**Your final message, in this form and no other:**
+
+```
+SHERIFF <stem>
+T1 KEEP
+T2 STRIKE <cause> — «<the field or line, copied>» — <one sentence: why a professional refuses it>
+T3 CUT <cause> — «<the field or line, copied>» — <one sentence>
+… one line per ticket, in ticket order …
+FINDING <what> — «<the line, copied>» — <one sentence>
+… or the one line: FINDINGS none
+```
