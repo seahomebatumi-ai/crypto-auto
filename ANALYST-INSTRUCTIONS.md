@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-09-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-09-b.**
 
 **Authority.** Authoritative in GitHub and read there alone — a copy anywhere else is not this file.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,25 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-10-09-b` repairs the defect the first press under `2026-10-09-a` met — 09.10.2026, the writer's
+commit at 17:01 Tbilisi — and the defect is this file's.** §15 named the hunter's call without saying that
+the call returns the report, and wrote that the trader «writes nothing while the hunter runs», which describes
+a call running beside the trader. The Claude Code on the VPS sends a subagent to the background by default;
+the trader did exactly that, ended its turn with a status in English to wait for the report, and the unit
+delivered that status to the owner as the answer — in a headless run the turn that ends is the run that ends,
+so the hunt and the answer died with it. Three changes, each stated once where it binds:
+
+- **both subagents run in the foreground** — `run_in_background` set to `false` where the Agent tool offers
+  it — and each call's own result is the report; a call that returns anything else is a failed subagent,
+  and the trader completes the answer on §15's fallback instead of waiting (§15, item 113);
+- **the run is one turn, and its last message is the answer** (§15): no status, no progress line and no plan
+  is ever a final message, and contract v28 has the unit refuse a final message that carries no line
+  opening with the answer's first line;
+- **no earlier log is opened for its format either** (§12): the same run grepped the previous log «to check
+  the log format».
+
+§6 and §6a do not move, so `sec6_md5` is unchanged.
 
 **`2026-10-09-a` splits the run into three roles — the owner's decision recorded at map `2026-10-09-c` — and
 answers his message of 09.10.2026: the method must be the one a professional trader enters by, and where
@@ -3765,12 +3784,17 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     the rule that acted, and a coin `unread` carries why. An object published against a
     class that refuses it, a label with no class behind it, a class with no label, and a class standing in
     `Почему` in place of the edge each fail this item.
-113. **The roles ran as §15 fixes.** The hunter was launched after the freeze with §15's prompt and its
-    report is in the appendix verbatim, or its failure is named and §15's fallback applied; the trader
-    wrote nothing while it ran and made no read the hunt owns; the sheriff was launched after item 86 with
-    the composed answer and its tickets and nothing else; and the model each subagent ran on is in the
-    appendix. A trader that hunted, a hunter that published, chose a verdict word or cut a level, and a
-    sheriff handed any other section of this file, the appendix or the state each fail this item.
+113. **The roles ran as §15 fixes, inside one turn.** The hunter was launched after the freeze with §15's
+    prompt, in the foreground, and its report — the call's own result — is in the appendix verbatim, or its
+    failure is named and §15's fallback applied; the trader wrote nothing between the call and its return
+    and made no read the hunt owns; the sheriff was launched after item 86, in the foreground, with the
+    composed answer and its tickets and nothing else; the model each subagent ran on is in the appendix;
+    and **the run's last message is the answer** — no status, progress line or plan ended a turn. A trader
+    that hunted, a hunter that published, chose a verdict word or cut a level, a sheriff handed any other
+    section of this file, the appendix or the state, a subagent sent to the background, and a turn ended on
+    anything but the answer each fail this item. **Corrected in place at `2026-10-09-b`:** the first press
+    under `2026-10-09-a` sent the hunter to the background and ended on a status in English, which the unit
+    delivered as the answer.
 114. **Every verdict of the sheriff was applied as §15 fixes, and nothing else changed:** a struck object
     in no section and no field of `ИТОГ`, its prices gone from `# КАТАЛИЗАТОРЫ`; a cut object at «Размер:
     резерв», the budget it freed spent on nothing; a verdict quoting no fact logged void and not applied;
@@ -4185,9 +4209,11 @@ received and the record's path. A reader counting answers counts the `<stem>.md`
 
 **No run OPENS an earlier log — a hunt record included — for any purpose** (§0). The log is evidence for the Architect's audit —
 the research the owner's decision of 24.09.2026 allows to be kept — and never an input to a
-recommendation, **and a command is no exception:** every command a run needs is derived from this
-file and from this run's `index.html` — a production function's span found by its NAME there (§4),
-never recovered from an earlier record — so no run has a reason to open one. The one fact a run
+recommendation, **and neither a command nor a format is an exception:** every command a run needs is
+derived from this file and from this run's `index.html` — a production function's span found by its NAME
+there (§4), never recovered from an earlier record — and the log's format is this section's list and §2's
+skeleton, so no run has a reason to open one. **Measured 09.10.2026:** the first run under `2026-10-09-a`
+grepped the previous log «to check the log format» and said so in the status it ended on. The one fact a run
 takes about an earlier run is whether its commit landed on `main` (map inv. 54), read with `git`
 and never from the log's text. **Measured 25.09, 01:30 Tbilisi:** the run opened 140 lines of the
 previous log, that run's answer among them, to recover `sed` spans and a harness path, and said so;
@@ -4343,7 +4369,7 @@ nothing the Boss reads; the sheriff may only take away; everything the Boss read
 
 | Role | Reads | Does | Writes | Never |
 |---|---|---|---|---|
-| **Trader** — this session | this file but §16–§17, by the command below — §6 and §6a as the rules a catalyst is classed and printed by, never as a hunt it runs; the contract's operative set | §5 steps 1–4 and 7 — the gate, the state, the freeze and the screen, the strategy; §7; launches the hunter and the sheriff and applies what they return | `analyst/state.json` before the hunter starts and after it returns; the day log's `<stem>.md`; the run's one commit | hunts — a lane, a discovery search, a mover, a vector or a positioning read of its own; applies a sheriff's verdict in part |
+| **Trader** — this session | this file but §16–§17, by the command below — §6 and §6a as the rules a catalyst is classed and printed by, never as a hunt it runs; the contract's operative set | §5 steps 1–4 and 7 — the gate, the state, the freeze and the screen, the strategy; §7; launches the hunter and the sheriff and applies what they return | `analyst/state.json` before the hunter starts and after it returns; the day log's `<stem>.md`; the run's one commit | hunts — a lane, a discovery search, a mover, a vector or a positioning read of its own; applies a sheriff's verdict in part; ends its turn before the answer; launches any subagent but these two |
 | **Hunter** — subagent on `sonnet` | §16 and what §16 names: §5 step 5, §3B's four filters, §6 and §6a, §11 and the hunt's items of §7 | §5 step 5's hunt in its order, §16's positioning read, the book rows' lookups; returns the HUNT REPORT | `analyst/state.json` — `horizon` and `sweeps` — while it runs; the hunt record `<stem>.hunt.md` | publishes, cuts a level, chooses a verdict word, opens an earlier log, commits |
 | **Sheriff** — subagent on the session's model | §17 alone, and the book and the tickets it is given | reads the book cold; one verdict per ticket and findings on the book; returns SHERIFF | nothing | adds an object, moves a level, a side, a status or a grade, raises a size, reads any file but §17 |
 
@@ -4362,6 +4388,13 @@ catalyst means for the book — its class, its window, its source class and what
 impact tag, what an unlock at or above `UNLOCK_MATERIAL` closes — and never runs a step of them: every lane,
 search, read and record they name is the hunter's (§16).
 
+**The run is ONE turn, and its last message is the answer** (contract §4). In a headless run the moment
+the trader stops calling tools is the end of the run, and whatever it wrote then is delivered to the Boss as
+the answer: so it writes no status, no progress line, no plan and no line in English at any point, and it
+never ends its turn to wait — for a subagent, a notification or anything else. **Both subagents run in the
+foreground, inside that turn:** each call returns the subagent's final message as its own result, and the
+trader's next step starts when it does.
+
 **The run, in order:**
 
 1. **§5 steps 1–4** — the time, the gate, the state and the owner file, the freeze and the screen. At
@@ -4372,7 +4405,8 @@ search, read and record they name is the hunter's (§16).
    trader fixes the run's stem — `YYYY-MM-DD`, or `YYYY-MM-DD-N` where that date's log exists (§12) — by
    listing `analyst/log/`, which opens no log.
 2. **The hunter.** One Agent call, `subagent_type` `general-purpose`, `model` `sonnet` — where the tool
-   offers no model parameter it runs on the session's model, and the appendix says which — with this
+   offers no model parameter it runs on the session's model, and the appendix says which — **in the
+   foreground** — `run_in_background` set to `false` where the tool offers that parameter — with this
    prompt and no other text:
 
    ```
@@ -4385,8 +4419,12 @@ search, read and record they name is the hunter's (§16).
    Return the HUNT REPORT of that section as your final message.
    ```
 
-   **While the hunter runs the trader writes nothing.** The report is its final message; the trader reads
-   it whole and carries it verbatim into the appendix (§12).
+   **The call's own result is the report:** the trader reads it whole and carries it verbatim into the
+   appendix (§12), and writes nothing of the state between the call and its return. **A call that
+   returns anything else is a failed hunt** — an agent sent to the background, a launch notice, an error,
+   a message without its `HUNT REPORT` line — and the trader goes on at once under the failure rule below:
+   it never ends its turn to wait for the report, because a report cannot arrive in a turn that has
+   ended.
 3. **§5 step 7 — the strategy, on the report.** Its `ITEMS` are the catalysts of §2 — each event's date,
    minute, class and source class as the hunter read them; the verdict word, the effect, the impact tag
    and every printed word are the trader's — its `FORWARD` lines the forward candidates of §4, its
@@ -4401,7 +4439,8 @@ search, read and record they name is the hunter's (§16).
    filter-3 lookup of a book row the hunter's `BOOK` lines do not reach; and §6a's unlock search for a book
    long whose read the hunter left `refused` or `not covered` without one.
 4. **§7, then item 86** — the trader's own question about its own money, asked of the book it composed.
-5. **The sheriff.** One Agent call, `subagent_type` `general-purpose`, the session's model, with this
+5. **The sheriff.** One Agent call, `subagent_type` `general-purpose`, the session's model, in the
+   foreground on the same terms — its result the verdicts, anything else a failed sheriff — with this
    prompt and no other text:
 
    ```
@@ -4415,7 +4454,7 @@ search, read and record they name is the hunter's (§16).
    ```
 
 6. **The verdicts, applied** (below), the items they touch re-run (item 114), the state — `oi` and
-   `regime` (§11) — and the day log written, the commit, the answer.
+   `regime` (§11) — and the day log written, the commit, and the answer, as the run's last message.
 
 **One ticket per priced object** — every row, `ТОП-3` line and `СОЗРЕВАЕТ` item, `резерв` included — in
 the answer's order, each field labelled so the sheriff reads it without this file, each value one this
@@ -4449,14 +4488,16 @@ T<n> | <section> | <COIN> <ЛОНГ|ШОРТ> <СЕЙЧАС|ЖДАТЬ|СОЗР�
 objection (§7): the sheriff exists because a book cannot be audited by the reader who built it, and an
 appeal that reader decides is no audit.
 
-**When a subagent fails.** A hunter that returns no report, or a report without its `HUNT REPORT` line,
-is a failed hunt, and the trader hunts nothing itself — §6 is its rulebook, never a hunt it runs. The
+**When a subagent fails.** A hunter call that does not return the report as its own result — the agent
+sent to the background, no report, a report without its `HUNT REPORT` line — is a failed hunt, and the
+trader hunts nothing itself — §6 is its rulebook, never a hunt it runs. The
 answer then stands on
 what the run holds: `# КАТАЛИЗАТОРЫ` prints only §6's primary dates inside 48 hours from the state and
 ends «Поиск не завершён.»; `СОЗРЕВАЕТ ≤7 ДНЕЙ` prints «Поиск не завершён.»; a `ТОП-3` line stands only on
 the trader's own filter-3 lookup and, for a long, its own unlock search; no list long is published on a
 coin whose stored unlock record carries a cliff at or above `UNLOCK_MATERIAL` inside the holding window;
-and every coin's positioning is `unread`. A sheriff that returns no verdicts leaves the book as composed,
+and every coin's positioning is `unread`. A sheriff call that does not return its verdicts as its own
+result leaves the book as composed,
 and no object is sized above `risk_pct_medium` (§4) — a book its control did not read is traded smaller.
 Either failure is one line of the appendix and nothing of the answer.
 
@@ -4520,7 +4561,10 @@ never opened** (§5), on the frozen payload the trader read: no read of yours is
 
 **A run short of capacity loses its tail, never its head** (§5 step 5): stop where you must, name the step
 you stopped in, and return the report. A report naming where it stopped is a complete product; no report
-is the one failure the trader cannot repair (§15).
+is the one failure the trader cannot repair (§15). **You launch no subagent** — every read and search of
+the hunt is yours, in your own turn — **and your final message is the HUNT REPORT and nothing else:** a
+subagent's last message is all the trader receives, so you end only when the report is written, never on a
+status.
 
 ### The positioning read — where the large players are, on the exchange's own statistics
 
