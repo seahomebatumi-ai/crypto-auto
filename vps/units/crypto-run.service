@@ -16,6 +16,7 @@ Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/u
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=DISABLE_AUTOUPDATER=1
 Environment=CLAUDE_CODE_DISABLE_AUTO_MEMORY=1
+Environment=CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
 Environment="GIT_SSH_COMMAND=ssh -i %d/deploy-key -o IdentitiesOnly=yes -o UserKnownHostsFile=/var/lib/cryptorun/.ssh/known_hosts"
 LoadCredential=claude-oauth-token:/etc/crypto-auto/credentials/claude-oauth-token
 LoadCredential=deploy-key:/etc/crypto-auto/credentials/deploy-key

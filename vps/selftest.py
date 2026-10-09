@@ -503,7 +503,7 @@ STUB_CLAUDE = """#!/usr/bin/env python3
 import json, os, sys
 with open(os.environ["SELFTEST_O_CLAUDE_SAW"], "w") as fh:
     fh.write(os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "<absent>"))
-json.dump({"type": "result", "subtype": "stub_subtype", "is_error": False, "result": "SELFTEST-O-RESULT-TEXT",
+json.dump({"type": "result", "subtype": "stub_subtype", "is_error": False, "result": os.environ["SELFTEST_O_RESULT"],
            "num_turns": 3, "duration_ms": 1234, "api_error_status": 418, "terminal_reason": "stub_terminal",
            "stop_reason": "stub_stop", "modelUsage": {}, "permission_denials": [],
            "usage": {"input_tokens": 11, "output_tokens": 22, "cache_read_input_tokens": 33,
@@ -556,7 +556,7 @@ def section_o(s):
     s.check("no element of run.CLAUDE equals opus", "opus" not in cmd)
     tmp = tempfile.mkdtemp(prefix="vps-selftest-o.")
     env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", run.LOGIN_ENV,
-                "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW")
+                "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW", "SELFTEST_O_RESULT")
     saved_env = {k: os.environ.get(k) for k in env_keys}
     patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (run, "WRITER"), (run, "own_memory_max"),
                (run, "own_swap_max"), (run, "mem_available"), (run, "swap_free"), (run, "ADMISSION_POLL_S"),
@@ -574,7 +574,9 @@ def section_o(s):
         os.environ.update({"PATH": paths["bin"] + os.pathsep + (saved_env["PATH"] or ""),
                            "CREDENTIALS_DIRECTORY": paths["creds"], "RUNTIME_DIRECTORY": paths["runtime"],
                            run.LOGIN_ENV: decoy,          # a value already in the unit's environment is not the login
-                           "SELFTEST_O_CLAUDE_SAW": claude_saw, "SELFTEST_O_WRITER_SAW": writer_saw})
+                           "SELFTEST_O_CLAUDE_SAW": claude_saw, "SELFTEST_O_WRITER_SAW": writer_saw,
+                           # TZ-63: the stub's final message is an answer, opening with run's own head.
+                           "SELFTEST_O_RESULT": run.ANSWER_HEAD + " SELFTEST-O-RESULT-TEXT"})
         common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
         run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
         run.own_memory_max = run.own_swap_max = lambda: None
@@ -1079,11 +1081,88 @@ def section_t(s):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# --- U: the delivery test (TZ-63) ----------------------------------------------------
+STUB_CLAUDE_U = """#!/usr/bin/env python3
+import json, os, sys
+json.dump({"type": "result", "subtype": "success", "is_error": False, "result": os.environ["SELFTEST_U_RESULT"],
+           "num_turns": 2, "duration_ms": 10, "modelUsage": {}, "permission_denials": [], "usage": {},
+           "total_cost_usd": 0.1}, sys.stdout)
+"""
+# The final message the run of 09.10.2026 delivered, two of its lines verbatim.
+U_STATUS = ("The hunter is still running the catalyst, unlock and positioning hunt. Here's where the run stands:\n"
+            "\n"
+            "When the report arrives, I'll read it and do my four allowed lookups.\n")
+
+
+def section_u(s):
+    head = run.ANSWER_HEAD
+    with open(os.path.join(REPO, "ANALYST-INSTRUCTIONS.md"), encoding="utf-8") as fh:
+        lines = [line.rstrip("\n") for line in fh]
+    starts = [i for i, line in enumerate(lines) if line.startswith("## 2. ")]
+    fence = None
+    if len(starts) == 1:
+        fence = next((i for i in range(starts[0] + 1, len(lines)) if lines[i] == "`" * 3), None)
+    s.check("ANALYST-INSTRUCTIONS.md section 2's skeleton opens with run.ANSWER_HEAD",
+            fence is not None and fence + 1 < len(lines) and lines[fence + 1].startswith(head + " "))
+    cases = ((head + " 22:59 Tbilisi\n\n# R\n", True, "an answer"),
+             ("\n\n  " + head + " 22:59\n", True, "an answer after blank lines and indentation"),
+             ("**" + head + "** 22:59\n", True, "an answer under emphasis"),
+             ("Note.\n\n" + head + " 22:59\n", True, "an answer after a line before it"),
+             (U_STATUS, False, "the status the run of 09.10.2026 delivered"),
+             (common.S7, False, "notice S7"),
+             ("Soon: " + head + " 22:59\n", False, "the head inside a line"),
+             ("", False, "an empty string"),
+             (None, False, "None"),
+             (42, False, "a number"))
+    for result, want, label in cases:
+        s.check("is_answer: %s is %s" % (label, want), run.is_answer(result) is want)
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-u.")
+    env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", "SELFTEST_O_WRITER_SAW", "SELFTEST_U_RESULT")
+    saved_env = {k: os.environ.get(k) for k in env_keys}
+    patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (run, "WRITER"), (run, "own_memory_max"),
+               (run, "own_swap_max")]
+    saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
+    saved_term = signal.getsignal(signal.SIGTERM)
+    want_line = "crypto-run: final message is not an answer chars=%d" % len(U_STATUS)
+    try:
+        paths, tree, _ = o_fixtures(tmp, STUB_CLAUDE_U, "sk-ant-oat01-selftest-planted-" + os.urandom(6).hex())
+        os.environ.update({"PATH": paths["bin"] + os.pathsep + (saved_env["PATH"] or ""),
+                           "CREDENTIALS_DIRECTORY": paths["creds"], "RUNTIME_DIRECTORY": paths["runtime"],
+                           "SELFTEST_O_WRITER_SAW": os.path.join(tmp, "writer-saw"), "SELFTEST_U_RESULT": U_STATUS})
+        common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
+        run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+        run.own_memory_max = run.own_swap_max = lambda: None
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = run.main(["--tree", tree])
+        summary = out.getvalue()
+        s.check("a status as the final message: exit 1", code == 1)
+        s.check("a status as the final message: one notice S7", notices(paths["outbox"]) == [common.S7])
+        s.check("a status as the final message: no answer in the outbox",
+                [n for n in os.listdir(paths["outbox"]) if "-answer-" in n] == [])
+        s.check("one line " + want_line, summary.splitlines().count(want_line) == 1)
+        s.check("the summary carries answer_chars=0", " answer_chars=0" in summary)
+        s.check("the summary never carries the status", "The hunter is still running" not in summary)
+    finally:
+        signal.signal(signal.SIGTERM, saved_term)
+        for mod, name, value in saved_attrs:
+            setattr(mod, name, value)
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        shutil.rmtree(tmp, ignore_errors=True)
+    with open(os.path.join(HERE, "units", "crypto-run.service"), encoding="utf-8") as fh:
+        unit_lines = [line.rstrip("\n") for line in fh]
+    s.check("exactly one Environment=CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1",
+            unit_lines.count("Environment=CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1") == 1)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
-            ("T", section_t))
+            ("T", section_t), ("U", section_u))
 
 
 def main():
