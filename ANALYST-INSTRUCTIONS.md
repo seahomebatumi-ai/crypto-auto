@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-09-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-10-a.**
 
 **Authority.** Authoritative in GitHub and read there alone — a copy anywhere else is not this file.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,35 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-10-10-a` answers the audit of the run of 10.10.2026 and the owner's message of the same day: he
+read the book as contradictory — mostly shorts, some longs — asked for a short list of the trades the engine
+is confident in, and asked when its strategies can be trusted.** The run broke no rule; the rules printed
+what no professional would hand an investor as one book. The answer of 10.10, 18:12 Tbilisi carried fifteen
+trade objects, of which the budget and the sheriff funded three — SOL, ETH and ENA, all short — and the twelve
+others stood in full blocks with «Размер: резерв» beneath them, four of them longs under a bearish BTC verdict.
+The trader's own item 86 named the three it would trade and published the fifteen. Three changes, each stated
+once where it binds:
+
+- **the answer publishes the FUNDED book** (§2, §4): a trade object prints its levels only where §4's budget
+  sized it and the sheriff left its size standing, and a list coin left unfunded is named, without a price, in
+  one line «Без размера:» — so the page is the trades the engine's own money takes, and the rest of the list
+  is seen and not traded;
+- **the ranking key is read in units of the owner's risk** (§2, item 80): every object is sized from its own
+  stop, so the per cent the key multiplied ranked the coins by their own volatility — ENA's 27.2 % first, XLM's
+  15.2 % last — and the budget funded the most volatile; ties now go to the deeper market;
+- **a verdict may only take away** (§2, §4, item 110): §2 said no grade, size or label moves on a verdict while
+  its effect fed §8's condition (3) and the label, and the sheriff cut three longs on the BTC verdict under
+  §17's `regime` cause — the trader applied the cuts and recorded the objection. The cuts were right and the
+  sentence was wrong: an unscored view may refuse, cut and cap, and never add.
+
+**What this revision does not change is measured and stated here once, for the audit:** the book has no
+measured edge. The replay of every trade row of the runs of 26.09–08.10.2026 by map §10's protocol closed 40
+trades at −4.53 R, 13 winners; the sized book alone, from 03.10, closed 9 at −7.0 R, 8 of them on their stops,
+with the three `СИЛЬНАЯ` among them; and `residual7`, on which §8's condition (4) rests, is display-only and
+measured at zero predictive value (map §3.9, §3.10a, inv. 27). The grade and the owner's size step on it stand
+by his decision of 01.10.2026; the scorecard is what separates them or retires them (map §10). §6 and §6a do
+not move, so `sec6_md5` is unchanged.
 
 **`2026-10-09-b` repairs the defect the first press under `2026-10-09-a` met — 09.10.2026, the writer's
 commit at 17:01 Tbilisi — and the defect is this file's.** §15 named the hunter's call without saying that
@@ -82,18 +111,6 @@ expected move.** Five changes, each stated once where it binds:
 
 **§6 and §6a move, so `sec6_md5` changes:** every lane and every coverage record re-opens on the first
 run under this revision.
-
-**`2026-10-05-a` answers the owner's request of 05.10.2026, made on the answer of 04.10, 20:44 Tbilisi:
-every trade that rests on a catalyst says how fresh the catalyst is, so that he never boards the last car
-of a move.** That answer's `СОЗРЕВАЕТ` item — XRP, a ledger amendment activating on 09.10 — named the date
-the event fires and not the date the market learned of it: the amendment gained its majority on 25.09 at
-14:46Z, the run of that evening found it three and a half hours later, the appendix of 04.10 held the
-timestamp, and the owner could not tell nine days from nine minutes. **Every published object whose side
-or entry rests on a dated event now prints when that date became public and the coin's move since** (§2,
-§4) — «Известно с ДД.ММ (N дн.) · с тех пор ±X.X%»: the earliest dated record the run read that states the
-event's date, and the move from the futures close of that hour to the frozen price. It is a measurement of
-this run about an event ahead and never an earlier answer, and item 109 checks it. **§6 and §6a do not
-move, so `sec6_md5` is unchanged.**
 
 **The history of earlier revisions lives in git and in the day logs, not here.**
 
@@ -311,9 +328,10 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
 Размер N XXX ($X) · плечо 2×
 **XXX — ЛОНГ · ЖДАТЬ · СРЕДНЯЯ · ПОВЫШЕННЫЙ РИСК: тонкий рынок**
 Вход $X · Цель $X (+X.X%) · Стоп $X (−X.X%)
-Размер: резерв
+Размер N XXX ($X)
 ⚠ — против режима рынка
 Свой ход сильнее BTC: XXX · XXX · слабее: XXX · одновременно X лонгов / X шортов, из них X идут с рынком
+Без размера: ШОРТ — XXX · XXX; ЛОНГ — XXX
 В тренде, входа сегодня нет: XXX $X (−X.X%) · XXX $X (−X.X%) · ни по какой цене: XXX
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
@@ -383,8 +401,8 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   direction may stand in it beside the edge and never in its place, because no catalyst earns the
   grade (§8), and so may the large players' class of the side — «киты набирают лонг» — which earns
   nothing either (§16); no statistic stands in it (§1). **It is ranked by §2's key** — the chance of the zone
-  inside seven days times the anchor-to-target distance — which is what «most profitable» can mean
-  without a score: the target alone would put the trade least likely to fill at the top. **A row
+  inside seven days times the reward in units of risk, ties to the deeper market — which is what «most
+  profitable» can mean without a score once every trade is sized to one risk. **A row
   printed here is printed in no other section but `ИТОГ`** — it leaves `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` and the
   strategy block, and still counts in the own-move line's totals — because the same trade in two
   places reads as two trades. **No `СИЛЬНАЯ` row → the one line «СИЛЬНЫХ СДЕЛОК НЕТ.»** and nothing
@@ -438,18 +456,24 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   must be avoided appears in `ИТОГ` under ИЗБЕГАТЬ with no row.
 - **Every section ranks `СИЛЬНАЯ` objects before `СРЕДНЯЯ` ones** (§8), because capital ranks a
   trade the run can name an edge for above one it cannot and §4's budgets spend in this order; **inside
-  each grade the table is ordered by what the trade is WORTH, never by how near its limit sits.**
-  The key is the chance of the zone being reached inside seven days multiplied by the
-  distance from the anchor to the target in per cent — both numbers the run already computes
-  and both already printed, so no input, constant or threshold is introduced and nothing here
-  is a score (map inv. 32). It is a ranking key and nothing more, and it gates nothing: a row's admission is unchanged, only its position on
-  the page. **The top of this table is the first thing the Boss reads and he reads it as the
-  best idea in the answer.** Ordering by fill probability puts the smallest trade there by
-  construction, because the nearest limit is the one asking for the least movement.
-  **Measured 19.09, second run:** TRX stood first on a target of +4.1 % against a stop of
-  −2.0 %, while ZEC (+25.5 %) stood fourth and NEAR (+23.5 %) stood last, purely because
-  their limits sat further away. Ties are broken by the nearer zone, which is the old key
-  demoted to where it belongs.
+  each grade the table is ordered by what the trade is WORTH per unit of the owner's risk, never by how
+  near its limit sits or how wide its coin swings.** The key is the chance of the zone being reached
+  inside seven days multiplied by the reward in units of the row's own risk — its ratio at the anchor
+  (§4), computed and not printed: `RR_MIN` on every own-trend row by construction, §3B's on a day-cut
+  one — so no input, constant or threshold is introduced and nothing here is a score (map inv. 32).
+  Ties — and every `СЕЙЧАС` own-trend row ties with every other — are broken by the nearer zone and
+  then by the larger 24-hour turnover of the coin's payload row: at the same reward and the same fill,
+  the deeper market fills the entry and the stop nearer their prices. It is a ranking key and nothing
+  more: a row's admission is unchanged, and its position decides only what §4's budget reaches first.
+  **The top of this table is the first thing the Boss reads and he reads it as the best idea in the
+  answer.** **Corrected at `2026-10-10-a`:** the key multiplied the target's distance in PER CENT, which
+  since every object is sized from its own stop (§4) is the stop's width times `RR_MIN` — the coin's own
+  volatility — and not what the trade earns: every own-trend row earns `RR_MIN` risks in the owner's
+  dollars whatever its per cent. **Measured 10.10, 18:12 Tbilisi:** six `СЕЙЧАС` shorts at one fill
+  chance were ranked ENA 27.2 %, UNI 23.8 %, ZEC 22.4 %, BCH 17.1 %, XRP 15.6 %, XLM 15.2 % — their
+  volatilities in order — and the budget funded ENA, on $161M of turnover, ahead of ZEC on $734M. The
+  measurement of 19.09 that put the per cent here — TRX first on +4.1 % beside ZEC on +25.5 % — was taken
+  before any object carried a size.
 - **Статус** is `СЕЙЧАС` or `ЖДАТЬ`. `ЖДАТЬ` requires the exact activating price in
   the Вход cell — «ЖДАТЬ» alone is a violation.
 - **Every published object carries its confidence, `СИЛЬНАЯ` or `СРЕДНЯЯ`, in its header line**
@@ -532,10 +556,32 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   into his order, and the one thing a stop's distance in per cent never told him. **What is the same
   on every row is not printed** (item 79): the risk per row and the leverage ceiling are the owner's
   policy, held in his file and stated to him once; a row prints the quantity they produce, which
-  differs on every row. An object the budget no longer covers prints «Размер: резерв» (§4). The
-  size is the third line of a strategy block, of a `СИЛЬНЫЕ СДЕЛКИ` entry and of a `ЛУЧШИЕ СДЕЛКИ`
-  entry, its own line after
+  differs on every row. A trade object the budget no longer covers is not published (below), and
+  «Размер: резерв» is a `СОЗРЕВАЕТ` item's alone — an item is not a trade yet, and its size is read on
+  the day it arms. The size is the third line of a strategy block, of a `СИЛЬНЫЕ СДЕЛКИ` entry and of a
+  `ЛУЧШИЕ СДЕЛКИ` entry, its own line after
   «Станет сделкой» in a `СОЗРЕВАЕТ` item, and a clause inside a `ТОП-3` line before «Почему».
+- **The answer publishes the FUNDED book and nothing else** — the owner's request of 10.10.2026: a short
+  list of the trades the engine is confident in. A trade object — a `СИЛЬНЫЕ СДЕЛКИ` or `ЛУЧШИЕ СДЕЛКИ`
+  entry, a strategy block, a `ТОП-3` line — prints its levels only where §4's budget sized it and the
+  sheriff left that size standing (§15): the trades this engine's own money takes, and no other. **An
+  object the budget did not reach, or a sheriff's `CUT` took off the book, is not a trade the Boss places
+  now, and a block of levels reads as one whatever line stands beneath it.** **Measured 10.10, 18:12
+  Tbilisi:** fifteen trade objects stood in full blocks, three of them funded — SOL, ETH and ENA, all
+  short — and four of the twelve with «Размер: резерв» beneath them were longs under a bearish BTC
+  verdict; the owner read the book as contradictory, which it was as printed and was not as funded.
+  **A LIST coin so left is NAMED, once and without a price,** in the line «Без размера:» under the
+  strategy block — «Без размера: ШОРТ — XXX · XXX; ЛОНГ — XXX», sides in that order, names in the key's
+  order; the run of 10.10 would have named six shorts and AAVE there — because a coin of his own list in
+  its own trend is never hidden
+  (below), and a name with no price is the one form that says the engine sees the setup and does not
+  fund it; a price beside it would read as an entry and buy the same bet twice. The line stands between
+  the own-move line and the trend line, the heading `СТРАТЕГИЯ — МОЙ СПИСОК` prints wherever any of its
+  lines does, and `ИТОГ` carries the funded book alone — a name in «Без размера:» is not an action and
+  stands in no field of it. **An outside-list candidate so left is not named:** its heading prints its
+  state by the three-state rule (below), and «Нет достойных кандидатов.» there means that no candidate
+  passed every test, §4's budget and the sheriff being the last two (§3B). The appendix carries every
+  unfunded object with its levels, its computed size and the test that left it unfunded (§12).
 - **A row whose coin has a cliff unlock inside the holding window names it at the end of its first
   line** — «**FET — ЛОНГ · ЖДАТЬ · СРЕДНЯЯ · разлок 28.09 (0.1%)**» — the date and the cliff's share of the
   supply the dataset counts as circulating, both from §6a's unlock lane; a `ЛУЧШИЕ СДЕЛКИ` line, a `ТОП-3` row and a
@@ -754,7 +800,7 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   **This is the honest form of «куда идёт биткойн», asked by the owner on 20.09:** a
   conditional map with a measured reach, and it stays the section's fourth line. **The direction he
   asked for again on 07.10.2026 prints in the three lines above it** — the engine's own verdict, a
-  measured scale signed by a judgement, scored and gating nothing (below). A direction printed in the
+  measured scale signed by a judgement, scored, and taking away only (below). A direction printed in the
   levels line, or beside a probability, is still manufactured.
 - **Under a stress word the conditional book is ONE position per side, and `МОЙ ВЕРДИКТ` names it.**
   Under `ПЕРЕГРЕТ` or `ВЫСОКИЙ РИСК` every name in `ИТОГ`'s `ЖДАТЬ` field activates on the one
@@ -806,8 +852,14 @@ Empty sections are omitted entirely. Labels are Russian; English labels are bann
   everything this run measured and read (§1) — for a coin's event its age and the move since it among
   them (§4), because a catalyst the market has held for a year is not a week on its side — and never a
   published call adopted (§6). **A verdict is a view and has the standing of one:** it prints no
-  probability, and no level, side, status, grade, size, label or row moves on it — the book is the
-  measured product and the verdict stands beside it, and item 86 does not act on it either. **Every
+  probability, and it may only TAKE AWAY — its effect takes `СИЛЬНАЯ` away through §8's condition (3) and
+  halves a size through §2's label, and the sheriff cuts or strikes on it under §17's `regime` and
+  `catalyst` causes — while no row is added, no grade, size or label is raised and no level, side or
+  status moves on it: the book is the measured product, and an unscored view standing beside it may
+  refuse what the book offers and never offer what the book does not. **Corrected at `2026-10-10-a`:**
+  this sentence said no grade, size or label moves on a verdict while the effect fed all three, and the
+  run of 10.10 applied three sheriff cuts resting on the BTC verdict under an objection that the
+  sentence made correct. **Every
   verdict is logged to be scored** (§12): a call nobody scores is a voice, not a method, and a record that
   does not beat its own coin flip is re-derived rather than defended. **Measured 07.10, 23:08 Tbilisi:**
   the one coin item with a side gave XRP «неделя на стороне лонга» on Evernorth's Nasdaq debut — a listing
@@ -1286,7 +1338,8 @@ refused: it is a `СОЗРЕВАЕТ` item at the price where its day would admi
 
 **The section's three slots per side go to the surviving candidates in one order — a dated event
 naming the side first, then the large players' class of the side (§16), then turnover — and §2's key
-then orders the lines on the page.** A candidate whose coin carries the large players' class AGAINST its
+then orders the lines on the page; a slot prints only where §4's budget funds it and the sheriff leaves
+it funded, the last two tests a candidate passes (§2).** A candidate whose coin carries the large players' class AGAINST its
 side is refused by name, whether or not the crowd is with it: the trade the engine knows least about does
 not get the loosest standard (§0), and one day's row against the exchange's largest accounts is a trade a
 professional leaves alone. The class of the side stands in `Почему` beside the coin's day — «киты
@@ -1586,7 +1639,8 @@ carries nine copies of one constant while the log carries the computation (§12)
   such a figure could only be manufactured, and a manufactured confidence is the one output
   that is worse than an empty section. **The verdicts of §2 are the one exception, and it is an
   exception of standing rather than of rule:** each states the engine's expected direction as a word,
-  never a probability, beside a measured scale; none moves anything in the book; and every one is logged
+  never a probability, beside a measured scale; none adds anything to the book and each may only take
+  away (§2); and every one is logged
   to be scored — so the directional information this sentence says the engine lacks is measured on its
   own calls instead of being claimed.
   **No pattern, candlestick, indicator or sentiment method enters this file, and the refusal
@@ -1894,8 +1948,8 @@ carries nine copies of one constant while the log carries the computation (§12)
   order, then `ТОП-3`, then `СОЗРЕВАЕТ`, **each section ranking `СИЛЬНАЯ` first** (§2) — a coin
   spending once however often it is named. The answer's first object is therefore always sized, and
   capital reaches the setups the run can name an edge for before the ones it cannot (§8). An object
-  the budget no longer covers prints «Размер: резерв»: the Boss places it only after a sized
-  position of that side has closed. **The budget is a property of this answer and of nothing the
+  the budget no longer covers is not published (§2) — a list coin is named in «Без размера:», and a
+  `СОЗРЕВАЕТ` item prints «Размер: резерв». **The budget is a property of this answer and of nothing the
   Boss holds** (§0) — the engine cannot know his book, so counting what he already holds against the
   same budgets is his rule, told to him once and never printed. Under a stress word the conditional
   book is one position per side (§2), sized like any row. **A missing or unreadable `capital`, or a
@@ -3484,9 +3538,10 @@ carry no measured run of their own.
     printed from another fails this item.
 75. **No coin in its own trend is hidden** (§2, §4): each is published on its own side — a
     trade or a `СОЗРЕВАЕТ` item where a dated event names its side, `⚠` where the market word opposes
-    it — or stands in the `В тренде, входа сегодня нет` line, or in `ИЗБЕГАТЬ` for a reason of its
-    own (§2); the rule that kept it from a row is named in the appendix either way. A coin refused on the
-    market word alone, outside `ПЕРЕГРЕТ` and `ВЫСОКИЙ РИСК`, fails this item.
+    it — or is named in the «Без размера:» line where its row stood unfunded, or stands in the
+    `В тренде, входа сегодня нет` line, or in `ИЗБЕГАТЬ` for a reason of its own (§2); the rule that kept
+    it from a row is named in the appendix either way. A coin refused on the market word alone, outside
+    `ПЕРЕГРЕТ` and `ВЫСОКИЙ РИСК`, fails this item. **Corrected in place at `2026-10-10-a`.**
 
 **71–75 name the run of 18.09 and the owner's reading of it.** The run passed every item above
 and still printed three rally shorts on coins in their own range as waiting orders, a BTC level
@@ -3520,9 +3575,11 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     condition, true of every row it admits.
 80. **The strategy table is ordered by the key of §2 within its grade** — `СИЛЬНАЯ` rows before
     `СРЕДНЯЯ` ones, and inside each the chance of the zone being reached inside seven days
-    multiplied by the anchor-to-target distance in per cent — and the log records that key per row
-    beside the order it produced. **Corrected in place at `2026-10-01-a`.** A table ordered by the zone
-    probability alone fails this item.
+    multiplied by the reward in units of the row's own risk, ties broken by the nearer zone and then by
+    the larger 24-hour turnover — and the log records that key per row, with the turnover where a tie
+    was broken, beside the order it produced; §4's budget spends in that order. **Corrected in place at
+    `2026-10-10-a`:** a table ordered by the target's per cent ranks its coins by their volatility and
+    fails this item.
 81. **RETIRED at `2026-09-28-a` by the owner's decision of 24.09.2026** — the first line carries nothing about an
     earlier answer (§2, item 64).
 82. **The own-move line ends with the book's concentration** (§2): rows per side, and how many
@@ -3725,15 +3782,18 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     cause published the day before the freeze, the named mover search found nothing, and the cause
     reached `УЖЕ БЫЛО СЕГОДНЯ` because this file's header named it — which that run recorded
     unprompted.
-106. **Every row, `ТОП-3` line and `СОЗРЕВАЕТ` item published carries its size or «Размер: резерв»**
-    (§2, §4), computed from `analyst/owner.json` at its own anchor: `qty` from the stop distance it
+106. **Every trade object published is funded and carries its size, and «Размер: резерв» stands on a
+    `СОЗРЕВАЕТ` item alone** (§2, §4) — a row, a `ТОП-3` line or an item, each sized from `analyst/owner.json`
+    at its own anchor: `qty` from the stop distance it
     prints and the risk its grade and label give it, `L` the `L` field `leverageDecision` returned there — `L_MIN`
     with no structural row — capped at `lev_max` and printed only below it; and the sized objects of a
     side stay within `side_max_pct`, both sides within `book_max_pct`, spent in the answer's order, which
     ranks `СИЛЬНАЯ` first in every section.
     The appendix carries per object the risk, `d`, `size$`, `qty`, `L` and the budget left after it. A
     size resting on another risk, distance or leverage, a sized object past the budget, a leverage
-    production would not issue, or a size printed while the owner file was unreadable fails this item.
+    production would not issue, or a size printed while the owner file was unreadable fails this item —
+    and so do a trade object printed with «Размер: резерв» and a list coin left unfunded that the
+    «Без размера:» line does not name. **Corrected in place at `2026-10-10-a`.**
 107. **Every published object carries `СИЛЬНАЯ` or `СРЕДНЯЯ` in its header line, graded by §8's five
     conditions, and the appendix carries each condition's verdict per object; `⚠` stands exactly
     where the market word opposes the side; and `ПОВЫШЕННЫЙ РИСК` stands exactly where one of §2's
@@ -3770,7 +3830,9 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     move since the event where the event is a coin's, and the scoring line of §12. A per cent with no
     request behind it, a `ПАМП` or `ДАМП` where the class median does not exceed the ordinary one, a
     `НЕЙТРАЛЬНЫЙ` on an event whose class median does, a probability beside a verdict, a factor list in
-    `МОЁ МНЕНИЕ`, and a level, side, grade, size, label or row moved on a verdict each fail this item.
+    `МОЁ МНЕНИЕ`, a row added, a grade, size or label RAISED, or a level, side or status moved on a
+    verdict each fail this item; a verdict taking away, as §2 lets it, is no failure. **Corrected in place
+    at `2026-10-10-a`.**
 111. **No object without a structural row is published with its stop at or beyond
     `liqPrice(anchor, L_MIN, side)`** (§4) — production's own function, cut and executed — and the appendix carries per such
     object the stop's distance beside the liquidation's. **This is the item §7 was short of:** the run of
@@ -3796,8 +3858,9 @@ reading the answer the way the owner trades it, which is the one audit no checkl
     under `2026-10-09-a` sent the hunter to the background and ended on a status in English, which the unit
     delivered as the answer.
 114. **Every verdict of the sheriff was applied as §15 fixes, and nothing else changed:** a struck object
-    in no section and no field of `ИТОГ`, its prices gone from `# КАТАЛИЗАТОРЫ`; a cut object at «Размер:
-    резерв», the budget it freed spent on nothing; a verdict quoting no fact logged void and not applied;
+    in no section and no field of `ИТОГ`, its prices gone from `# КАТАЛИЗАТОРЫ`; a cut object off the
+    funded book — no level printed, a list coin named in «Без размера:» — the budget it freed spent on
+    nothing; a verdict quoting no fact logged void and not applied;
     no object added and no level, side, status or grade moved; and items 13, 14, 18, 21, 67, 80, 82, 95,
     103, 106, 107 and 108 run again on the book that left. A strike undone, a cut re-sized, a freed budget
     spent again, and a sheriff's `FINDING` applied each fail this item.
@@ -3958,7 +4021,7 @@ distinction is the whole reason this list exists.
 | Prohibition class | `XXX` — вход · `XXX до ДД.ММ` — событие (§2) |
 | Catalyst source mark | НЕ ПОДТВЕРЖДЕНО — only on a `reported` date in `# КАТАЛИЗАТОРЫ` (§6); a row's unlock suffix carries none (§2); no status word exists |
 | Unlock on a row | `· разлок ДД.ММ (X.X%)` — the end of the row's first line (§2) |
-| Size | `Размер N XXX ($X)` · `· плечо N×` only below the owner's ceiling · `Размер: резерв` (§2, §4) |
+| Size | `Размер N XXX ($X)` · `· плечо N×` only below the owner's ceiling · `Размер: резерв` on a `СОЗРЕВАЕТ` item alone · `Без размера: ШОРТ — … · …; ЛОНГ — …` — list coins whose setup stands unfunded, no price (§2, §4) |
 | Regime | БЫЧИЙ / МЕДВЕЖИЙ / ДИАПАЗОН / ПЕРЕГРЕТ / ВЫСОКИЙ РИСК |
 | Verdict (§2) | БЫЧИЙ / МЕДВЕЖИЙ / НЕЙТРАЛЬНЫЙ · ПАМП / ДАМП / БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ — on a catalyst item ahead and in `# BTC` alone, labels ВЕРДИКТ · ОЖИДАЕМАЯ РЕАКЦИЯ · ОЖИДАЕМОЕ ДВИЖЕНИЕ · МОЁ МНЕНИЕ and НАПРАВЛЕНИЕ · ОЖИДАЕМОЕ ДВИЖЕНИЕ · МОЙ ВЕРДИКТ |
 | Confidence | СИЛЬНАЯ / СРЕДНЯЯ — on every published object (below) |
@@ -4245,6 +4308,8 @@ the stop derivation of every published row: the substituted reference, the edge 
 the fr, oi and mark read per published setup, and the state oi each was compared against
 every production function cut from index.html, with the command and the span it cut
 the size of every published object: its risk, d, size$, qty, L and the budget left after it (§4)
+every object left unfunded (§2): its levels, its size as computed, and the test that left it —
+  the budget, or the sheriff's verdict
 the age of every published object resting on a dated event: the record and its timestamp, the
   first-announcement search and its earliest dated hit, the klines request and the price (§4)
 the grade of every published object: each of §8's five conditions with its verdict, the residual7
@@ -4478,8 +4543,9 @@ T<n> | <section> | <COIN> <ЛОНГ|ШОРТ> <СЕЙЧАС|ЖДАТЬ|СОЗР�
 - `STRIKE` — the object leaves every section and every field of `ИТОГ`, and every price of it leaves
   `# КАТАЛИЗАТОРЫ`, whose item then names the side and no price (§2); a coin the strike leaves refused on
   both sides stands in `ИЗБЕГАТЬ` bare, the verdict being the reason this run computed (§2);
-- `CUT` — the object prints «Размер: резерв»; the budget it held is spent on nothing — no object behind
-  it is re-sized, because a freed budget spent again is an object added;
+- `CUT` — the object leaves the funded book: it prints no level, a list coin is named in «Без размера:»
+  and an outside-list one is not (§2); the budget it held is spent on nothing — no object behind it is
+  re-sized, because a freed budget spent again is an object added;
 - `FINDING` — written to the appendix for the Architect and applied by nobody;
 - a `STRIKE` or `CUT` that quotes no field of its ticket and no line of the book is **void**: logged as
   void and not applied, because a verdict nobody can trace to a fact is an opinion.
@@ -4686,8 +4752,8 @@ this section, and no memory of another run.
 
 - `KEEP` — the trade stands as printed;
 - `STRIKE` — a professional would not take it now, at any size: it leaves the answer;
-- `CUT` — a professional would take it, but not at this size now: it stays, at «Размер: резерв», to be
-  placed only after a sized trade of its side has closed.
+- `CUT` — a professional would take it, but not now beside the trades kept above it: it leaves the
+  funded book now, and a coin of the owner's list is named without a price.
 
 You never add a trade, never move an entry, a stop or a target, never change a side, a status or a grade,
 and never raise a size. **`KEEP` is the default and there is no quota:** a book you would trade as printed
