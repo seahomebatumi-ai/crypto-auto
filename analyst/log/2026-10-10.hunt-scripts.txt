@@ -1,0 +1,326 @@
+import json, datetime
+
+TOKENS = {
+    'ETH': 'ethereum', 'SUI': 'sui', 'LINK': 'chainlink', 'NEAR': 'near', 'AAVE': 'aave',
+    'XRP': 'ripple', 'ADA': 'cardano', 'YFI': 'yearn-finance', 'TAO': 'bittensor',
+    'FET': 'fetch-ai', 'ENA': 'ethena', 'GRAM': 'the-open-network',
+    'AVAX': 'avalanche-2', 'ONDO': 'ondo-finance', 'RENDER': 'render-token',
+    'TRX': 'tron', 'SOL': 'solana', 'BCH': 'bitcoin-cash', 'HYPE': 'hyperliquid',
+    'SKY': 'sky', 'HBAR': 'hedera-hashgraph', 'XLM': 'stellar', 'ALGO': 'algorand',
+    'BNB': 'binancecoin', 'ZEC': 'zcash', 'XMR': 'monero', 'UNI': 'uniswap',
+    'LIT': 'lighter', 'MORPHO': 'morpho', 'ARB': 'arbitrum'
+}
+
+FREEZE = datetime.datetime(2026,10,10,14,12,48, tzinfo=datetime.timezone.utc)
+freeze_ts = int(FREEZE.timestamp())
+
+path = '/tmp/emissions.json'
+by_gecko = {}
+with open(path, 'r') as f:
+    text = f.read()
+
+dec = json.JSONDecoder()
+# find "data" array start
+idx = text.index('"data"')
+idx = text.index('[', idx)
+idx += 1
+n = len(text)
+rows_seen = 0
+while True:
+    # skip whitespace/commas
+    while idx < n and text[idx] in ' \t\n\r,':
+        idx += 1
+    if idx >= n or text[idx] == ']':
+        break
+    obj, end = dec.raw_decode(text, idx)
+    rows_seen += 1
+    gid = obj.get('gecko_id')
+    if gid:
+        by_gecko[gid] = obj
+    idx = end
+
+print('rows_seen', rows_seen, 'by_gecko', len(by_gecko))
+
+results = {}
+for sym, gid in TOKENS.items():
+    row = by_gecko.get(gid)
+    if row is None:
+        results[sym] = {'status': 'not covered'}
+        continue
+    circ = row.get('circSupply')
+    events = row.get('unlockEvents') or []
+    best = None
+    for ev in events:
+        ts = ev.get('timestamp')
+        allocs = ev.get('cliffAllocations') or []
+        if ts is None or ts <= freeze_ts:
+            continue
+        if not allocs:
+            continue
+        if best is None or ts < best['timestamp']:
+            best = ev
+    if best is None:
+        results[sym] = {'status': 'no cliff'}
+        continue
+    allocs = best.get('cliffAllocations') or []
+    total = best.get('summary', {}).get('totalTokensCliff', 0)
+    recips = sorted(set(a.get('recipient') for a in allocs if a.get('recipient')))
+    ud = datetime.datetime.utcfromtimestamp(best['timestamp']).strftime('%Y-%m-%d %H:%M')
+    pct = (total / circ * 100) if circ else None
+    results[sym] = {'status':'next', 'ud': ud, 'n': total, 'to': ', '.join(recips), 'rel': circ, 'pct': round(pct,2) if pct is not None else None}
+
+for sym in TOKENS:
+    print(sym, results[sym])
+
+json.dump(results, open('/tmp/unlock_results.json','w'), indent=1)
+---
+#!/usr/bin/env python3
+"""
+HUNT REPORT run 2026-10-10 - the positioning read (ANALYST-INSTRUCTIONS.md section 16).
+One script, run once, for every coin of the prompt (list coins + book rows).
+Reads, per coin's perpetual symbol <S>, from fapi.binance.com, keyless:
+  oi      /futures/data/openInterestHist?symbol=<S>&period=4h&limit=180
+  large   /futures/data/topLongShortPositionRatio?symbol=<S>&period=4h&limit=180
+  crowd   /futures/data/globalLongShortAccountRatio?symbol=<S>&period=4h&limit=180
+  funding /fapi/v1/fundingRate?symbol=<S>&startTime=<30d before freeze>&limit=1000
+FREEZE = 2026-10-10T14:12:48Z
+"""
+import json, time, math, datetime, sys
+import urllib.request as ur
+import urllib.error as ue
+
+FREEZE = datetime.datetime(2026,10,10,14,12,48, tzinfo=datetime.timezone.utc)
+FREEZE_MS = int(FREEZE.timestamp()*1000)
+START_MS = FREEZE_MS - 30*24*3600*1000
+
+COINS = ["BTC","SUI","ONDO","LINK","RENDER","NEAR","YFI","AAVE","AVAX","FET","ENA","TAO",
+         "GRAM","XRP","ADA","TRX","SOL","BCH","HYPE","SKY","ETH","HBAR","XLM","ALGO","BNB",
+         "ZEC","UNI","XMR","LIT","MORPHO","ARB",
+         "LPT","GMT","WAL","XAI","RONIN","BEL","RAYSOL","NMR"]
+
+BASE = "https://fapi.binance.com"
+
+def fetch(path, params):
+    qs = "&".join(f"{k}={v}" for k,v in params.items())
+    url = f"{BASE}{path}?{qs}"
+    req = ur.Request(url, headers={"User-Agent":"curl/8.5.0"})
+    t0=time.time()
+    try:
+        with ur.urlopen(req, timeout=20) as resp:
+            body = resp.read()
+            status = resp.status
+            host = resp.geturl()
+    except ue.HTTPError as e:
+        body = e.read()
+        status = e.code
+        host = url
+    except Exception as e:
+        return {"status": "ERR", "error": str(e), "url": url, "elapsed": time.time()-t0}
+    elapsed = time.time()-t0
+    try:
+        data = json.loads(body)
+    except Exception:
+        data = None
+    return {"status": status, "url": host, "bytes": len(body), "elapsed": elapsed, "data": data, "first_keys": (list(data[0].keys()) if isinstance(data,list) and data and isinstance(data[0],dict) else (list(data.keys()) if isinstance(data,dict) else None))}
+
+def to_f(v):
+    try:
+        f = float(v)
+        if math.isfinite(f):
+            return f
+    except Exception:
+        pass
+    return None
+
+def series_from(resp, tkey, vkey, require_positive=True):
+    data = resp.get("data")
+    if not isinstance(data, list):
+        return None
+    rows = []
+    for row in data:
+        if not isinstance(row, dict) or tkey not in row or vkey not in row:
+            return None  # changed shape
+        t = row.get(tkey)
+        v = to_f(row.get(vkey))
+        if v is None:
+            continue
+        if require_positive and v <= 0:
+            continue
+        try:
+            t = int(t)
+        except Exception:
+            continue
+        if t > FREEZE_MS:
+            continue
+        rows.append((t, v))
+    rows.sort(key=lambda r: r[0])
+    return rows
+
+results = {}
+host_refusals = {}
+
+for coin in COINS:
+    sym = coin + "USDT"
+    rec = {"sym": sym}
+    endpoints = {
+        "oi": ("/futures/data/openInterestHist", {"symbol":sym,"period":"4h","limit":180}, "timestamp","sumOpenInterest"),
+        "large": ("/futures/data/topLongShortPositionRatio", {"symbol":sym,"period":"4h","limit":180}, "timestamp","longShortRatio"),
+        "crowd": ("/futures/data/globalLongShortAccountRatio", {"symbol":sym,"period":"4h","limit":180}, "timestamp","longShortRatio"),
+    }
+    refused = False
+    for key,(path,params,tkey,vkey) in endpoints.items():
+        if path in host_refusals:
+            rec[key] = {"status":"skipped(host-refused)"}
+            continue
+        resp = fetch(path, params)
+        rec[key+"_raw"] = {"status":resp.get("status"),"url":resp.get("url"),"bytes":resp.get("bytes"),"first_keys":resp.get("first_keys")}
+        if resp.get("status") in (403,418,429,451) or resp.get("status")=="ERR":
+            host_refusals[path] = resp.get("status")
+            rec[key] = {"status":"refused", "code": resp.get("status")}
+            refused = True
+            continue
+        series = series_from(resp, tkey, vkey, require_positive=(key!="crowd" or True))
+        if series is None:
+            rec[key] = {"status":"changed-shape"}
+            refused = True
+            continue
+        rec[key] = {"status":"ok", "n": len(series), "series": series}
+    # funding
+    path = "/fapi/v1/fundingRate"
+    params = {"symbol":sym, "startTime":START_MS, "limit":1000}
+    if path in host_refusals:
+        rec["funding"] = {"status":"skipped(host-refused)"}
+    else:
+        resp = fetch(path, params)
+        rec["funding_raw"] = {"status":resp.get("status"),"url":resp.get("url"),"bytes":resp.get("bytes"),"first_keys":resp.get("first_keys")}
+        if resp.get("status") in (403,418,429,451) or resp.get("status")=="ERR":
+            host_refusals[path]=resp.get("status")
+            rec["funding"]={"status":"refused","code":resp.get("status")}
+        else:
+            data = resp.get("data")
+            frows=[]
+            if isinstance(data, list):
+                ok_shape=True
+                for row in data:
+                    if not isinstance(row,dict) or "fundingTime" not in row or "fundingRate" not in row:
+                        ok_shape=False; break
+                    v = to_f(row.get("fundingRate"))
+                    if v is None: continue
+                    t = row.get("fundingTime")
+                    try: t=int(t)
+                    except Exception: continue
+                    if t>FREEZE_MS: continue
+                    frows.append((t,v))
+                if not ok_shape:
+                    rec["funding"]={"status":"changed-shape"}
+                else:
+                    frows.sort(key=lambda r:r[0])
+                    rec["funding"]={"status":"ok","n":len(frows),"series":frows}
+            else:
+                rec["funding"]={"status":"changed-shape"}
+    results[coin] = rec
+    time.sleep(0.12)
+
+json.dump(results, open("/tmp/positioning_raw.json","w"))
+print("host_refusals:", host_refusals)
+for c in COINS:
+    r=results[c]
+    print(c, {k:(v.get("status"),v.get("n")) for k,v in r.items() if isinstance(v,dict) and "status" in v and k in ("oi","large","crowd","funding")})
+---
+import json, math
+
+results = json.load(open("/tmp/positioning_raw.json"))
+K = 42
+
+def quartiles(vals):
+    s = sorted(vals)
+    m = len(s)
+    def rank(p):
+        idx = math.ceil(p*m)
+        idx = max(1, min(m, idx))
+        return s[idx-1]
+    return rank(0.25), rank(0.50), rank(0.75)
+
+out = {}
+for coin, rec in results.items():
+    oi = rec.get("oi", {})
+    large = rec.get("large", {})
+    crowd = rec.get("crowd", {})
+    funding = rec.get("funding", {})
+    if oi.get("status") != "ok" or large.get("status") != "ok" or crowd.get("status") != "ok":
+        out[coin] = {"status":"unread", "reason":"oi/large/crowd not ok"}
+        continue
+    oi_s = oi["series"]; large_s = large["series"]; crowd_s = crowd["series"]
+    if len(oi_s) < 84 or len(large_s) < 84 or len(crowd_s) < 84:
+        out[coin] = {"status":"unread", "reason":"series <84 rows"}
+        continue
+    if funding.get("status") != "ok":
+        out[coin] = {"status":"unread", "reason":"funding not ok"}
+        continue
+    f_s = funding["series"]
+    if not f_s:
+        out[coin] = {"status":"unread", "reason":"funding empty"}
+        continue
+    span_days = (f_s[-1][0]-f_s[0][0])/86400000
+    if span_days < 14:
+        out[coin] = {"status":"unread", "reason":f"funding span {span_days:.1f}d <14d"}
+        continue
+    n = min(len(oi_s), len(large_s), len(crowd_s))
+    oi_s, large_s, crowd_s = oi_s[-n:], large_s[-n:], crowd_s[-n:]
+    if n <= K:
+        out[coin] = {"status":"unread", "reason":"not enough rows for k=42"}
+        continue
+    dL_list=[]; dC_list=[]; dQ_list=[]
+    for t in range(K, n):
+        try:
+            dL = math.log(large_s[t][1]/large_s[t-K][1])
+            dC = math.log(crowd_s[t][1]/crowd_s[t-K][1])
+            dQ = math.log(oi_s[t][1]/oi_s[t-K][1])
+        except Exception:
+            continue
+        dL_list.append(dL); dC_list.append(dC); dQ_list.append(dQ)
+    if not dL_list:
+        out[coin] = {"status":"unread","reason":"no valid change rows"}
+        continue
+    dL_now, dC_now, dQ_now = dL_list[-1], dC_list[-1], dQ_list[-1]
+    qL25,qL50,qL75 = quartiles(dL_list)
+    qC25,qC50,qC75 = quartiles(dC_list)
+    crowd_vals = [v for _,v in crowd_s]
+    cq25,cq50,cq75 = quartiles(crowd_vals)
+    crowd_now = crowd_s[-1][1]
+    fund_vals = [v for _,v in f_s]
+    fq25,fq50,fq75 = quartiles(fund_vals)
+    fund_now = f_s[-1][1]
+
+    large_class = None
+    if dL_now >= qL75 and dC_now <= qC50 and dQ_now > 0:
+        large_class = "long"
+    elif dL_now <= qL25 and dC_now >= qC50 and dQ_now > 0:
+        large_class = "short"
+
+    crowd_class = None
+    if crowd_now >= cq75 and fund_now >= fq75:
+        crowd_class = "long"
+    elif crowd_now <= cq25 and fund_now <= fq25:
+        crowd_class = "short"
+
+    out[coin] = {
+        "status":"read",
+        "dL_now":dL_now,"dC_now":dC_now,"dQ_now":dQ_now,
+        "qL25":qL25,"qL50":qL50,"qL75":qL75,
+        "qC25":qC25,"qC50":qC50,"qC75":qC75,
+        "crowd_now":crowd_now,"cq25":cq25,"cq50":cq50,"cq75":cq75,
+        "fund_now":fund_now,"fq25":fq25,"fq50":fq50,"fq75":fq75,
+        "large_class": large_class, "crowd_class": crowd_class,
+        "n_rows": n, "n_changes": len(dL_list), "funding_n": len(f_s), "funding_span_d": round(span_days,1)
+    }
+
+json.dump(out, open("/tmp/positioning_classified.json","w"), indent=1)
+for c,v in out.items():
+    if v["status"]=="read":
+        print(c, "large=",v["large_class"], "crowd=",v["crowd_class"],
+              "dL=%.4f"%v["dL_now"],"qL75=%.4f"%v["qL75"],"qL25=%.4f"%v["qL25"],
+              "dC=%.4f"%v["dC_now"],"qC50=%.4f"%v["qC50"],
+              "dQ=%.4f"%v["dQ_now"])
+    else:
+        print(c, "UNREAD:", v.get("reason"))
