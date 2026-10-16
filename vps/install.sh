@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 #
-# vps/install.sh — installs the VPS assistant from the checkout it sits in (TZ-54 B9, TZ-55 B5).
+# vps/install.sh — installs the VPS assistant from the checkout it sits in (TZ-54 B9, TZ-55 B5, TZ-64 B3).
 #
 #   install.sh              called by the deployer from /srv/crypto-auto: selftest, provision,
 #                           verify, install units, enable the manifest, disable the rest
 #   install.sh --bootstrap  once, from the TZ-54 branch: users, directories, clone,
 #                           deploy.sh, crypto-deploy.service and .timer, the timer enabled
-#   install.sh --provision  users, groups, directories, the run's own clone and its
-#                           known_hosts — nothing installed, enabled, copied or removed
+#   install.sh --provision  users, groups, directories, the run's and the paper test's own
+#                           clones and known_hosts — nothing installed, enabled, copied or removed
 #   install.sh --dry-run    prints what the default mode would do and changes nothing
 #
 # The run has its own unprivileged user, cryptorun, and its own clone under its home
-# (contract §7 item 6, since v25); nothing creates /srv/crypto-auto-run any more.
+# (contract §7 item 6, since v25); nothing creates /srv/crypto-auto-run any more. The paper
+# test has its own, cryptopaper, the same way (contract §7 item 6, since v30).
 #
 # `disable --now` applies to units that carry an [Install] section: a unit without one
 # (crypto-run.service, crypto-stop.service, crypto-cleanup.service, crypto-deploy.service) is
@@ -32,6 +33,7 @@ RUNS_ENABLED=/var/lib/crypto-auto/runs-enabled
 RUN_HOME=/var/lib/cryptorun
 RUN_CLONE="$RUN_HOME/crypto-auto"
 RUN_FETCH=https://github.com/seahomebatumi-ai/crypto-auto.git
+PAPER_HOME=/var/lib/cryptopaper
 ROOT_KNOWN_HOSTS=/root/.ssh/known_hosts
 
 mode="${1-}"
@@ -66,6 +68,15 @@ provision_user() {
         *" cryptoauto "*) ;;
         *) usermod -a -G cryptoauto cryptorun; say "user cryptorun added to group cryptoauto" ;;
     esac
+    if ! getent group cryptopaper >/dev/null; then
+        groupadd --system cryptopaper
+        say "group cryptopaper created"
+    fi
+    if ! id -u cryptopaper >/dev/null 2>&1; then
+        useradd --system --gid cryptopaper --groups cryptoauto --no-create-home --home-dir "$PAPER_HOME" \
+            --shell /usr/sbin/nologin cryptopaper
+        say "user cryptopaper created"
+    fi
 }
 
 provision_dirs() {
@@ -78,6 +89,7 @@ provision_dirs() {
     dir_as 0750 cryptoauto cryptoauto /var/lib/crypto-auto
     dir_as 0755 root root "$LIBEXEC"
     dir_as 0750 cryptorun cryptorun "$RUN_HOME"
+    dir_as 0750 cryptopaper cryptopaper "$PAPER_HOME"
 }
 
 provision_clone() {
@@ -99,50 +111,56 @@ provision_clone() {
     done
 }
 
-# Root works on the clone cryptorun owns, so git's ownership check is told this one path.
-run_git() { git -c safe.directory="$RUN_CLONE" -C "$RUN_CLONE" "$@"; }
+# Root works on a clone another user owns, so git's ownership check is told that one path.
+own_git() { local clone="$1"; shift; git -c safe.directory="$clone" -C "$clone" "$@"; }
 
-provision_run_clone() {
-    if [ ! -d "$RUN_CLONE/.git" ]; then
-        git clone -q "$RUN_FETCH" "$RUN_CLONE"
-        say "run clone $RUN_CLONE created"
+# A user's own clone under its home: fetched over HTTPS, pushed over SSH with the deploy key its
+# unit loads, its committer identity taken from the clone that already commits on this host
+# (values never printed), and GitHub's host keys from root's own github.com lines (TZ-54 D-8,
+# TZ-55 B5; generalised by TZ-64 B3 for cryptopaper, messages unchanged for cryptorun).
+provision_own_clone() {   # <user> <home> <label>
+    local user="$1" home="$2" label="$3" clone="$2/crypto-auto"
+    if [ ! -d "$clone/.git" ]; then
+        git clone -q "$RUN_FETCH" "$clone"
+        say "$label clone $clone created"
     fi
-    if ! run_git config --local --get remote.origin.pushurl >/dev/null; then
-        run_git config --local remote.origin.pushurl "$REMOTE"
-        say "run clone push URL set"
+    if ! own_git "$clone" config --local --get remote.origin.pushurl >/dev/null; then
+        own_git "$clone" config --local remote.origin.pushurl "$REMOTE"
+        say "$label clone push URL set"
     fi
-    # The writer and the session commit from this clone; its committer identity is taken
-    # from the clone that already commits on this host, values never printed (TZ-54 D-8).
     local key value
     for key in user.name user.email; do
-        if ! run_git config --local --get "$key" >/dev/null; then
+        if ! own_git "$clone" config --local --get "$key" >/dev/null; then
             value="$(git -C "$IDENTITY_SOURCE" config --get "$key" || true)"
             if [ -n "$value" ]; then
-                run_git config --local "$key" "$value"
-                say "run clone $key set"
+                own_git "$clone" config --local "$key" "$value"
+                say "$label clone $key set"
             fi
         fi
     done
-    chown -R cryptorun:cryptorun "$RUN_CLONE"
-    # GitHub's host keys for cryptorun's pushes: root's own github.com lines.
-    if [ ! -e "$RUN_HOME/.ssh/known_hosts" ]; then
+    chown -R "$user:$user" "$clone"
+    if [ ! -e "$home/.ssh/known_hosts" ]; then
         local lines tmp
         lines="$(ssh-keygen -F github.com -f "$ROOT_KNOWN_HOSTS" | grep -v '^#' || true)"
         if [ -z "$lines" ]; then
-            say "no github.com line in $ROOT_KNOWN_HOSTS; known_hosts for cryptorun not written"
+            say "no github.com line in $ROOT_KNOWN_HOSTS; known_hosts for $user not written"
             return 1
         fi
-        dir_as 0700 cryptorun cryptorun "$RUN_HOME/.ssh"
-        tmp="$(mktemp "$RUN_HOME/.ssh/.known_hosts.XXXXXX")"
-        if printf '%s\n' "$lines" > "$tmp" && chown cryptorun:cryptorun "$tmp" && chmod 0644 "$tmp" \
-            && mv -f -- "$tmp" "$RUN_HOME/.ssh/known_hosts"; then
-            say "known_hosts for cryptorun written: $(printf '%s\n' "$lines" | wc -l) github.com lines"
+        dir_as 0700 "$user" "$user" "$home/.ssh"
+        tmp="$(mktemp "$home/.ssh/.known_hosts.XXXXXX")"
+        if printf '%s\n' "$lines" > "$tmp" && chown "$user:$user" "$tmp" && chmod 0644 "$tmp" \
+            && mv -f -- "$tmp" "$home/.ssh/known_hosts"; then
+            say "known_hosts for $user written: $(printf '%s\n' "$lines" | wc -l) github.com lines"
         else
             rm -f -- "$tmp"
             return 1
         fi
     fi
 }
+
+provision_run_clone() { provision_own_clone cryptorun "$RUN_HOME" run; }
+
+provision_paper_clone() { provision_own_clone cryptopaper "$PAPER_HOME" paper; }
 
 copy_deploy() {
     install -m 0755 -o root -g root "$HERE/deploy.sh" "$LIBEXEC/.deploy.sh.new"
@@ -157,6 +175,7 @@ if [ "$mode" = "--provision" ]; then
     provision_user
     provision_dirs
     provision_run_clone
+    provision_paper_clone
     say "provision done"
     exit 0
 fi
@@ -209,6 +228,7 @@ fi
 provision_user
 provision_dirs
 provision_run_clone
+provision_paper_clone
 if ! systemd-analyze verify "$UNITS"/*; then
     say "systemd-analyze verify red, nothing installed"
     exit 1

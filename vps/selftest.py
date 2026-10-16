@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
-TZ-62 B2): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's, TZ-57 §12.8's,
-TZ-58 §12.7's, TZ-60 §12.11's and TZ-62 §12.4's changed and new ones, each printing `section <X>:
-checks <n> failed <m>`, then the total.
+TZ-62 B2, TZ-64 B4): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's, TZ-57 §12.8's,
+TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's and TZ-64's changed and new ones, each printing
+`section <X>: checks <n> failed <m>`, then the total.
 
     python3 vps/selftest.py
 
@@ -33,6 +33,7 @@ import bot  # noqa: E402
 import cleanup  # noqa: E402
 import common  # noqa: E402
 import exchange  # noqa: E402
+import paper  # noqa: E402
 import run  # noqa: E402
 import stop  # noqa: E402
 import writer  # noqa: E402
@@ -1158,11 +1159,507 @@ def section_u(s):
             unit_lines.count("Environment=CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1") == 1)
 
 
+# --- V: common.publish on a local remote, through the writer and for new files (TZ-64) ----
+def _v_git(cwd, *args):
+    return subprocess.run(["git", "-C", cwd] + list(args), capture_output=True, text=True)
+
+
+def _v_head(cwd, ref="HEAD"):
+    return _v_git(cwd, "rev-parse", ref).stdout.strip()
+
+
+def section_v(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-v.")
+    try:
+        remote, a, b = (os.path.join(tmp, n) for n in ("remote.git", "a", "b"))
+        _v_git(tmp, "init", "-q", "--bare", "-b", "main", remote)
+        reject = os.path.join(tmp, "reject")
+        hook = os.path.join(remote, "hooks", "pre-receive")
+        with open(hook, "w", encoding="utf-8") as fh:
+            fh.write("#!/bin/sh\n[ -e '%s' ] && exit 1\nexit 0\n" % reject)
+        os.chmod(hook, 0o755)
+        _v_git(tmp, "clone", "-q", remote, b)
+        for clone in (b,):
+            _v_git(clone, "config", "user.name", "selftest")
+            _v_git(clone, "config", "user.email", "selftest@localhost")
+        os.makedirs(os.path.join(b, "analyst"))
+        with open(os.path.join(b, writer.PAYLOAD), "w", encoding="utf-8") as fh:
+            fh.write("{}\n")
+        _v_git(b, "add", "-A")
+        _v_git(b, "commit", "-q", "-m", "base")
+        _v_git(b, "push", "-q", "origin", "HEAD:main")
+        _v_git(tmp, "clone", "-q", "-b", "main", remote, a)
+        _v_git(a, "config", "user.name", "selftest")
+        _v_git(a, "config", "user.email", "selftest@localhost")
+
+        def fresh():
+            _v_git(a, "fetch", "-q", "origin", "main")
+            _v_git(a, "reset", "-q", "--hard", "origin/main")
+
+        def payload(clone, text):
+            with open(os.path.join(clone, writer.PAYLOAD), "w", encoding="utf-8") as fh:
+                fh.write(text)
+
+        def other_writer(path, text):
+            _v_git(b, "pull", "-q", "origin", "main")
+            with open(os.path.join(b, path), "w", encoding="utf-8") as fh:
+                fh.write(text)
+            _v_git(b, "add", "-A")
+            _v_git(b, "commit", "-q", "-m", "other")
+            _v_git(b, "push", "-q", "origin", "HEAD:main")
+
+        # 1. accepted
+        fresh()
+        payload(a, '{"n":1}\n')
+        s.check("writer: accepted -> (True, True)", writer.publish(a) == (True, True))
+        s.check("writer: accepted -> remote main is the clone's HEAD", _v_head(remote, "main") == _v_head(a))
+        s.check("writer: the commit message is COMMIT_MESSAGE",
+                _v_git(remote, "log", "-1", "--format=%s", "main").stdout.strip() == writer.COMMIT_MESSAGE)
+        # 2. rejected once, rebased, pushed
+        fresh()
+        other_writer("other.txt", "x\n")
+        payload(a, '{"n":2}\n')
+        s.check("writer: one rejection -> rebase -> (True, True)", writer.publish(a) == (True, True))
+        s.check("writer: after the rebase remote main carries both commits",
+                _v_git(remote, "log", "--format=%s", "-2", "main").stdout.split("\n")[:2]
+                == [writer.COMMIT_MESSAGE, "other"])
+        # 3. a rebase that conflicts drops the commit
+        fresh()
+        base = _v_head(a)
+        other_writer(writer.PAYLOAD, '{"other":3}\n')
+        theirs = _v_head(remote, "main")
+        payload(a, '{"n":3}\n')
+        s.check("writer: a conflicting rebase -> (True, False)", writer.publish(a) == (True, False))
+        s.check("writer: the clone is back at its base", _v_head(a) == base)
+        s.check("writer: remote main is the other writer's", _v_head(remote, "main") == theirs)
+        s.check("writer: no rebase is left in progress",
+                not os.path.exists(os.path.join(a, ".git", "rebase-merge"))
+                and not os.path.exists(os.path.join(a, ".git", "rebase-apply")))
+        # 4. a second rejection drops the commit
+        fresh()
+        base = _v_head(a)
+        with open(reject, "w", encoding="utf-8") as fh:
+            fh.write("1")
+        payload(a, '{"n":4}\n')
+        s.check("writer: two rejections -> (True, False)", writer.publish(a) == (True, False))
+        s.check("writer: two rejections leave the clone at its base", _v_head(a) == base)
+        os.unlink(reject)
+        # 5. nothing to commit
+        fresh()
+        s.check("writer: nothing changed -> (False, False)", writer.publish(a) == (False, False))
+        s.check("writer: nothing changed leaves the tree clean", _v_git(a, "status", "--porcelain").stdout == "")
+        # 6. new, untracked files
+        fresh()
+        os.makedirs(os.path.join(a, "analyst", "paper", "book"))
+        rels = ["analyst/paper/x.json", "analyst/paper/book/2026-01-01.jsonl"]
+        for rel in rels:
+            with open(os.path.join(a, rel), "w", encoding="utf-8") as fh:
+                fh.write(rel + "\n")
+        s.check("new files -> (True, True)", common.publish(a, rels, "paper: x") == (True, True))
+        s.check("new files: both on remote main",
+                _v_git(remote, "ls-tree", "-r", "--name-only", "main").stdout.split() ==
+                sorted(["analyst/live.json", "other.txt"] + rels))
+        s.check("new files: the message is the one given",
+                _v_git(remote, "log", "-1", "--format=%s", "main").stdout.strip() == "paper: x")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+# --- W: the paper test (TZ-64) -----------------------------------------------------------
+W_T0 = paper.day_start("2026-01-07")
+W_SYMBOLS = {"BTCUSDT", "1000PEPEUSDT", "KAITOUSDT", "ETHUSDT"}
+
+
+def w_portfolio(rets, values=None, turnover=1.0, month_value=100000.0):
+    """A portfolio answer: perpAllTime with a point at every grid instant (and one wild point off the
+    grid, which no grid instant may read), perpMonth over exactly 30 days at month_value."""
+    grid = [W_T0 - (52 - j) * paper.WEEK_MS for j in range(53)]
+    vals = values or [100000.0] * 53
+    pnl = [0.0]
+    for j, r in enumerate(rets):
+        pnl.append(pnl[-1] + r * vals[j])
+    av = [[g, repr(v)] for g, v in zip(grid, vals)] + [[grid[10] + 3 * paper.DAY_MS, "1.0"]]
+    pn = [[g, repr(p)] for g, p in zip(grid, pnl)] + [[grid[10] + 3 * paper.DAY_MS, "-999999.0"]]
+    month = [[W_T0 - 30 * paper.DAY_MS, repr(month_value)], [W_T0, repr(month_value)]]
+    return [["perpAllTime", {"accountValueHistory": av[::-1], "pnlHistory": pn[::-1], "vlm": "1"}],
+            ["perpMonth", {"accountValueHistory": month, "pnlHistory": month,
+                           "vlm": repr(turnover * month_value * 30)}]]
+
+
+def w_fill(t, start, side, sz, coin="BTC", px="100", tid=None):
+    return {"coin": coin, "px": px, "sz": str(sz), "side": side, "time": t, "startPosition": str(start),
+            "tid": tid if tid is not None else t}
+
+
+W_LEADERBOARD = ('{"leaderboardRows": [{"ethAddress": "0xAA", "accountValue": "1", "windowPerformances": '
+                 '[["day", {"vlm": "1"}], ["allTime", {"pnl": "0", "vlm": "300000000"}]], '
+                 '"displayName": "a}{\\"],\\u0416 \u0416"}, \n {"ethAddress": "0xbb", "windowPerformances": '
+                 '[["allTime", {"vlm": "199999999.99"}]], "displayName": null}, {"ethAddress": "0xcc"}, '
+                 '{"ethAddress": "0xDd", "windowPerformances": [["allTime", {"vlm": "200000000"}]]}]}')
+
+
+def w_kl(t, prices, missing=()):
+    """Minute rows from t - 10 min to t + 6 h; prices(m) -> (o, h, l, c)."""
+    times = [m for m in range(t - 600000, t + 6 * 3600000 + 60000, 60000) if m not in missing]
+    return times, [prices(m) for m in times]
+
+
+def section_w(s):
+    near = lambda x, y: x is not None and y is not None and abs(x - y) <= 1e-9 * max(1.0, abs(y))  # noqa: E731
+    # W1. the leaderboard, one row at a time, on every chunking
+    blob = W_LEADERBOARD.encode("utf-8")
+    for size in (1, 7, 64, len(blob)):
+        chunks = [blob[i:i + size] for i in range(0, len(blob), size)]
+        s.check("pool_of(iter_rows(chunks of %d)) == (['0xaa', '0xdd'], 4, 1)" % size,
+                paper.pool_of(paper.iter_rows(chunks)) == (["0xaa", "0xdd"], 4, 1))
+    try:
+        list(paper.iter_rows([blob[:-40]]))
+        truncated = False
+    except ValueError:
+        truncated = True
+    s.check("a truncated document raises ValueError", truncated)
+    # W2. the twelve-month record
+    worlds = {
+        "A": w_portfolio([0.02, 0.0] * 26),
+        "B": w_portfolio([0.03, -0.01] * 26),
+        "C": w_portfolio([-0.01] * 16 + [0.02, 0.0] * 18),
+        "D": w_portfolio([0.02] * 9 + [-0.30] + [0.02] * 42),
+        "E": w_portfolio([0.02, 0.0] * 26, values=[100000.0] * 5 + [9000.0] + [100000.0] * 47),
+        "F": w_portfolio([0.02, 0.0] * 26, values=[100000.0] * 52 + [40000.0]),
+        "G": w_portfolio([0.02, 0.0] * 26, turnover=11.0),
+        "H": w_portfolio([0.02, 0.0] * 26, turnover=10.0),
+    }
+    m = {k: paper.metrics(v, W_T0) for k, v in worlds.items()}
+    s.check("A: eligible, passes, 13 blocks, drawdown 0, Sharpe 1.0",
+            m["A"]["eligible"] and m["A"]["r12"] and m["A"]["blocks"] == 13 and m["A"]["drawdown"] == 0.0
+            and near(m["A"]["sharpe"], 1.0))
+    s.check("B: passes, 13 blocks, drawdown 0.01, Sharpe 0.5",
+            m["B"]["r12"] and m["B"]["blocks"] == 13 and near(m["B"]["drawdown"], 0.01) and near(m["B"]["sharpe"], 0.5))
+    s.check("C: eligible, 9 blocks, fails", m["C"]["eligible"] and m["C"]["blocks"] == 9 and not m["C"]["r12"])
+    s.check("D: eligible, drawdown 0.30, fails", m["D"]["eligible"] and near(m["D"]["drawdown"], 0.30)
+            and not m["D"]["r12"])
+    s.check("E: a week at 9 000 is ineligible", not m["E"]["eligible"] and not m["E"]["r12"])
+    s.check("F: 40 000 at T0 is ineligible", not m["F"]["eligible"] and m["F"]["value_t0"] == 40000.0)
+    s.check("G: turnover 11 is ineligible", not m["G"]["eligible"] and near(m["G"]["turnover"], 11.0))
+    s.check("H: turnover 10 is eligible", m["H"]["eligible"] and near(m["H"]["turnover"], 10.0))
+    s.check("step_at reads the last point at or before t",
+            paper.step_at([(1, 10.0), (5, 50.0)], 4) == 10.0 and paper.step_at([(1, 10.0), (5, 50.0)], 5) == 50.0
+            and paper.step_at([(1, 10.0)], 0) is None)
+    s.check("ranking: A before B", sorted(("B", "A"), key=lambda k: -m[k]["sharpe"]) == ["A", "B"])
+    # W3. the Binance symbol
+    cases = (("BTC", "BTCUSDT"), ("kPEPE", "1000PEPEUSDT"), ("KAITO", "KAITOUSDT"), ("xyz:CL", None),
+             ("PURR/USDC", None), ("@151", None), ("SOL", None))
+    for coin, want in cases:
+        s.check("symbol_for(%r) == %r" % (coin, want), paper.symbol_for(coin, W_SYMBOLS) == want)
+    s.check("symbol_for('kPEPE') is None without 1000PEPEUSDT", paper.symbol_for("kPEPE", {"PEPEUSDT"}) is None)
+    # W4. episodes from fills
+    coins, seq = {}, []
+    fills = [w_fill(1, 5, "A", 5), w_fill(2, 0, "B", 1), w_fill(3, 1, "B", 1), w_fill(4, 2, "A", 1),
+             w_fill(5, 1, "A", 3, px="101"), w_fill(6, -2, "B", 2, px="99"), w_fill(7, 0, "B", 1), w_fill(8, -1, "B", 1)]
+    for f in fills:
+        seq.append(paper.apply_fill(coins, f, "BTCUSDT"))
+    kinds = [[k for k, _ in ev] for ev in seq]
+    s.check("event kinds: [], open, [], [], close+open, close, open, lost",
+            kinds == [[], ["open"], [], [], ["close", "open"], ["close"], ["open"], ["lost"]])
+    long_ep, short_ep = seq[4][0][1], seq[5][0][1]
+    s.check("the long: side 1, opened at 2, closed at 5 at 101 after 4 fills",
+            (long_ep["side"], long_ep["t_open"], long_ep["t_close"], long_ep["px_close"], long_ep["n"]) == (1, 2, 5, "101", 4))
+    s.check("the short: side -1, opened at 5, closed at 6 at 99 after 2 fills",
+            (short_ep["side"], short_ep["t_open"], short_ep["t_close"], short_ep["px_close"], short_ep["n"]) == (-1, 5, 6, "99", 2))
+    s.check("a lost episode leaves the coin flat", coins["BTC"] is None)
+    # W5. copyability
+    w0, h = W_T0 - 91 * paper.DAY_MS, 3600000
+    base = [w_fill(w0 + h, 0, "B", 10), w_fill(w0 + 4 * h, 10, "A", 10), w_fill(w0 + 5 * h, 0, "A", 10),
+            w_fill(w0 + 6 * h, -10, "B", 10), w_fill(w0 + 7 * h, 0, "B", 1, coin="PURR/USDC", px="100000"),
+            w_fill(W_T0, 0, "B", 1000, coin="xyz:CL")]
+    c = paper.copyability(base + [w_fill(w0 + 8 * h, 0, "B", 10, coin="xyz:CL")], W_SYMBOLS, w0, W_T0)
+    s.check("share 0.8 exactly and median 2 h: copyable", c["copyable"] and near(c["share"], 0.8)
+            and c["median_episode_s"] == 7200 and c["closed_episodes"] == 2)
+    c = paper.copyability(base + [w_fill(w0 + 8 * h, 0, "B", 10, coin="xyz:CL", px="100.0001")], W_SYMBOLS, w0, W_T0)
+    s.check("share just under 0.8: not copyable", not c["copyable"] and c["share"] < 0.8)
+    short_close = [dict(f) for f in base]
+    short_close[3]["time"] = w0 + 5 * h + 59 * 60000
+    c = paper.copyability(short_close + [w_fill(w0 + 8 * h, 0, "B", 10, coin="xyz:CL")], W_SYMBOLS, w0, W_T0)
+    s.check("median 1 h 59.5 min: not copyable", not c["copyable"] and c["median_episode_s"] == 7170)
+    # W5b. fills, page by page
+    saved_info = paper.info
+
+    def pages(body, limiter):
+        t = body["startTime"]
+        if body["user"] == "stuck":
+            return [{"coin": "BTC", "px": "1", "sz": "1", "side": "B", "time": 5, "startPosition": "0", "tid": i,
+                     "extra": 0} for i in range(paper.FILLS_PAGE)]
+        last = min(t + paper.FILLS_PAGE, 4000)
+        return [{"coin": "BTC", "px": "1", "sz": "1", "side": "B", "time": m, "startPosition": "0", "tid": m,
+                 "extra": 0} for m in range(t, last)]
+
+    try:
+        paper.info = pages
+        got = paper.fills_since("a", 1, None)
+        s.check("pages of 2 000 repeating their boundary: each fill once, ascending, 3 999 in all",
+                [f["tid"] for f in got] == list(range(1, 4000)))
+        s.check("a fill keeps only FILL_KEYS", set(got[0]) == set(paper.FILL_KEYS))
+        try:
+            paper.fills_since("stuck", 5, None)
+            stuck = False
+        except ValueError:
+            stuck = True
+        s.check("a full page inside one millisecond raises ValueError", stuck)
+    finally:
+        paper.info = saved_info
+    # W6. the null's order
+    addrs = ["0x%040x" % i for i in range(20)]
+    order = paper.null_order(W_T0, addrs)
+    s.check("null_order is a permutation, independent of input order",
+            sorted(order) == sorted(addrs) and paper.null_order(W_T0, addrs[::-1]) == order)
+    s.check("null_order moves with T0", paper.null_order(W_T0 + paper.DAY_MS, addrs) != order)
+    # W7. booking
+    t = paper.day_start("2026-01-05") + 10 * h
+    rise = w_kl(t, lambda mm: (100.0,) * 4 if mm < t + h else (110.0,) * 4)
+    ep = {"side": 1, "t_open": t + 30000, "t_close": t + 3 * h + 30000}
+    b = paper.book_delay(ep, 5, 0.04, rise, 10000.0, 0.005, 0.0005, t + 10 * h)
+    s.check("rise, 5 s: entry minute t at 100, qty 12.5, exit t + 3 h at 110, gross 125, fee 1.3125",
+            b["entry_ms"] == t and b["entry_px"] == 100.0 and near(b["qty"], 12.5) and b["src"]["exit_ms"] == t + 3 * h
+            and b["src"]["px"] == 110.0 and near(b["src"]["gross"], 125.0) and near(b["src"]["fee"], 1.3125))
+    s.check("rise, 5 s: not stopped, the stop variant equals the source", not b["stopped"] and b["stop"] == b["src"])
+    b = paper.book_delay(ep, 7200, 0.04, rise, 10000.0, 0.005, 0.0005, t + 10 * h)
+    s.check("rise, 7 200 s: entry t + 2 h at 110, exit t + 5 h, gross 0, fee 1.25",
+            b["entry_ms"] == t + 2 * h and b["entry_px"] == 110.0 and b["src"]["exit_ms"] == t + 5 * h
+            and near(b["src"]["gross"], 0.0) and near(b["src"]["fee"], 1.25))
+    dip = w_kl(t, lambda mm: (97.0, 97.0, 95.5, 96.5) if mm == t + 30 * 60000 else (100.0,) * 4)
+    b = paper.book_delay(ep, 5, 0.04, dip, 10000.0, 0.005, 0.0005, t + 10 * h)
+    s.check("dip: stopped at t + 30 min at 96, gross -50 (the risk), fee 1.225",
+            b["stopped"] and b["stop"]["exit_ms"] == t + 30 * 60000 and b["stop"]["px"] == 96.0
+            and near(b["stop"]["gross"], -50.0) and near(b["stop"]["fee"], 1.225))
+    s.check("dip: the source variant holds to t + 3 h at 100, gross 0", b["src"]["px"] == 100.0
+            and near(b["src"]["gross"], 0.0))
+    b = paper.book_delay(dict(ep, t_close=t + 30 * 60000 + 10000), 5, 0.04, dip, 10000.0, 0.005, 0.0005, t + 10 * h)
+    s.check("dip in the exit minute: the stop variant leaves at 96, the source at that minute's close 96.5",
+            b["stopped"] and b["stop"]["px"] == 96.0 and b["src"]["exit_ms"] == t + 30 * 60000 and b["src"]["px"] == 96.5)
+    gap = w_kl(t, lambda mm: (95.0, 95.0, 94.0, 94.5) if mm == t + 30 * 60000 else (100.0,) * 4)
+    b = paper.book_delay(ep, 5, 0.04, gap, 10000.0, 0.005, 0.0005, t + 10 * h)
+    s.check("gap: exits at the open 95, gross -62.5", b["stop"]["px"] == 95.0 and near(b["stop"]["gross"], -62.5))
+    spike = w_kl(t, lambda mm: (103.0, 104.5, 103.0, 104.0) if mm == t + 30 * 60000 else (100.0,) * 4)
+    b = paper.book_delay(dict(ep, side=-1), 5, 0.04, spike, 10000.0, 0.005, 0.0005, t + 10 * h)
+    s.check("short spike: stopped at 104, gross -50", b["stopped"] and b["stop"]["px"] == 104.0
+            and near(b["stop"]["gross"], -50.0))
+    hole = w_kl(t, lambda mm: (100.0,) * 4 if mm < t + h else (110.0,) * 4, missing=(t,))
+    b = paper.book_delay(ep, 5, 0.04, hole, 10000.0, 0.005, 0.0005, t + 10 * h)
+    s.check("a missing entry minute: nominal entry t, the previous close", b["entry_ms"] == t and b["entry_px"] == 100.0)
+    cut = {"side": 1, "t_open": t + 4 * h, "t_close": None, "cut": True}
+    s.check("cut, 7 200 s past the window's end: None",
+            paper.book_delay(cut, 7200, 0.04, rise, 10000.0, 0.005, 0.0005, t + 5 * h) is None)
+    b = paper.book_delay(cut, 5, 0.04, rise, 10000.0, 0.005, 0.0005, t + 5 * h + 30000)
+    s.check("cut, 5 s: exits at the window end's minute", b["src"]["exit_ms"] == t + 5 * h)
+    b = paper.book_delay({"side": 1, "t_open": t + 10000, "t_close": t + 20000}, 5, 0.04, rise, 10000.0, 0.005, 0.0005,
+                         t + 10 * h)
+    s.check("an episode inside one minute: gross 0, fee 1.25", near(b["src"]["gross"], 0.0) and near(b["src"]["fee"], 1.25))
+    # W8. funding
+    rates = [(t + h, 0.0001), (t + 3 * h, 0.0002), (t + 9 * h, 0.5)]
+    s.check("funding: two events, long pays 0.375",
+            near(paper.funding_paid(1, 12.5, 100.0, t + 60000, t + 3 * h + 60000, rates), 0.375))
+    s.check("funding: the short receives 0.375",
+            near(paper.funding_paid(-1, 12.5, 100.0, t + 60000, t + 3 * h + 60000, rates), -0.375))
+    s.check("funding: an event at hold_from is excluded, one at hold_to included",
+            near(paper.funding_paid(1, 12.5, 100.0, t + h, t + 3 * h, rates), 0.25))
+    # W9. sigma
+    closes = [100.0]
+    for i in range(30):
+        closes.append(closes[-1] * (1.02 if i % 2 == 0 else 0.98))
+    s.check("daily_sigma of alternating +-2 %: 0.02", near(paper.daily_sigma(closes), 0.02))
+    # W10. the verdict rule
+    picks, null10 = ["p1", "p2", "p3"], ["n%d" % i for i in range(10)]
+
+    def res(values):
+        return {a: {d: {"src": v, "stop": v} for d in paper.DELAYS_S} for a, v in values.items()}
+
+    r = res(dict({a: 0.02 for a in picks}, **{a: 0.01 for a in null10}))
+    v = paper.decide(picks, null10, r, 30)
+    s.check("picks 0.02, null 0.01, 30 episodes: readable and passed", v["readable"] and v["passed"])
+    s.check("120 subsets, share at or above TOP 0", v["cells"]["1800/stop"]["null_share_at_or_above"] == 0.0
+            and near(v["cells"]["1800/stop"]["null_median"], 0.01))
+    v = paper.decide(picks, null10, res(dict({a: -0.01 for a in picks}, **{a: -0.02 for a in null10})), 30)
+    s.check("picks negative: readable, not passed", v["readable"] and not v["passed"])
+    v = paper.decide(picks, null10, res(dict({a: 0.02 for a in picks}, **{a: 0.03 for a in null10})), 30)
+    s.check("picks under the null: not passed, share 1.0", not v["passed"]
+            and v["cells"]["7200/stop"]["null_share_at_or_above"] == 1.0)
+    s.check("29 episodes: unreadable", not paper.decide(picks, null10, r, 29)["readable"])
+    s.check("nine null accounts: unreadable", not paper.decide(picks, null10[:9], r, 30)["readable"])
+    mixed = res(dict({a: 0.02 for a in picks}, **{a: 0.01 for a in null10}))
+    for a in picks:
+        mixed[a][7200]["stop"] = -0.01
+    s.check("passing at 1 800 s and failing at 7 200 s: not passed", not paper.decide(picks, null10, mixed, 30)["passed"])
+    s.check("starts: one pick and ten null accounts", paper.starts({"picks": picks[:1], "null": null10}))
+    s.check("starts: not with nine null accounts or no pick",
+            not paper.starts({"picks": picks, "null": null10[:9]}) and not paper.starts({"picks": [], "null": null10}))
+    saved_wait, calls = paper.TRANSPORT_WAIT_S, []
+
+    def flaky(n):
+        calls.append(1)
+        if len(calls) <= n:
+            raise paper.Transport("HTTP 429")
+        return "answer"
+
+    try:
+        paper.TRANSPORT_WAIT_S = 0
+        with contextlib.redirect_stdout(io.StringIO()):
+            s.check("retrying: an answer after two transport failures", paper.retrying(flaky, 2) == "answer")
+            del calls[:]
+            given = paper.retrying(flaky, 10 ** 6, give_up=True)
+            s.check("retrying: one account is given up after TRANSPORT_MAX failures, None",
+                    given is None and len(calls) == paper.TRANSPORT_MAX)
+            try:
+                paper.retrying(flaky, 10 ** 6)
+                code = None
+            except SystemExit as exc:
+                code = exc.code
+            s.check("retrying: a step the selection needs ends the process with 4", code == 4)
+    finally:
+        paper.TRANSPORT_WAIT_S = saved_wait
+    s.check("nearest_rank: median 3, p95 5 of 1..5",
+            paper.nearest_rank([5, 1, 3, 2, 4], 0.5) == 3 and paper.nearest_rank([5, 1, 3, 2, 4], 0.95) == 5)
+    # W11. the alert texts
+    rule = {"capital_usdt": 10000.0, "risk_pct": 0.5, "inv_floor_sd": 2.0, "fee_taker": 0.0005}
+    t_open = int(datetime(2026, 10, 16, 10, 5, tzinfo=timezone.utc).timestamp() * 1000)
+    ep = {"a": "0xf97ad6704baec104d00b88e0c157e2b7b3a1ddd1", "coin": "HYPE", "symbol": "HYPEUSDT", "side": 1,
+          "t_open": t_open, "px_open": "80.021"}
+    head = ("\U0001f4cb \u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 14:05 "
+            "\u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 \u0441\u0447\u0451\u0442 #1 0xf97a\u2026ddd1 ")
+    s.check("the open alert, character for character", paper.alert_open(ep, 1, rule, 0.02) == head + (
+        "\u043e\u0442\u043a\u0440\u044b\u043b LONG HYPEUSDT \u043f\u043e 80.021 \u00b7 \u0441\u0442\u043e\u043f 4.0% "
+        "\u2192 76.820 \u00b7 \u043e\u0431\u044a\u0451\u043c 1250 USDT \u043f\u0440\u0438 \u0440\u0438\u0441\u043a"
+        "\u0435 0.5% \u043a\u0430\u043f\u0438\u0442\u0430\u043b\u0430"))
+    s.check("the open alert without a sigma", paper.alert_open(ep, 1, rule, None) == head + (
+        "\u043e\u0442\u043a\u0440\u044b\u043b LONG HYPEUSDT \u043f\u043e 80.021 \u00b7 \u0441\u0442\u043e\u043f \u0438 "
+        "\u043e\u0431\u044a\u0451\u043c \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d\u044b: "
+        "\u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance"))
+    closed = dict(ep, t_close=t_open + (6 * 60 + 12) * 60000, px_close="82.10")
+    s.check("the close alert after 6 h 12 min", paper.alert_close(closed, 1) == head.replace("14:05", "20:17") + (
+        "\u0437\u0430\u043a\u0440\u044b\u043b LONG HYPEUSDT \u043f\u043e 82.10 \u00b7 \u0432 \u043f\u043e\u0437"
+        "\u0438\u0446\u0438\u0438 6.2 \u0447"))
+    s.check("held 45 min", paper.held_text(45 * 60000) == "45 \u043c\u0438\u043d")
+    # W12. the constants cut from index.html
+    page = "var INV_FLOOR_SD = 2.0;   // x\nvar FEE_TAKER   = 0.0005;\n"
+    s.check("cut_number on a page", common.cut_number(page, "INV_FLOOR_SD") == 2.0
+            and common.cut_number(page, "FEE_TAKER") == 0.0005)
+    for bad, label in ((page + "var FEE_TAKER = 0.001;\n", "twice"), ("var X = 1;\n", "absent")):
+        try:
+            common.cut_number(bad, "FEE_TAKER")
+            raised = False
+        except ValueError:
+            raised = True
+        s.check("cut_number raises on a constant defined %s" % label, raised)
+    rule_live = paper.load_rule(REPO)
+    with open(os.path.join(REPO, "analyst", "owner.json"), encoding="utf-8") as fh:
+        owner = json.load(fh)
+    s.check("load_rule reads owner.json's capital and medium risk",
+            rule_live["capital_usdt"] == float(owner["capital"]["usdt"])
+            and rule_live["risk_pct"] == float(owner["risk"]["risk_pct_medium"]))
+    s.check("load_rule cuts two positive numbers from index.html",
+            rule_live["inv_floor_sd"] > 0 and 0 < rule_live["fee_taker"] < 0.01)
+    # W13. the unit and the manifest
+    unit_path = os.path.join(HERE, "units", "crypto-paper.service")
+    with open(unit_path, encoding="utf-8") as fh:
+        lines = [line.rstrip("\n") for line in fh]
+    creds = [line for line in lines if line.startswith("LoadCredential=")]
+    s.check("crypto-paper.service runs as cryptopaper", "User=cryptopaper" in lines and "Group=cryptopaper" in lines)
+    s.check("crypto-paper.service loads exactly the deploy key",
+            creds == ["LoadCredential=deploy-key:/etc/crypto-auto/credentials/deploy-key"])
+    s.check("crypto-paper.service runs paper.py from the deployer's clone, MemoryMax=128M",
+            "ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/paper.py" in lines and "MemoryMax=128M" in lines)
+    with open(os.path.join(HERE, "manifest"), encoding="utf-8") as fh:
+        listed = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+    s.check("the manifest lists crypto-paper.service once", listed.count("crypto-paper.service") == 1)
+    with open(os.path.join(HERE, "units", "crypto-run.service"), encoding="utf-8") as fh:
+        run_creds = [line.strip() for line in fh if line.startswith("LoadCredential=")]
+    s.check("crypto-run.service still loads exactly its login and the deploy key", run_creds == [
+        "LoadCredential=claude-oauth-token:/etc/crypto-auto/credentials/claude-oauth-token",
+        "LoadCredential=deploy-key:/etc/crypto-auto/credentials/deploy-key"])
+    # W14. the flow, offline: polls, the cut, three days of episodes, books, funding and the verdict
+    section_w_flow(s)
+
+
+def w_rows(path):
+    """Synthetic data.binance.vision rows: 1m at a flat 100, daily closes alternating +-2 %, funding 0.0001 / 8 h."""
+    name = path.rsplit("/", 1)[1][:-4]
+    date = name.rsplit("-", 3)[-3:] if "-1m-" in name or "-1d-" in name else None
+    if "-1m-" in name:
+        start = paper.day_start("-".join(date))
+        return [[str(m), "100", "100", "100", "100"] for m in range(start, start + paper.DAY_MS, 60000)]
+    if "-1d-" in name:
+        k = (paper.day_start("-".join(date)) // paper.DAY_MS) % 2
+        return [[str(paper.day_start("-".join(date))), "0", "0", "0", "102" if k else "100"]]
+    month = name.rsplit("-", 2)[-2:]
+    start = paper.day_start("-".join(month) + "-01")
+    return [[str(m), "8", "0.0001"] for m in range(start, start + 28 * paper.DAY_MS, 8 * 3600000)]
+
+
+def section_w_flow(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-w.")
+    saved = common.OUTBOX_DIR
+    try:
+        outbox = os.path.join(tmp, "outbox")
+        os.makedirs(outbox)
+        common.OUTBOX_DIR = outbox
+        p, n = "0x" + "a" * 40, "0x" + "b" * 40
+        ff = paper.day_start("2026-01-05") + 3600000
+        we = ff + 2 * paper.DAY_MS
+        sel = {"picks": [{"address": p, "rank": 1}], "null": [{"address": n}], "follow_from_ms": ff,
+               "window_end_ms": we, "follow_from": paper.iso(ff), "window_end": paper.iso(we), "symbols": ["BTCUSDT"]}
+        state = paper.new_state(sel)
+        rule = {"capital_usdt": 10000.0, "risk_pct": 0.5, "inv_floor_sd": 2.0, "fee_taker": 0.0005}
+        inputs = paper.Inputs(tmp, "2026-03-01", rows=w_rows)
+        h = 3600000
+        # (account, fill, seen after): the pick's short is seen 601 s late and raises no alert; the
+        # fill after the window's end is never applied.
+        flow = ((p, w_fill(ff + h, 0, "B", 1), 10000), (p, w_fill(ff + 3 * h, 1, "A", 1), 10000),
+                (n, w_fill(ff + 25 * h, 0, "B", 1), 10000), (n, w_fill(ff + 27 * h, 1, "A", 1), 10000),
+                (p, w_fill(ff + 33 * h, 0, "A", 1), 601000), (p, w_fill(we + h, -1, "B", 1), 10000))
+        for addr, f, late in flow:
+            paper._apply(addr, state["accounts"][addr], [f], sel, {"BTCUSDT"}, f["time"] + late, rule, lambda: inputs)
+        paper.gather_closed(state)
+        alerts = sorted(x for x in os.listdir(outbox) if "-alert-" in x)
+        s.check("two fresh alerts for the pick, none for the null, none late", len(alerts) == 2)
+        for acct in state["accounts"].values():
+            acct["polled_ms"] = we + paper.DAY_SETTLE_S * 1000
+        paper.produce_days(state, tmp, sel, we)
+        s.check("before the cut, the window's last day is not written", state["written"]["episodes"] == "2026-01-06")
+        paper.cut_open(state, sel)
+        paper.produce_days(state, tmp, sel, we)
+        root = os.path.join(tmp, "records", paper.RECORD_DIR)
+        days = ["2026-01-05", "2026-01-06", "2026-01-07"]
+        eps = {d: [e for e in paper.read_jsonl(os.path.join(root, "episodes", d + ".jsonl")) if e["k"] == "ep"]
+               for d in days}
+        s.check("day 1: the pick's long", [(e["a"], e["side"], e["cut"]) for e in eps[days[0]]] == [(p, 1, False)])
+        s.check("day 2: the null's long", [(e["a"], e["side"]) for e in eps[days[1]]] == [(n, 1)])
+        s.check("day 3: the pick's short, cut at the window end with no price",
+                [(e["a"], e["side"], e["cut"], e["t_close"], e["px_close"]) for e in eps[days[2]]] == [(p, -1, True, we, None)])
+        paper.produce_books(state, tmp, sel, rule, inputs)
+        paper.produce_funding(state, tmp, sel, inputs)
+        s.check("the verdict is written once", paper.produce_verdict(state, tmp, sel, rule)
+                and not paper.produce_verdict(state, tmp, sel, rule))
+        with open(os.path.join(root, "verdict.json"), encoding="utf-8") as fh:
+            verdict = json.load(fh)
+        s.check("the verdict: two pick episodes and one null episode booked at 1 800 s",
+                verdict["booked"]["1800"] == {"pick": 2, "null": 1})
+        s.check("the verdict: unreadable, not passed", verdict["readable"] is False and verdict["passed"] is False)
+        s.check("the verdict: on a flat price every cell is the fees and funding, negative",
+                all(c["top"] < 0 for c in verdict["cells"].values()))
+        s.check("ten records pending, each once", sorted(state["pending"]) == sorted(
+            ["episodes/%s.jsonl" % d for d in days] + ["book/%s.jsonl" % d for d in days]
+            + ["funding/%s.jsonl" % d for d in days] + ["verdict.json"]))
+        paper.produce_days(state, tmp, sel, we)
+        s.check("a second pass writes nothing", len(state["pending"]) == 10)
+    finally:
+        common.OUTBOX_DIR = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
-            ("T", section_t), ("U", section_u))
+            ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w))
 
 
 def main():
