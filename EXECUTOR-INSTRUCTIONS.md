@@ -1,179 +1,13 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 28.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 29.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
-**v28 makes the session's last message the answer, by rule and by the unit.** The first press under v27,
-on 09.10.2026, sent the methodology's hunter to the background — the default of the Claude Code the VPS
-runs — and ended its turn with a status in English to wait for it; the unit delivered that status to the
-Boss as the answer, and the hunt died with the session, because a headless session's turn is its whole run.
-§1 now says the two subagents run in the foreground, inside the session's turn; §4 says a final message
-carrying no line that opens with the answer's first line is not an answer, and the unit sends the notice
-«Анализ не завершён.» in its place; §4b step 9 says the answer is the session's last message. Nothing else
-in v27 changed.
+**v29 removes history and changes no rule.** The notes of what each earlier version changed and three
+sentences narrating past runs left the file whole; no kept sentence was reworded, and every section,
+item number and rule of v28 stands.
 
-**v27 lets an analysis run launch the two subagents its methodology names.** The owner decided,
-recorded at map `2026-10-09-c`, that the analysis splits into three roles: the session that runs it
-— the trader, the one decision-maker — launches a hunter after the freeze and a sheriff after the
-book is composed, both through the Agent tool, in the same turn and on the same tree
-(`ANALYST-INSTRUCTIONS.md` §15). §1 says what the two may do inside role 2; §4b step 1 says the
-session reads the methodology's §15 first and then its own part — every section but the hunter's and
-the sheriff's briefs, which the subagents read for themselves; steps 7 and 8 say the run's log is
-two files under one commit that only the session makes; and item 14 binds the subagents to the same
-tree. Nothing else in v26 changed.
-
-**v26 closes the gap v25 left in the deployer's check, and names the signal that ends a
-task.** v25 had the deployer verify only the newest commit on `main`'s first-parent line that
-changed `vps/`, so an unsigned change pushed from the VPS was refused only until the next
-legitimate merge: that merge's signature covered a tree carrying the unsigned change, and the
-deployer would have installed it as root. TZ-55's audit found it. Item 15 now verifies every
-such commit since the one the deployer last accepted. §2 classes `.claude/settings.json`, which
-turns Claude Code's auto memory off for every session in this repository: a session's own
-notes, loaded into the next session, are an input nobody specified and nobody can audit, and an
-analysis run must not carry what an earlier run concluded (owner's decision of 24.09.2026).
-§11's closing message gains the line the Boss sends the Architect, `DONE TZ-NN`, because the
-Architect now reads the report from the repository and the Boss no longer forwards it (owner's
-message of 03.10.2026). Nothing else in v25 changed.
-
-**v25 repairs the floor TZ-54 measured, in the order map inv. 59 fixes.** TZ-54's report
-found the run unit able to read every credential v24 meant to hide from it: v24 named
-`InaccessiblePaths=` as the boundary and the unit built to it ran as root, which reads the
-host's files whatever is masked — systemd's documentation says a privileged process can undo
-the setting — and the trigger's own values sat in a session record under `/root` that the unit
-could read. Item 6 now puts a model session under its own unprivileged user holding two
-credentials of its own: the deploy key the VPS's clones already pushed with, which v24's
-«exactly two» failed to name, and a Claude login minted for the run alone that never travels
-through a message. Item 15 closes the one path that user would still have to root: it pushes
-to `main`, the deployer installs `main` as root, and so the deployer now installs only a tree
-GitHub itself signed. Nothing else in v24 changed.
-
-**v24 moves the floor TZ-54 waits on, in the order map inv. 59 fixes.** The owner decided on
-01.10.2026 that the assistant is built on the VPS — a payload writer, scheduled analysis runs, a
-Telegram bot and an exchange watcher — and three clauses of v23 could only refuse it. Item 6
-placed every credential in GitHub Actions, while the Telegram bot token and the exchange's
-read-only key exist only to be used on the VPS; it now admits exactly those two and says where
-they live, how they arrive and what may never read them. Item 9 gave an external fact one
-standing — a workflow step — while the VPS writer is a program in this repository whose output
-its unit commits; it now has that standing on the same terms, and a session running the same
-code by hand still has none. And nothing said how code reaches the VPS: item 15 makes merge the
-deployment there as it is for Pages, so no session leaves a branch running on the host. §2
-classes `vps/**` and the second writer of `analyst/live.json`, §3 names the one thing a trigger
-message may carry beside the trigger, §4 says how a unit starts role 2, and §4b step 8 says
-what a run does when another run's state reached `main` first. Nothing else in v23 changed.
-
-**v23 fixes how §5 step 2 CUTS the anchor list — v22 named the source and not the cut.**
-v22 said the list comes from the map's own table, and TZ-46's gate obeyed it by reading that
-table and then filtering it through seven anchor NAMES: it compared seven of seven and
-printed «anchors in map table: 7», a number describing its own filter rather than the table.
-The table held exactly those seven, so nothing was missed on that run and the control still
-could not have seen an eighth row. **A list cut by the names it expects is the copied list
-v22 replaced, one step further from the table**, and it fails in the same direction as its
-predecessor: the gate passes. Step 2 now cuts by the table's structure and reports the
-table's own row count beside the number compared. Nothing else in v22 changed.
-
-**v22 makes the fingerprint gate count what it compares.** §5 required every TZ header to
-quote the map's `## 0` block in full, then compared only the anchors a header happened to
-quote — so a header quoting none of them passed on the revision string alone, a comparison
-over an empty set that inv. 22 forbids in every other control this repository runs. TZ-45's
-header quoted none of six, the gate passed, and the omission surfaced only because the
-session ran the map's anchors on its own initiative and reported the gap. **Checking the
-map's anchors against the map proves nothing, because they were copied from it; the evidence
-is the TZ's quote meeting the map.** Step 2 now takes its list from the map's table, a header
-that omits an anchor is BLOCKED, and the report prints what each match returned instead of a
-verdict — which also closes the case of an anchor that differed from its invariant in case
-alone and was recorded as matched. Nothing else in v21 changed.
-
-**v21 narrows what an ANALYSIS run reads of this file, and narrows nothing else.** The Boss
-asked whether the analytical role should be decoupled from the build project, and the
-measurement answers it: the System Map is not loaded by an analysis run at all (§5), so the
-only overlap is this file's own role-1 half — the TZ machinery, the fingerprint gate, the
-GitHub rules, the validation rules, the report template and the closing message, none of
-which an analysis run can reach. **That is the whole of the decoupling and it is one step,
-not a second document.** Nothing is repealed for role 2: the hard floor binds it as before,
-and a section named from inside the operative set is read on that reference.
-
-**v20 closes three gaps in the §2 class table.** `analyst/owner.json`,
-`analyst/live-gate.sh` and `analyst/README.md` were in the repository with no row, so the
-sentence that opens that section — every file belongs to exactly one class — was false, and
-the check it exists to support could not fire on three real paths. TZ-30 reported all three
-and correctly acted on none: this file is Architect-owned and item 14 of the hard floor
-forbids you to write it, so a TZ asking for the repair would itself be defective. **The
-table is a control only while it is closed** — an unclassed file has nothing to contradict a
-wrong guess about it, which is the same argument §2 already makes about `image.PNG`.
-Nothing else in v19 changed.
-
-**v19 opens hard-floor item 3 to an owner decision and de-enumerates item 11.** TZ-25
-carried the owner's decision to add MORPHO and ARB, and item 3 as written could only
-refuse it: a freeze with no route through it turns an owner instruction into a
-contract violation, and the block was then lifted in a chat window instead of in this
-file — which is the one place a hard floor may be lifted. Both halves of that failure
-are the Architect's: the TZ amended the map and this file was never opened. Item 11's
-enumeration of three venue-flagged assets is replaced by a pointer to `tokens[]`, so
-the set can grow without a contract edit.
-
-**What changed from v8.** One process now carries two roles: the implementation role
-it always had, and an operational **Crypto Market Analyst** role. Nothing in v8 was
-removed or weakened. **v10 repairs three defects TZ-16 measured in v9** — hard floor
-item 10 named one direct-push path while three other clauses authorised two (§7.10),
-the day-log field list existed in two documents and had already drifted (§10), and a
-required one-line message collided with a ban declared to have no exception (§7.9).
-**v11 adds the third language exception**, which TZ-17 and TZ-19 both had to work
-around. **v12 repairs §4b step 2**: fetching without updating the working tree left the
-analyst reading a payload it could see was superseded on the remote — the one defect that
-would have made a correctly built engine publish no levels, every run, and look like the
-producer's fault. **v13 forbids the day log from reporting its own commit and push**: the
-log is written at step 7 and pushed at step 8, so any sentence it carries about that push
-is a prediction, and the first one written was wrong in the direction that matters — it
-declared a successful push failed. **v14 makes three changes, all forced by TZ-20 and
-TZ-21.** Hard floor item 9 no longer rests on reachability: inv. 44 was rewritten after a
-VPS session reached four market hosts the old measurement said were refused, so the test
-is now whether a fetch can be REPRODUCED, and measuring the session's own environment
-became an explicitly permitted act. The report template gained a standing clause in
-`## Final Repository State`, because v13's prohibition was named in TZ-21's own text and
-violated anyway, in the section that always carries that sentence — a clause an author
-must remember is not a control. And CI evidence left the Executor's acceptance criteria
-for the audit: two consecutive TZs were PARTIAL for a runner result the session had no
-credential to read, while the actor merging the pull request sees it on the page.
-**v15 makes the template's branch clauses conditional, because v14's own repair did not
-generalise.** TZ-22 authorised one written file and no branch, and three clauses written
-for a branch-and-pull-request change had no referent: §8's `NOT IN EFFECT UNTIL MERGED`,
-§10's `## Commit` and `## Pull Request`, and §10's rule that `## Final Repository State`
-describes the branch. The report resolved all three correctly and resolved them by
-JUDGEMENT — which is the thing inv. 54 says is not a control, in the same file v14
-hardened for exactly that reason. §8 now names the two TZ classes once, §10's sections
-read off the class instead of being reasoned about, and a hash rule separates a commit
-already pushed from the report's own.
-**v16 adds the Boss's production trigger to §4 and binds §4b to the methodology's stage
-order.** The trigger table is the only place a role is selected, so a trigger string
-absent from it is unrecognised and stops the run under §4 — a methodology that names a
-third spelling while this table carries two would refuse the Boss's own command. The
-stage order is the second half of the same repair: `ANALYST-INSTRUCTIONS.md` §5 now
-computes levels before the catalyst search rather than after it, and §4b step 6 said
-«perform the analysis» in one clause that permitted either order.
-**v17 gives the analysis run's direct push a failure branch and takes role 2 out of §8's
-branch clauses.** On 01.09 an analysis run finished correctly and its state and day log
-reached the Boss as a branch and a compare URL he had to merge by hand, so the engine's
-own record was invisible to the next run until a human acted. Four clauses already said
-`analyst/**` goes straight to `main` and none of them said what happens when that push is
-REJECTED — and a rejection is ordinary here, because the Boss's Shortcut writes
-`analyst/live.json` to `main` while the run is composing. With no branch defined, the run
-fell through to §8's pull-request fallback, which was written for role 1 and carries no
-role qualifier. §4b step 8 now names the rebase-and-retry, §8 opens by putting role 2
-outside every branch clause in the section, and the same section's claim about
-`main.yml`'s `paths-ignore` is corrected: TZ-23 replaced that filter with a two-path
-allow-list, so nothing unnamed can start the bot at all.
-**v18 re-derives §4b step 2 for a checkout that is not `main`, and puts the push
-destination into the push command.** The audit of 02.09 found an analysis run executing
-inside a harness worktree whose branch has no upstream. It brought the tree to
-`origin/main` by ff-only merge, which is exactly right, and then had to argue in its own
-log against a clause reading «an analysis run never starts from a branch» — written when
-the only environment was a plain clone. The clause named a checkout where it meant a tree,
-and a rule a correct run must explain itself out of is a rule a wrong run will explain
-itself out of too. Step 2 now states the two facts it was always about, and step 8 pushes
-with an explicit refspec, so where the commit lands no longer depends on where the run is
-standing — which matters precisely because inv. 54 forbids the day log from reporting its
-own push, and that run's landing place could not be established from its record at all.
 Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
 only where this file says so explicitly, and is otherwise bound by the same hard
@@ -436,9 +270,7 @@ The Boss sends `EXECUTE TZ-NN`, and nothing else. On receipt:
    origin/main` where it has none, `git status --porcelain` empty in both. **A stale tree
    is forbidden as it always was; a checkout that is not literally `main` is not
    forbidden, provided those two facts hold and step 8 names its own destination.**
-   Measured 02.09: the run executed inside a harness worktree with no upstream configured,
-   met the requirement by ff-only merge, recorded that it had — and was right, against a
-   clause written when the only environment was a plain clone. A rule a correct run must
+   A rule a correct run must
    explain itself out of is a rule a wrong run will explain itself out of too.
 3. Fix the analysis moment: `date -u`, once, as the first external fact. Every age in
    the run is measured against it (methodology §5 step 1).
@@ -682,10 +514,7 @@ TZs and reports.
     **The declared set is whatever carries `fut:true` in `tokens[]`; it is not
     enumerated here.** A host answering for a delisted spot pair does not revoke a
     flag and is never a reason to change it, reclassify the asset or "correct" the
-    list; the declaration wins and the disagreement is reported. This clause named
-    three assets by hand until v19, and the enumeration went stale the first time the
-    set changed — the same defect TZ-25 found in five other places, where a count of
-    `fut:true` assets was written down instead of computed (map inv. 58).
+    list; the declaration wins and the disagreement is reported.
 12. **Never remove, skip, comment out or `continue-on-error` a bench step to make CI
     green** — editing the assertion (item 2) and deleting the assertion are the same
     act; a step that cannot pass is a finding for the report. Equally, never add a
@@ -745,10 +574,7 @@ no branch and no pull request (§1), writes only `analyst/**`, and pushes it str
 that names a branch, a pull request, a merge or a compare URL is **silent** on an
 analysis run, exactly as it is silent on a report-only TZ — and its silence is never a
 deviation and never a fallback to be discovered by a run that met an unqualified
-imperative first. This paragraph is first because on 01.09 a correct analysis run read
-the section top-down, met «Work on a branch. Push the branch. Open a pull request.» with
-no qualifier attached, and delivered the engine's own state behind a pull request the
-Boss had to merge by hand.
+imperative first.
 
 - Work on a branch. Push the branch. Open a pull request. **You never merge.**
   Merging deploys the live calculator, is the Boss's decision, and happens only after
