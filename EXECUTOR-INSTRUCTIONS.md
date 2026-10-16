@@ -1,12 +1,12 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 29.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 30.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
-**v29 removes history and changes no rule.** The notes of what each earlier version changed and three
-sentences narrating past runs left the file whole; no kept sentence was reworded, and every section,
-item number and rule of v28 stands.
+**v30 gives the deploy key a second unit:** the paper-test recorder of map §10's row «Hyperliquid's large
+accounts», a program that runs no model, under its own user, pushing its records to `analyst/paper/**`
+(§2, §7 item 6, §8). No other rule moves.
 
 Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
@@ -121,6 +121,7 @@ table is created without a TZ that names it.
 | Live payload | `analyst/live.json` | Boss's Shortcut · the VPS writer (`vps/writer.py`) | machine, direct to `main` | one copy, replaced in place |
 | Analytical state | `analyst/state.json` | you (role 2) | you, direct to `main` | one copy, replaced in place |
 | Day log | `analyst/log/**` | you (role 2) | you, direct to `main` | **permanent, immutable** |
+| Paper-test record | `analyst/paper/**` | the paper-test recorder (`vps/paper.py`) | machine, direct to `main` | **permanent, immutable** |
 | Owner channel | `analyst/owner.json` | Architect | Boss upload to `main` | one copy, replaced in place |
 | Live-data gate | `analyst/live-gate.sh` | you | branch + PR | live |
 | Analyst README | `analyst/README.md` | you | branch + PR | live |
@@ -440,8 +441,9 @@ TZs and reports.
    name; and, since v25, the analysis run's own Claude login, a long-lived token minted for
    that run alone. Each value lives in its own file under `/etc/crypto-auto/credentials/`,
    outside the repository, mode `0600`, owned by root — the deploy key also stays where root's
-   clones read it — and reaches the one unit that uses it as a systemd credential
-   (`LoadCredential=`), never as an environment variable of a unit; the run's program hands
+   clones read it — and reaches the unit that uses it — for the deploy key two units, the run unit
+   and, since v30, the paper-test recorder, a program that runs no model under its own user — as a
+   systemd credential (`LoadCredential=`), never as an environment variable of a unit; the run's program hands
    its own Claude login to the session it starts and to nothing else. **No value is ever
    printed, logged, committed or quoted** — in a report, a day log, a commit, a unit file or
    the chat. **A unit that runs a model session runs as its own unprivileged user, never root,
@@ -607,7 +609,9 @@ imperative first.
   on this path under the same rules** — `git push origin HEAD:main`, a rebase on rejection,
   never a branch and never a force — and a rebase that conflicts with the Shortcut's payload
   discards the writer's commit, because the payload already on `main` is gated on `ts` like
-  its own (inv. 51).
+  its own (inv. 51). **The paper-test recorder pushes `analyst/paper/**` on the same path under
+  the same rules** (since v30); it adds only files `main` does not hold, so its rebase cannot
+  conflict with another writer.
 - The report exists on `main` **before** you post your closing message, so the path
   you give the Boss resolves the moment he opens it. One report, one path, one copy:
   never also in the implementation branch, never a second copy under another name
