@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Paths and the shared helpers of the VPS assistant (TZ-54 B1, TZ-55 B1, TZ-56 B1, TZ-57 B1, TZ-60 B1), and nothing else.
+"""Paths and the shared helpers of the VPS assistant (TZ-54 B1, TZ-55 B1, TZ-56 B1, TZ-57 B1, TZ-60 B1, TZ-64 B1), and nothing else.
 
 Python 3.12's standard library only. Every Russian string is written as \\uXXXX
 escapes (TZ-54 rule 6, hard floor item 7's rule) and equals TZ-54 §12.1,
@@ -9,6 +9,7 @@ import json
 import math
 import os
 import re
+import subprocess
 import tempfile
 import time
 import urllib.parse
@@ -223,6 +224,42 @@ def index_html_path():
 def read_tokens(path=None):
     with open(path or index_html_path(), encoding="utf-8") as fh:
         return cut_tokens(fh.read())
+
+
+# --- TZ-64: a numeric constant cut from index.html (inv. 20, 21) ------------------
+def cut_number(index_html, name):
+    """The number of the one line `var <name> = <number>;` in index.html. None or several fail."""
+    found = re.findall(r"^var\s+%s\s*=\s*([0-9]+(?:\.[0-9]+)?)\s*;" % re.escape(name), index_html, re.M)
+    if len(found) != 1:
+        raise ValueError("%s: %d definitions" % (name, len(found)))
+    return float(found[0])
+
+
+# --- TZ-64: a clone's commit and push to main, the one implementation (contract section 8) --
+def git_quiet(tree, *args):
+    """One git command in tree, output discarded; its exit code."""
+    return subprocess.run(["git", "-C", tree] + list(args),
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+
+
+def publish(tree, paths, message):
+    """Commit paths in the clone tree and push HEAD to main: one rejection -> pull --rebase and push
+    again; a rebase that fails is aborted and this commit dropped; a second rejection drops it too.
+    Never a branch, never a force. Returns (committed, pushed); a failed add or commit returns
+    (False, False) and leaves the paths to the caller."""
+    base = subprocess.run(["git", "-C", tree, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    if git_quiet(tree, "add", "--", *paths) != 0 or git_quiet(tree, "commit", "-q", "-m", message, "--", *paths) != 0:
+        return False, False
+    if git_quiet(tree, "push", "-q", "origin", "HEAD:main") == 0:
+        return True, True
+    if git_quiet(tree, "pull", "-q", "--rebase", "origin", "main") != 0:
+        git_quiet(tree, "rebase", "--abort")
+        git_quiet(tree, "reset", "-q", "--hard", base)
+        return True, False
+    if git_quiet(tree, "push", "-q", "origin", "HEAD:main") == 0:
+        return True, True
+    git_quiet(tree, "reset", "-q", "--hard", "HEAD~1")
+    return True, False
 
 
 # --- TZ-54 §12.8, the one implementation ------------------------------------

@@ -104,36 +104,17 @@ def run_gate(tree):
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
 
 
-def git(tree, *args):
-    return subprocess.run(["git", "-C", tree] + list(args),
-                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
-
-
-def git_out(tree, *args):
-    return subprocess.run(["git", "-C", tree] + list(args), capture_output=True, text=True).stdout.strip()
-
-
 def restore(tree):
-    git(tree, "checkout", "HEAD", "--", PAYLOAD)
+    common.git_quiet(tree, "checkout", "HEAD", "--", PAYLOAD)
 
 
 def publish(tree):
-    """Commit and push; one rejection → pull --rebase and push again; a rebase
-    conflict → abort it and drop the writer's commit. Returns (committed, pushed)."""
-    base = git_out(tree, "rev-parse", "HEAD")
-    if git(tree, "commit", "-q", "-m", COMMIT_MESSAGE, "--", PAYLOAD) != 0:
+    """Commit and push through common.publish (TZ-64: the one implementation); a commit that
+    fails restores the payload. Returns (committed, pushed)."""
+    committed, pushed = common.publish(tree, [PAYLOAD], COMMIT_MESSAGE)
+    if not committed:
         restore(tree)
-        return False, False
-    if git(tree, "push", "-q", "origin", "HEAD:main") == 0:
-        return True, True
-    if git(tree, "pull", "-q", "--rebase", "origin", "main") != 0:
-        git(tree, "rebase", "--abort")
-        git(tree, "reset", "-q", "--hard", base)
-        return True, False
-    if git(tree, "push", "-q", "origin", "HEAD:main") == 0:
-        return True, True
-    git(tree, "reset", "-q", "--hard", "HEAD~1")
-    return True, False
+    return committed, pushed
 
 
 def main(argv=None):

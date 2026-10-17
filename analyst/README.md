@@ -8,6 +8,7 @@ The market-analysis engine's tree. Nothing here reaches the live calculator and 
 | `live-gate.sh` | the gate that reads it; exit 0 means levels may be published | the Executor |
 | `state.json` | current analytical state, schema v1 | the analyst role, replaced in place |
 | `log/` | one file per analysis run | the analyst role, immutable |
+| `paper/` | the copy-trading paper test's record (TZ-64); never an input to an analysis run | `vps/paper.py` on the VPS, immutable |
 
 The log is never reopened; the state is one copy, replaced every run.
 
