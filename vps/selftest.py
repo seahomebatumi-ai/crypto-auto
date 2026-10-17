@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
-TZ-62 B2, TZ-64 B4): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's, TZ-57 §12.8's,
-TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's and TZ-64's changed and new ones, each printing
+TZ-62 B2, TZ-64 B4, TZ-65 B1): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's,
+TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's and TZ-65's changed and new ones, each printing
 `section <X>: checks <n> failed <m>`, then the total.
 
     python3 vps/selftest.py
@@ -9,6 +9,7 @@ TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's and TZ-64's changed and new ones
 Exit non-zero on any failure and on any section that compared nothing (inv. 22).
 Offline: every fixture is built here or read from the checkout this file sits in.
 """
+import array
 import contextlib
 import copy
 import io
@@ -21,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tracemalloc
 import types
 import urllib.parse
 from datetime import datetime, timezone
@@ -1577,6 +1579,8 @@ def section_w(s):
         "LoadCredential=deploy-key:/etc/crypto-auto/credentials/deploy-key"])
     # W14. the flow, offline: polls, the cut, three days of episodes, books, funding and the verdict
     section_w_flow(s)
+    # W15. the booking's memory (TZ-65): one symbol's minutes at a time, compact, dropped after the pass
+    section_w_memory(s)
 
 
 def w_rows(path):
@@ -1652,6 +1656,126 @@ def section_w_flow(s):
         s.check("a second pass writes nothing", len(state["pending"]) == 10)
     finally:
         common.OUTBOX_DIR = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def w_counted_rows(reads, unpublished_from=None):
+    """w_rows with every read counted by path; a 1m file dated unpublished_from or later is not
+    published, and the day's rows come shuffled, with one row of each neighbouring day."""
+    def rows(path):
+        reads[path] = reads.get(path, 0) + 1
+        name = path.rsplit("/", 1)[1][:-4]
+        if "-1m-" not in name:
+            return w_rows(path)
+        date = "-".join(name.rsplit("-", 3)[-3:])
+        if unpublished_from is not None and date >= unpublished_from:
+            raise paper.NotPublished(path)
+        start = paper.day_start(date)
+        out = [[str(m), "100", "101", "99", repr(100 + (m - start) / 60000000.0)]
+               for m in range(start, start + paper.DAY_MS, 60000)]
+        stray = [[str(start - 60000), "1", "1", "1", "1"], [str(start + paper.DAY_MS), "1", "1", "1", "1"]]
+        return out[1::2] + out[0::2] + stray
+    return rows
+
+
+def section_w_memory(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-w15.")
+    try:
+        rows = paper.Rows(array.array("d", [1, 2, 3, 4, 5, 6, 7, 8]))
+        s.check("Rows: two minutes of four doubles, read back as tuples",
+                len(rows) == 2 and rows[0] == (1.0, 2.0, 3.0, 4.0) and rows[1] == (5.0, 6.0, 7.0, 8.0))
+        raised = 0
+        for k in (2, -1):
+            try:
+                rows[k]
+            except IndexError:
+                raised += 1
+        s.check("Rows: a minute before the first or past the last raises IndexError", raised == 2)
+        reads = {}
+        inputs = paper.Inputs(tmp, "2026-03-01", rows=w_counted_rows(reads))
+        times, flat = inputs.minutes("BTCUSDT", "2026-01-05")
+        start = paper.day_start("2026-01-05")
+        s.check("minutes: one day's 1 440 minutes ascending, the neighbouring days' rows left out",
+                list(times) == list(range(start, start + paper.DAY_MS, 60000)))
+        s.check("minutes: a minute's (o, h, l, c) where its time is",
+                paper.Rows(flat)[731] == (100.0, 101.0, 99.0, 100 + 731 * 60000 / 60000000.0))
+        tracemalloc.start()
+        try:
+            before = tracemalloc.get_traced_memory()[0]
+            inputs.minutes("BTCUSDT", "2026-01-06")
+            kept = tracemalloc.get_traced_memory()[0] - before
+        finally:
+            tracemalloc.stop()
+        s.check("minutes: one symbol-day is kept in under 128 KiB", kept < 128 * 1024)
+        kt, kr = inputs.kl("BTCUSDT", "2026-01-05", "2026-01-07")
+        s.check("kl over three days: 4 320 minutes, ascending, each day where it belongs",
+                len(kt) == 4320 == len(kr) and all(kt[k] < kt[k + 1] for k in range(len(kt) - 1))
+                and kt[1440] == start + paper.DAY_MS and kr[1440][3] == 100.0)
+        inputs.minutes("ETHUSDT", "2026-01-05")
+        s.check("asking for another symbol drops the first one's days",
+                inputs.kl_sym == "ETHUSDT" and list(inputs.klines) == [("ETHUSDT", "2026-01-05")])
+        # a day file of three symbols, interleaved, five days each
+        we = paper.day_start("2026-01-20") + 12 * 3600000
+        sel = {"follow_from_ms": we - 14 * paper.DAY_MS, "window_end_ms": we}
+        rule = {"capital_usdt": 10000.0, "risk_pct": 0.5, "inv_floor_sd": 2.0, "fee_taker": 0.0005}
+        day = paper.utc_date(we)
+        eps = []
+        for k, sym in enumerate(["BTC", "ETH", "KAITO"] * 2):
+            t_open = we - (5 - k % 2) * paper.DAY_MS + k * 60000
+            eps.append({"k": "ep", "a": "0x%040x" % k, "role": "null", "rank": None, "coin": sym,
+                        "symbol": sym + "USDT", "side": 1 if k % 2 else -1, "t_open": t_open, "px_open": "100",
+                        "n": 1, "seen_open_ms": t_open, "t_close": we, "px_close": None, "seen_close_ms": None,
+                        "cut": True})
+        root = os.path.join(tmp, "records", paper.RECORD_DIR)
+        os.makedirs(os.path.join(root, "episodes"))
+        with open(os.path.join(root, "episodes", day + ".jsonl"), "w", encoding="utf-8") as fh:
+            fh.write(json.dumps({"k": "day", "date": day}) + "\n" + "".join(json.dumps(e) + "\n" for e in eps))
+        prev = paper.add_days(day, -1)
+
+        def fresh_state():
+            return {"pending": [], "written": {"episodes": day, "book": prev, "funding": prev}}
+
+        reads, held = {}, []
+        inputs = paper.Inputs(tmp, "2026-03-01", rows=w_counted_rows(reads))
+        minutes = inputs.minutes
+
+        def watched(sym, date):
+            out = minutes(sym, date)
+            held.append(len(inputs.klines))
+            return out
+        inputs.minutes = watched
+        state = fresh_state()
+        paper.produce_books(state, tmp, sel, rule, inputs)
+        ones = [n for p, n in reads.items() if "/1m/" in p]
+        s.check("a pass holds one symbol's days at most: six, of eighteen read", max(held) == 6 and len(ones) == 18)
+        s.check("each minute file is read once in a pass", ones == [1] * 18)
+        s.check("after the pass no minute is kept", inputs.klines == {} and inputs.kl_sym is None)
+        with open(os.path.join(root, "book", day + ".jsonl"), encoding="utf-8") as fh:
+            book = [json.loads(line) for line in fh][1:]
+        s.check("the book keeps the episode file's order, all six booked",
+                [(b["a"], b["coin"], b["t_open"]) for b in book] == [(e["a"], e["coin"], e["t_open"]) for e in eps]
+                and all("d" in b for b in book))
+        # the latest day not yet published: one minute read, then NotReady, nothing written, nothing kept
+        reads = {}
+        inputs = paper.Inputs(tmp, paper.add_days(day, 1), rows=w_counted_rows(reads, unpublished_from=day))
+        state = fresh_state()
+        try:
+            paper.produce_books(state, tmp, sel, rule, inputs)
+            waited = False
+        except paper.NotReady:
+            waited = True
+        s.check("a latest day not yet published ends the pass after one read, nothing written or kept",
+                waited and sum(reads.values()) == 1 and state["written"]["book"] == prev and inputs.klines == {})
+        # the latest day absent (dated past ABSENT_AFTER_DAYS): the pass goes on, those episodes unbookable
+        reads = {}
+        inputs = paper.Inputs(tmp, paper.add_days(day, 10), rows=w_counted_rows(reads, unpublished_from=day))
+        state = fresh_state()
+        paper.produce_books(state, tmp, sel, rule, inputs)
+        with open(os.path.join(root, "book", day + ".jsonl"), encoding="utf-8") as fh:
+            head = json.loads(fh.readline())
+        s.check("an absent latest day is no wait: the day is written, its six episodes unbookable",
+                state["written"]["book"] == day and head["booked"] == 0 and head["unbookable"] == 6)
+    finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
 

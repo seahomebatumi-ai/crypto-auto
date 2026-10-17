@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The copy-trading paper test (TZ-64; map section 10, row \u00abHyperliquid's large accounts\u00bb):
+"""The copy-trading paper test (TZ-64, TZ-65; map section 10, row \u00abHyperliquid's large accounts\u00bb):
 Hyperliquid accounts selected once by their twelve-month record, followed in real time,
 every copied episode booked on Binance USD-M prices at four delays, and the verdict
 read at week 13 against random eligible accounts copied the same way.
@@ -14,6 +14,7 @@ analyst/paper/ of its own clone and pushed to main (contract v30 section 8); a r
 is written once and never reopened.
 """
 import argparse
+import array
 import bisect
 import codecs
 import hashlib
@@ -571,13 +572,29 @@ def vision_rows(path):
     return rows[1:] if rows and not rows[0][0].strip().isdigit() else rows
 
 
+class Rows:
+    """The (open, high, low, close) of consecutive minutes, four doubles a minute in one array: a
+    symbol-day is kept in 63 KiB with its times, against 375 KiB as a list of tuples (12.3.6)."""
+
+    def __init__(self, flat):
+        self.flat = flat
+
+    def __len__(self):
+        return len(self.flat) // 4
+
+    def __getitem__(self, k):
+        if not 0 <= k < len(self):
+            raise IndexError(k)
+        return tuple(self.flat[4 * k:4 * k + 4])
+
+
 class Inputs:
-    """data.binance.vision inputs of one pass: 1m klines by symbol and day, daily closes kept on
-    disk, funding rates by symbol and month. A 404 dated more than ABSENT_AFTER_DAYS before today is
-    Absent; nearer is NotReady."""
+    """data.binance.vision inputs of one pass: 1m klines of one symbol at a time by day, daily
+    closes kept on disk, funding rates by symbol and month. A 404 dated more than ABSENT_AFTER_DAYS
+    before today is Absent; nearer is NotReady."""
 
     def __init__(self, state_dir, today, rows=vision_rows):
-        self.today, self.rows, self.klines, self.rates_by = today, rows, {}, {}
+        self.today, self.rows, self.klines, self.kl_sym, self.rates_by = today, rows, {}, None, {}
         self.closes_path = os.path.join(state_dir, "closes.json")
         try:
             with open(self.closes_path, encoding="utf-8") as fh:
@@ -593,15 +610,30 @@ class Inputs:
             raise (Absent if gap > ABSENT_AFTER_DAYS else NotReady)(path) from None
 
     def minutes(self, sym, date):
-        key = (sym, date)
-        if key not in self.klines:
-            rows = self.fetch("/daily/klines/%s/1m/%s-1m-%s.zip" % (sym, sym, date), date)
-            self.klines[key] = [(int(r[0]), (float(r[1]), float(r[2]), float(r[3]), float(r[4]))) for r in rows]
-        return self.klines[key]
+        """One day of sym's minutes inside that day, ascending: (open times, Rows' flat array). Only
+        sym's days are kept -- asking for another symbol drops them (12.3.6)."""
+        if sym != self.kl_sym:
+            self.klines, self.kl_sym = {}, sym
+        if (sym, date) not in self.klines:
+            start = day_start(date)
+            rows = sorted(x for x in ((int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in
+                                      self.fetch("/daily/klines/%s/1m/%s-1m-%s.zip" % (sym, sym, date), date))
+                          if start <= x[0] < start + DAY_MS)
+            self.klines[(sym, date)] = (array.array("q", [x[0] for x in rows]),
+                                        array.array("d", [v for x in rows for v in x[1:]]))
+        return self.klines[(sym, date)]
 
     def kl(self, sym, first, last):
-        merged = sorted(row for d in days_between(first, last) for row in self.minutes(sym, d))
-        return [t for t, _ in merged], [r for _, r in merged]
+        """sym's minutes from day first to day last: (open times, Rows), ascending across the days."""
+        times, flat = array.array("q"), array.array("d")
+        for d in days_between(first, last):
+            t, f = self.minutes(sym, d)
+            times.extend(t)
+            flat.extend(f)
+        return times, Rows(flat)
+
+    def drop_minutes(self):
+        self.klines, self.kl_sym = {}, None
 
     def close_on(self, sym, date):
         have = self.closes.setdefault(sym, {})
@@ -621,6 +653,12 @@ class Inputs:
         return self.rates_by[key]
 
 
+def last_day(ep, window_end):
+    """The last day whose minutes the episode's book reads: its exit at the longest delay, or
+    window_end's day for a cut episode."""
+    return utc_date(window_end if ep.get("cut") else ep["t_close"] + max(DELAYS_S) * 1000)
+
+
 def book_episode(ep, inputs, rule, window_end):
     """The book line of one episode: sigma_for, the stop distance INV_FLOOR_SD sigma, and every
     delay; or an unbookable line."""
@@ -632,8 +670,7 @@ def book_episode(ep, inputs, rule, window_end):
         dist = rule["inv_floor_sd"] * sigma
         if not dist > 0:
             raise Absent("sigma is zero")
-        last = utc_date(window_end if ep.get("cut") else ep["t_close"] + max(DELAYS_S) * 1000)
-        kl = inputs.kl(ep["symbol"], first, last)
+        kl = inputs.kl(ep["symbol"], first, last_day(ep, window_end))
         line.update(sigma_d=sigma, dist=dist, d={
             str(d): book_delay(ep, d, dist, kl, rule["capital_usdt"], rule["risk_pct"] / 100, rule["fee_taker"],
                                window_end) for d in DELAYS_S})
@@ -1015,14 +1052,29 @@ def produce_days(state, state_dir, sel, now):
 
 
 def produce_books(state, state_dir, sel, rule, inputs):
-    first = utc_date(sel["follow_from_ms"])
+    """Book files in date order. Per day: the latest day any episode reads is asked for first, so a
+    day not yet published ends the pass after one read; then the episodes are booked one symbol at a
+    time, that symbol first, so each minute file is read once; the lines keep the episode file's
+    order, and the minutes are dropped when the day's pass ends, written or not (12.3.6)."""
+    first, window_end = utc_date(sel["follow_from_ms"]), sel["window_end_ms"]
     while True:
         day = next_date(state["written"]["book"], first)
         if state["written"]["episodes"] is None or day > state["written"]["episodes"]:
             return
         eps = [e for e in read_jsonl(os.path.join(state_dir, "records", RECORD_DIR, "episodes", day + ".jsonl"))
                if e["k"] == "ep"]
-        lines = [book_episode(e, inputs, rule, sel["window_end_ms"]) for e in eps]   # NotReady ends the pass
+        latest = max(((last_day(e, window_end), e["symbol"]) for e in eps), default=None)
+        lines = [None] * len(eps)
+        try:
+            if latest is not None:
+                try:
+                    inputs.minutes(latest[1], latest[0])   # not yet published: NotReady ends the pass here
+                except Absent:
+                    pass                                   # that episode's own book records it unbookable
+            for i in sorted(range(len(eps)), key=lambda i: (eps[i]["symbol"] != latest[1], eps[i]["symbol"], i)):
+                lines[i] = book_episode(eps[i], inputs, rule, window_end)   # NotReady ends the pass
+        finally:
+            inputs.drop_minutes()
         head = {"k": "day", "date": day, "booked": sum(1 for x in lines if "d" in x),
                 "unbookable": sum(1 for x in lines if "unbookable" in x)}
         write_record(state, state_dir, "book/%s.jsonl" % day, [head] + lines)
