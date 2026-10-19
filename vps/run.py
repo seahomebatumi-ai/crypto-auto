@@ -49,6 +49,11 @@ APPEND = ("Read EXECUTOR-INSTRUCTIONS.md at the repository root in full before a
           "it is your contract, and the user message is a trigger from its \u00a74.")
 MODEL  = "claude-opus-5-5"
 EFFORT = "high"
+# TZ-66: each alias a subagent call can name resolves to one full id in the session's environment. The Agent
+# tool's per-call model outranks any agent definition (Claude Code docs, "Subagents", read 19.10.2026), and the
+# methodology names the hunter's as `sonnet`; the sheriff runs on MODEL, the session's own.
+HUNTER_MODEL = "claude-sonnet-5"
+PINS = {"ANTHROPIC_DEFAULT_OPUS_MODEL": MODEL, "ANTHROPIC_DEFAULT_SONNET_MODEL": HUNTER_MODEL}
 CLAUDE = ["claude", "-p", PROMPT,
           "--output-format", "json", "--model", MODEL, "--effort", EFFORT,
           "--allowedTools", "Bash Read Write Edit Glob Grep WebSearch WebFetch",
@@ -191,10 +196,12 @@ def writer_env():
 
 
 def claude_env():
-    """The environment of the claude child alone: this unit's, plus the run's own
-    Claude login read from $CREDENTIALS_DIRECTORY (TZ-55 B2.3). Raises
-    common.CredentialMissing when the login is absent."""
+    """The environment of the claude child alone: this unit's, the model pins over any
+    value it carries (TZ-66), and the run's own Claude login read from
+    $CREDENTIALS_DIRECTORY (TZ-55 B2.3). Raises common.CredentialMissing when the
+    login is absent."""
     env = writer_env()
+    env.update(PINS)
     env[LOGIN_ENV] = common.load_credential(LOGIN_CREDENTIAL)
     return env
 
@@ -242,7 +249,7 @@ def main(argv=None):
     tree = os.path.abspath(args.tree)
     line = {"requests": 0, "admitted": "no", "waited_s": 0, "writer_exit": "-", "claude_exit": "-",
             "is_error": "true", "num_turns": 0, "duration_ms": 0, "denials": 0, "answer_chars": 0}
-    extra = {"models": "-", "denied_tools": "-"}
+    extra = {"models": "-", "unpinned": "-", "denied_tools": "-"}
     extra.update((name, "-") for name in RESULT_CATEGORIES)
     # TZ-56 12.4: the limits the run ran under, its peaks and its token usage.
     seen = {"memory_max": None, "memory_swap_max": None, "mem_available": "-", "swap_free": "-"}
@@ -257,8 +264,8 @@ def main(argv=None):
                    "answer_chars=%(answer_chars)s" % line)
         # Model ids, denied tool names and result.json's categorical fields (TZ-54 §14,
         # TZ-55 B2.4); never the answer.
-        common.log("crypto-run: models=%(models)s denied_tools=%(denied_tools)s subtype=%(subtype)s "
-                   "api_error_status=%(api_error_status)s terminal_reason=%(terminal_reason)s "
+        common.log("crypto-run: models=%(models)s unpinned=%(unpinned)s denied_tools=%(denied_tools)s "
+                   "subtype=%(subtype)s api_error_status=%(api_error_status)s terminal_reason=%(terminal_reason)s "
                    "stop_reason=%(stop_reason)s" % extra)
         # TZ-56 12.4, every path; never `result`.
         common.log("crypto-run: memory_max=%s memory_swap_max=%s mem_available=%s swap_free=%s memory_peak=%s "
@@ -321,7 +328,9 @@ def main(argv=None):
     line["num_turns"] = doc.get("num_turns", 0)
     line["duration_ms"] = doc.get("duration_ms", 0)
     line["denials"] = len(denials)
-    extra["models"] = ",".join(sorted(doc.get("modelUsage") or {})) or "-"
+    used = sorted(doc.get("modelUsage") or {})
+    extra["models"] = ",".join(used) or "-"
+    extra["unpinned"] = ",".join(m for m in used if m not in PINS.values()) or "-"
     extra["denied_tools"] = ",".join(sorted({str(d.get("tool_name")) for d in denials if isinstance(d, dict)})) or "-"
     for name in RESULT_CATEGORIES:
         extra[name] = category(doc.get(name))

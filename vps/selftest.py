@@ -506,9 +506,12 @@ STUB_CLAUDE = """#!/usr/bin/env python3
 import json, os, sys
 with open(os.environ["SELFTEST_O_CLAUDE_SAW"], "w") as fh:
     fh.write(os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "<absent>"))
+with open(os.environ["SELFTEST_O_CLAUDE_SAW"] + "-pins", "w") as fh:
+    json.dump({k: os.environ.get(k) for k in ("ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL")}, fh)
 json.dump({"type": "result", "subtype": "stub_subtype", "is_error": False, "result": os.environ["SELFTEST_O_RESULT"],
            "num_turns": 3, "duration_ms": 1234, "api_error_status": 418, "terminal_reason": "stub_terminal",
-           "stop_reason": "stub_stop", "modelUsage": {}, "permission_denials": [],
+           "stop_reason": "stub_stop", "modelUsage": json.loads(os.environ.get("SELFTEST_O_MODELS", "{}")),
+           "permission_denials": [],
            "usage": {"input_tokens": 11, "output_tokens": 22, "cache_read_input_tokens": 33,
                      "cache_creation_input_tokens": 44}, "total_cost_usd": 0.5}, sys.stdout)
 """
@@ -557,9 +560,14 @@ def section_o(s):
     s.check("run.CLAUDE carries --effort immediately followed by high",
             any(cmd[i] == "--effort" and cmd[i + 1] == "high" for i in range(len(cmd) - 1)))
     s.check("no element of run.CLAUDE equals opus", "opus" not in cmd)
+    # TZ-66: each alias a subagent call can name is pinned to one full id.
+    s.check("run.PINS resolves sonnet to claude-sonnet-5",
+            run.PINS.get("ANTHROPIC_DEFAULT_SONNET_MODEL") == "claude-sonnet-5")
+    s.check("run.PINS resolves opus to run.MODEL", run.PINS.get("ANTHROPIC_DEFAULT_OPUS_MODEL") == run.MODEL)
     tmp = tempfile.mkdtemp(prefix="vps-selftest-o.")
     env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", run.LOGIN_ENV,
-                "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW", "SELFTEST_O_RESULT")
+                "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW", "SELFTEST_O_RESULT",
+                "SELFTEST_O_MODELS") + tuple(run.PINS)
     saved_env = {k: os.environ.get(k) for k in env_keys}
     patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (run, "WRITER"), (run, "own_memory_max"),
                (run, "own_swap_max"), (run, "mem_available"), (run, "swap_free"), (run, "ADMISSION_POLL_S"),
@@ -579,7 +587,12 @@ def section_o(s):
                            run.LOGIN_ENV: decoy,          # a value already in the unit's environment is not the login
                            "SELFTEST_O_CLAUDE_SAW": claude_saw, "SELFTEST_O_WRITER_SAW": writer_saw,
                            # TZ-63: the stub's final message is an answer, opening with run's own head.
-                           "SELFTEST_O_RESULT": run.ANSWER_HEAD + " SELFTEST-O-RESULT-TEXT"})
+                           "SELFTEST_O_RESULT": run.ANSWER_HEAD + " SELFTEST-O-RESULT-TEXT",
+                           # TZ-66: a value already in the unit's environment is not the pin.
+                           "ANTHROPIC_DEFAULT_OPUS_MODEL": "selftest-decoy-opus",
+                           "ANTHROPIC_DEFAULT_SONNET_MODEL": "selftest-decoy-sonnet",
+                           "SELFTEST_O_MODELS": json.dumps({"claude-opus-5-5": {}, "claude-sonnet-5": {},
+                                                            "claude-haiku-selftest": {}})})
         common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
         run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
         run.own_memory_max = run.own_swap_max = lambda: None
@@ -596,10 +609,20 @@ def section_o(s):
         s.check("the stub writer holds neither value under any name",
                 not any(planted in v or decoy in v for v in writer_env.values()))
         s.check("run.py put no login into its own environment", os.environ.get(run.LOGIN_ENV) == decoy)
+        with open(claude_saw + "-pins") as fh:
+            pins_seen = json.load(fh)
+        s.check("the stub claude sees every pin of run.PINS, not the unit's own values", pins_seen == run.PINS)
+        s.check("run.py put no pin into its own environment",
+                os.environ.get("ANTHROPIC_DEFAULT_SONNET_MODEL") == "selftest-decoy-sonnet")
         for field, value in (("subtype", "stub_subtype"), ("api_error_status", "418"),
                              ("terminal_reason", "stub_terminal"), ("stop_reason", "stub_stop")):
             s.check("the summary carries %s=%s" % (field, value), (" %s=%s" % (field, value)) in summary)
         s.check("the summary never carries the result", "SELFTEST-O-RESULT-TEXT" not in summary)
+        second = [l for l in summary.splitlines() if l.startswith("crypto-run: models=")]
+        s.check("the second summary line names every id used, then the one outside run.PINS",
+                len(second) == 1 and second[0].startswith(
+                    "crypto-run: models=claude-haiku-selftest,claude-opus-5-5,claude-sonnet-5 "
+                    "unpinned=claude-haiku-selftest denied_tools="))
         # TZ-56 §12.4: the third summary line carries the stub's usage and cost.
         third = [l for l in summary.splitlines() if l.startswith("crypto-run: memory_max=")]
         s.check("one third summary line", len(third) == 1)
