@@ -14,12 +14,11 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-10-17-a.** No file of the table below moves. TZ-64 and TZ-65 were accepted together on 17.10.2026 —
-TZ-65 bounds the memory of TZ-64's booking — and pull request #53 carries both and supersedes #52; they are in effect
-when the deployer installs its merge. §11 gains the recorder's path, `analyst/paper/**`, in its path table and as
-`bench.yml`'s fifth ignored path, and §10's row «Hyperliquid's large accounts» is `built, unmeasured` (inv. 50).
-Contract v30 and `ANALYST-INSTRUCTIONS.md` `2026-10-16-b` stand, and §6 and §6a of the methodology do not move:
-`sec6_md5` stays `d924d29faa3a2c7c0b5519d8e1f5fc45`.
+**Revision 2026-10-19-a.** No file of the table below moves. `ANALYST-INSTRUCTIONS.md` `2026-10-19-a` carries the
+owner's decisions of 19.10.2026 — the hunt reads his coins first, the book outside the list is the top 100 by market
+capitalisation, catalysts and `ИЗБЕГАТЬ` carry what he trades, and the answer prints shorter where it holds nothing —
+and §6 and §6a of the methodology do not move: `sec6_md5` stays `d924d29faa3a2c7c0b5519d8e1f5fc45`. Contract v30
+stands. §10 gains row «The hunter runs on a model alias».
 
 **`bench/backtest_bench.py` has no row in the file table, and six consecutive TZs have now
 had to explain the absence.** The table pins the four files a TZ header fingerprints: three
@@ -74,7 +73,7 @@ written, and a blocking gate is the one control that may not have such a directi
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-10-17-a.**` |
+| revision | `**Revision 2026-10-19-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -2505,6 +2504,7 @@ until someone re-runs the command.
 | The watcher has no calendar and no regime input | **open — the fields exist since `ANALYST-INSTRUCTIONS.md` `2026-10-09-a`; the watcher does not read them yet** | the methodology edit that splits the hunter (row «One agent executes the whole methodology in one run»). `analyst/state.json` v2 stores no regime boundary — `# BTC` computes the critical level and its touch probability on every run and keeps neither — and a `horizon` entry carries a date with no class and no minute, so «a regime boundary crossed» and «a run around each class-B print» name objects with nothing to compute them from (inv. 58). Both are additive fields within v2 (methodology §11), written by the run that computes them, and the watcher reads them from the tree like the engine. **Until they exist TZ-54's watcher acts on the exchange alone** — the announcement stream and `exchangeInfo`'s dated listing state — and since the owner's decision of 03.10.2026 it alerts and starts no run, so these fields, once they exist, time an alert and never a run (row «The assistant's build sequence»). The one class-B publisher measured answering the VPS is the Federal Reserve's calendar (TZ-53, E2), while `bls.gov` refuses it (row «`bls.gov` dates the week's largest print and refuses this machine»), so a print-timed alert needs the hunter's calendar first. **At `2026-10-09-d` both fields exist:** every horizon entry the hunter adds or re-reads carries `cls` and `t`, and the trader writes `regime` — `bull`, `bear`, `hot` and `cold` at the freeze — on every run (methodology §11). What remains is the watcher reading them, a TZ against `vps/exchange.py`, and an alert stays an alert: it starts no run (row «The assistant's build sequence») |
 | Six sentences name the Shortcut as the only producer and the Boss as the only trigger | **open — recorded 01.10.2026** | the merge that enables the run unit — TZ-55's, when its run fits; TZ-54's merge enabled neither the writer nor the run — then one Architect edit of `ANALYST-INSTRUCTIONS.md` §5 and of this map's §1 and §11. True while the VPS writer and the run unit are not in effect, false from that merge (inv. 50): methodology §5 — «the only network in this system that Binance answers», «the same calls, the same payload, the same producer» and «is written by the Boss's Shortcut and by nothing in this engine»; this map's §1 — the analytical engine's row «Boss-triggered, in a Claude Code session»; and §11 — the writer cell «the Boss's iOS Shortcut» and «Price delivery is unchanged regardless». **None of them changes what a run does** — the gate reads `ts` and never the writer (inv. 51) — which is why they are repaired after the merge and not before it: a sentence describing a writer that is not yet in effect is the same defect pointed the other way |
 | A catalyst's age never reached the answer | **closed by `ANALYST-INSTRUCTIONS.md` `2026-10-05-a`** | the first run under it that publishes an object resting on a dated event: its clause read against the record, the search and the candle in its appendix (methodology item 109). The answer of 04.10, 20:44 Tbilisi, printed the XRP amendment's activation on 09.10 and not the publication of that date — its majority on 25.09 at 14:46Z, which the run of 25.09 had found three and a half hours later — and the owner asked on 05.10.2026 to see how fresh a catalyst is, so that he never boards the last car of a move. The publication may be dated by any dated record, because it backs no level; the move is read from `fapi.binance.com`'s klines on the coin's own perpetual and stands behind no level either (§11) |
+| The hunter runs on a model alias | **open — recorded 19.10.2026** | TZ-66, with a stage on the VPS. The run pins `claude-opus-5-5` at `--effort high` in `vps/run.py` (TZ-59) and the sheriff runs on that session's model, but the methodology launches the hunter with the Agent tool's `model` `sonnet`, an alias the installed CLI resolves: the run of 19.10 recorded `claude-sonnet-5` (`analyst/log/2026-10-19.md`), Sonnet 5.5 needs Claude Code 2.1.284 and the VPS read 2.1.282 on 03.10 — so the hunter changes model whenever the CLI on the host changes, and nothing records it. In the CLI the Architect's session runs, the Agent tool's per-call `model` is an alias enum, so the pin belongs in the run's command line, never in the methodology: TZ-66 reads the installed CLI's version and how it defines a named subagent with a full model id, then pins the hunter and the sheriff by full id and logs every id the run used; the methodology names those agents in the edit that follows its merge. The owner's requirement of 19.10.2026 — every run on the same models whatever account he switches to — already holds for the run's own session, whose login is its own credential file (TZ-55), and for its effort |
 
 **Standing decisions.** The universe is closed at 30 and opens only on an owner
 decision — it was 28 from June 2026 to 03.09.2026 (inv. 2, 59) · weights are never tuned ·
