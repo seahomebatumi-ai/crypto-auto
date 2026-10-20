@@ -54,11 +54,13 @@ def atr(bars, k):
     return total / ATR_N
 
 
-def replay(bars):
+def replay(bars, open_now=None):
     """bars: closed daily bars (t_open_ms, open, high, low, close), oldest first, one per UTC day.
     Returns (trades, position): each closed trade as a dict, and the open position after the last bar
     or None. A signal at day k's close fills at day k+1's open; a stop fills at the stop, or at the open
-    when the day opened beyond it; a channel exit at day k's close fills at day k+1's open."""
+    when the day opened beyond it; a channel exit at day k's close fills at day k+1's open. A signal at
+    the last bar's close fills at open_now, the open of the day still forming, and its position carries
+    entry_due; without open_now (the archive) that signal has no fill yet and opens nothing (TZ-68)."""
     trades, pos = [], None
     for k in range(len(bars)):
         t, o, h, l, c = bars[k]
@@ -77,23 +79,22 @@ def replay(bars):
                         pos = None
                         continue          # the exit day's own close cannot also open a trade
                     pos["exit_due"] = True
-        if pos is None and k >= ENTRY_N and k + 1 < len(bars):
+        if pos is None and k >= ENTRY_N and (k + 1 < len(bars) or open_now is not None):
             a = atr(bars, k)
             if a is None or a <= 0:
                 continue
             hi = max(b[2] for b in bars[k - ENTRY_N:k]); lo = min(b[3] for b in bars[k - ENTRY_N:k])
             side = 1 if c > hi else (-1 if c < lo else 0)
             if side:
-                nxt = bars[k + 1]
-                entry = nxt[1]
-                pos = dict(side=side, k_signal=k, k_entry=k + 1, t_entry=nxt[0], entry=entry, atr=a,
-                           stop=entry - side * STOP_ATR * a)
+                t_entry, entry = bars[k + 1][:2] if k + 1 < len(bars) else (t + DAY_MS, open_now)
+                pos = dict(side=side, k_signal=k, k_entry=k + 1, t_entry=t_entry, entry=entry, atr=a,
+                           stop=entry - side * STOP_ATR * a, entry_due=k + 1 == len(bars))
     return trades, pos
 
 
 def levels(bars, pos):
     """What the next close decides, from the last closed bar: the trigger and the stop a new trade would
-    take, or the open position's exit level."""
+    take, or the open position's exit level. A position whose entry is due has no open R yet."""
     k = len(bars) - 1
     t, o, h, l, c = bars[k]
     a = atr(bars, k)
@@ -106,8 +107,8 @@ def levels(bars, pos):
                    entry=pos["entry"], stop=pos["stop"],
                    exit_level=(min(b[3] for b in bars[k - EXIT_N + 1:k + 1]) if side > 0
                                else max(b[2] for b in bars[k - EXIT_N + 1:k + 1])),
-                   r_open=side * (c - pos["entry"]) / abs(pos["entry"] - pos["stop"]),
-                   exit_due=bool(pos.get("exit_due")))
+                   r_open=None if pos.get("entry_due") else side * (c - pos["entry"]) / abs(pos["entry"] - pos["stop"]),
+                   entry_due=bool(pos.get("entry_due")), exit_due=bool(pos.get("exit_due")))
     elif k >= ENTRY_N - 1 and a:
         hi = max(b[2] for b in bars[k - ENTRY_N + 1:k + 1]); lo = min(b[3] for b in bars[k - ENTRY_N + 1:k + 1])
         out.update(long_trigger=hi, short_trigger=lo, long_stop=hi - STOP_ATR * a, short_stop=lo + STOP_ATR * a)
@@ -128,8 +129,14 @@ def _get(url):
 
 
 def live_bars(symbol, now_ms):
+    """The closed daily bars, oldest first, and the open of the day still forming: the fill of a signal at
+    the last close. A read without that day is refused rather than replayed without it (TZ-68)."""
     rows = json.loads(_get(FAPI_KLINES % symbol))
-    return [(int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in rows if int(r[6]) < now_ms]
+    bars = [(int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in rows if int(r[6]) < now_ms]
+    forming = [float(r[1]) for r in rows if int(r[6]) >= now_ms]
+    if not forming:
+        raise ValueError("the read holds no day still forming")
+    return bars, forming[0]
 
 
 def _csv_rows(blob):
@@ -168,7 +175,9 @@ def _ms(t):
 
 
 def archive_series(symbol, start, end, cache):
-    """Daily bars and funding prints of one symbol from the archive, start..end inclusive (UTC dates)."""
+    """Daily bars and funding prints of one symbol from the archive, start..end inclusive (UTC dates). A day
+    missing between two bars -- the exchange's gap, or a month the cache remembers as a 404 from before it
+    was published -- is refused, never replayed over: replay() reads one bar per UTC day (TZ-68)."""
     bars, funding = {}, {}
     m = date(start.year, start.month, 1)
     last_month = date(end.year, end.month, 1)
@@ -190,7 +199,13 @@ def archive_series(symbol, start, end, cache):
         m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
     lo = datetime(start.year, start.month, start.day, tzinfo=timezone.utc).timestamp() * 1000
     hi = datetime(end.year, end.month, end.day, tzinfo=timezone.utc).timestamp() * 1000
-    return ([bars[t] for t in sorted(bars) if lo <= t <= hi], sorted(funding.items()))
+    out = [bars[t] for t in sorted(bars) if lo <= t <= hi]
+    for a, b in zip(out, out[1:]):
+        if b[0] - a[0] != DAY_MS:
+            raise ValueError("%s: the archive has no daily bar between %s and %s" % (
+                symbol, datetime.fromtimestamp(a[0] / 1000, timezone.utc).date(),
+                datetime.fromtimestamp(b[0] / 1000, timezone.utc).date()))
+    return out, sorted(funding.items())
 
 
 def summary(rs):
@@ -258,8 +273,8 @@ def main(argv=None):
         now_ms = int(time.time() * 1000)
         for s in a.symbols:
             try:
-                bars = live_bars(s, now_ms)
-                trades, pos = replay(bars)
+                bars, open_now = live_bars(s, now_ms)
+                trades, pos = replay(bars, open_now)
                 out = dict(symbol=s, **levels(bars, pos)) if len(bars) > ENTRY_N else dict(symbol=s, state="short-history")
             except Exception as exc:          # one symbol's failure never hides the others
                 out = dict(symbol=s, state="unread", error=exc.__class__.__name__)

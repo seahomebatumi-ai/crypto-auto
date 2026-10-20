@@ -24,7 +24,9 @@ import tempfile
 import time
 import tracemalloc
 import types
+import urllib.error
 import urllib.parse
+import zipfile
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1865,26 +1867,74 @@ def section_x(s):
     s.check("in a trade: the state, the entry day, and the exit level of the last 20 days",
             lv["state"] == "long" and lv.get("entry_date") == "1970-03-05" and lv.get("exit_level") == 94.0
             and abs(lv.get("r_open", 1)) < eps)
+    # TZ-68: the morning after a signal's close, the entry is due at the forming day's open -- the very
+    # position the next close records, so the live state and the archive's record are one book.
+    for name, world, n, fill in (("a breakout close on the last bar is due at the forming open", x_world_long(), 61, 105.0),
+                                 ("a stop day's close on the last bar is due too", x_world_short(), 63, 103.0)):
+        due, then = book.replay(world[:n], fill)[1], book.replay(world[:n + 1])[1]
+        s.check(name + ": the position the next close records",
+                due is not None and then is not None and due.get("entry_due") is True and then.get("entry_due") is False
+                and all(due[f] == then[f] for f in ("side", "k_entry", "t_entry", "entry", "stop")))
+    lv = book.levels(x_world_long()[:61], book.replay(x_world_long()[:61], 105.5)[1])
+    s.check("a due entry's state: the forming day, the fill at its open, the stop 105.5 - 2 x 2.2, no open R yet",
+            lv["state"] == "long" and lv.get("entry_due") is True and lv.get("entry_date") == "1970-03-03"
+            and lv.get("entry") == 105.5 and abs(lv.get("stop", 0) - 101.1) < eps and lv.get("r_open", 0) is None)
     saved = book._get
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-x.")
     try:
-        rows = [[k * book.DAY_MS, "1", "2", "0.5", "1.5", "0", (k + 1) * book.DAY_MS - 1] for k in range(3)]
+        rows = [[k * book.DAY_MS, str(k + 1), "9", "0.5", "1.5", "0", (k + 1) * book.DAY_MS - 1] for k in range(3)]
         book._get = lambda url: json.dumps(rows).encode()
-        s.check("live bars drop the day still open", len(book.live_bars("XUSDT", 2 * book.DAY_MS + 5)) == 2)
+        bars, open_now = book.live_bars("XUSDT", 2 * book.DAY_MS + 5)
+        s.check("live bars drop the day still open and keep its open", len(bars) == 2 and open_now == 3.0)
         world = x_world_long()
+
+        def as_rows(bars, fill):
+            closed = [[b[0], str(b[1]), str(b[2]), str(b[3]), str(b[4]), "0", b[0] + book.DAY_MS - 1] for b in bars]
+            forming = [bars[-1][0] + book.DAY_MS, str(fill), str(fill + 1), str(fill - 1), str(fill + 0.25), "0", 10 ** 15]
+            return json.dumps(closed + [forming]).encode()
+
         def fake(url):
             if "BADUSDT" in url:
                 raise OSError("refused")
-            return json.dumps([[b[0], str(b[1]), str(b[2]), str(b[3]), str(b[4]), "0", b[0] + book.DAY_MS - 1]
-                               for b in world]).encode()
+            return as_rows(world[:61], 105.5) if "DUEUSDT" in url else as_rows(world, 122.0)
         book._get = fake
         with contextlib.redirect_stdout(io.StringIO()) as out:
-            code = book.main(["--live", "GOODUSDT", "BADUSDT"])
+            code = book.main(["--live", "GOODUSDT", "BADUSDT", "DUEUSDT"])
         lines = [json.loads(l) for l in out.getvalue().splitlines()]
         s.check("--live prints one object per symbol and survives one symbol's failure",
-                code == 0 and [l["symbol"] for l in lines] == ["GOODUSDT", "BADUSDT"]
+                code == 0 and [l["symbol"] for l in lines] == ["GOODUSDT", "BADUSDT", "DUEUSDT"]
                 and lines[0]["state"] == "flat" and lines[1]["state"] == "unread")
+        s.check("--live names the entry due at the forming day's open, and its stop",
+                len(lines) == 3 and lines[2]["state"] == "long" and lines[2].get("entry_due") is True
+                and lines[2].get("entry") == 105.5 and abs(lines[2].get("stop", 0) - 101.1) < eps)
+        served = {}
+
+        def vision(url):
+            if url in served:
+                return served[url]
+            raise urllib.error.HTTPError(url, 404, "Not Found", None, None)
+
+        def january(skip):
+            t0 = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as z:
+                z.writestr("k.csv", "open_time,open,high,low,close\n" + "".join(
+                    "%d,1,2,0.5,1.5\n" % (t0 + d * book.DAY_MS) for d in range(31) if d != skip))
+            return buf.getvalue()
+        book._get = vision
+        served[book.ARCHIVE + "/monthly/klines/XUSDT/1d/XUSDT-1d-2023-01.zip"] = january(None)
+        served[book.ARCHIVE + "/monthly/klines/YUSDT/1d/YUSDT-1d-2023-01.zip"] = january(14)
+        whole = len(book.archive_series("XUSDT", book.date(2023, 1, 1), book.date(2023, 1, 31), tmp)[0]) == 31
+        try:
+            book.archive_series("YUSDT", book.date(2023, 1, 1), book.date(2023, 1, 31), tmp)
+            refused = ""
+        except ValueError as exc:
+            refused = str(exc)
+        s.check("a day missing from the archive is refused, never replayed over: the symbol and the days around it",
+                whole and refused == "YUSDT: the archive has no daily bar between 2023-01-14 and 2023-01-16")
     finally:
         book._get = saved
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
