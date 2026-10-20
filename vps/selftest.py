@@ -24,13 +24,16 @@ import tempfile
 import time
 import tracemalloc
 import types
+import urllib.error
 import urllib.parse
+import zipfile
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import announce  # noqa: E402
+import book  # noqa: E402
 import bot  # noqa: E402
 import cleanup  # noqa: E402
 import common  # noqa: E402
@@ -507,7 +510,8 @@ import json, os, sys
 with open(os.environ["SELFTEST_O_CLAUDE_SAW"], "w") as fh:
     fh.write(os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "<absent>"))
 with open(os.environ["SELFTEST_O_CLAUDE_SAW"] + "-pins", "w") as fh:
-    json.dump({k: os.environ.get(k) for k in ("ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL")}, fh)
+    json.dump({k: os.environ.get(k) for k in ("ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_SONNET_MODEL",
+                                          "ANTHROPIC_DEFAULT_HAIKU_MODEL")}, fh)
 json.dump({"type": "result", "subtype": "stub_subtype", "is_error": False, "result": os.environ["SELFTEST_O_RESULT"],
            "num_turns": 3, "duration_ms": 1234, "api_error_status": 418, "terminal_reason": "stub_terminal",
            "stop_reason": "stub_stop", "modelUsage": json.loads(os.environ.get("SELFTEST_O_MODELS", "{}")),
@@ -564,6 +568,8 @@ def section_o(s):
     s.check("run.PINS resolves sonnet to claude-sonnet-5",
             run.PINS.get("ANTHROPIC_DEFAULT_SONNET_MODEL") == "claude-sonnet-5")
     s.check("run.PINS resolves opus to run.MODEL", run.PINS.get("ANTHROPIC_DEFAULT_OPUS_MODEL") == run.MODEL)
+    s.check("run.PINS resolves haiku to claude-haiku-4-5-20251001",
+            run.PINS.get("ANTHROPIC_DEFAULT_HAIKU_MODEL") == "claude-haiku-4-5-20251001")
     tmp = tempfile.mkdtemp(prefix="vps-selftest-o.")
     env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", run.LOGIN_ENV,
                 "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW", "SELFTEST_O_RESULT",
@@ -591,6 +597,7 @@ def section_o(s):
                            # TZ-66: a value already in the unit's environment is not the pin.
                            "ANTHROPIC_DEFAULT_OPUS_MODEL": "selftest-decoy-opus",
                            "ANTHROPIC_DEFAULT_SONNET_MODEL": "selftest-decoy-sonnet",
+                           "ANTHROPIC_DEFAULT_HAIKU_MODEL": "selftest-decoy-haiku",
                            "SELFTEST_O_MODELS": json.dumps({"claude-opus-5-5": {}, "claude-sonnet-5": {},
                                                             "claude-haiku-selftest": {}})})
         common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
@@ -1802,11 +1809,139 @@ def section_w_memory(s):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# --- X: the trend book (TZ-67): one replay decides live and over the archive -----------------
+def x_world_long():
+    """60 flat days, a close above the prior 55-day high, a steady trend, a close below the prior 20-day low."""
+    bars = [(k * book.DAY_MS, 100.0, 101.0, 99.0, 100.0) for k in range(60)]
+    bars.append((60 * book.DAY_MS, 100.0, 106.0, 100.0, 105.0))
+    bars.append((61 * book.DAY_MS, 105.0, 107.0, 104.0, 106.0))
+    for k in range(62, 100):
+        c = 106.0 + (k - 61)
+        bars.append((k * book.DAY_MS, c - 1, c + 1, c - 2, c))
+    bars.append((100 * book.DAY_MS, 144.0, 144.5, 120.0, 121.0))
+    for k in range(101, 105):
+        bars.append((k * book.DAY_MS, 122.0, 123.0, 121.0, 122.0))
+    return bars
+
+
+def x_world_short():
+    """60 flat days, a close below the prior 55-day low, a gap through the stop, then a breakout long."""
+    bars = [(k * book.DAY_MS, 100.0, 101.0, 99.0, 100.0) for k in range(60)]
+    bars.append((60 * book.DAY_MS, 100.0, 100.0, 94.0, 95.0))
+    bars.append((61 * book.DAY_MS, 95.0, 96.0, 94.0, 95.0))
+    bars.append((62 * book.DAY_MS, 103.0, 104.0, 102.0, 103.0))
+    bars.append((63 * book.DAY_MS, 103.0, 104.0, 102.0, 103.0))
+    bars.append((64 * book.DAY_MS, 103.0, 104.0, 102.0, 103.0))
+    return bars
+
+
+def section_x(s):
+    eps = 1e-9
+    trades, pos = book.replay(x_world_long())
+    s.check("the long world makes exactly one trade", len(trades) == 1)
+    tr = trades[0] if trades else {}
+    s.check("a close above the prior 55-day high opens a long at the next open",
+            tr.get("side") == 1 and tr.get("k_entry") == 61 and abs(tr.get("entry", 0) - 105.0) < eps)
+    s.check("the stop sits 2 ATR(20) below the entry: 105 - 2 x 2.2", abs(tr.get("stop", 0) - 100.6) < eps)
+    s.check("a close below the prior 20-day low closes it at the next open",
+            tr.get("why") == "channel" and tr.get("k_exit") == 101 and abs(tr.get("exit", 0) - 122.0) < eps)
+    s.check("the book ends flat", pos is None)
+    want = (122.0 / 105.0 - 1 - 2 * book.COST_SIDE) / (4.4 / 105.0)
+    s.check("its R after fees and slippage", bool(trades) and abs(book.result_r(tr, []) - want) < eps)
+    t0, t1 = tr.get("t_entry", 0), tr.get("t_exit", 0)
+    funding = [(t0, 0.5), (t0 + 1, 0.0001), (t1, 0.0002), (t1 + 1, 0.9)]
+    want_f = (122.0 / 105.0 - 1 - 0.0003 - 2 * book.COST_SIDE) / (4.4 / 105.0)
+    s.check("funding counts the prints after the entry and up to the exit, paid by the long",
+            bool(trades) and abs(book.result_r(tr, funding) - want_f) < eps)
+    lv = book.levels(x_world_long(), pos)
+    s.check("flat: the next close's triggers are the last 55 days' extremes",
+            lv["state"] == "flat" and lv.get("long_trigger") == 145.0 and lv.get("short_trigger") == 99.0)
+    trades, pos = book.replay(x_world_short())
+    tr = trades[0] if trades else {}
+    s.check("a short stopped through a gap fills at the open",
+            len(trades) == 1 and tr.get("side") == -1 and tr.get("why") == "stop" and abs(tr.get("exit", 0) - 103.0) < eps)
+    s.check("the stop day's close opens the next trade",
+            pos is not None and pos["side"] == 1 and pos["k_entry"] == 63 and abs(pos["entry"] - 103.0) < eps)
+    s.check("its stop: 103 - 2 x 2.55", pos is not None and abs(pos["stop"] - 97.9) < eps)
+    lv = book.levels(x_world_short(), pos)
+    s.check("in a trade: the state, the entry day, and the exit level of the last 20 days",
+            lv["state"] == "long" and lv.get("entry_date") == "1970-03-05" and lv.get("exit_level") == 94.0
+            and abs(lv.get("r_open", 1)) < eps)
+    # TZ-68: the morning after a signal's close, the entry is due at the forming day's open -- the very
+    # position the next close records, so the live state and the archive's record are one book.
+    for name, world, n, fill in (("a breakout close on the last bar is due at the forming open", x_world_long(), 61, 105.0),
+                                 ("a stop day's close on the last bar is due too", x_world_short(), 63, 103.0)):
+        due, then = book.replay(world[:n], fill)[1], book.replay(world[:n + 1])[1]
+        s.check(name + ": the position the next close records",
+                due is not None and then is not None and due.get("entry_due") is True and then.get("entry_due") is False
+                and all(due[f] == then[f] for f in ("side", "k_entry", "t_entry", "entry", "stop")))
+    lv = book.levels(x_world_long()[:61], book.replay(x_world_long()[:61], 105.5)[1])
+    s.check("a due entry's state: the forming day, the fill at its open, the stop 105.5 - 2 x 2.2, no open R yet",
+            lv["state"] == "long" and lv.get("entry_due") is True and lv.get("entry_date") == "1970-03-03"
+            and lv.get("entry") == 105.5 and abs(lv.get("stop", 0) - 101.1) < eps and lv.get("r_open", 0) is None)
+    saved = book._get
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-x.")
+    try:
+        rows = [[k * book.DAY_MS, str(k + 1), "9", "0.5", "1.5", "0", (k + 1) * book.DAY_MS - 1] for k in range(3)]
+        book._get = lambda url: json.dumps(rows).encode()
+        bars, open_now = book.live_bars("XUSDT", 2 * book.DAY_MS + 5)
+        s.check("live bars drop the day still open and keep its open", len(bars) == 2 and open_now == 3.0)
+        world = x_world_long()
+
+        def as_rows(bars, fill):
+            closed = [[b[0], str(b[1]), str(b[2]), str(b[3]), str(b[4]), "0", b[0] + book.DAY_MS - 1] for b in bars]
+            forming = [bars[-1][0] + book.DAY_MS, str(fill), str(fill + 1), str(fill - 1), str(fill + 0.25), "0", 10 ** 15]
+            return json.dumps(closed + [forming]).encode()
+
+        def fake(url):
+            if "BADUSDT" in url:
+                raise OSError("refused")
+            return as_rows(world[:61], 105.5) if "DUEUSDT" in url else as_rows(world, 122.0)
+        book._get = fake
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = book.main(["--live", "GOODUSDT", "BADUSDT", "DUEUSDT"])
+        lines = [json.loads(l) for l in out.getvalue().splitlines()]
+        s.check("--live prints one object per symbol and survives one symbol's failure",
+                code == 0 and [l["symbol"] for l in lines] == ["GOODUSDT", "BADUSDT", "DUEUSDT"]
+                and lines[0]["state"] == "flat" and lines[1]["state"] == "unread")
+        s.check("--live names the entry due at the forming day's open, and its stop",
+                len(lines) == 3 and lines[2]["state"] == "long" and lines[2].get("entry_due") is True
+                and lines[2].get("entry") == 105.5 and abs(lines[2].get("stop", 0) - 101.1) < eps)
+        served = {}
+
+        def vision(url):
+            if url in served:
+                return served[url]
+            raise urllib.error.HTTPError(url, 404, "Not Found", None, None)
+
+        def january(skip):
+            t0 = int(datetime(2023, 1, 1, tzinfo=timezone.utc).timestamp() * 1000)
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as z:
+                z.writestr("k.csv", "open_time,open,high,low,close\n" + "".join(
+                    "%d,1,2,0.5,1.5\n" % (t0 + d * book.DAY_MS) for d in range(31) if d != skip))
+            return buf.getvalue()
+        book._get = vision
+        served[book.ARCHIVE + "/monthly/klines/XUSDT/1d/XUSDT-1d-2023-01.zip"] = january(None)
+        served[book.ARCHIVE + "/monthly/klines/YUSDT/1d/YUSDT-1d-2023-01.zip"] = january(14)
+        whole = len(book.archive_series("XUSDT", book.date(2023, 1, 1), book.date(2023, 1, 31), tmp)[0]) == 31
+        try:
+            book.archive_series("YUSDT", book.date(2023, 1, 1), book.date(2023, 1, 31), tmp)
+            refused = ""
+        except ValueError as exc:
+            refused = str(exc)
+        s.check("a day missing from the archive is refused, never replayed over: the symbol and the days around it",
+                whole and refused == "YUSDT: the archive has no daily bar between 2023-01-14 and 2023-01-16")
+    finally:
+        book._get = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
-            ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w))
+            ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x))
 
 
 def main():

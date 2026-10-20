@@ -53,7 +53,11 @@ EFFORT = "high"
 # tool's per-call model outranks any agent definition (Claude Code docs, "Subagents", read 19.10.2026), and the
 # methodology names the hunter's as `sonnet`; the sheriff runs on MODEL, the session's own.
 HUNTER_MODEL = "claude-sonnet-5"
-PINS = {"ANTHROPIC_DEFAULT_OPUS_MODEL": MODEL, "ANTHROPIC_DEFAULT_SONNET_MODEL": HUNTER_MODEL}
+# TZ-67: the CLI's own helper model -- the one that reads every fetched page for the hunter -- named by
+# TZ-66's A3 in every run since 09.10.2026 and pinned to that id.
+HELPER_MODEL = "claude-haiku-4-5-20251001"
+PINS = {"ANTHROPIC_DEFAULT_OPUS_MODEL": MODEL, "ANTHROPIC_DEFAULT_SONNET_MODEL": HUNTER_MODEL,
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": HELPER_MODEL}
 CLAUDE = ["claude", "-p", PROMPT,
           "--output-format", "json", "--model", MODEL, "--effort", EFFORT,
           "--allowedTools", "Bash Read Write Edit Glob Grep WebSearch WebFetch",
