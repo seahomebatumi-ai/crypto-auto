@@ -1,12 +1,12 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 30.** Permanent operating contract for the Claude Code Executor. Read this
+**Version 31.** Permanent operating contract for the Claude Code Executor. Read this
 file in full at the start of every task, before reading the TZ. It is not restated
 in TZ files and the Boss never repeats it in chat.
 
-**v30 gives the deploy key a second unit:** the paper-test recorder of map §10's row «Hyperliquid's large
-accounts», a program that runs no model, under its own user, pushing its records to `analyst/paper/**`
-(§2, §7 item 6, §8). No other rule moves.
+**v31 admits a fifth credential on the VPS, the SoSoValue API key** (§7 item 6): read by the ETF lane's unit alone —
+a program that runs no model, as the announcement stream's user — which writes the US spot ETFs' daily net flows to
+a record the analysis run reads (map §10, row «ETF flow figures have no reachable primary lane»). No other rule moves.
 
 Every clause below that did not name a role in v8 governs the
 implementation role and continues to do so unchanged; the analyst role is granted
@@ -434,12 +434,13 @@ TZs and reports.
    of any new field, and the bot's error result stays key-synchronous with its
    success result (inv. 1, 9).
 6. **Never commit secrets.** Credentials live only in GitHub Actions environment
-   variables (inv. 7), **with exactly four exceptions, all on the VPS:** the Telegram bot
+   variables (inv. 7), **with exactly five exceptions, all on the VPS:** the Telegram bot
    token, and the Binance API key created with reading permission only and bound to the VPS's
    address — its key and secret are one credential — both since v24; the repository's deploy
    key, which the VPS's clones pushed with before v24 and which v24's «exactly two» failed to
    name; and, since v25, the analysis run's own Claude login, a long-lived token minted for
-   that run alone. Each value lives in its own file under `/etc/crypto-auto/credentials/`,
+   that run alone; and, since v31, the SoSoValue API key, read only by the ETF lane's unit, which runs no model.
+   Each value lives in its own file under `/etc/crypto-auto/credentials/`,
    outside the repository, mode `0600`, owned by root — the deploy key also stays where root's
    clones read it — and reaches the unit that uses it — for the deploy key two units, the run unit
    and, since v30, the paper-test recorder, a program that runs no model under its own user — as a
