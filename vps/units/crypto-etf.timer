@@ -1,0 +1,10 @@
+[Unit]
+Description=Crypto assistant: hourly ETF flow read
+
+[Timer]
+OnCalendar=*-*-* *:07:00 UTC
+Persistent=true
+Unit=crypto-etf.service
+
+[Install]
+WantedBy=timers.target

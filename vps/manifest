@@ -6,3 +6,4 @@ crypto-run.path
 crypto-announce.service
 crypto-stop.path
 crypto-paper.service
+crypto-etf.timer

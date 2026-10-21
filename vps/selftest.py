@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
-TZ-62 B2, TZ-64 B4, TZ-65 B1): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's,
-TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's and TZ-65's changed and new ones, each printing
+TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's,
+TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's and TZ-69's changed and new ones, each printing
 `section <X>: checks <n> failed <m>`, then the total.
 
     python3 vps/selftest.py
@@ -37,6 +37,7 @@ import book  # noqa: E402
 import bot  # noqa: E402
 import cleanup  # noqa: E402
 import common  # noqa: E402
+import etf  # noqa: E402
 import exchange  # noqa: E402
 import paper  # noqa: E402
 import run  # noqa: E402
@@ -1937,11 +1938,224 @@ def section_x(s):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# --- Y: the ETF lane (TZ-69) against stubbed answers, no network ---------------------------
+Y_KEY = "SOSO-selftest-fake-key-0123456789abcdef"
+Y_LINE = re.compile(r"etf: read=\d+ refused=\d+ written=(yes|no) newest=(\d{4}-\d\d-\d\d|-)")
+
+
+class YAnswer:
+    def __init__(self, status, body):
+        self.status, self.body = status, body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def read(self):
+        return self.body
+
+
+def y_row(date, net, traded="1000.5", assets="2000.25", cum="-300"):
+    row = {"date": date, "totalNetInflow": net, "totalValueTraded": traded, "cumNetInflow": cum}
+    if assets is not None:
+        row["totalNetAssets"] = assets
+    return row
+
+
+def y_opener(answer):
+    """A stub urlopen serving one answer: (status, body), or an exception it raises."""
+    def urlopen(req, timeout=None):
+        if isinstance(answer, BaseException):
+            raise answer
+        return YAnswer(*answer)
+    return urlopen
+
+
+def y_refusal(etf_type, answer):
+    """read_type's refusal for one stubbed answer, or None when it reads."""
+    try:
+        etf.read_type(etf_type, Y_KEY, y_opener(answer))
+    except etf.Refused as exc:
+        return str(exc)
+    return None
+
+
+def y_body(data, code=0):
+    return 200, json.dumps({"code": code, "msg": "success", "data": data}).encode("utf-8")
+
+
+def y_run(tmp, answers, key=Y_KEY, out_name="etf.json"):
+    """etf.main against answers {type: (status, body) or an exception}: (exit, printed, calls, out)."""
+    creds = os.path.join(tmp, "creds")
+    os.makedirs(creds, exist_ok=True)
+    cred = os.path.join(creds, etf.CREDENTIAL)
+    if os.path.exists(cred):
+        os.unlink(cred)
+    if key is not None:
+        with open(cred, "w", encoding="utf-8") as fh:
+            fh.write(key + "\n")
+    calls = []
+
+    def urlopen(req, timeout=None):
+        calls.append((req, timeout))
+        return y_opener(answers[json.loads(req.data.decode("utf-8"))["type"]])(req, timeout)
+
+    out = os.path.join(tmp, out_name)
+    saved = os.environ.get("CREDENTIALS_DIRECTORY")
+    os.environ["CREDENTIALS_DIRECTORY"] = creds
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            code = etf.main(["--out", out], urlopen=urlopen)
+    finally:
+        if saved is None:
+            os.environ.pop("CREDENTIALS_DIRECTORY", None)
+        else:
+            os.environ["CREDENTIALS_DIRECTORY"] = saved
+    return code, buf.getvalue(), calls, out
+
+
+def unit_lines(name):
+    with open(os.path.join(HERE, "units", name), encoding="utf-8") as fh:
+        return [line.rstrip("\n") for line in fh]
+
+
+def section_y(s):
+    btc, eth, sol = etf.TYPES
+    s.check("TYPES are us-btc-spot, us-eth-spot, us-sol-spot", etf.TYPES == ("us-btc-spot", "us-eth-spot", "us-sol-spot"))
+    rows = [y_row("2026-10-20", "125.5"), y_row("2026-10-17", "-40"), y_row("2026-10-16", "7")]
+    first = etf.entry({"code": 0, "data": rows})
+    last = etf.entry({"code": 0, "data": list(reversed(rows))})
+    s.check("newest row from a newest-first list: 2026-10-20, net 125.5",
+            first["date"] == "2026-10-20" and first["net"] == 125.5)
+    s.check("newest row from an oldest-first list: 2026-10-20, net 125.5",
+            last["date"] == "2026-10-20" and last["net"] == 125.5)
+    skipped = etf.entry({"code": 0, "data": [y_row("2026-10-16", "7"), y_row("2026-10-21", None),
+                                             y_row("2026-10-22", "NaN"), y_row("2026/10/23", "1"),
+                                             y_row("2026-10-18", 3)]})
+    s.check("a later date whose net is absent, NaN or whose date is not YYYY-MM-DD is passed over",
+            skipped["date"] == "2026-10-18" and skipped["net"] == 3.0 and skipped["rows"] == 5)
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-y.")
+    try:
+        # Each refusal of the closed vocabulary from its own stubbed answer; none read.
+        code, printed, calls, out = y_run(tmp, {
+            btc: urllib.error.HTTPError(etf.URL, 503, "unavailable", {}, None),
+            eth: TimeoutError("timed out"),
+            sol: (200, b"<html>challenge</html>")})
+        s.check("none read: exit 4", code == 4)
+        s.check("none read: nothing written", not os.path.exists(out))
+        s.check("none read: the line reads read=0 refused=3 written=no newest=-",
+                printed == "etf: read=0 refused=3 written=no newest=-\n")
+        s.check("an HTTP error is refused as HTTP 503",
+                y_refusal(btc, urllib.error.HTTPError(etf.URL, 503, "unavailable", {}, None)) == "HTTP 503")
+        s.check("a transport failure is refused as transport TimeoutError",
+                y_refusal(eth, TimeoutError("timed out")) == "transport TimeoutError")
+        s.check("a body that does not parse is refused as unparseable",
+                y_refusal(sol, (200, b"<html>challenge</html>")) == "unparseable")
+        standing = os.path.join(tmp, "standing.json")
+        with open(standing, "w", encoding="utf-8") as fh:
+            fh.write('{"v":1,"ts":"2026-10-20T10:07:00Z"}\n')
+        code, printed, calls, out = y_run(tmp, {btc: y_body(rows, code=40001), eth: y_body([]),
+                                                sol: (200, json.dumps({"code": 0, "data": {"x": 1}}).encode())},
+                                          out_name="standing.json")
+        with open(standing, encoding="utf-8") as fh:
+            kept = fh.read()
+        s.check("none read over a standing record: exit 4 and the record left as it stood",
+                code == 4 and kept == '{"v":1,"ts":"2026-10-20T10:07:00Z"}\n')
+        s.check("a code other than 0 is refused as code 40001", y_refusal(btc, y_body(rows, code=40001)) == "code 40001")
+        s.check("an empty data list is refused as no row", y_refusal(eth, y_body([])) == "no row")
+        s.check("data that is not a list is refused as unparseable",
+                y_refusal(sol, (200, b'{"code":0,"data":{}}')) == "unparseable")
+        s.check("a status other than 200 is refused as HTTP 204", y_refusal(btc, (204, b"")) == "HTTP 204")
+        # One type read and two refused.
+        code, printed, calls, out = y_run(tmp, {
+            btc: y_body([y_row("2026-10-17", "-40"), y_row("2026-10-20", "125.5", assets=None), y_row("2026-10-16", 7)]),
+            eth: urllib.error.HTTPError(etf.URL, 429, "too many", {}, None),
+            sol: y_body([y_row("2026-10-20", "NaN"), y_row("2026-10-19", None)])})
+        with open(out, encoding="utf-8") as fh:
+            text = fh.read()
+        record = json.loads(text)
+        s.check("one read, two refused: exit 0", code == 0)
+        s.check("the line reads read=1 refused=2 written=yes newest=2026-10-20",
+                printed == "etf: read=1 refused=2 written=yes newest=2026-10-20\n")
+        s.check("the printed line is exactly one line of the fixed shape",
+                printed.count("\n") == 1 and Y_LINE.fullmatch(printed.rstrip("\n")) is not None)
+        s.check("record keys v k ts provider host types refused, in order",
+                list(record) == ["v", "k", "ts", "provider", "host", "types", "refused"])
+        s.check("record v 1, k etf, provider SoSoValue, host openapi.sosovalue.com",
+                (record["v"], record["k"], record["provider"], record["host"])
+                == (1, "etf", "SoSoValue", "openapi.sosovalue.com"))
+        s.check("record ts is ISO-8601 Z", re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", record["ts"]) is not None)
+        s.check("types holds the one type read, refused the two others",
+                list(record["types"]) == [btc] and record["refused"] == {eth: "HTTP 429", sol: "no row"})
+        s.check("the type's entry: date, net, traded, assets, cum, rows cast, an absent field null",
+                record["types"][btc] == {"date": "2026-10-20", "net": 125.5, "traded": 1000.5, "assets": None,
+                                         "cum": -300.0, "rows": 3})
+        s.check("the record's mode is 0640", os.stat(out).st_mode & 0o7777 == 0o640)
+        s.check("three requests, one per type, in TYPES order",
+                [json.loads(req.data.decode("utf-8")) for req, _ in calls] == [{"type": t} for t in etf.TYPES])
+        s.check("each request is a POST to the historicalInflowChart URL with timeout 40",
+                len(calls) == 3 and all(req.get_method() == "POST" and req.full_url == etf.URL
+                    == "https://openapi.sosovalue.com/openapi/v2/etf/historicalInflowChart" and timeout == 40
+                    for req, timeout in calls))
+        s.check("the key travels in the x-soso-api-key header, with Content-Type application/json",
+                len(calls) == 3 and all(req.get_header("X-soso-api-key") == Y_KEY
+                    and req.get_header("Content-type") == "application/json" for req, _ in calls))
+        s.check("the key is in no URL and no body",
+                len(calls) == 3 and all(Y_KEY not in req.full_url and Y_KEY.encode() not in req.data
+                                        for req, _ in calls))
+        s.check("the key is absent from the printed line", Y_KEY not in printed and "<redacted>" not in printed)
+        s.check("the key is absent from the record", Y_KEY not in text)
+        # The key absent or empty: exit 3, no request made, nothing written.
+        for label, key in (("absent", None), ("empty", " \n")):
+            code, printed, calls, out = y_run(tmp, {}, key=key, out_name="nokey.json")
+            s.check("key %s: exit 3, no request made, nothing written" % label,
+                    code == 3 and calls == [] and not os.path.exists(out))
+        saved = os.environ.pop("CREDENTIALS_DIRECTORY", None)
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = etf.main(["--out", os.path.join(tmp, "nodir.json")],
+                                urlopen=lambda *a, **k: calls.append(a))
+        finally:
+            if saved is not None:
+                os.environ["CREDENTIALS_DIRECTORY"] = saved
+        s.check("no CREDENTIALS_DIRECTORY: exit 3, no request made",
+                code == 3 and calls == [] and not os.path.exists(os.path.join(tmp, "nodir.json")))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    s.check("the default record is /var/lib/crypto-auto/etf.json", etf.OUT == "/var/lib/crypto-auto/etf.json")
+    # The units and the manifest.
+    service, timer = unit_lines("crypto-etf.service"), unit_lines("crypto-etf.timer")
+    s.check("service runs as User=cryptoauto, Group=cryptoauto",
+            service.count("User=cryptoauto") == 1 and service.count("Group=cryptoauto") == 1
+            and len([x for x in service if x.startswith(("User=", "Group="))]) == 2)
+    s.check("service carries exactly one LoadCredential=, the SoSoValue key's",
+            [x for x in service if x.startswith("LoadCredential")]
+            == ["LoadCredential=sosovalue-api-key:/etc/crypto-auto/credentials/sosovalue-api-key"])
+    s.check("service is Type=oneshot",
+            [x for x in service if x.startswith("Type=")] == ["Type=oneshot"])
+    s.check("service has no [Install] section", "[Install]" not in service)
+    s.check("service runs /usr/bin/python3 /srv/crypto-auto/vps/etf.py",
+            [x for x in service if x.startswith("ExecStart")] == ["ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/etf.py"])
+    s.check("timer fires at OnCalendar=*-*-* *:07:00 UTC, Persistent=true",
+            [x for x in timer if x.startswith("OnCalendar")] == ["OnCalendar=*-*-* *:07:00 UTC"]
+            and "Persistent=true" in timer)
+    s.check("timer's unit is crypto-etf.service", [x for x in timer if x.startswith("Unit=")] == ["Unit=crypto-etf.service"])
+    s.check("timer has [Install] WantedBy=timers.target", "[Install]" in timer and "WantedBy=timers.target" in timer)
+    with open(os.path.join(HERE, "manifest"), encoding="utf-8") as fh:
+        listed = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+    s.check("the manifest lists crypto-etf.timer once", listed.count("crypto-etf.timer") == 1)
+    s.check("the manifest does not list crypto-etf.service", "crypto-etf.service" not in listed)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
-            ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x))
+            ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x),
+            ("Y", section_y))
 
 
 def main():
