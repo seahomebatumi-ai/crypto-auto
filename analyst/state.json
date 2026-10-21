@@ -1,46 +1,16 @@
 {
  "v": 2,
  "k": "state",
- "d": "2026-10-19",
- "ts": "2026-10-19T14:07:55Z",
+ "d": "2026-10-21",
+ "ts": "2026-10-21T12:23:07Z",
  "horizon": [
-  {
-   "id": "cat-cme-bch-uni-futures-2026-10-19",
-   "sym": null,
-   "e": "CME Group: фьючерсы на BCH и UNI, запуск 19.10 при одобрении регулятора (объявлено 22.09); касается BCH и UNI",
-   "d": "2026-10-19",
-   "dclass": "reported",
-   "src": "finance.yahoo.com + 247wallst.com + cryptotimes.io (пресс-релиз CME не прочитан); cmegroup.com press release 2026/9/22 — curl HTTP/2 INTERNAL_ERROR 30.09 · повторное чтение 19.10: cmegroup.com снова HTTP/2 INTERNAL_ERROR; дата 19.10 подтверждена cryptometer.io, decrypt.co, cryptobriefing.com, dailycoin.com независимо",
-   "cls": "A",
-   "t": null
-  },
-  {
-   "id": "cat-sec-regcrypto-2026-10-20",
-   "sym": null,
-   "e": "SEC S7-2026-27 «Regulation Crypto Assets»: дедлайн комментариев",
-   "d": "2026-10-20",
-   "dclass": "primary",
-   "src": "federalregister.gov/api/v1/documents/2026-17183.json · повторное чтение 19.10: comments_close_on 2026-10-20 без изменений",
-   "cls": "S",
-   "t": null
-  },
-  {
-   "id": "cat-zec-nu7-decision-2026-10-20",
-   "sym": "ZEC",
-   "e": "ZEC NU7: финальное решение по мейннету",
-   "d": "2026-10-20",
-   "dclass": "primary",
-   "src": "forum.zcashcommunity.com/t/57655.json · повторное чтение 19.10: тред подтверждает NU7 proceeding (решено 17.09) и activation 05.11; отдельного поста о решении именно 20.10 в этом чтении не найдено",
-   "cls": "A",
-   "t": null
-  },
   {
    "id": "cat-uni-upbit-2026-10-22",
    "sym": "UNI",
    "e": "Upbit: листинг UNI (UNI/KRW, UNI/USDT) 22.10 07:00 UTC",
    "d": "2026-10-22",
    "dclass": "none",
-   "src": "coinmarketcap.com/cmc-ai (агрегатор); объявление Upbit не прочитано — повторное чтение 15.10: Upbit notice 403; источник (coinmarketcap community) и статья coinspeaker, на которую ссылается цепочка, датированы 22.10.2024 (не 2026) — вероятно, повтор старой новости; дата остаётся dclass none · повторное чтение 19.10: тот же паттерн переработанной новости (похоже на статью о старом листинге), dclass остаётся none",
+   "src": "coinmarketcap.com/cmc-ai (агрегатор); объявление Upbit не прочитано — повторное чтение 15.10: Upbit notice 403; источник (coinmarketcap community) и статья coinspeaker, на которую ссылается цепочка, датированы 22.10.2024 (не 2026) — вероятно, повтор старой новости; дата остаётся dclass none · повторное чтение 19.10: тот же паттерн переработанной новости (похоже на статью о старом листинге), dclass остаётся none · повторное чтение 21.10: Upbit notice.upbit.com 403 (не прочитано); тот же рециклированный паттерн статьи (coinspeaker/coinmarketcap датируют всплеск UNI «22 октября», но первичный источник не найден); dclass остаётся none",
    "cls": "A",
    "t": null
   },
@@ -50,7 +20,9 @@
    "e": "SEC: срок решения по Grayscale Cardano ETF (GADA) 23.10",
    "d": "2026-10-23",
    "dclass": "none",
-   "src": "mudrex.com / memeburn.com (агрегаторы) · повторное чтение 19.10: дедлайн относится к SEC-окну 75 дней после CME ADA-фьючерсов (09.08), общему для нескольких заявителей (Bitwise, Canary, VanEck, 21Shares); Grayscale отозвала свою заявку 07.08. Первичный источник (SEC/CBOE) не прочитан, dclass остаётся none"
+   "src": "mudrex.com / memeburn.com (агрегаторы) · повторное чтение 19.10: дедлайн относится к SEC-окну 75 дней после CME ADA-фьючерсов (09.08), общему для нескольких заявителей (Bitwise, Canary, VanEck, 21Shares); Grayscale отозвала свою заявку 07.08. Первичный источник (SEC/CBOE) не прочитан, dclass остаётся none · повторное чтение 21.10: подтверждено независимо (боерсе-экспресс, coingabbar) окно 75 дней после седирования CME-фьючерсов ADA (09.08) истекает 23.10; первичный SEC/Cboe источник не прочитан (public-inspection PDF не парсится этим клиентом); dclass остаётся none",
+   "cls": "A",
+   "t": null
   },
   {
    "id": "unlock-gram-2026-10-23",
@@ -58,7 +30,7 @@
    "e": "Разлок GRAM 36 583 333 (TON Believers Fund) 23.10 05:48Z — 1.19%",
    "d": "2026-10-23",
    "dclass": "reported",
-   "src": "defillama-datasets.llama.fi/emissionsIndex · the-open-network (повторное чтение 10.10: 1.19%, без изменений) · повторное чтение 19.10: без изменений",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · the-open-network (повторное чтение 10.10: 1.19%, без изменений) · повторное чтение 19.10: без изменений · повторное чтение 21.10: 1.19%, без изменений",
    "cls": "A",
    "t": "05:48"
   },
@@ -68,7 +40,7 @@
    "e": "Разлок AVAX 1 667 000 (Foundation) 24.10 20:20Z — 0.38%",
    "d": "2026-10-24",
    "dclass": "reported",
-   "src": "defillama-datasets.llama.fi/emissionsIndex · avalanche-2 (повторное чтение 10.10: 0.38%, без изменений) · повторное чтение 19.10: без изменений",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · avalanche-2 (повторное чтение 10.10: 0.38%, без изменений) · повторное чтение 19.10: без изменений · повторное чтение 21.10: 0.38%, без изменений",
    "cls": "A",
    "t": "20:20"
   },
@@ -78,7 +50,8 @@
    "e": "Заседание ФРС 27-28.10.2026",
    "d": "2026-10-27",
    "dclass": "primary",
-   "src": "federalreserve.gov/monetarypolicy/fomccalendars.htm"
+   "src": "federalreserve.gov/monetarypolicy/fomccalendars.htm · повторное чтение 21.10: federalreserve.gov/monetarypolicy/fomccalendars.htm подтверждает 27-28.10.2026, без изменений",
+   "cls": "B"
   },
   {
    "id": "cat-tia-unlock-2026-10-30",
@@ -102,7 +75,7 @@
    "e": "Разлок SUI 2 069 367 (Mysten Labs Treasury) 31.10 02:31Z — 0.05%",
    "d": "2026-10-31",
    "dclass": "reported",
-   "src": "defillama-datasets.llama.fi/emissionsIndex · sui (повторное чтение 10.10: 0.05%, без изменений) · повторное чтение 19.10: без изменений",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · sui (повторное чтение 10.10: 0.05%, без изменений) · повторное чтение 19.10: без изменений · повторное чтение 21.10: 0.05%, без изменений",
    "cls": "A",
    "t": "02:31"
   },
@@ -128,7 +101,7 @@
    "e": "Разлок MORPHO 1 000 000 (Market Makers) 20.11 11:37Z — 0.15%",
    "d": "2026-11-20",
    "dclass": "reported",
-   "src": "defillama-datasets.llama.fi/emissionsIndex · morpho (повторное чтение 10.10: 0.15%, без изменений) · повторное чтение 19.10: без изменений",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · morpho (повторное чтение 10.10: 0.15%, без изменений) · повторное чтение 19.10: без изменений · повторное чтение 21.10: 0.15%, без изменений",
    "cls": "A",
    "t": "11:37"
   },
@@ -162,7 +135,7 @@
    "e": "Разлок ARB 92 645 833 (Team, Contributors & Advisors; Investors) 15.11 00:29Z — 1.31% обращающегося предложения",
    "d": "2026-11-15",
    "dclass": "reported",
-   "src": "defillama-datasets.llama.fi/emissionsIndex · arbitrum (прочитано 15.10: предыдущий разлок 15.10 14:00Z уже состоялся до freeze, следующий 15.11) (повторное чтение 19.10: 1.30% — circSupply сдвинулся незначительно, без материальных изменений)",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · arbitrum (прочитано 15.10: предыдущий разлок 15.10 14:00Z уже состоялся до freeze, следующий 15.11) (повторное чтение 19.10: 1.30%; повторное чтение 21.10: 1.2973% ≈ 1.30%, без материальных изменений)",
    "cls": "A",
    "t": "00:29"
   },
@@ -172,7 +145,7 @@
    "e": "Разлок WAL 32 708 333 (Community Reserve, Mysten Labs, Subsidies) 26.10 07:11Z — 1.27% (книга, long-lane)",
    "d": "2026-10-26",
    "dclass": "reported",
-   "src": "defillama-datasets.llama.fi/emissionsIndex · walrus-2 (прочитано 15.10) (повторное чтение 19.10: 1.27%, без изменений)",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · walrus-2 (прочитано 15.10) (повторное чтение 19.10: 1.27%, без изменений) · повторное чтение 21.10 (через уже прочитанный emissionsIndex, книга этого прогона пуста — WAL не входит в текущий лонг/шорт-лейн): 1.27%, без изменений",
    "cls": "A",
    "t": "07:11"
   },
@@ -182,19 +155,9 @@
    "e": "Разлок STRK 226 356 431 (Community Rebates, Donations, Early Contributors, Foundation, Grants, Investors, Starkware) 13.11 23:29Z — 3.17% (книга, long-lane)",
    "d": "2026-11-13",
    "dclass": "reported",
-   "src": "defillama-datasets.llama.fi/emissionsIndex · starknet (прочитано 15.10)",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · starknet (прочитано 15.10) · повторное чтение 21.10 (через уже прочитанный emissionsIndex): 3.17%, без изменений",
    "cls": "A",
    "t": "23:29"
-  },
-  {
-   "id": "exch-epic-delist-2026-10-20",
-   "sym": "EPIC",
-   "e": "Binance: делистинг/delivery перпетуала EPICUSDT 20.10 09:00 UTC (спот EPIC+QUICK делистится 28.10 03:00 UTC)",
-   "d": "2026-10-20",
-   "dclass": "primary",
-   "src": "fapi.binance.com/fapi/v1/exchangeInfo (deliveryDate) · announcements.jsonl publishDate 1791957608049",
-   "cls": "A",
-   "t": "09:00"
   },
   {
    "id": "unlock-alt-2026-10-26",
@@ -202,7 +165,7 @@
    "e": "Разлок ALT 240 096 667 (Advisors, Ecosystem & Community, Investors, Protocol Development, Team, Treasury) 26.10 09:58Z — 3.27% (книга, long-lane)",
    "d": "2026-10-26",
    "dclass": "reported",
-   "src": "defillama-datasets.llama.fi/emissionsIndex · altlayer",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · altlayer · повторное чтение 21.10 (через уже прочитанный emissionsIndex): 3.27%, без изменений",
    "cls": "A",
    "t": "09:58"
   },
@@ -212,7 +175,7 @@
    "e": "Разлок SOLV 186 577 427 (Business Development, Community Rewards, Ecosystem Incentives, Private Sale, Team) 17.11 14:39Z — 3.26% (книга, long-lane)",
    "d": "2026-11-17",
    "dclass": "reported",
-   "src": "defillama-datasets.llama.fi/emissionsIndex · solv-protocol",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · solv-protocol · повторное чтение 21.10 (через уже прочитанный emissionsIndex): 3.26%, без изменений",
    "cls": "A",
    "t": "14:39"
   },
@@ -222,145 +185,157 @@
    "e": "SEC: предполагаемый срок решения по спотовым XRP ETF (WisdomTree и др.) ~24.10",
    "d": "2026-10-24",
    "dclass": "none",
-   "src": "decrypt.co / etf.com (агрегаторы); SEC.gov/Cboe BZX подача не прочитана; Grayscale GXRP уже торгуется с 24.11.2025 — заголовок про 18.10 оказался вторичным/вводящим в заблуждение"
+   "src": "decrypt.co / etf.com (агрегаторы); SEC.gov/Cboe BZX подача не прочитана; Grayscale GXRP уже торгуется с 24.11.2025 — заголовок про 18.10 оказался вторичным/вводящим в заблуждение · повторное чтение 21.10: SEC order 34-103771 (sec.gov/files/rules/sro/cboebzx/2025/34-103771.pdf) не парсится этим клиентом (бинарный/сжатый PDF); federalregister.gov не проверен повторно в этом прогоне; дата 24.10 подтверждена только агрегаторами (mexc, thedefiant via search); dclass остаётся none",
+   "cls": "A",
+   "t": null
+  },
+  {
+   "id": "unlock-ondo-2027-01-17",
+   "sym": "ONDO",
+   "e": "Разлок ONDO 1 710 101 379.64 (Ecosystem Growth, Protocol Development, Private Sales) 17.01.2027 17:25Z — 35.12% обращающегося предложения",
+   "d": "2027-01-17",
+   "dclass": "reported",
+   "src": "defillama-datasets.llama.fi/emissionsIndex · ondo-finance (прочитано 21.10.2026; выше UNLOCK_MATERIAL в разы; за пределами 7-дневного окна удержания, внутри 90-дневного горизонта — ранее не было записи горизонта несмотря на материальность; добавлено этим прогоном, пробел назван в appendix)",
+   "cls": "A",
+   "t": "17:25"
   }
  ],
  "oi": {
   "BTC": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 94726.282
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 97116.796
   },
   "SUI": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 111330967.3
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 107179288.2
   },
   "ONDO": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 122821187.7
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 121898841.1
   },
   "LINK": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 8282954.05
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 8271404.57
   },
   "RENDER": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 7509648.8
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 6892210.4
   },
   "NEAR": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 52819066.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 57109829.0
   },
   "YFI": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 990.426
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 1010.942
   },
   "AAVE": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 386169.2
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 376939.4
   },
   "AVAX": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 9870816.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 10116278.0
   },
   "FET": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 139921999.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 148364322.0
   },
   "ENA": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 527261090.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 530544932.0
   },
   "TAO": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 241314.572
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 243818.215
   },
   "GRAM": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 17573244.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 18172175.6
   },
   "XRP": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 316425511.2
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 323178456.2
   },
   "ADA": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 335551029.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 338046192.0
   },
   "TRX": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 251062831.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 252565913.0
   },
   "SOL": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 8849004.83
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 8519392.22
   },
   "BCH": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 288512.157
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 285194.347
   },
   "HYPE": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 5117015.44
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 4480594.84
   },
   "SKY": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 246871245.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 241943655.0
   },
   "ETH": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 2287651.913
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 2324657.753
   },
   "HBAR": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 438606831.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 455771805.0
   },
   "XLM": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 202584347.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 216431344.0
   },
   "ALGO": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 83483849.5
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 81314688.4
   },
   "BNB": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 555243.12
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 557022.04
   },
   "ZEC": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 455652.148
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 480581.875
   },
   "UNI": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 22877369.0
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 23062829.0
   },
   "XMR": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 93041.046
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 101258.48
   },
   "LIT": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 15401162.3
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 14428047.1
   },
   "MORPHO": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 6148821.3
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 6456633.2
   },
   "ARB": {
-   "ts": "2026-10-19T14:07:55Z",
-   "oi": 268728739.6
+   "ts": "2026-10-21T12:23:07Z",
+   "oi": 291584833.5
   }
  },
  "sweeps": {
   "horizon": {
    "outside-list": {
-    "d": "2026-10-19",
+    "d": "2026-10-21",
     "sec6_md5": "d924d29faa3a2c7c0b5519d8e1f5fc45",
     "host": "/var/lib/crypto-auto/announcements.jsonl",
-    "n": 64,
-    "from": "2026-10-05",
-    "ts": "2026-10-19T14:10:00Z",
-    "note": "64 строки; whole-word скан по всем символам списка и книги нашёл: EPIC (делистинг, см. horizon), остальные совпадения (BTC/BNB/ETH/NEAR/SUI) — промо/турнирные объявления, не листинг/делистинг."
+    "n": 81,
+    "from": "2026-10-05T02:00:01.573Z",
+    "ts": "2026-10-21T12:30:00Z",
+    "note": "81 строки; whole-word скан по всем 31 символам списка нашёл промо/турнирные/новые-листинговые (не наши символы) совпадения на BTC BNB SOL ETH NEAR SUI ZEC XRP ENA и три Delisting-строки (Binance Alpha 09.10 — не наши; EPIC/QUICK 28.10 — не книга этого прогона; WAL/BNB-пара 23.10 — BNB как котируемый актив, не делистинг BNB). Книга этого прогона пуста — EPIC не относится к этому прогону."
    },
    "macro-cb": {
     "d": "2026-10-15",
@@ -410,17 +385,19 @@
     "note": "форум: ничего датированного о накоплении крупными держателями; позиционирование: dL(now)=-0.207 ниже q75=0.169, large_class=None (не 'large long' на этой неделе); crowd/funding не в крайних квартилях. Вектор остаётся открытым — утверждение о держателях он-чейн, которых биржа не видит"
    },
    "capital-tvl": {
-    "d": "2026-10-15",
+    "d": "2026-10-21",
     "sec6_md5": "d924d29faa3a2c7c0b5519d8e1f5fc45",
-    "host": "api.llama.fi (v2/chains 200, 58696 bytes)"
+    "host": "api.llama.fi (v2/chains 200, 58039 bytes; historicalChainTvl per-chain for Sui/Near/Avalanche/Arbitrum/Solana/Tron/Hedera/Stellar/Algorand/Cardano)",
+    "n": 10,
+    "from": null
    },
    "exchange-info": {
-    "d": "2026-10-19",
+    "d": "2026-10-21",
     "sec6_md5": "d924d29faa3a2c7c0b5519d8e1f5fc45",
     "host": "fapi.binance.com/fapi/v1/exchangeInfo",
-    "n": 927,
-    "ts": "2026-10-19T14:12:00Z",
-    "note": "все 31 символа списка и 9 строк книги TRADING; EPICUSDT deliveryDate 2026-10-20T09:00:00Z внутри окна (см. horizon exch-epic-delist); остальные deliveryDate=2100-12-25 плейсхолдер"
+    "n": 931,
+    "ts": "2026-10-21T12:32:00Z",
+    "note": "все 31 символ списка TRADING, deliveryDate плейсхолдер 2100-12-25 у всех. Книга этого прогона пуста — нет строк книги для проверки."
    }
   },
   "coins": {
@@ -916,28 +893,28 @@
     "status": "not covered"
    },
    "SUI": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "next",
-    "ud": "2026-10-31T02:31:30Z",
+    "ud": "2026-10-31T02:31:30+00:00",
     "n": 2069367,
-    "to": "Mysten Labs Treasury",
-    "rel": 4134866817.53,
+    "to": "[{'recipient': 'Mysten Labs Treasury', 'category': 'noncirculating', 'unlockType': 'cliff', 'amount': 2069367}]",
+    "rel": 4134866817.52956,
     "pct": 0.05
    },
    "LINK": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "NEAR": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "AAVE": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "XRP": {
@@ -951,13 +928,13 @@
     "status": "not covered"
    },
    "YFI": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "TAO": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "FET": {
@@ -966,38 +943,38 @@
     "status": "not covered"
    },
    "ENA": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "GRAM": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "next",
-    "ud": "2026-10-23T05:48:36Z",
-    "n": 36583333,
-    "to": "TON Believers Fund",
-    "rel": 3070887066.67,
+    "ud": "2026-10-23T05:48:36+00:00",
+    "n": 36583333.333333336,
+    "to": "[{'recipient': 'TON Believers Fund', 'category': 'farming', 'unlockType': 'cliff', 'amount': 36583333.333333336}]",
+    "rel": 3070887066.666671,
     "pct": 1.19
    },
    "AVAX": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "next",
-    "ud": "2026-10-24T20:20:39Z",
+    "ud": "2026-10-24T20:20:39+00:00",
     "n": 1667000,
-    "to": "Foundation",
-    "rel": 442982454.89,
+    "to": "[{'recipient': 'Foundation', 'category': 'insiders', 'unlockType': 'cliff', 'amount': 1667000}]",
+    "rel": 443274482.216758,
     "pct": 0.38
    },
    "ONDO": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "next",
-    "ud": "2027-01-17T17:25:48Z",
-    "n": 1710101380,
-    "to": "Ecosystem Growth,Private Sales,Protocol Development",
-    "rel": 4869737207.0,
+    "ud": "2027-01-17T17:25:48+00:00",
+    "n": 1710101379.6399999,
+    "to": "[{'recipient': 'Ecosystem Growth', 'category': 'noncirculating', 'unlockType': 'cliff', 'amount': 792052170.8399999}, {'recipient': 'Protocol Development', 'category': 'insiders', 'unlockType': 'cliff', 'amount': 660000000}, {'recipient': 'Private Sales', 'category': 'privateSale', 'unlockType': 'cliff', 'amount': 258049208.8}]",
+    "rel": 4869737207.003683,
     "pct": 35.12
    },
    "RENDER": {
@@ -1006,13 +983,13 @@
     "status": "not covered"
    },
    "TRX": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "SOL": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "BCH": {
@@ -1021,18 +998,18 @@
     "status": "not covered"
    },
    "HYPE": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "SKY": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "HBAR": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "XLM": {
@@ -1046,8 +1023,8 @@
     "status": "not covered"
    },
    "BNB": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "ZEC": {
@@ -1061,33 +1038,33 @@
     "status": "not covered"
    },
    "UNI": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "LIT": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "MORPHO": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "next",
-    "ud": "2026-11-20T11:37:32Z",
+    "ud": "2026-11-20T11:37:32+00:00",
     "n": 1000000,
-    "to": "Market Makers",
-    "rel": 657390866.47,
+    "to": "[{'recipient': 'Market Makers', 'category': 'liquidity', 'unlockType': 'cliff', 'amount': 1000000}]",
+    "rel": 657971358.6213934,
     "pct": 0.15
    },
    "ARB": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "next",
-    "ud": "2026-11-15T00:29:36Z",
-    "n": 92645833,
-    "to": "Investors,Team, Contributors & Advisors",
-    "rel": 7140313442.3,
+    "ud": "2026-11-15T00:29:36+00:00",
+    "n": 92645833.33333334,
+    "to": "[{'recipient': 'Team, Contributors & Advisors', 'category': 'insiders', 'unlockType': 'cliff', 'amount': 56125000}, {'recipient': 'Investors', 'category': 'privateSale', 'unlockType': 'cliff', 'amount': 36520833.333333336}]",
+    "rel": 7141340136.341879,
     "pct": 1.3
    },
    "W": {
@@ -1159,8 +1136,8 @@
     "note": "gecko_id audiera не несёт unlockEvents; short-lane — разлок не закрывает сторону, поиск не требуется"
    },
    "BTC": {
-    "d": "2026-10-19",
-    "host": "defillama-datasets.llama.fi/emissionsIndex",
+    "d": "2026-10-21",
+    "host": "defillama-datasets.llama.fi",
     "status": "no cliff"
    },
    "CRWV": {
@@ -1214,192 +1191,192 @@
   },
   "discovery": {
    "HYPE": {
-    "d": "2026-10-19",
-    "q": "Hyperliquid HYPE crypto news unlock upgrade listing governance next 7 days October 2026",
+    "d": "2026-10-21",
+    "q": "Hyperliquid HYPE crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "SKY": {
-    "d": "2026-10-19",
-    "q": "Sky SKY protocol crypto news governance vote emission October 2026",
+    "d": "2026-10-21",
+    "q": "Sky SKY crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "SUI": {
-    "d": "2026-10-19",
-    "q": "Sui SUI crypto news unlock upgrade governance listing October 2026",
+    "d": "2026-10-21",
+    "q": "Sui SUI crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "ONDO": {
-    "d": "2026-10-19",
-    "q": "Ondo Finance ONDO crypto news tokenomics unlock ETF October 2026",
+    "d": "2026-10-21",
+    "q": "Ondo Finance ONDO crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "LINK": {
-    "d": "2026-10-19",
-    "q": "Chainlink LINK crypto news integration upgrade October 2026",
+    "d": "2026-10-21",
+    "q": "Chainlink LINK crypto news upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "RENDER": {
-    "d": "2026-10-19",
-    "q": "Render Network RENDER crypto news upgrade integration October 2026",
+    "d": "2026-10-21",
+    "q": "Render Network RENDER crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "NEAR": {
-    "d": "2026-10-19",
-    "q": "NEAR Protocol crypto news upgrade listing governance October 2026",
+    "d": "2026-10-21",
+    "q": "NEAR Protocol crypto news upgrade mainnet listing ETF governance October 2026 next week",
     "n": 0
    },
    "YFI": {
-    "d": "2026-10-19",
-    "q": "Yearn Finance YFI crypto news governance upgrade October 2026",
+    "d": "2026-10-21",
+    "q": "Yearn Finance YFI crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "AAVE": {
-    "d": "2026-10-19",
-    "q": "Aave AAVE crypto news governance upgrade V4 October 2026",
+    "d": "2026-10-21",
+    "q": "Aave AAVE crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "AVAX": {
-    "d": "2026-10-19",
-    "q": "Avalanche AVAX crypto news upgrade unlock ETF October 2026",
+    "d": "2026-10-21",
+    "q": "Avalanche AVAX crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "ETH": {
-    "d": "2026-10-19",
-    "q": "Ethereum ETH crypto news upgrade fork unlock governance October 2026 next week",
+    "d": "2026-10-21",
+    "q": "Ethereum ETH crypto news upgrade mainnet listing ETF governance October 2026 next week",
     "n": 0
    },
    "SOL": {
-    "d": "2026-10-19",
-    "q": "Solana SOL crypto news upgrade unlock ETF governance October 2026",
+    "d": "2026-10-21",
+    "q": "Solana SOL crypto news upgrade mainnet listing ETF governance October 2026 next week",
     "n": 0
    },
    "XRP": {
-    "d": "2026-10-19",
-    "q": "Ripple XRP crypto news court regulator ETF October 2026 next week",
-    "n": 1
+    "d": "2026-10-21",
+    "q": "Ripple XRP crypto news unlock listing ETF court regulator decision October 2026 next week",
+    "n": 0
    },
    "BNB": {
-    "d": "2026-10-19",
-    "q": "BNB Binance Coin crypto news burn listing upgrade October 2026",
+    "d": "2026-10-21",
+    "q": "BNB Binance Coin crypto news burn listing ETF governance October 2026 next week",
     "n": 0
    },
    "ZEC": {
-    "d": "2026-10-19",
-    "q": "Zcash ZEC crypto news mainnet upgrade NU7 October 2026",
+    "d": "2026-10-21",
+    "q": "Zcash ZEC crypto news upgrade mainnet listing ETF governance October 2026 next week",
     "n": 0
    },
    "TAO": {
-    "d": "2026-10-19",
-    "q": "Bittensor TAO crypto news upgrade unlock governance October 2026",
+    "d": "2026-10-21",
+    "q": "Bittensor TAO crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "GRAM": {
-    "d": "2026-10-19",
-    "q": "TON GRAM the open network crypto news upgrade listing October 2026",
+    "d": "2026-10-21",
+    "q": "TON The Open Network GRAM crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "ADA": {
-    "d": "2026-10-19",
-    "q": "Cardano ADA crypto news hard fork upgrade ETF October 2026",
+    "d": "2026-10-21",
+    "q": "Cardano ADA crypto news upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "TRX": {
-    "d": "2026-10-19",
-    "q": "Tron TRX crypto news listing regulator upgrade October 2026",
+    "d": "2026-10-21",
+    "q": "Tron TRX crypto news upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "BCH": {
-    "d": "2026-10-19",
-    "q": "Bitcoin Cash BCH crypto news CME futures upgrade October 2026",
-    "n": 1
+    "d": "2026-10-21",
+    "q": "Bitcoin Cash BCH crypto news upgrade listing ETF governance October 2026 next week",
+    "n": 0
    },
    "LIT": {
-    "d": "2026-10-19",
-    "q": "Lighter LIT crypto token news unlock listing upgrade October 2026",
+    "d": "2026-10-21",
+    "q": "Lighter LIT crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "UNI": {
-    "d": "2026-10-19",
-    "q": "Uniswap UNI crypto news governance vote fee switch October 2026",
+    "d": "2026-10-21",
+    "q": "Uniswap UNI crypto news unlock upgrade listing ETF governance vote October 2026 next week",
     "n": 0
    },
    "HBAR": {
-    "d": "2026-10-19",
-    "q": "Hedera HBAR crypto news upgrade listing governance October 2026",
+    "d": "2026-10-21",
+    "q": "Hedera HBAR crypto news upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "XLM": {
-    "d": "2026-10-19",
-    "q": "Stellar XLM crypto news upgrade listing governance October 2026",
+    "d": "2026-10-21",
+    "q": "Stellar XLM crypto news upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "ALGO": {
-    "d": "2026-10-19",
-    "q": "Algorand ALGO crypto news upgrade governance ETF October 2026",
+    "d": "2026-10-21",
+    "q": "Algorand ALGO crypto news upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "XMR": {
-    "d": "2026-10-19",
-    "q": "Monero XMR crypto news delisting regulator October 2026",
+    "d": "2026-10-21",
+    "q": "Monero XMR crypto news exchange delisting ETF governance October 2026 next week",
     "n": 0
    },
    "MORPHO": {
-    "d": "2026-10-19",
-    "q": "Morpho crypto news governance unlock upgrade October 2026",
+    "d": "2026-10-21",
+    "q": "Morpho MORPHO crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "ARB": {
-    "d": "2026-10-19",
-    "q": "Arbitrum ARB crypto news unlock governance upgrade October 2026",
+    "d": "2026-10-21",
+    "q": "Arbitrum ARB crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "FET": {
-    "d": "2026-10-19",
-    "q": "Fetch.ai FET ASI Alliance crypto news upgrade unlock October 2026",
+    "d": "2026-10-21",
+    "q": "Fetch.ai FET crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "ENA": {
-    "d": "2026-10-19",
-    "q": "Ethena ENA crypto news unlock governance upgrade October 2026",
+    "d": "2026-10-21",
+    "q": "Ethena ENA crypto news unlock upgrade listing ETF governance October 2026 next week",
     "n": 0
    },
    "book|unlocks": {
-    "d": "2026-10-19",
-    "q": "crypto token unlock calendar next 7 days October 2026",
+    "d": "2026-10-21",
+    "q": "crypto token unlock calendar next 7 days October 21 28 2026",
     "n": 0
    },
    "book|upgrades": {
-    "d": "2026-10-19",
+    "d": "2026-10-21",
     "q": "crypto mainnet upgrade hard fork this week October 2026",
-    "n": 1
+    "n": 0
    },
    "book|listings": {
-    "d": "2026-10-19",
+    "d": "2026-10-21",
     "q": "crypto exchange new listing delisting announcement October 2026 Coinbase Kraken OKX",
     "n": 0
    },
    "book|governance": {
-    "d": "2026-10-19",
+    "d": "2026-10-21",
     "q": "crypto governance vote tokenomics change proposal October 2026",
     "n": 0
    },
    "sys|legislation": {
-    "d": "2026-10-19",
+    "d": "2026-10-21",
     "q": "SEC CFTC crypto legislation calendar hearing October 2026",
     "n": 0
    },
    "sys|etf": {
-    "d": "2026-10-19",
+    "d": "2026-10-21",
     "q": "crypto ETF decision date deadline October 2026",
-    "n": 1
+    "n": 0
    },
    "sys|macro": {
-    "d": "2026-10-19",
-    "q": "FOMC macro calendar CPI jobs report week October 19 2026",
-    "n": 1
+    "d": "2026-10-21",
+    "q": "FOMC macro calendar CPI jobs report week October 26 2026",
+    "n": 0
    },
    "sys|venues": {
-    "d": "2026-10-19",
+    "d": "2026-10-21",
     "q": "Binance Coinbase Kraken policy change announcement October 2026",
     "n": 0
    },
@@ -1424,13 +1401,13 @@
     "n": 0
    },
    "mover|NEAR": {
-    "d": "2026-10-10T14:21:00Z",
-    "q": "near NEAR crypto news 10 October 2026 / 9 October 2026",
+    "d": "2026-10-21",
+    "q": "near NEAR crypto news October 20 21 2026",
     "n": 0
    },
    "mover|ZEC": {
-    "d": "2026-10-08T19:10Z",
-    "q": "zcash ZEC crypto news 8 October 2026 / zcash ZEC crypto news 7 October 2026",
+    "d": "2026-10-21",
+    "q": "zcash ZEC crypto news October 20 21 2026",
     "n": 0
    },
    "mover|LUMIA": {
@@ -1512,18 +1489,38 @@
     "d": "2026-10-19",
     "q": "Lobster BEP-20 crypto token news October 18 19 2026",
     "n": 0
+   },
+   "mover|ENA": {
+    "d": "2026-10-21",
+    "q": "ethena ENA crypto news October 20 21 2026",
+    "n": 0
+   },
+   "mover|DOOD": {
+    "d": "2026-10-21",
+    "q": "Doodles DOOD crypto news October 20 21 2026",
+    "n": 0
+   },
+   "mover|ARIA": {
+    "d": "2026-10-21",
+    "q": "AriaAI ARIA crypto news October 20 21 2026",
+    "n": 1
+   },
+   "mover|IOST": {
+    "d": "2026-10-21",
+    "q": "IOST token crypto news October 20 21 2026",
+    "n": 0
    }
   }
  },
  "regime": {
-  "ts": "2026-10-19T14:07:55Z",
+  "ts": "2026-10-21T12:23:07Z",
   "word": "ДИАПАЗОН",
-  "btc": 81883.4,
-  "bull": 88705.55,
-  "bear": 81810.61,
-  "hot": 91768.49,
-  "cold": 75798.08,
-  "cond_dn": 81637.7,
-  "cond_up": 82268.7
+  "btc": 83555.0,
+  "bull": 89078.14,
+  "bear": 82133.8,
+  "hot": 91290.98,
+  "cold": 75359.13,
+  "cond_dn": 83420.0,
+  "cond_up": 84134.2
  }
 }
