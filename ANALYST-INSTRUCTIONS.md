@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-21-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-22-b.**
 
 **Authority.** Authoritative in GitHub and read there alone — a copy anywhere else is not this file.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,14 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-10-22-b` prints the leverage of every trade and its grade in words** — the owner's requests of 22.10.2026: the
+highest leverage at which the trade's own stop fills before liquidation, by production's structure ceiling, never above
+`L_CAP` or his `lev_max` (§4), and «СИЛЬНАЯ СДЕЛКА» or «СРЕДНЯЯ СДЕЛКА» in every header (§2). No other rule moves.
+
+**`2026-10-22-a` moves the hunter's ETF read onto the provider's own record** — `/var/lib/crypto-auto/etf.json`,
+written hourly on the VPS from SoSoValue's API by `vps/etf.py` (TZ-69, accepted 22.10.2026) and read first; the search
+stands in only where the record does not stand (§2, §16 step D). No other rule moves.
 
 **`2026-10-21-a` moves the trade into code** — map §10 row «The book is cut by a model and cannot be replayed», after
 TZ-67 and TZ-68 were accepted and merged at `b130341`. Every side, entry, stop and exit the answer prints is a state of
@@ -226,13 +234,13 @@ BTC ±X.X% за сутки · медиана списка ±X.X%
 [и сделок сейчас нет → «СИЛЬНЫХ СДЕЛОК НЕТ. СДЕЛОК СЕЙЧАС НЕТ.», а # ЛУЧШИЕ СДЕЛКИ СЕЙЧАС не печатается]
 
 # ЛУЧШИЕ СДЕЛКИ СЕЙЧАС
-**1. МОНЕТА — ЛОНГ · СРЕДНЯЯ [· ПОВЫШЕННЫЙ РИСК: причина] [· разлок ДД.ММ (X.X%)]**
+**1. МОНЕТА — ЛОНГ · СРЕДНЯЯ СДЕЛКА [· ПОВЫШЕННЫЙ РИСК: причина] [· разлок ДД.ММ (X.X%)]**
 Вход $X · Стоп $X (−X.X%) · Выход: закрытие дня ниже $X
-Размер N МОНЕТА ($X)
+Размер N МОНЕТА ($X) · плечо до N×
 [Почему: одно предложение — событие или крупные игроки, если они есть.]
 
 # СОЗРЕВАЕТ ≤7 ДНЕЙ
-**МОНЕТА — ЛОНГ · СРЕДНЯЯ [· ВНЕ СПИСКА] [· ПОВЫШЕННЫЙ РИСК: причина]** — ДД.ММ событие, одним предложением.
+**МОНЕТА — ЛОНГ · СРЕДНЯЯ СДЕЛКА [· ВНЕ СПИСКА] [· ПОВЫШЕННЫЙ РИСК: причина]** — ДД.ММ событие, одним предложением.
 Известно с ДД.ММ [ЧЧ:ММ Тбилиси] (N дн.) · с тех пор ±X.X%
 Станет сделкой: закрытие дня выше $X (сейчас $X, +X.X%) — вход на открытии следующего дня · стоп ≈ $X
 Размер: резерв
@@ -245,7 +253,7 @@ BTC ±X.X% за сутки · медиана списка ±X.X%
 Ближе всего к пробою: ЛОНГ — XXX $X (+X.X%) · XXX $X (+X.X%); ШОРТ — XXX $X (−X.X%)
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
-**МОНЕТА · СРЕДНЯЯ [· ПОВЫШЕННЫЙ РИСК: причина]** — вход $X · стоп $X (−X.X%) · выход: закрытие дня ниже минимума N дней, сейчас $X · размер N МОНЕТА ($X). Почему: что это за проект[; событие или крупные игроки].
+**МОНЕТА · СРЕДНЯЯ СДЕЛКА [· ПОВЫШЕННЫЙ РИСК: причина]** — вход $X · стоп $X (−X.X%) · выход: закрытие дня ниже минимума N дней, сейчас $X · размер N МОНЕТА ($X) · плечо до N×. Почему: что это за проект[; событие или крупные игроки].
 
 # ТОП-3 ВНЕ СПИСКА — ШОРТ
 [same form, «выход: закрытие дня выше максимума N дней»]
@@ -319,9 +327,9 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   inv. 32), the deeper market fills the entry and the stop nearer their prices. It is a ranking key and nothing more:
   an object's admission is unchanged, and its position decides only what §4's budget reaches first. **The top of
   each section is the first thing the Boss reads, and he reads it as the best idea in the answer.**
-- **Every published object carries its confidence, `СИЛЬНАЯ` or `СРЕДНЯЯ`, in its header line** — the owner's
-  decision of 01.10.2026 — graded by §8's definition and never by feel; while §8 names no measured class every object
-  reads `СРЕДНЯЯ`, and the answer says so truthfully.
+- **Every published object carries its confidence in its header line, in words: «СИЛЬНАЯ СДЕЛКА» or «СРЕДНЯЯ
+  СДЕЛКА»** — the owner's decisions of 01.10 and 22.10.2026 — graded by §8's definition and never by feel; while §8
+  names no measured class every object reads «СРЕДНЯЯ СДЕЛКА», and the answer says so truthfully.
 - **`ПОВЫШЕННЫЙ РИСК` is printed exactly where a named exceptional risk applies to the object —
   never elsewhere, and never omitted where one does — in its header line after the grade, with its
   cause:** «ПОВЫШЕННЫЙ РИСК: событие 03.10», «ПОВЫШЕННЫЙ РИСК: тонкий рынок». The causes are closed,
@@ -354,11 +362,12 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   measured from the row's anchor (§4). The distance is the number a futures position is sized
   from and the one the owner cannot read off the price cells himself.
 - **Every priced trade object carries its SIZE directly after its levels** — «Размер 0.288 ZEC
-  ($440)» — computed by §4
+  ($440) · плечо до 5×» — computed by §4
   from `analyst/owner.json` at the object's frozen price, never chosen. It is the number the Boss types
   into his order, and the one thing a stop's distance in per cent never told him. **What is the same
-  on every row is not printed** (item 79): the risk per row and the leverage — production's `L_MIN` on every
-  object, isolated (§4) — are policy, stated to him once; a row prints the quantity they produce, which
+  on every row is not printed** (item 79): the risk per row is policy, stated to him once, while the leverage differs with
+  every stop (§4) and prints — **the size carries the risk, never the leverage:** on the printed size a higher
+  leverage only posts less margin, and a larger size on the same margin is a larger loss at the same stop; a row prints the quantity they produce, which
   differs on every row. A trade object the budget no longer covers is not published (below), and
   «Размер: резерв» is a `СОЗРЕВАЕТ` item's alone — an item is not a trade yet, and its size is read on
   the day it arms. The size is the third line of an entry, its own line after «Станет сделкой» in a
@@ -489,7 +498,7 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   gives THIS run** (§6); a date that moved prints at its new date and nothing says it moved, and a
   cancelled event has no date left.
 - **`# ПОТОКИ ETF` is one line, the owner's request of 16.10.2026: the net flows of the US spot ETFs on
-  the last US trading day that closed before the freeze**, per asset — BTC and ETH, and SOL, XRP and BNB
+  the newest US trading day the provider has published**, per asset — BTC and ETH, and SOL, XRP and BNB
   where the hunt's `ETF` line carries them — in millions of dollars with their sign, the trading day in
   the heading and the provider the publication names in brackets: «# ПОТОКИ ETF — США, за 14.10» ·
   «BTC +$X млн · ETH −$X млн · SOL +$X млн (SoSoValue)». **Every figure is the hunt's, read as §16
@@ -497,8 +506,9 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   an earlier run or from a headline stands in, and nothing says the read failed (§1). **It is context,
   never a signal:** a flow is the last session's money, what institutions did and not what BTC does next;
   it informs the word of `# BTC` and the sheriff's `HEAD`, and adds, raises or moves nothing in the book.
-  The providers' own pages refuse this machine (map §11), so the figure arrives as a publication reports
-  it — `reported` on §6's terms — until a machine-readable lane replaces the read (map §10).
+  **The figure is the provider's own record** — SoSoValue's API, read hourly on the VPS into
+  `/var/lib/crypto-auto/etf.json` (§16, map §10) — and a publication's, `reported` on §6's terms, only where that
+  record does not stand.
 - **`# ПОЗИЦИИ` is two lines: where Binance's large players and its crowd stand, on BTC and across the
   list** — the owner's requests of 09.10 and 16.10.2026, read off this run's positioning read (§16) and
   nothing else. The first line carries BTC's own two classes — «крупные игроки Binance — набирают лонг /
@@ -822,7 +832,7 @@ the first time the producer adds a column.
 
 ## 4. What every trade object contains — the book's state
 
-Direction · entry · stop · exit · confidence · size — and no target. Confidence is carried by every published object
+Direction · entry · stop · exit · confidence · size · leverage — and no target. Confidence is carried by every published object
 (§8).
 
 **The trade is the program's, and the run cuts no level.** `vps/book.py` holds the engine's book: the trend system
@@ -1001,7 +1011,8 @@ scores the book and the published book apart (map §10).
   series** before it is credited with more (map §10), and no edge is claimed until then (map inv. 32).
 - **A production function this file mandates cutting is EXTRACTED BY COMMAND, with the constants it reads, and the
   command is recorded** (§12) — `marketRegime` (§2), `sigmaDay` with `ENTRY_CHASE_SD` (the BTC map, above) and
-  `liqPrice` with `FEE_TAKER` and `L_MIN` (below). A function copied into a scratch file by hand, however faithfully,
+  `lStruct` and `liqPrice` with `RISK_Z`, `H_REACT`, `LIQ_MMR`, `L_CAP`, `L_MIN`, `VOL_HARD`, `VOL_STOP` and `FEE_TAKER`
+  (below). A function copied into a scratch file by hand, however faithfully,
   arrives beside constants that were TYPED, and a typed threshold is a second copy of a number the system allows in
   exactly one place (map inv. 20, 21, 38). The extraction takes the function and its constants from the source in one
   operation, the log records the command and the span it cut, and no value is hand-entered anywhere in the run.
@@ -1016,15 +1027,17 @@ scores the book and the published book apart (map §10).
   size$  = risk / (d + 2 × FEE_TAKER)       both legs taker
   qty    = size$ / anchor                   rounded DOWN to three significant digits; printed with
                                             qty × anchor in whole dollars
-  L      = L_MIN                            production's lowest leverage, isolated margin
+  vol_h  = atr20 / (anchor × √(8/π) × √24)  the book's own ATR as an hourly sigma, by production's range identity
+  L      = floor(min(lStruct(d, vol_h), L_CAP, lev_max)), and at most 2 where vol_h ≥ VOL_HARD; isolated margin
   ```
 
-  **Every object sits at production's lowest leverage:** the book's stop lies `STOP_ATR` of the coin's own ATRs from
-  the fill, so the size, never the leverage, carries the risk, and an isolated position at `L_MIN` is the one whose
-  liquidation lies furthest beyond that stop; it is the same on every object and prints nowhere (item 79). **An object
-  is refused where its stop lies at or beyond `liqPrice(anchor, L_MIN, side)`** — production's own liquidation price,
-  cut and executed like every function here — because an isolated position is liquidated before such a stop can fill,
-  and no smaller size repairs it (item 111).
+  **The leverage is the highest at which the object's own stop fills before the exchange liquidates it** —
+  production's structure ceiling `lStruct`: the stop's distance, plus `RISK_Z` hourly sigmas over `H_REACT` hours to
+  react, plus `LIQ_MMR` — never above production's `L_CAP` or the owner's `lev_max`, and under production's own
+  volatility caps. It prints «плечо до N×» and differs with every stop (item 79); `liqPrice(anchor, L, side)` then lies
+  beyond the stop by that margin. **An object is refused where production gives no leverage** — `vol_h` at or above
+  `VOL_STOP`, or `L` below `L_MIN`, «БЕЗ БЕЗОПАСНОГО ПЛЕЧА» — because its stop cannot fill before liquidation at any
+  leverage production issues, and no smaller size repairs it (item 111).
 
   **The book has a budget and spends it in the answer's own order** — `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС`, then `ТОП-3`, each in
   §2's key order, a coin spending once however often it is named; a `СОЗРЕВАЕТ` item spends nothing and prints
@@ -1271,9 +1284,9 @@ for (item 98), and no source this file names can move it earlier.
 
 **6 · Signals, flows, positioning.** Funding, open interest, liquidation structure,
 ETF flows, dominance: current at the analysis moment or absent from the answer.
-**ETF flows are the last US trading day's, read by the hunter (§16)** and printed in `# ПОТОКИ ETF`,
-and the positioning classes print in `# ПОЗИЦИИ` (§2): a session that closed before the freeze is the
-current reading of a daily flow, and nothing older stands in for it.
+**ETF flows are the newest US trading day the provider has published, read by the hunter from the provider's
+record (§16)** and printed in `# ПОТОКИ ETF`, and the positioning classes print in `# ПОЗИЦИИ` (§2): that session
+is the current reading of a daily flow, and nothing older stands in for it.
 **Funding, open interest and mark price arrive INSIDE the payload** — every row of
 `analyst/live.json` carries `fr`, `oi` and `mark` beside the price — so positioning is a
 read of a file already open, not a fetch, and it costs nothing. Open interest rising
@@ -2545,7 +2558,7 @@ way.**
     thing the audit measures.
 106. **Every trade object published is funded and carries its size, and «Размер: резерв» stands on a `СОЗРЕВАЕТ` item
     alone** (§2, §4) — an entry or a `ТОП-3` line, sized from `analyst/owner.json` at its frozen price: `qty` from the
-    stop distance it prints and the risk its label gives it, `L` production's `L_MIN`, printed nowhere (item 79);
+    stop distance it prints and the risk its label gives it, `L` by §4's leverage rule, printed «плечо до N×»;
     one funded object per side until the scorecard gate (§4): a second funded object on a side fails this item. The
     appendix carries per object the risk, `d`, `size$`, `qty`, `L` and the budget left after it. A size resting on
     another risk, distance or leverage, a sized object past the budget, or a size printed while the owner file was
@@ -2580,9 +2593,10 @@ way.**
     `НЕЙТРАЛЬНЫЙ` on an event whose class median does, a probability beside a verdict, a factor list in
     `МОЁ МНЕНИЕ`, a row added, a grade, size or label RAISED, or a level, side or status moved on a
     verdict each fail this item; a verdict taking away, as §2 lets it, is no failure.
-111. **No trade object is published with its stop at or beyond `liqPrice(anchor, L_MIN, side)`** (§4) — production's
-    own function, cut and executed — and the appendix carries per object the stop's distance beside the
-    liquidation's.
+111. **Every trade object carries the leverage §4's rule gives it, and none is published where production gives
+    none** — `vol_h` at or above `VOL_STOP`, or `L` below `L_MIN` — the functions cut and executed; the appendix carries
+    per object `d`, `vol_h`, `lStruct`, the cap that bound, `L` and the stop's distance beside `liqPrice` at `L`. A
+    leverage typed, a leverage above `L_CAP` or `lev_max`, and a liquidation at or inside the stop each fail this item.
 112. **Every published object's coin carries this run's positioning classes, and the object obeys them**
     (§16, §2, §3B, §8): **refused** where its coin carries the large players' class against its side and
     the crowd class of its side; refused as well, where it is an outside-list object, on the large players'
@@ -2644,10 +2658,10 @@ way.**
 | Prohibition class | `XXX` — вход · `XXX до ДД.ММ` — событие (§2) |
 | Catalyst source mark | НЕ ПОДТВЕРЖДЕНО — only on a `reported` date in `# КАТАЛИЗАТОРЫ` (§6); a row's unlock suffix carries none (§2); no status word exists |
 | Unlock on an object | `· разлок ДД.ММ (X.X%)` — the end of its first line (§2) |
-| Size | `Размер N XXX ($X)` · `Размер: резерв` on a `СОЗРЕВАЕТ` item alone · `Без размера: ЛОНГ — … · … · … и ещё N; ШОРТ — …` — list entries left unfunded, no price, at most three per side (§2, §4) |
+| Size | `Размер N XXX ($X) · плечо до N×` · `Размер: резерв` on a `СОЗРЕВАЕТ` item alone · `Без размера: ЛОНГ — … · … · … и ещё N; ШОРТ — …` — list entries left unfunded, no price, at most three per side (§2, §4) |
 | Regime | БЫЧИЙ / МЕДВЕЖИЙ / ДИАПАЗОН / ПЕРЕГРЕТ / ВЫСОКИЙ РИСК |
 | Verdict (§2) | БЫЧИЙ / МЕДВЕЖИЙ / НЕЙТРАЛЬНЫЙ · ПАМП / ДАМП / БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ — on a catalyst item ahead and in `# BTC` alone, labels ВЕРДИКТ (one line: the word · the instrument ≈ its reaction · the movement word) · МОЁ МНЕНИЕ and НАПРАВЛЕНИЕ · ОЖИДАЕМОЕ ДВИЖЕНИЕ · Уровни · Коридор 24–48 ч · Отмена · МОЙ ВЕРДИКТ |
-| Confidence | СИЛЬНАЯ / СРЕДНЯЯ — on every published object (below) |
+| Confidence | «СИЛЬНАЯ СДЕЛКА» / «СРЕДНЯЯ СДЕЛКА» — in the header line of every published object (below) |
 | Marks | `ПОВЫШЕННЫЙ РИСК: событие / тонкий рынок / перекос позиций` — exceptional only (§2) |
 | Positioning (§16) | «киты набирают лонг / шорт» — Binance's top traders by margin balance building a side, in `Почему`; in `# ПОЗИЦИИ` alone «крупные игроки Binance — набирают лонг / набирают шорт / без перекоса» and «толпа — в лонге / в шорте / без перекоса» (§2); on an object the crowd's class reaches the answer only as `перекос позиций` (§2) |
 | Venue | Фьючерсы / Спот |
@@ -2661,8 +2675,9 @@ is a new trade.
 rest of the book on the book's own archive (`vps/book.py --archive`) out of sample after costs and against the number
 of classes tried — one that separates only as the best of many has not separated — and the Architect has named that
 class in this section on that reading** — the owner's message of 16.10.2026: a high-confidence call the record does
-not support is not made. **No class has been measured, so nothing is `СИЛЬНАЯ`**, and every object is sized at
-`risk_pct_medium` (§4). No catalyst and no positioning class earns the grade, and neither does a view of this run
+not support is not made. **No class has passed, so nothing is `СИЛЬНАЯ`**, and every object is sized at `risk_pct_medium` (§4): the three
+tested on 22.10.2026 against a rule registered before the data — trades on the side of BTC's own book, longs, and
+coins whose ATR sat below the in-sample median — each led the rest in 2023–24 and trailed it in 2025–26. No catalyst and no positioning class earns the grade, and neither does a view of this run
 (§4); a case resting on a date printed without this run's reading is `СРЕДНЯЯ` at best. Confidence describes the
 object's measured class and never the analyst's feeling about it; there is no third word, and an object that
 would need one is not published.
@@ -2926,8 +2941,9 @@ the derivation of every price printed in # BTC, and of the four regime prices th
 the BTC map (§4): the four-hour request, every level with its kind, w, every zone with its levels, the
   in-zone, the cancel prices and the corridor; the facts the word of # BTC rests on (§2)
 every dated print of the last 24 hours: the hourly request and BTC's travel against ordinary (item 118)
-(H) the ETF read (§16): the queries, the hits read, and per asset the figure, its trading day, its
-  provider, the host and the publication time — or none
+(H) the ETF read (§16): the record's command and what it printed, or why it did not stand and then the
+  queries and the hits read; per asset the figure, its trading day, its provider, the host and the
+  publication time — or none
 what analyst/state.json held at step 3, per key; every horizon entry deleted or added; the
   v1 migration counts where it ran (§11)
 (H) every discovery search (§6), per coin, per book lane and per systemic lane: query, moment,
@@ -2944,7 +2960,7 @@ every verdict (§2, §4): the instrument, the klines request, the class and its 
   coin's event its age and move since — then one scoring line per verdict, on one line, in this form
   (the reference is the frozen price and the freeze minute for 48h, the event's UTC day otherwise):
   VERDICT|<instrument>|<event and its UTC day, or 48h>|<word>|<lo %>|<hi %>|<movement word>|<reference>
-every trade object: its stop's distance beside liqPrice at L_MIN (§4, item 111)
+every trade object: d, vol_h, lStruct, the cap that bound, L, and the stop's distance beside liqPrice at L (§4, item 111)
 (H) the hunt in §5 step 5's order: each step, completed or not, and the step the run stopped in
 (H) the sec6_md5 this run computed, with §6a's command verbatim
 every forward candidate (§4): its event, side and book state, the rule that decided it, and where it
@@ -3149,7 +3165,7 @@ T<n> | <section> | <COIN> <ЛОНГ|ШОРТ> <ВХОД|СОЗРЕВАЕТ> <С�
      book fill <open|—> | stop <price> (<±d%>)[ ≈] | exit <close below|close above> <price|—> |
      size <qty> ($<notional>, risk $<r>), L<n> or reserve | large <long|short|none|unread> |
      crowd <long|short|none|unread> | events <item: effect tag, date; …|none> | turnover24h $<m>M |
-     liq@L_MIN <d%> | label <cause|none> | why <the Почему line, verbatim|—>
+     liq@L <d%> | label <cause|none> | why <the Почему line, verbatim|—>
 ```
 
 **Applying the verdicts.** The sheriff returns one line per ticket and `FINDING` lines (§17):
@@ -3238,8 +3254,23 @@ never opened** (§5), on the frozen payload the trader read: no read of yours is
   `refused` or `not covered` §6a's one search naming its project and «token unlock», for a long. Stop a lane
   when three of its rows have passed filter 3 with an unlock read or that search behind them, or when its
   rows run out.
-- **D — the ETF read.** The net flows of the US spot ETFs on the last US trading day that closed before the
-  freeze, per asset — BTC and ETH, and SOL, XRP and BNB where the publication carries them. **The providers'
+- **D — the ETF read.** The net flows of the US spot ETFs on the newest US trading day the provider has
+  published, per asset. **The record first:** `/var/lib/crypto-auto/etf.json`, written hourly on this machine
+  from SoSoValue's own API by `vps/etf.py` (map §10), read by this one command and never opened whole:
+
+  ```
+  python3 -c 'import json;d=json.load(open("/var/lib/crypto-auto/etf.json"));print(d["k"],d["ts"],d["provider"],d["host"],d["refused"]);[print(t,e["date"],e["net"],e["rows"]) for t,e in d["types"].items()]'
+  ```
+
+  **It stands where the command prints, `k` reads `etf`, `ts` lies at most two hours before the freeze and
+  `us-btc-spot` carries a date at most four days before the freeze's UTC date** — two hours is two hourly reads
+  missed, four days a weekend and a US holiday after a Friday session. Then the trading day is that date; BTC,
+  ETH and SOL are the `net` of `us-btc-spot`, `us-eth-spot` and `us-sol-spot` in USD millions to one decimal, an
+  asset the record refused or dated otherwise reading `—`, and XRP and BNB `—`; the provider is the record's
+  `provider`, `src` its `host` and `published` its `ts`. **Only where the record does not stand** — absent,
+  unreadable or stale, the reason in the hunt record — does the search below stand in, on the last US trading
+  day that closed before the freeze, per asset — BTC and ETH, and SOL, XRP and BNB where the publication carries
+  them. **The providers'
   own pages refuse this machine** — Farside behind a managed challenge, the issuers' product pages at 403 or
   429 (map §11) — and are never asked; the figures are read as a publication reports them. At most two
   WebSearch queries — the first «spot bitcoin ETF net flows <the trading day as Month D YYYY>», the second a
@@ -3354,7 +3385,8 @@ POSITIONING read <n> · unread <n>: <SYM …> · large long: <SYM …> · large 
             crowd long: <SYM …> · crowd short: <SYM …> — every coin read and in no class is none
 BOOK        <long|short> | <SYM> | <project> | filter 3 <pass | refused: the lookup> | unlock <status> | large <class>
 ETF         <YYYY-MM-DD trading day> | BTC <±m> | ETH <±m> | SOL <±m|—> | XRP <±m|—> | BNB <±m|—> | provider <name> |
-            src <host> | published <ISO> — USD millions as the publication states them; or: none | q1 «…» | q2 «…»
+            src <host> | published <ISO> — USD millions, the record's or as the publication states them;
+            or: none | record <why it did not stand> | q1 «…» | q2 «…»
 COVERAGE    list <n> · book <m> · events ≤7d <k>
 INCOMPLETE  <yes: the lane, coin or search short | no>
 CHECKS      15 <ok | fail: … | н/п: …> · 22 … · … · 105 …
@@ -3398,7 +3430,7 @@ ones a professional names when he refuses a trade:
 
 | Cause | The question | Where the book shows it |
 |---|---|---|
-| `stop` | does the stop fill before liquidation? | `stop`, `liq@L_MIN` |
+| `stop` | does the stop fill before liquidation? | `stop`, `size`, `liq@L` |
 | `catalyst` | does an event inside the holding window act against the side? | `events`, `label` |
 | `liquidity` | can the size be filled and left at those levels? | `turnover24h`, `size` |
 | `positioning` | is it the crowd's trade — on its coin, or across the list as `HEAD` counts it — with the large players on the other side? | `large`, `crowd`, `label`, `HEAD`'s `list crowd` |
