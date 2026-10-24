@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-24-a.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-24-b.**
 
 **Authority.** Authoritative in GitHub and read there alone — a copy anywhere else is not this file.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,11 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-10-24-b` prints `# BTC` as a price ladder and every list in the order of its own numbers** — the owner's
+request of 24.10.2026 that the answer read precisely and at a glance: resistance, the zone holding the price and support
+one zone to a line from the highest price down, each cancel price on its own line, and the holds and triggers of
+`СТРАТЕГИЯ` nearest first by the per cent each line prints (§2). No other rule moves.
 
 **`2026-10-24-a` makes the answer readable line by line and measures an event over the days its reaction takes** — the
 owner's requests of 24.10.2026 and the audit of that day's run. Every list the answer prints carries one priced item
@@ -326,9 +331,14 @@ BTC: крупные игроки Binance — набирают лонг / наб�
 # BTC — МОЙ ВЕРДИКТ
 **НАПРАВЛЕНИЕ:** БЫЧИЙ / МЕДВЕЖИЙ / НЕЙТРАЛЬНЫЙ
 **ОЖИДАЕМОЕ ДВИЖЕНИЕ:** ≈ +X.X…+Y.Y% / ≈ −X.X…−Y.Y% / ≈ ±X.X% за 24–48 ч
-**Уровни:** сопротивление $X–$X · $X — поддержка $X–$X · $X [— цена в зоне $X–$X]
+**Сопротивление:** $X–$X
+**Сопротивление:** $X–$X
+[**Цена в зоне:** $X–$X]
+**Поддержка:** $X–$X
+**Поддержка:** $X–$X
 **Коридор 24–48 ч:** $X–$X
-**Отмена:** бычьего сценария — 4-часовое закрытие ниже $X · медвежьего — выше $X
+**Отмена бычьего сценария:** 4-часовое закрытие ниже $X
+**Отмена медвежьего сценария:** 4-часовое закрытие выше $X
 **МОЙ ВЕРДИКТ:** одно–два предложения — самый вероятный сценарий в уровнях этого раздела и решающий факт за ним.
 ```
 
@@ -447,14 +457,15 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   - «**Книга держит ЛОНГ** — выход при закрытии дня ниже:» and «**Книга держит ШОРТ** — выход при закрытии дня
     выше:», each followed by one line per list coin the book holds on that side — «XXX $X (−X.X%)», its `exit_level`
     and that level's distance from the frozen price in per cent, or «(уже за уровнем)» in its place where the price
-    already stands beyond it and the day's close decides — **nearest exit first, in units of the coin's own `atr20`**:
-    the first line is the position the book is likeliest to close at the next open, and a hold printed without its
-    distance hides the one number that says so. Nothing else prints on a hold (§4);
+    already stands beyond it and the day's close decides — **nearest exit first, by the per cent the line prints**:
+    the first line is the position nearest its exit, a column read top to bottom in the order of its own numbers needs
+    no key, and a hold printed without its distance hides the one number that says so. Nothing else prints on a hold (§4);
   - «Без размера: …» — the list's entries left unfunded (above), the names on one line;
   - «**Ближе всего к пробою ЛОНГ** — вход при закрытии дня выше:» and «**Ближе всего к пробою ШОРТ** — вход при
     закрытии дня ниже:», each followed by one line per flat list coin — «XXX $X (+X.X%)», its trigger on that side
     and the trigger's distance from the frozen price in per cent, or «(уже за уровнем)» — at most three per side,
-    nearest first in units of the coin's own `atr20`, **and only a trigger the coin can reach inside the holding
+    the three nearest the frozen price in units of the coin's own `atr20`, printed nearest first by the per cent each
+    line shows, **and only a trigger the coin can reach inside the holding
     window:** within `atr20 × √(7π/8)` of the frozen price — the coin's own one-sigma move over seven days, by the
     range identity §4 sizes with. A trigger four ATRs away is not near whatever its rank, and printed here it would
     carry a trade the week does not reach into `ЖДАТЬ`. A trigger a cliff closes (§6a) is left out, and so is a coin
@@ -576,16 +587,17 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   against that side — measured 15.10, the crowd was short on fifteen of the thirty-one list coins while
   the book added three shorts. It reaches the word of `# BTC` and the sheriff's `HEAD`, never a level, a
   grade or a size.
-- **`# BTC` closes the answer, printed «# BTC — МОЙ ВЕРДИКТ», and gets six lines** — the owner's
+- **`# BTC` closes the answer, printed «# BTC — МОЙ ВЕРДИКТ», and gets its lines in the skeleton's order** — the owner's
   requests of 07.10.2026, «at the end of the full analysis», and of 16.10.2026: support and resistance,
   the likely range of the next 24–48 hours and what cancels each scenario. It sets the environment for
   altcoin exposure and is not itself the product. «НАПРАВЛЕНИЕ» is the engine's word on BTC for the next
-  24–48 hours; «ОЖИДАЕМОЕ ДВИЖЕНИЕ» is BTC's measured two-day move signed by that word (§4); «Уровни» are
-  the two nearest resistance zones and the two nearest support zones of §4's BTC map, nearest first,
-  each printed as its lowest and highest level or as one price — a side with fewer zones prints fewer —
-  with «цена в зоне» where a zone holds the frozen price; «Коридор 24–48 ч» is the map's 48-hour
-  corridor; «Отмена» prints the map's two cancel prices — the bull scenario's below, the bear scenario's
-  above — each read on a four-hour close; «МОЙ ВЕРДИКТ» is one or two sentences: the most likely
+  24–48 hours; «ОЖИДАЕМОЕ ДВИЖЕНИЕ» is BTC's measured two-day move signed by that word (§4); the levels are
+  a ladder of §4's BTC map, one zone to a line from the highest price down — the two nearest resistance zones
+  «Сопротивление:», the zone holding the frozen price «Цена в зоне:» where one does, then the two nearest support
+  zones «Поддержка:» — each printed as its lowest and highest level or as one price, a side with fewer zones
+  printing fewer; «Коридор 24–48 ч» is the map's 48-hour corridor; «Отмена бычьего сценария» and «Отмена медвежьего
+  сценария» are the map's two cancel prices on two lines — the bull scenario's below, the bear scenario's above —
+  each read on a four-hour close; «МОЙ ВЕРДИКТ» is one or two sentences: the most likely
   scenario in this section's levels and the one fact behind it, any price in it a price this section
   prints, never a round number (§5). **Under a GAP (§5) the word, the move and the
   sentence print and the map's lines do not**, because each is cut on the structural
@@ -2508,7 +2520,7 @@ way.**
     row fails this item whatever the value is.
 80. **Every section's objects are ordered by §2's key** — grade, then the larger 24-hour turnover of the coin's
     payload row — and the log records the turnover per object beside the order it produced; §4's budget spends in
-    that order. `СТРАТЕГИЯ`'s holds and triggers by their own distance, nearest first in `atr20` units (§2).
+    that order. `СТРАТЕГИЯ`'s holds and triggers by the per cent each line prints, nearest first (§2).
 81. **RETIRED at `2026-09-28-a` by the owner's decision of 24.09.2026** — the first line carries nothing about an
     earlier answer (§2, item 64).
 82. **RETIRED at `2026-10-16-a`** — the own-move line carries no concentration clause: the book funds one
@@ -2727,7 +2739,7 @@ way.**
 | Unlock on an object | `· разлок ДД.ММ (X.X%)` — the end of its first line (§2) |
 | Size | `Размер N XXX ($X) · плечо до N×` · `Размер: резерв` on a `СОЗРЕВАЕТ` item alone · `Без размера: ЛОНГ — … · … · … и ещё N; ШОРТ — …` — list entries left unfunded, no price, at most three per side (§2, §4) |
 | Regime | БЫЧИЙ / МЕДВЕЖИЙ / ДИАПАЗОН / ПЕРЕГРЕТ / ВЫСОКИЙ РИСК |
-| Verdict (§2) | БЫЧИЙ / МЕДВЕЖИЙ / НЕЙТРАЛЬНЫЙ · ПАМП / ДАМП / БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ — on a catalyst item ahead and in `# BTC` alone, labels ВЕРДИКТ (one line: the word · the instrument ≈ its reaction · the movement word) · МОЁ МНЕНИЕ and НАПРАВЛЕНИЕ · ОЖИДАЕМОЕ ДВИЖЕНИЕ · Уровни · Коридор 24–48 ч · Отмена · МОЙ ВЕРДИКТ |
+| Verdict (§2) | БЫЧИЙ / МЕДВЕЖИЙ / НЕЙТРАЛЬНЫЙ · ПАМП / ДАМП / БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ — on a catalyst item ahead and in `# BTC` alone, labels ВЕРДИКТ (one line: the word · the instrument ≈ its reaction · the movement word) · МОЁ МНЕНИЕ and НАПРАВЛЕНИЕ · ОЖИДАЕМОЕ ДВИЖЕНИЕ · Сопротивление · Цена в зоне · Поддержка · Коридор 24–48 ч · Отмена бычьего / медвежьего сценария · МОЙ ВЕРДИКТ |
 | Confidence | «СИЛЬНАЯ СДЕЛКА» / «СРЕДНЯЯ СДЕЛКА» — in the header line of every published object (below) |
 | Marks | `ПОВЫШЕННЫЙ РИСК: событие / тонкий рынок / перекос позиций` — exceptional only (§2) |
 | Positioning (§16) | «киты набирают лонг / шорт» — Binance's top traders by margin balance building a side, in `Почему`; in `# ПОЗИЦИИ` alone «крупные игроки Binance — набирают лонг / набирают шорт / без перекоса» and «толпа — в лонге / в шорте / без перекоса» (§2); on an object the crowd's class reaches the answer only as `перекос позиций` (§2) |
