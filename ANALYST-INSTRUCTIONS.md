@@ -1,7 +1,7 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
 **Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root, sibling of
-`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-22-b.**
+`EXECUTOR-INSTRUCTIONS.md`). **Revision 2026-10-24-a.**
 
 **Authority.** Authoritative in GitHub and read there alone — a copy anywhere else is not this file.
 Written by the Architect; **the analyst never edits this file, and a change to it is
@@ -13,6 +13,21 @@ edit, and the edit names the run that produced it. This file is the single opera
 text of the analytical
 **methodology** — if an analytical rule is not here, it is not in force, and if it is
 here it is not repeated anywhere else.
+
+**`2026-10-24-a` makes the answer readable line by line and measures an event over the days its reaction takes** — the
+owner's requests of 24.10.2026 and the audit of that day's run. Every list the answer prints carries one priced item
+to a line (§1, §2): each hold of the book with its exit's distance from the frozen price, nearest exit first; no
+trigger beyond the coin's own week of movement printed as near; `ИТОГ` one field to a line and each trigger of `ЖДАТЬ`
+on its own; every catalyst on its own line with its Tbilisi time; every entry's exit with its rule and, where the
+channel still lies beyond the stop, the fact that the stop fills first. `# ПОТОКИ ETF` prints the three newest US
+sessions the provider's record carries, one line per asset — one session until TZ-70's merge adds the other two (§2,
+§16 step D). An event's verdict is measured from the close before its UTC day to the close after it, against the
+instrument's ordinary two days (§4): on the decision day alone the Federal Reserve's eight meetings of the year before
+moved BTC 0.74 % at the median against an ordinary day's 0.76 %, and over the two days that hold the reaction 2.69 %
+against 1.11 %. The forward hunt reaches outside the list again: the hunter matches its market-wide reads against
+every outside-list row the book read and searches, one by one, those whose trigger lies within the week's reach (§15,
+§16). **§6 and §6a do not move, so `sec6_md5` is unchanged; where §6 says an event moves the market «more than an
+ordinary day», it means §4's two-day measure.** No other rule moves.
 
 **`2026-10-22-b` prints the leverage of every trade and its grade in words** — the owner's requests of 22.10.2026: the
 highest leverage at which the trade's own stop fills before liquidation, by production's structure ceiling, never above
@@ -213,8 +228,10 @@ statistic in place of a trade.
 - `🔧` proposals, operational-integrity notes, System Map talk, TZ proposals, git
   or commit talk. Those belong to a build session, never to a market answer.
 
-**Ceiling: the whole answer fits roughly two iPhone screens.** If it does not, the
-analysis was not finished — it was transcribed.
+**One priced item per line — the owner's request of 24.10.2026.** A line carrying several prices or several events
+is read sideways on a phone however short the answer is, so every list §2's skeleton prints carries one priced coin or
+one event to a line, and names without a price share one — and nothing beyond what the skeleton mandates: an answer
+longer than its skeleton was transcribed, not finished.
 
 ---
 
@@ -235,7 +252,8 @@ BTC ±X.X% за сутки · медиана списка ±X.X%
 
 # ЛУЧШИЕ СДЕЛКИ СЕЙЧАС
 **1. МОНЕТА — ЛОНГ · СРЕДНЯЯ СДЕЛКА [· ПОВЫШЕННЫЙ РИСК: причина] [· разлок ДД.ММ (X.X%)]**
-Вход $X · Стоп $X (−X.X%) · Выход: закрытие дня ниже $X
+Вход $X · Стоп $X (−X.X%)
+Выход: закрытие дня ниже минимума N дней, сейчас $X [— ниже стопа, первым сработает стоп]
 Размер N МОНЕТА ($X) · плечо до N×
 [Почему: одно предложение — событие или крупные игроки, если они есть.]
 
@@ -248,33 +266,58 @@ BTC ±X.X% за сутки · медиана списка ±X.X%
 
 # СТРАТЕГИЯ — МОЙ СПИСОК
 Выход сегодня (на открытии дня): XXX · XXX
-Книга держит (выход — закрытие дня за уровнем): ЛОНГ — XXX $X · XXX $X; ШОРТ — XXX $X
+**Книга держит ЛОНГ** — выход при закрытии дня ниже:
+XXX $X (−X.X%)
+XXX $X (−X.X%)
+**Книга держит ШОРТ** — выход при закрытии дня выше:
+XXX $X (+X.X%)
 Без размера: ЛОНГ — XXX · XXX · XXX и ещё N; ШОРТ — XXX
-Ближе всего к пробою: ЛОНГ — XXX $X (+X.X%) · XXX $X (+X.X%); ШОРТ — XXX $X (−X.X%)
+**Ближе всего к пробою ЛОНГ** — вход при закрытии дня выше:
+XXX $X (+X.X%)
+**Ближе всего к пробою ШОРТ** — вход при закрытии дня ниже:
+XXX $X (−X.X%)
 
 # ТОП-3 ВНЕ СПИСКА — ЛОНГ
-**МОНЕТА · СРЕДНЯЯ СДЕЛКА [· ПОВЫШЕННЫЙ РИСК: причина]** — вход $X · стоп $X (−X.X%) · выход: закрытие дня ниже минимума N дней, сейчас $X · размер N МОНЕТА ($X) · плечо до N×. Почему: что это за проект[; событие или крупные игроки].
+**МОНЕТА · СРЕДНЯЯ СДЕЛКА [· ПОВЫШЕННЫЙ РИСК: причина]**
+Вход $X · Стоп $X (−X.X%)
+Выход: закрытие дня ниже минимума N дней, сейчас $X [— ниже стопа, первым сработает стоп]
+Размер N МОНЕТА ($X) · плечо до N×
+Почему: что это за проект[; событие или крупные игроки].
 
 # ТОП-3 ВНЕ СПИСКА — ШОРТ
-[same form, «выход: закрытие дня выше максимума N дней»]
+[the same lines, «Выход: закрытие дня выше максимума N дней»]
 [обе стороны в одном и том же состоянии без кандидатов → один заголовок «# ТОП-3 ВНЕ СПИСКА» и эта строка один раз]
 
 # КАТАЛИЗАТОРЫ
-УЖЕ БЫЛО СЕГОДНЯ — **ЧЧ:ММ — событие.** Реакция рынка: … Эффект: [ЛОНГ / ШОРТ / НЕТ ВЛИЯНИЯ] · [ВЫСОКОЕ / СРЕДНЕЕ / УСЛОВНОЕ]. Что меняет: …
-[ИДЁТ СЕЙЧАС / ВПЕРЕДИ СЕГОДНЯ / ДАЛЬШЕ] — **[ЧЧ:ММ Тбилиси / ЧЧ:ММ ET | ДД.ММ] · событие** [· НЕ ПОДТВЕРЖДЕНО]
+УЖЕ БЫЛО СЕГОДНЯ — **ЧЧ:ММ Тбилиси — событие.**
+Реакция рынка: … Эффект: [ЛОНГ / ШОРТ / НЕТ ВЛИЯНИЯ] · [ВЫСОКОЕ / СРЕДНЕЕ / УСЛОВНОЕ]. Что меняет: …
+[ИДЁТ СЕЙЧАС / ВПЕРЕДИ СЕГОДНЯ / ДАЛЬШЕ] — **[ЧЧ:ММ Тбилиси / ЧЧ:ММ ET | ДД.ММ ЧЧ:ММ Тбилиси | ДД.ММ] · событие** [· НЕ ПОДТВЕРЖДЕНО]
 **ВЕРДИКТ:** БЫЧИЙ / МЕДВЕЖИЙ / НЕЙТРАЛЬНЫЙ · [BTC / МОНЕТА] ≈ +X.X…+Y.Y% / ≈ −X.X…−Y.Y% / ≈ ±X.X% · ПАМП / ДАМП / БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ
 **МОЁ МНЕНИЕ:** одно предложение — самая вероятная реакция[; что сделать с монетой этого ответа или по какой цене она станет сделкой].
-ДАЛЬШЕ без влияния: ДД.ММ событие — почему ни одна сторона не двигается · … (до трёх)
+ДАЛЬШЕ без влияния:
+ДД.ММ [ЧЧ:ММ Тбилиси] · событие — почему ни одна сторона не двигается
+[до трёх строк, по одной на событие, ближайшее первым]
 
 Пункт впереди несёт вердикт и не несёт статуса: он прочитан у издателя в этом прогоне, а дата
 класса `reported` помечена НЕ ПОДТВЕРЖДЕНО (§6). Окно — 7 дней от замера плюс последние 24 часа
 с реакцией в снимке. Секция заканчивается строкой «Поиск не завершён.», если охота не завершилась (§2).
 
 # ИТОГ
-ЛОНГ: … · ШОРТ: … · ЖДАТЬ: XXX — закрытие выше $X · XXX — закрытие ниже $X · ВЫХОД: … · ИЗБЕГАТЬ: XXX · XXX до ДД.ММ
+ЛОНГ: …
+ШОРТ: …
+ЖДАТЬ:
+XXX — закрытие выше $X
+XXX — закрытие ниже $X
+ВЫХОД: …
+ИЗБЕГАТЬ: XXX · XXX до ДД.ММ
 
-# ПОТОКИ ETF — США, за ДД.ММ
-BTC ±$X млн · ETH ±$X млн [· SOL ±$X млн] [· XRP ±$X млн] [· BNB ±$X млн] (источник)
+# ПОТОКИ ETF — США, млн $ (источник)
+ДД.ММ · ДД.ММ · ДД.ММ
+BTC ±X · ±X · ±X
+ETH ±X · ±X · ±X
+[SOL ±X · ±X · ±X]
+[XRP ±X · ±X · ±X]
+[BNB ±X · ±X · ±X]
 
 # ПОЗИЦИИ
 BTC: крупные игроки Binance — набирают лонг / набирают шорт / без перекоса · толпа — в лонге / в шорте / без перекоса
@@ -311,7 +354,7 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   measured class nothing is `СИЛЬНАЯ`, and the one line «СИЛЬНЫХ СДЕЛОК НЕТ.» prints every time** — the honest
   state of the book: the engine has no trade its record lets it call strong (the owner's message of 16.10.2026).
 - **`# ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` carries the book's entries due today on the list that §4's budget funds**, in §2's
-  key order, each in the skeleton's lines: the header; the entry, the stop and the exit; the size; and a `Почему`
+  key order, each in the skeleton's lines: the header; the entry and the stop; the exit; the size; and a `Почему`
   only where a fact beyond the book's own rule bears on the trade — a dated event in the side's direction with its
   «Известно с …» clause, or the large players' class of the side (§16). The rule itself is no reason and is never
   printed as one (item 79). None → the single line **«СДЕЛОК СЕЙЧАС НЕТ.»** and nothing beside it — **joined to
@@ -354,8 +397,12 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   the header together make a dated claim, and nothing later in the run may revoke it, because nothing later in the
   run acquires a second price to revoke it with (§5, map inv. 57). The Boss enters there or better; the book's own
   fill is the forming day's open (§4), which the appendix records beside it.
-- **The `Выход` cell carries the close that ends the trade** — «Выход: закрытие дня ниже $X» for a long, «выше $X»
-  for a short — the book's `exit_level` at this freeze (§4). **There is no target:** the book's winners run until a
+- **The `Выход` line carries the rule that ends the trade and its level now** — «Выход: закрытие дня ниже минимума N
+  дней, сейчас $X» for a long, «выше максимума N дней» for a short, `N` the program's `EXIT_N` read by command (§4)
+  and `$X` the book's `exit_level` at this freeze — **and where that level lies beyond the stop, as it does on the day
+  a fresh entry fills, the line ends «— ниже стопа, первым сработает стоп» for a long and «— выше стопа, первым
+  сработает стоп» for a short:** a daily close beyond the channel cannot come before the stop has filled, and a level
+  printed bare reads as the nearer exit. **There is no target:** the book's winners run until a
   daily close beyond the channel takes them out, and the level moves with the channel every day the book stays in,
   which is why `СТРАТЕГИЯ — МОЙ СПИСОК` prints it again on every run the book still holds the coin (below).
 - **Every printed stop carries its distance from the entry in per cent** — `$6.832 (−12.7%)`,
@@ -370,8 +417,8 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   leverage only posts less margin, and a larger size on the same margin is a larger loss at the same stop; a row prints the quantity they produce, which
   differs on every row. A trade object the budget no longer covers is not published (below), and
   «Размер: резерв» is a `СОЗРЕВАЕТ` item's alone — an item is not a trade yet, and its size is read on
-  the day it arms. The size is the third line of an entry, its own line after «Станет сделкой» in a
-  `СОЗРЕВАЕТ` item, and a clause inside a `ТОП-3` line before «Почему».
+  the day it arms. The size is the line after `Выход` in an entry and in a `ТОП-3` object, and its own
+  line after «Станет сделкой» in a `СОЗРЕВАЕТ` item.
 - **The answer publishes the FUNDED book and nothing else** — the owner's request of 10.10.2026: a short list of
   the trades the engine is confident in. A trade object — a `ЛУЧШИЕ СДЕЛКИ` entry or a `ТОП-3` line — prints its
   levels only where §4's budget sized it and the sheriff left that size standing (§15): the trades this engine's own
@@ -393,27 +440,32 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   engine read and found small from one it never looked for; it is a size read beside a trade the
   cliff does not change, not a catalyst item, and carries no source mark (§8). A cliff at or above
   `UNLOCK_MATERIAL` never reaches this form: it has already closed the long (§6a).
-- **`# СТРАТЕГИЯ — МОЙ СПИСОК` is the book's state on the list, in four lines, each omitted when empty, and never
-  a table** (item 87); the heading prints wherever any of its lines does:
-  - «Выход сегодня (на открытии дня): XXX · XXX» — every list coin whose state is an exit due (§4): the book
-    closes it at today's open, and whoever holds it on the book's word closes it now;
-  - «Книга держит (выход — закрытие дня за уровнем): ЛОНГ — XXX $X · …; ШОРТ — XXX $X» — every other list coin
-    the book holds, in §2's key order, each with its `exit_level` and nothing else (§4), a side omitted where the
-    book holds none on it;
-  - «Без размера: …» — the list's entries left unfunded (above);
-  - «Ближе всего к пробою: ЛОНГ — XXX $X (+X.X%) · …; ШОРТ — XXX $X (−X.X%) · …» — at most three flat list coins
-    per side whose trigger on that side lies nearest the frozen price in units of the coin's own `atr20`, nearest
-    first, each with its trigger and its distance from the frozen price in per cent, or «(уже за уровнем)» in its
-    place where the price already stands beyond it and the day's close decides. A trigger a cliff closes (§6a) is left
-    out, and so is a coin that is a `СОЗРЕВАЕТ` item.
+- **`# СТРАТЕГИЯ — МОЙ СПИСОК` is the book's state on the list, one coin to a line under the line naming its group,
+  and never a table** (item 87); a group is omitted when empty, and the heading prints wherever any group does:
+  - «Выход сегодня (на открытии дня): XXX · XXX» — every list coin whose state is an exit due (§4), the names on one
+    line: the book closes it at today's open, and whoever holds it on the book's word closes it now;
+  - «**Книга держит ЛОНГ** — выход при закрытии дня ниже:» and «**Книга держит ШОРТ** — выход при закрытии дня
+    выше:», each followed by one line per list coin the book holds on that side — «XXX $X (−X.X%)», its `exit_level`
+    and that level's distance from the frozen price in per cent, or «(уже за уровнем)» in its place where the price
+    already stands beyond it and the day's close decides — **nearest exit first, in units of the coin's own `atr20`**:
+    the first line is the position the book is likeliest to close at the next open, and a hold printed without its
+    distance hides the one number that says so. Nothing else prints on a hold (§4);
+  - «Без размера: …» — the list's entries left unfunded (above), the names on one line;
+  - «**Ближе всего к пробою ЛОНГ** — вход при закрытии дня выше:» and «**Ближе всего к пробою ШОРТ** — вход при
+    закрытии дня ниже:», each followed by one line per flat list coin — «XXX $X (+X.X%)», its trigger on that side
+    and the trigger's distance from the frozen price in per cent, or «(уже за уровнем)» — at most three per side,
+    nearest first in units of the coin's own `atr20`, **and only a trigger the coin can reach inside the holding
+    window:** within `atr20 × √(7π/8)` of the frozen price — the coin's own one-sigma move over seven days, by the
+    range identity §4 sizes with. A trigger four ATRs away is not near whatever its rank, and printed here it would
+    carry a trade the week does not reach into `ЖДАТЬ`. A trigger a cliff closes (§6a) is left out, and so is a coin
+    that is a `СОЗРЕВАЕТ` item.
   **A list entry prints in `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС` where it is funded and in «Без размера:» where it is not, and in no
   other line of this section.** A coin absent from «Книга держит» is a coin the book does not hold, and a held coin
   is not offered to anyone who is not in it: a late entry is not the book's trade, and no
   record scores it (§4).
-- **A `ТОП-3` line carries its whole exit rule**, because the answer prints no outside-list hold on a later run:
-  «выход: закрытие дня ниже минимума N дней, сейчас $X» for a long and «выше максимума N дней» for a short, `N` the
-  program's `EXIT_N` read by command (§4) and `$X` the line's `exit_level`. The owner who takes it manages it by that
-  rule, which any chart's channel of N days draws for him.
+- **A `ТОП-3` object prints in the lines of `ЛУЧШИЕ СДЕЛКИ СЕЙЧАС`, its `Почему` always** (§3B), and its `Выход` line
+  is the whole of what the owner manages it by: the answer prints no outside-list hold on a later run, and the rule on
+  that line — which any chart's channel of N days draws for him — is what he follows after this one.
 - **ТОП-3 ВНЕ СПИСКА is mandatory to search and never mandatory to fill.** One
   genuine candidate beats three manufactured ones; zero genuine candidates prints
   «Нет достойных кандидатов.» in one line.
@@ -434,8 +486,8 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   printed, and two headings saying one thing are clutter, not coverage.
   **`СОЗРЕВАЕТ`'s «Нет достойных кандидатов.» carries its coverage**, and this is the owner's
   decision of 24.09.2026: «Проверено: список N · вне списка M · событий ≤7 дней K.» — the list
-  coins searched, the book rows the forward hunt tested and the dated events it found inside the
-  window (§6). A maturing section that prints «nothing» run after run while the alts move is
+  coins searched, the outside-list rows the forward hunt's reads were matched against — its forward rows searched
+  one by one (§15, §16) — and the dated events it found inside the window (§6). A maturing section that prints «nothing» run after run while the alts move is
   indistinguishable from a search that never ran, and three counts are the one form in which the
   two differ; they are coverage, not machinery, and they change with every run.
 - **`# КАТАЛИЗАТОРЫ` is the fourth mandatory search, and its incomplete state is printed.** Every
@@ -497,11 +549,13 @@ BTC: крупные игроки Binance — набирают лонг / наб�
 - **`ВПЕРЕДИ` and `ДАЛЬШЕ` carry dated events that have not happened, at the date the publisher
   gives THIS run** (§6); a date that moved prints at its new date and nothing says it moved, and a
   cancelled event has no date left.
-- **`# ПОТОКИ ETF` is one line, the owner's request of 16.10.2026: the net flows of the US spot ETFs on
-  the newest US trading day the provider has published**, per asset — BTC and ETH, and SOL, XRP and BNB
-  where the hunt's `ETF` line carries them — in millions of dollars with their sign, the trading day in
-  the heading and the provider the publication names in brackets: «# ПОТОКИ ETF — США, за 14.10» ·
-  «BTC +$X млн · ETH −$X млн · SOL +$X млн (SoSoValue)». **Every figure is the hunt's, read as §16
+- **`# ПОТОКИ ETF` carries the net flows of the US spot ETFs on the three newest US trading days the provider's record
+  carries — the owner's requests of 16.10 and 24.10.2026** — one line per asset: the heading names the provider, the
+  line under it the trading days newest first, and each asset's line its figures in that order, in millions of dollars
+  with their sign and `—` on a day the asset has none — «# ПОТОКИ ETF — США, млн $ (SoSoValue)» · «ДД.ММ · ДД.ММ ·
+  ДД.ММ» · «BTC −X · +X · +X». BTC and ETH, and SOL, XRP and BNB where the hunt's `ETF` line carries them. **One
+  session prints alone where the record carries one or the search stood in** (§16 step D): a single figure is the last
+  session's money, and three are the way it has been moving. **Every figure is the hunt's, read as §16
   reads it**, and the section is omitted where the hunt reports `ETF none` — no figure from memory, from
   an earlier run or from a headline stands in, and nothing says the read failed (§1). **It is context,
   never a signal:** a flow is the last session's money, what institutions did and not what BTC does next;
@@ -542,7 +596,7 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   level is a shorter walk, not a direction, and the touch probability of a level 0.6 % away is near one
   on any day. It names the scenario this run's evidence favours: where the frozen price stands in the
   map — inside a zone, on a support, under a resistance — how BTC reached it inside the last 24 hours, a
-  print BTC answered (`УЖЕ БЫЛО СЕГОДНЯ`, below), the classes `# ПОЗИЦИИ` prints and the ETF day; where
+  print BTC answered (`УЖЕ БЫЛО СЕГОДНЯ`, below), the classes `# ПОЗИЦИИ` prints and the ETF days; where
   these do not point one way the word is `НЕЙТРАЛЬНЫЙ` and the sentence names the cancel price whose
   break decides. The appendix names the facts the word rests on (§12). **Measured 15.10, 18:40
   Tbilisi:** the regime line printed «$80 909 (−0.6% · 90% за 7 дней)», the sentence read it as
@@ -564,7 +618,10 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   on a coin the engine offers nothing on is a headline about someone else's position.
 - **КАТАЛИЗАТОРЫ: 3–5 items, each tied to an action and placed relative to the
   analysis moment** — уже было сегодня / идёт сейчас / впереди сегодня / дальше.
-  Same-day items carry a clock time, later items a date. **The window is the holding window —
+  **Every item carries its date and its clock time in Tbilisi wherever its publisher gives one**, the date being
+  Tbilisi's where the time is — the owner's request of 24.10.2026: «28.10» is a day, and a decision at 22:00 Tbilisi
+  is an evening he plans around; a same-day item adds its ET time. **Each item takes its own lines, and each clause
+  of «ДАЛЬШЕ без влияния» its own line under that label**, nearest date first. **The window is the holding window —
   seven days from the freeze — plus the last 24 hours** (§6); an event further out waits in the
   horizon store and does not print, however large. An event that moves no side and binds
   nothing of this answer is not a catalyst item, it is news; an event with no time
@@ -588,11 +645,12 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   `НЕЙТРАЛЬНЫЙ` item binding
   nothing stands as one clause under «ДАЛЬШЕ без влияния». **«РЕАКЦИЯ» names the instrument the event
   acts on** — BTC for a print, a proceeding or anything else naming no coin, the coin for its own event
-  — **and its per cent is measured, never chosen** (§4): the instrument's own move on the dated
-  instances of that kind of event inside the last year, or on an ordinary day where the kind has too
-  few, signed by the word. «ОЖИДАЕМОЕ ДВИЖЕНИЕ» is arithmetic on the same numbers — `ПАМП` or `ДАМП`
-  where the event moves the instrument more than an ordinary day does, `БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ` where it
-  does not — and never a second opinion. **The word is the engine's own call**, made last, from
+  — **and its per cent is measured, never chosen** (§4): the instrument's own move over the two days
+  that hold each dated instance of that kind of event inside the last year — from the close before its UTC
+  day to the close after it — or over its ordinary two days where the kind has too few, signed by the word.
+  «ОЖИДАЕМОЕ ДВИЖЕНИЕ» is arithmetic on the same numbers — `ПАМП` or `ДАМП` where the event moves the
+  instrument more than its ordinary two days do, `БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ` where it does not — and never a
+  second opinion. **The word is the engine's own call**, made last, from
   everything this run measured and read (§1) — for a coin's event its age and the move since it among
   them (§4), because a catalyst the market has held for a year is not a week on its side — and never a
   published call adopted (§6). **A verdict is a view and has the standing of one:** it prints no
@@ -616,8 +674,8 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   was the printed value on nearly every item for a week, and the conditional form that followed it —
   «ЖДАТЬ · ШОРТ при отказе» — is retired with it: the owner asked on 07.10.2026 for the engine's
   expectation, so the word names the outcome this run finds more likely, and `НЕЙТРАЛЬНЫЙ` stands only
-  where neither outcome is AND the event moves its instrument no more than an ordinary day (§4) — a «no
-  view» on an event that moves the market more than a day does is the hedge §1 bans. The strength is
+  where neither outcome is AND the event moves its instrument no more than its ordinary two days (§4) — a
+  «no view» on an event that moves the market more than ordinary days do is the hedge §1 bans. The strength is
   classified on every item and logged (item 56).
 - **`МОЁ МНЕНИЕ` names a reaction and an action, never a mood.** Its one sentence says how the market
   most likely reacts and, where the event bears on a coin of this answer or on a coin with no row,
@@ -678,15 +736,17 @@ BTC: крупные игроки Binance — набирают лонг / наб�
   `short-history` (§4) is a limit of this run's read, not a finding about the coin, and printed as `ИЗБЕГАТЬ` it would
   tell the Boss to avoid a coin because the engine cannot see it: the appendix names the coin and the error, and the
   answer carries nothing for it.
-- **ИТОГ is one line of five fields and the last line of the BOOK.** The sections after it are
+- **ИТОГ is five lines, one field each in the skeleton's order, and the last lines of the BOOK.** The sections after
+  it are
   `# ПОТОКИ ETF`, `# ПОЗИЦИИ` and `# BTC` — «# BTC — МОЙ ВЕРДИКТ», where the owner asked for his BTC
   verdict on 07.10.2026 and for its map, the flows and the positions on 16.10.2026 — and nothing
   follows `# BTC`: no state block, no commentary, no stage report. **All five fields are printed on every run; an
-  empty one reads `нет`.** A dropped field is indistinguishable from a forgotten one, and this is the line the Boss
+  empty one reads `нет`.** A dropped field is indistinguishable from a forgotten one, and these are the lines the Boss
   acts on — «ЖДАТЬ: нет» is one word and says something, while a missing `ЖДАТЬ:` says nothing twice. **`ЛОНГ` and
   `ШОРТ` carry the funded entries' names**, the list's and `ТОП-3`'s, in the answer's order.
-- **The `ЖДАТЬ` field of `ИТОГ` carries the trigger beside every name**, in the form «NEAR — закрытие выше 2.95» —
-  `СОЗРЕВАЕТ` triggers first, in their section's order, then the names of «Ближе всего к пробою», in that line's
+- **The `ЖДАТЬ` field of `ИТОГ` carries the trigger beside every name, one name to a line under «ЖДАТЬ:»**, in the
+  form «NEAR — закрытие выше 2.95» —
+  `СОЗРЕВАЕТ` triggers first, in their section's order, then the names of «Ближе всего к пробою», in that group's
   order, a name in both once. «ЖДАТЬ» alone is a violation, and a name with no trigger leaves the field. **A collective
   is not a name:** «весь список» never stands in the field. **`ВЫХОД` carries «Выход сегодня»'s names** (above).
   **`ИЗБЕГАТЬ` is the one field that carries no price**: it is a prohibition, and its backing is the reason this run
@@ -875,8 +935,8 @@ no book object prints:** `# СИЛЬНЫЕ СДЕЛКИ` prints «Поиск н�
   the appendix names it.
 - **A hold is the book's own position and is never a new entry.** Whoever entered on the book's word manages it by
   its exit; a late entry is not the book's trade, and no record scores it. **A hold prints today's `exit_level` and
-  nothing else** — no entry date, entry price or stop (§0): the level is this run's computation, the rest was fixed
-  on another day. A stop the forming day has touched is the exchange's to fill and the next run's to show.
+  its distance from the frozen price, and nothing else** — no entry date, entry price or stop (§0): the level and its
+  distance are this run's computation, the rest was fixed on another day. A stop the forming day has touched is the exchange's to fill and the next run's to show.
 - **A trigger's stop is an estimate** — `long_stop` and `short_stop` sit `STOP_ATR` ATRs from the trigger at today's ATR,
   while the real stop is fixed at the fill from the signal day's — so it prints «стоп ≈ $X».
 - **A coin's side is the book's, and one coin carries one side** (map inv. 30): the book holds at most one position
@@ -935,28 +995,34 @@ scores the book and the published book apart (map §10).
   ```
   day        |close / previous close − 1| of one closed UTC day
   ordinary   the median of `day` over the thirty closed days before the freeze — the instrument's
-             ordinary day, on the window production's 30-day extremes use
-  class      `day` of the UTC day containing each dated instance of the event's own kind inside the
-             365 days before the freeze — the same print, the same body's meeting or minutes, the same
-             coin's cliffs on the unlock lane's row (§6a); with fewer than four instances, the fewest a
-             quartile has, `ordinary`'s thirty days stand in
+             ordinary day, on the window production's 30-day extremes use; §2's reaction test reads it
+  two-day    |close / close two days earlier − 1| of one closed UTC day; its median and upper quartile
+             over the same thirty days are the instrument's ordinary two days — BTC's 24–48-hour scale
+  class      `two-day` of the UTC day after each dated instance of the event's own kind inside the
+             365 days before the freeze — from the close before the instance's UTC day to the close
+             after it; the same print, the same body's meeting or minutes, the same coin's cliffs on the
+             unlock lane's row (§6a); an instance whose day after has not closed is not counted; with
+             fewer than four instances, the fewest a quartile has, `two-day`'s thirty days stand in
   range      the median and the upper quartile of `class` — the value at rank ⌈0.75 n⌉ of the sorted
              values — in per cent, one decimal
-  two-day    BTC's verdict alone: |close / close two days earlier − 1| over the thirty closed days, its
-             median and upper quartile — the 24–48-hour scale
   ```
 
-  The word signs the range — «≈ +a…+b%» БЫЧИЙ, «≈ −a…−b%» МЕДВЕЖИЙ, «≈ ±a%» НЕЙТРАЛЬНЫЙ. **`ПАМП` or
-  `ДАМП`, by the word's sign, exactly where the class median exceeds the ordinary median**, and
-  `БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ` otherwise — always where `ordinary` stood in, because a kind of event with no
-  measured history has shown nothing beyond an ordinary day. **An instance's date backs no level**, so
-  any dated record may set it, the publisher's own archive first, and the appendix lists the dates used.
-  **No constant is introduced** — thirty days is production's own window, a year a recurring print's own
-  calendar, four the fewest values a quartile has — **and no threshold:** the one comparison is between
-  two medians the run measured. A request that returns no row leaves the verdict at its word and its
-  sentence, and no other figure stands in. **This measures SIZE and never direction:** the scale says how
-  far the instrument usually travels on such a day, the word alone says which way this run expects, and
-  that is why the word is what gets scored (§12).
+  **The window holds the reaction, not the date.** A decision announced at 18:00 UTC leaves six hours of its own UTC
+  day, and the market answers it overnight: on the decision day alone the Federal Reserve's eight meetings of the year
+  before 24.10.2026 moved BTC 0.74 % at the median against an ordinary day's 0.76 %, and from the close before each to
+  the close after it 2.69 % against an ordinary two days' 1.11 % — the meeting of 28.01.2026 moved it 0.07 % on its
+  own day and 5.22 % on the next. The word signs the range — «≈ +a…+b%» БЫЧИЙ, «≈ −a…−b%» МЕДВЕЖИЙ, «≈ ±a%»
+  НЕЙТРАЛЬНЫЙ. **`ПАМП` or `ДАМП`, by the word's sign, exactly where the class median exceeds `two-day`'s median**,
+  and `БЕЗ ЗНАЧИМОГО ДВИЖЕНИЯ` otherwise — always where `two-day` stood in, because a kind of event with no measured
+  history has shown nothing beyond ordinary days. **An instance's date backs no level**, so any dated record may set
+  it, the publisher's own archive first — **and where the publisher's page lists only dates ahead, one search for the
+  kind's dates over the year stands in before `two-day` does** — and the appendix lists the dates used. **No constant
+  is introduced** — thirty days is production's own window, a year a recurring print's own calendar, four the fewest
+  values a quartile has, and two days the span that holds a reaction at any minute of its UTC day — **and no
+  threshold:** the one comparison is between two medians the run measured on the same span. A request that returns
+  no row leaves the verdict at its word and its sentence, and no other figure stands in. **This measures SIZE and
+  never direction:** the scale says how far the instrument usually travels across such an event, the word alone says
+  which way this run expects, and that is why the word is what gets scored (§12).
 - **The BTC map is COMPUTED, never drawn** — the owner's request of 16.10.2026 (§2 `# BTC`). One request
   beside the verdict's daily klines, on the same host and in the same form —
   `https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=4h&limit=181`, its last row the forming
@@ -1284,9 +1350,9 @@ for (item 98), and no source this file names can move it earlier.
 
 **6 · Signals, flows, positioning.** Funding, open interest, liquidation structure,
 ETF flows, dominance: current at the analysis moment or absent from the answer.
-**ETF flows are the newest US trading day the provider has published, read by the hunter from the provider's
-record (§16)** and printed in `# ПОТОКИ ETF`, and the positioning classes print in `# ПОЗИЦИИ` (§2): that session
-is the current reading of a daily flow, and nothing older stands in for it.
+**ETF flows are the three newest US trading days the provider has published, read by the hunter from the
+provider's record (§16)** and printed in `# ПОТОКИ ETF`, and the positioning classes print in `# ПОЗИЦИИ` (§2): the
+newest session is the current reading of a daily flow, the two before it its direction, and nothing older stands in.
 **Funding, open interest and mark price arrive INSIDE the payload** — every row of
 `analyst/live.json` carries `fr`, `oi` and `mark` beside the price — so positioning is a
 read of a file already open, not a fetch, and it costs nothing. Open interest rising
@@ -2440,8 +2506,9 @@ way.**
     in this answer, or it is computed to the log instead (§12), and no clause of a `Почему` is true of every row by the
     book's own rule — a breakout stands behind every entry and is no reason. A run printing the same value on every
     row fails this item whatever the value is.
-80. **Every section is ordered by §2's key** — grade, then the larger 24-hour turnover of the coin's payload row —
-    and the log records the turnover per object beside the order it produced; §4's budget spends in that order.
+80. **Every section's objects are ordered by §2's key** — grade, then the larger 24-hour turnover of the coin's
+    payload row — and the log records the turnover per object beside the order it produced; §4's budget spends in
+    that order. `СТРАТЕГИЯ`'s holds and triggers by their own distance, nearest first in `atr20` units (§2).
 81. **RETIRED at `2026-09-28-a` by the owner's decision of 24.09.2026** — the first line carries nothing about an
     earlier answer (§2, item 64).
 82. **RETIRED at `2026-10-16-a`** — the own-move line carries no concentration clause: the book funds one
@@ -2460,10 +2527,10 @@ way.**
     closed list or by the sheriff** — the levels are the program's, so a «no» no rule carries is an objection the
     appendix records with its fact, for the Architect, and the sheriff decides the trade reading cold (§15, §17).
     **Corrected in place at `2026-10-21-a`:** the run removed rows on its own judgement until the trade left the model.
-87. **`# СТРАТЕГИЯ — МОЙ СПИСОК` is published as §2's lines — «Выход сегодня», «Книга держит», «Без размера»,
-    «Ближе всего к пробою» — and never as a pipe table.** A Markdown table in this section fails this item whatever it
-    contains: six columns of price levels do not fit an iPhone, and the Boss read the section sideways for as long as
-    it existed.
+87. **`# СТРАТЕГИЯ — МОЙ СПИСОК` is published as §2's groups — «Выход сегодня», «Книга держит», «Без размера»,
+    «Ближе всего к пробою» — one coin to a line under each priced group, every hold with its distance and no trigger
+    beyond its reach, and never as a pipe table.** A Markdown table in this section fails this item whatever it
+    contains, and so does a line carrying several priced coins: neither is read on an iPhone without turning it.
 88. **RETIRED at `2026-10-21-a`** — as item 77.
 89. **Every state change SHIPPED in the last 24 hours — read at its publisher, on the coin's own
     channel or through this run's search — and every partnership naming the coin, each with its
@@ -2587,9 +2654,9 @@ way.**
     word, the instrument the event acts on, the range signed by the word, the movement word, and one
     sentence — `# BTC` with the BTC map's lines, each price from §4's computation, and a word that rests on
     no distance and no touch probability; and the appendix carries per verdict the klines request, the class and the dates of its
-    instances or that `ordinary` stood in, the two medians and the upper quartile, the coin's age and
+    instances or that `two-day` stood in, the two medians and the upper quartile, the coin's age and
     move since the event where the event is a coin's, and the scoring line of §12. A per cent with no
-    request behind it, a `ПАМП` or `ДАМП` where the class median does not exceed the ordinary one, a
+    request behind it, a `ПАМП` or `ДАМП` where the class median does not exceed the `two-day` one, a
     `НЕЙТРАЛЬНЫЙ` on an event whose class median does, a probability beside a verdict, a factor list in
     `МОЁ МНЕНИЕ`, a row added, a grade, size or label RAISED, or a level, side or status moved on a
     verdict each fail this item; a verdict taking away, as §2 lets it, is no failure.
@@ -2624,8 +2691,8 @@ way.**
     spent again, and a sheriff's `FINDING` applied each fail this item.
 
 115. **RETIRED at `2026-10-21-a`** — no object carries a BTC condition (§2).
-116. **`# ПОТОКИ ETF` prints exactly the hunt's `ETF` line** (§2, §16) — the trading day, each asset's
-    figure with its sign, and the provider — and is omitted on `ETF none`. A figure the line does not carry,
+116. **`# ПОТОКИ ETF` prints exactly the hunt's `ETF` line** (§2, §16) — the trading days, each asset's figures
+    with their signs in the days' order, and the provider — and is omitted on `ETF none`. A figure the line does not carry,
     a day or a provider changed, and a flow standing in any other section each fail this item.
 117. **`# ПОЗИЦИИ` prints exactly this run's positioning read** (§2, §16) — BTC's two classes, the list's
     crowd counts over the coins of `c` read, and at most three names a side of the large players' class in
@@ -2654,7 +2721,7 @@ way.**
 |---|---|
 | Direction | ЛОНГ / ШОРТ / СДЕЛОК НЕТ |
 | Status | ЖДАТЬ — a trigger «закрытие выше / ниже $X» · ВЫХОД — the book's exit today · ИЗБЕГАТЬ (§2) |
-| Book (§2) | «Выход: закрытие дня ниже / выше $X» · «Выход сегодня (на открытии дня)» · «Книга держит (выход — закрытие дня за уровнем)» · «Ближе всего к пробою» · «стоп ≈ $X» on a trigger |
+| Book (§2) | «Выход: закрытие дня ниже минимума / выше максимума N дней, сейчас $X» and, where that level lies beyond the stop, «— ниже / выше стопа, первым сработает стоп» · «Выход сегодня (на открытии дня)» · «Книга держит ЛОНГ / ШОРТ — выход при закрытии дня ниже / выше:» · «Ближе всего к пробою ЛОНГ / ШОРТ — вход при закрытии дня выше / ниже:» · «(уже за уровнем)» · «стоп ≈ $X» on a trigger |
 | Prohibition class | `XXX` — вход · `XXX до ДД.ММ` — событие (§2) |
 | Catalyst source mark | НЕ ПОДТВЕРЖДЕНО — only on a `reported` date in `# КАТАЛИЗАТОРЫ` (§6); a row's unlock suffix carries none (§2); no status word exists |
 | Unlock on an object | `· разлок ДД.ММ (X.X%)` — the end of its first line (§2) |
@@ -2921,6 +2988,9 @@ whether the PREVIOUS run's commit is on main, and where it is if not
 every command that read analyst/live.json, with the row count it returned
 the book's two commands verbatim with every line they printed, and the outside-list rows they were run on
   with the market-capitalisation read's request and count (§3B, §4)
+the hunter's prompt as sent — its book rows, outside rows and forward rows, each forward row with its trigger and
+  its distance in `atr20` units (§15); per hold and per printed trigger the frozen price, the level and its distance
+  in per cent and in `atr20` units (§2)
 per published object its book line, the frozen price, the book's fill and the forming day's extreme
   read against its stop, with the request (§4)
 every book state not published as the program printed it, and the rule that acted (item 120)
@@ -2942,7 +3012,7 @@ the BTC map (§4): the four-hour request, every level with its kind, w, every zo
   in-zone, the cancel prices and the corridor; the facts the word of # BTC rests on (§2)
 every dated print of the last 24 hours: the hourly request and BTC's travel against ordinary (item 118)
 (H) the ETF read (§16): the record's command and what it printed, or why it did not stand and then the
-  queries and the hits read; per asset the figure, its trading day, its provider, the host and the
+  queries and the hits read; per asset the figures and their trading days, its provider, the host and the
   publication time — or none
 what analyst/state.json held at step 3, per key; every horizon entry deleted or added; the
   v1 migration counts where it ran (§11)
@@ -2956,9 +3026,10 @@ what analyst/state.json held at step 3, per key; every horizon entry deleted or 
   publishDate, the minute its body gives or that it gives none, its class and where it went; and
   every listing or delivery date of such a symbol inside the window
 every verdict (§2, §4): the instrument, the klines request, the class and its instances' dates or
-  that ordinary stood in, the class and ordinary medians and the upper quartile, the word, and for a
+  that `two-day` stood in, the class and `two-day` medians and the upper quartile, the word, and for a
   coin's event its age and move since — then one scoring line per verdict, on one line, in this form
-  (the reference is the frozen price and the freeze minute for 48h, the event's UTC day otherwise):
+  (the reference is the frozen price and the freeze minute for 48h, the event's UTC day otherwise — scored
+  from the close before it to the close after it):
   VERDICT|<instrument>|<event and its UTC day, or 48h>|<word>|<lo %>|<hi %>|<movement word>|<reference>
 every trade object: d, vol_h, lStruct, the cap that bound, L, and the stop's distance beside liqPrice at L (§4, item 111)
 (H) the hunt in §5 step 5's order: each step, completed or not, and the step the run stopped in
@@ -3033,7 +3104,7 @@ reasons above. The run's one commit is the trader's (`EXECUTOR-INSTRUCTIONS.md` 
   level, date, size. Evidence numbers stay internal.
 - Tables where they aid scanning on a phone; never for two rows.
 - No progress reporting, no tool narration, no plan announcements, no stage reports.
-  The chat is a delivery interface; `ИТОГ` is the book's last line and `# BTC — МОЙ ВЕРДИКТ` closes the answer.
+  The chat is a delivery interface; `ИТОГ` closes the book and `# BTC — МОЙ ВЕРДИКТ` closes the answer.
 
 **Decision authority.** The analyst decides direction, levels, ranking and what is
 published. **Never ask the Boss to decide** anything analytical. Three things may be
@@ -3096,7 +3167,11 @@ trader's next step starts when it does.
    from that file. At step 4 it runs the book's two commands (§4) — the outside-list rows from §3B's filters
    1, 2 and 4 and the one market-capitalisation read — and the outside-list rows the book prints an entry due
    for, whose forming day has not reached their stop and whose stop passes item 111's liquidation test, are the
-   hunter's book rows, per lane, in turnover order. The trader fixes the run's stem — `YYYY-MM-DD`, or
+   hunter's book rows, per lane, in turnover order. **Every outside-list row the book read is one of its outside
+   rows**, in turnover order, and **those whose state is flat and whose trigger on a side lies within the coin's reach
+   (§2) are its forward rows on that side** — at most three per side, nearest first in units of the coin's own
+   `atr20`: the outside-list coins the forward hunt searches one by one, because an outside-list coin becomes a
+   `СОЗРЕВАЕТ` item only at its book trigger (§3B, §4). The trader fixes the run's stem — `YYYY-MM-DD`, or
    `YYYY-MM-DD-N` where that date's log exists (§12) — by listing `analyst/log/`, which opens no log.
 2. **The hunter.** One Agent call, `subagent_type` `general-purpose`, `model` `sonnet` — where the tool
    offers no model parameter it runs on the session's model, and the appendix says which — **in the
@@ -3110,6 +3185,9 @@ trader's next step starts when it does.
    List coins: <every symbol of c, BTC included, in c's order>
    Book rows, long lane: <the lane's rows that passed step 4's tests, in turnover order, or none>
    Book rows, short lane: <the same for the short lane, or none>
+   Outside rows: <every outside-list row the book read, in turnover order, or none>
+   Forward rows, long lane: <the outside rows whose long trigger lies within reach, nearest first, at most three, or none>
+   Forward rows, short lane: <the same for the short trigger, or none>
    Return the HUNT REPORT of that section as your final message.
    ```
 
@@ -3130,9 +3208,9 @@ trader's next step starts when it does.
    91, 99 and 104 against the file and never against the report alone: where the two disagree, the file
    decides and the appendix names the disagreement.
    **The trader's own reads are these, and no other read of the hunt's is the trader's:** the book's two
-   commands and each entry's forming-day read (§4); item 109's
-   first-announcement search and klines for a published object; each verdict's klines (§4); the BTC map's
-   four-hour klines (§4); the hourly klines from a dated print's hour, for its reaction (§2); §3B's
+   commands and each entry's forming-day read (§4); item 109's first-announcement search and klines for a
+   published object; each verdict's klines (§4) and, where a print's publisher lists only dates ahead, the one
+   search for its past dates (§4); the BTC map's four-hour klines (§4); the hourly klines from a dated print's hour, for its reaction (§2); §3B's
    filter-3 lookup of a book row the hunter's `BOOK` lines do not reach; and §6a's unlock search for a book
    long whose read the hunter left `refused` or `not covered` without one.
 4. **§7, then item 86** — the trader's own question about its own money, asked of the book it composed.
@@ -3159,7 +3237,7 @@ run computed or printed and nothing else:
 
 ```
 HEAD | market <word> | BTC <frozen price> | verdict <НАПРАВЛЕНИЕ> <ОЖИДАЕМОЕ ДВИЖЕНИЕ> |
-     list crowd short <n>/<m> · crowd long <n>/<m> | etf BTC <±$m M or —> | book holds long <n> · short <n> |
+     list crowd short <n>/<m> · crowd long <n>/<m> | etf BTC <±$m M per day, newest first, or —> | book holds long <n> · short <n> |
      risk long <spent>/<max> · short <spent>/<max> · book <spent>/<max> USDT
 T<n> | <section> | <COIN> <ЛОНГ|ШОРТ> <ВХОД|СОЗРЕВАЕТ> <СИЛЬНАЯ|СРЕДНЯЯ> | entry <frozen price | trigger> |
      book fill <open|—> | stop <price> (<±d%>)[ ≈] | exit <close below|close above> <price|—> |
@@ -3241,9 +3319,16 @@ never opened** (§5), on the frozen payload the trader read: no read of yours is
 
 **What you do, in this order — a step starts only when the one before it is complete:**
 
-- **A — the catalyst hunt:** §5 step 5's nine steps in their order, under §6 and §6a unchanged. Its coins
-  are the list coins and the book rows of your prompt; its book coins for the unlock lane are those rows
-  and every coin a hit dates a cliff for, looked up as §6a says. **Every horizon entry you add or re-read
+- **A — the catalyst hunt:** §5 step 5's nine steps in their order, under §6 and §6a unchanged. Its coins are
+  the list coins and the book rows of your prompt; its book coins for the unlock lane are those rows, the
+  forward rows and every coin a hit dates a cliff for, looked up as §6a says. **A hit of steps 2 and 7 on an
+  outside row of your prompt is a hit on a book coin** — its event, date and side go to `ITEMS` and `FORWARD` as
+  a list coin's do, it is never set aside as outside the book, and the rows so matched are your `COVERAGE`
+  line's `outside` count — and **each forward row gets one discovery search of its own in step 7, after §6's
+  book searches**, in the form §6 gives a list coin's and its hits followed to the publisher. **A central bank's
+  rate decision inside the window names, in its `ITEMS` sentence, the outcome the market prices** — a hold, or a
+  cut or a hike and its size — as one search «<bank> <decision date> rate decision expectations» finds a dated
+  publication stating it, `reported`, or «priced outcome not found». **Every horizon entry you add or re-read
   carries `cls` and `t`** (§11).
 - **B — the positioning read** (below), for every list coin, every book row of your prompt and every book
   coin a `FORWARD` line of A names.
@@ -3254,20 +3339,22 @@ never opened** (§5), on the frozen payload the trader read: no read of yours is
   `refused` or `not covered` §6a's one search naming its project and «token unlock», for a long. Stop a lane
   when three of its rows have passed filter 3 with an unlock read or that search behind them, or when its
   rows run out.
-- **D — the ETF read.** The net flows of the US spot ETFs on the newest US trading day the provider has
+- **D — the ETF read.** The net flows of the US spot ETFs on the three newest US trading days the provider has
   published, per asset. **The record first:** `/var/lib/crypto-auto/etf.json`, written hourly on this machine
   from SoSoValue's own API by `vps/etf.py` (map §10), read by this one command and never opened whole:
 
   ```
-  python3 -c 'import json;d=json.load(open("/var/lib/crypto-auto/etf.json"));print(d["k"],d["ts"],d["provider"],d["host"],d["refused"]);[print(t,e["date"],e["net"],e["rows"]) for t,e in d["types"].items()]'
+  python3 -c 'import json;d=json.load(open("/var/lib/crypto-auto/etf.json"));print(d["k"],d["ts"],d["provider"],d["host"],d["refused"]);[print(t,e["date"],e["net"],e["rows"],json.dumps(e.get("days"))) for t,e in d["types"].items()]'
   ```
 
   **It stands where the command prints, `k` reads `etf`, `ts` lies at most two hours before the freeze and
   `us-btc-spot` carries a date at most four days before the freeze's UTC date** — two hours is two hourly reads
-  missed, four days a weekend and a US holiday after a Friday session. Then the trading day is that date; BTC,
-  ETH and SOL are the `net` of `us-btc-spot`, `us-eth-spot` and `us-sol-spot` in USD millions to one decimal, an
-  asset the record refused or dated otherwise reading `—`, and XRP and BNB `—`; the provider is the record's
-  `provider`, `src` its `host` and `published` its `ts`. **Only where the record does not stand** — absent,
+  missed, four days a weekend and a US holiday after a Friday session. Then the trading days are the dates of
+  `us-btc-spot`'s `days`, newest first — its `date` alone where its `days` prints `null` — and BTC, ETH and SOL on
+  each of them are the `net` that `us-btc-spot`, `us-eth-spot` and `us-sol-spot` carry for that date in their own
+  `days` (or `date`), in USD millions to one decimal, `—` on a date a type carries none and on a type the record
+  refused, and XRP and BNB `—`; the provider is the record's `provider`, `src` its `host` and `published` its
+  `ts`. **Only where the record does not stand** — absent,
   unreadable or stale, the reason in the hunt record — does the search below stand in, on the last US trading
   day that closed before the freeze, per asset — BTC and ETH, and SOL, XRP and BNB where the publication carries
   them. **The providers'
@@ -3384,10 +3471,11 @@ VECTORS     <id> | <confirmed | refuted | open> | <host>
 POSITIONING read <n> · unread <n>: <SYM …> · large long: <SYM …> · large short: <SYM …> ·
             crowd long: <SYM …> · crowd short: <SYM …> — every coin read and in no class is none
 BOOK        <long|short> | <SYM> | <project> | filter 3 <pass | refused: the lookup> | unlock <status> | large <class>
-ETF         <YYYY-MM-DD trading day> | BTC <±m> | ETH <±m> | SOL <±m|—> | XRP <±m|—> | BNB <±m|—> | provider <name> |
+ETF         <YYYY-MM-DD trading days, newest first, comma-separated> | BTC <±m per day, in that order, comma-separated> |
+            ETH <…> | SOL <…|—> | XRP <…|—> | BNB <…|—> | provider <name> |
             src <host> | published <ISO> — USD millions, the record's or as the publication states them;
             or: none | record <why it did not stand> | q1 «…» | q2 «…»
-COVERAGE    list <n> · book <m> · events ≤7d <k>
+COVERAGE    list <n> · outside <m> · events ≤7d <k>
 INCOMPLETE  <yes: the lane, coin or search short | no>
 CHECKS      15 <ok | fail: … | н/п: …> · 22 … · … · 105 …
 PROPOSALS   <catalysts.json proposals | none>
