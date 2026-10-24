@@ -2,7 +2,7 @@
  "v": 2,
  "k": "state",
  "d": "2026-10-24",
- "ts": "2026-10-24T07:59:57Z",
+ "ts": "2026-10-24T14:18:05Z",
  "horizon": [
   {
    "id": "unlock-avax-2026-10-24",
@@ -143,16 +143,6 @@
    "t": "14:39"
   },
   {
-   "id": "cat-xrp-etf-wisdomtree-2026-10-24",
-   "sym": "XRP",
-   "e": "SEC: предполагаемый срок решения по спотовым XRP ETF (WisdomTree и др.) ~24.10",
-   "d": "2026-10-24",
-   "dclass": "none",
-   "src": "decrypt.co / etf.com (агрегаторы); SEC.gov/Cboe BZX подача не прочитана · повторное чтение 24.10: WebFetch sec.gov/files/rules/sro/cboebzx/2025/34-103771.pdf вновь вернул нечитаемый PDF (бинарный/сжатый); поиск нашёл только исходный Release 34-103124 (запуск 240-дневного обзора), не 34-103771 («длительный период») — несоответствие номеров релизов названо для Architect; dclass остаётся none",
-   "cls": "A",
-   "t": null
-  },
-  {
    "id": "unlock-ondo-2027-01-17",
    "sym": "ONDO",
    "e": "Разлок ONDO 1 710 101 379.64 (Ecosystem Growth, Protocol Development, Private Sales) 17.01.2027 17:25Z — 35.12% обращающегося предложения",
@@ -185,128 +175,128 @@
  ],
  "oi": {
   "BTC": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 93041.638
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 94776.5
   },
   "SUI": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 107906203.2
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 106423349.9
   },
   "ONDO": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 119120408.3
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 120715617.7
   },
   "LINK": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 7905610.31
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 8005514.87
   },
   "RENDER": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 7057552.9
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 6901327.6
   },
   "NEAR": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 53266363.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 56143800.0
   },
   "YFI": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 1038.263
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 1025.455
   },
   "AAVE": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 372185.3
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 383809.1
   },
   "AVAX": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 10031847.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 10037847.0
   },
   "FET": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 139421763.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 138152940.0
   },
   "ENA": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 488991083.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 494573389.0
   },
   "TAO": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 252515.823
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 252186.555
   },
   "GRAM": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 18012753.5
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 17844233.9
   },
   "XRP": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 313092945.4
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 311880945.2
   },
   "ADA": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 330696396.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 333569560.0
   },
   "TRX": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 255144511.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 253932423.0
   },
   "SOL": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 8645263.72
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 8759248.69
   },
   "BCH": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 280990.581
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 282239.136
   },
   "HYPE": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 4218361.01
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 4271157.91
   },
   "SKY": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 245956269.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 245440703.0
   },
   "ETH": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 2319337.885
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 2323275.201
   },
   "HBAR": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 428725638.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 427329443.0
   },
   "XLM": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 207365562.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 209821874.0
   },
   "ALGO": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 81557391.5
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 82521346.9
   },
   "BNB": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 543966.07
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 542741.86
   },
   "ZEC": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 424684.377
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 428031.475
   },
   "UNI": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 21808931.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 21899694.0
   },
   "XMR": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 101352.013
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 101187.329
   },
   "LIT": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 16256917.4
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 16361031.8
   },
   "MORPHO": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 6157572.0
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 6109136.7
   },
   "ARB": {
-   "ts": "2026-10-24T07:58:48Z",
-   "oi": 279145406.7
+   "ts": "2026-10-24T14:16:34+00:00",
+   "oi": 276526176.5
   }
  },
  "sweeps": {
@@ -317,7 +307,7 @@
     "host": "/var/lib/crypto-auto/announcements.jsonl",
     "n": 87,
     "from": "2026-10-05T02:00:01.573Z",
-    "ts": "2026-10-24T07:59:57Z",
+    "ts": "2026-10-24T14:18:05Z",
     "note": "87 строк; whole-word скан по всем 31 символам списка — хиты только промо/турнирные/новые bStock-листинговые (не наши символы) на BTC BNB SOL ETH NEAR SUI ENA XRP ZEC; три Removal/Delisting-строки прочитаны по телу: WAL/BNB-пара 23.10 (BNB — котируемый актив, не делистинг BNB), PTBUSDT/MITOUSDT-перпы делистинг 23.10 (не наши символы), Alpha-removals (не наши). Никакого материального листинга/делистинга/нового контракта на символе списка."
    },
    "macro-cb": {
@@ -380,7 +370,7 @@
     "sec6_md5": "d924d29faa3a2c7c0b5519d8e1f5fc45",
     "host": "fapi.binance.com/fapi/v1/exchangeInfo",
     "n": 931,
-    "ts": "2026-10-24T07:59:57Z",
+    "ts": "2026-10-24T14:18:05Z",
     "note": "все 31 символ списка TRADING, deliveryDate плейсхолдер у всех. Книга этого прогона пуста."
    }
   },
@@ -1198,7 +1188,7 @@
    },
    "LINK": {
     "d": "2026-10-24",
-    "q": "Chainlink LINK crypto news upgrade listing ETF governance late October 2026",
+    "q": "Chainlink LINK crypto news unlock upgrade listing ETF governance late October 2026",
     "n": 0
    },
    "RENDER": {
@@ -1224,11 +1214,11 @@
    "AVAX": {
     "d": "2026-10-24",
     "q": "Avalanche AVAX crypto news unlock upgrade listing ETF governance late October 2026",
-    "n": 0
+    "n": 1
    },
    "ETH": {
     "d": "2026-10-24",
-    "q": "Ethereum ETH crypto news upgrade mainnet listing ETF governance late October 2026",
+    "q": "Ethereum ETH crypto news upgrade mainnet fork listing ETF governance late October 2026",
     "n": 0
    },
    "SOL": {
@@ -1238,37 +1228,37 @@
    },
    "XRP": {
     "d": "2026-10-24",
-    "q": "Ripple XRP crypto news unlock listing ETF court regulator decision late October 2026",
-    "n": 0
+    "q": "XRP Ripple crypto news court regulator ETF listing late October 2026",
+    "n": 1
    },
    "BNB": {
     "d": "2026-10-24",
-    "q": "BNB Binance Coin crypto news burn listing ETF governance late October 2026",
+    "q": "BNB Chain crypto news upgrade listing ETF governance late October 2026",
     "n": 0
    },
    "ZEC": {
     "d": "2026-10-24",
-    "q": "Zcash ZEC crypto news upgrade mainnet NU7 listing ETF governance late October 2026",
-    "n": 0
+    "q": "Zcash ZEC crypto news NU7 upgrade mainnet listing governance late October 2026",
+    "n": 1
    },
    "TAO": {
     "d": "2026-10-24",
     "q": "Bittensor TAO crypto news unlock upgrade listing ETF governance late October 2026",
-    "n": 0
+    "n": 1
    },
    "GRAM": {
     "d": "2026-10-24",
-    "q": "TON The Open Network GRAM crypto news unlock upgrade listing ETF governance late October 2026",
-    "n": 0
+    "q": "Toncoin TON GRAM crypto news unlock upgrade listing ETF governance late October 2026",
+    "n": 1
    },
    "ADA": {
     "d": "2026-10-24",
-    "q": "Cardano ADA crypto news upgrade listing ETF governance late October 2026",
-    "n": 0
+    "q": "Cardano ADA crypto news upgrade governance listing ETF late October 2026",
+    "n": 1
    },
    "TRX": {
     "d": "2026-10-24",
-    "q": "Tron TRX crypto news upgrade listing ETF governance late October 2026",
+    "q": "TRON TRX crypto news upgrade listing ETF governance late October 2026",
     "n": 0
    },
    "BCH": {
@@ -1278,12 +1268,12 @@
    },
    "LIT": {
     "d": "2026-10-24",
-    "q": "Lighter LIT crypto news unlock upgrade listing ETF governance late October 2026",
+    "q": "Lighter LIT crypto exchange news unlock upgrade listing governance late October 2026",
     "n": 0
    },
    "UNI": {
     "d": "2026-10-24",
-    "q": "Uniswap UNI crypto news unlock upgrade listing ETF governance vote late October 2026",
+    "q": "Uniswap UNI crypto news governance vote listing ETF late October 2026",
     "n": 0
    },
    "HBAR": {
@@ -1303,22 +1293,22 @@
    },
    "XMR": {
     "d": "2026-10-24",
-    "q": "Monero XMR crypto news exchange delisting ETF governance late October 2026",
+    "q": "Monero XMR crypto news upgrade listing regulator late October 2026",
     "n": 0
    },
    "MORPHO": {
     "d": "2026-10-24",
-    "q": "Morpho MORPHO crypto news unlock upgrade listing ETF governance late October 2026",
+    "q": "Morpho crypto news unlock upgrade listing governance late October 2026",
     "n": 0
    },
    "ARB": {
     "d": "2026-10-24",
-    "q": "Arbitrum ARB crypto news unlock upgrade listing ETF governance late October 2026",
+    "q": "Arbitrum ARB crypto news unlock upgrade listing governance late October 2026",
     "n": 0
    },
    "FET": {
     "d": "2026-10-24",
-    "q": "Fetch.ai FET crypto news unlock upgrade listing ETF governance late October 2026",
+    "q": "Fetch.ai FET ASI Alliance crypto news unlock upgrade listing ETF governance late October 2026",
     "n": 0
    },
    "ENA": {
@@ -1328,42 +1318,42 @@
    },
    "book|unlocks": {
     "d": "2026-10-24",
-    "q": "crypto token unlock calendar next 7 days October 24 31 2026",
+    "q": "Binance perpetual futures token unlock next 7 days late October 2026",
     "n": 0
    },
    "book|upgrades": {
     "d": "2026-10-24",
-    "q": "crypto mainnet upgrade hard fork this week late October 2026",
+    "q": "crypto mainnet upgrade hard fork scheduled late October 2026",
     "n": 0
    },
    "book|listings": {
     "d": "2026-10-24",
-    "q": "crypto exchange new listing delisting announcement late October 2026 Coinbase Kraken OKX",
-    "n": 0
+    "q": "crypto token listing delisting Coinbase Kraken Upbit late October 2026",
+    "n": 1
    },
    "book|governance": {
     "d": "2026-10-24",
     "q": "crypto governance vote tokenomics change proposal late October 2026",
-    "n": 0
+    "n": 1
    },
    "sys|legislation": {
     "d": "2026-10-24",
-    "q": "SEC CFTC crypto legislation calendar hearing late October 2026",
+    "q": "US crypto legislation SEC CFTC calendar vote hearing deadline week of October 24 2026",
     "n": 0
    },
    "sys|etf": {
     "d": "2026-10-24",
-    "q": "crypto ETF decision date deadline late October 2026",
-    "n": 0
+    "q": "crypto ETF decision date SEC calendar late October early November 2026",
+    "n": 1
    },
    "sys|macro": {
     "d": "2026-10-24",
-    "q": "FOMC macro calendar CPI jobs report week October 27 2026",
-    "n": 1
+    "q": "macro central bank calendar October 27 28 29 30 31 2026 FOMC GDP PCE",
+    "n": 2
    },
    "sys|venues": {
     "d": "2026-10-24",
-    "q": "Binance Coinbase Kraken policy change announcement late October 2026",
+    "q": "crypto exchange policy change listing delisting announcement October 2026 Coinbase Kraken OKX",
     "n": 0
    },
    "mover|OGN": {
@@ -1515,18 +1505,38 @@
     "d": "2026-10-24",
     "q": "$IN token crypto Inference Labs OR Internet OR Inferix Binance",
     "n": 0
+   },
+   "BTC": {
+    "d": "2026-10-24",
+    "q": "Bitcoin BTC crypto news unlock upgrade listing ETF governance regulator decision late October 2026",
+    "n": 0
+   },
+   "DOGE": {
+    "d": "2026-10-24",
+    "q": "Dogecoin DOGE crypto news unlock upgrade listing ETF governance late October 2026",
+    "n": 0
+   },
+   "SHIB": {
+    "d": "2026-10-24",
+    "q": "Shiba Inu SHIB crypto news upgrade listing ETF governance late October 2026",
+    "n": 0
+   },
+   "POL": {
+    "d": "2026-10-24",
+    "q": "Polygon POL crypto news unlock upgrade listing ETF governance late October 2026",
+    "n": 0
    }
   }
  },
  "regime": {
-  "ts": "2026-10-24T07:59:57Z",
+  "ts": "2026-10-24T14:18:05Z",
   "word": "ДИАПАЗОН",
-  "btc": 80665.1,
+  "btc": 80255.5,
   "bull": 86050.58,
   "bear": 79324.98,
   "hot": 89180.27,
   "cold": 73578.68,
-  "cond_dn": 80622.0,
-  "cond_up": 81146.4
+  "cond_dn": 79732.3,
+  "cond_up": 80404.6
  }
 }
