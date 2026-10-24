@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
-TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's,
-TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's and TZ-69's changed and new ones, each printing
+TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's,
+TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's, TZ-69's and TZ-71's changed and new ones, each printing
 `section <X>: checks <n> failed <m>`, then the total.
 
     python3 vps/selftest.py
@@ -2178,12 +2178,70 @@ def section_y(s):
     s.check("the manifest does not list crypto-etf.service", "crypto-etf.service" not in listed)
 
 
+# --- Z: TZ-71's code spans, fenced blocks, quotes and folding quotes ---------------------
+Z_INPUT = ("Price `$1.231` \u00b7 **stop** `$1.3593`\n"
+           "```\n"
+           "BTC  -635.5  +528.4\n"
+           "ETH  -110.5   +15.0\n"
+           "```\n"
+           "> first **bold** line\n"
+           "> second `code`\n"
+           ">> folded 1\n"
+           ">> folded 2\n"
+           "R&D <x> ` one backtick\n"
+           "```\n"
+           "unclosed")
+Z_EXPECTED = ("Price <code>$1.231</code> \u00b7 <b>stop</b> <code>$1.3593</code>\n"
+              "<pre>BTC  -635.5  +528.4\nETH  -110.5   +15.0</pre>\n"
+              "<blockquote>first <b>bold</b> line\nsecond code</blockquote>\n"
+              "<blockquote expandable>folded 1\nfolded 2</blockquote>\n"
+              "R&amp;D &lt;x&gt; ` one backtick\n"
+              "```\n"
+              "unclosed")
+
+
+def section_z(s):
+    got = "\n".join(bot.convert(Z_INPUT))
+    s.check("the expected block, byte for byte", got.encode("utf-8") == Z_EXPECTED.encode("utf-8"))
+    got_lines, want_lines = got.split("\n"), Z_EXPECTED.split("\n")
+    s.check("line count", len(got_lines) == len(want_lines))
+    for k, want in enumerate(want_lines):
+        s.check("line %d" % (k + 1), k < len(got_lines) and got_lines[k] == want)
+    s.check("section D's input converts as before", "\n".join(bot.convert(D_INPUT)) == D_EXPECTED)
+    s.check("an empty fenced block prints nothing", bot.convert("a\n```\n```\nb") == ["a", "b"])
+    s.check("a fenced block's plain fallback is its own lines",
+            bot.chunk("```\nx y\n```")[0] == ("<pre>x y</pre>", "x y"))
+    limit = 4000
+    quote = "\n".join("> %03d " % k + "q" * 80 for k in range(120))
+    chunks = bot.chunk(quote, limit)
+    s.check("a quote longer than the limit splits into several", len(chunks) >= 2)
+    s.check("every piece opens and closes its own quote",
+            all(c[0].startswith("<blockquote>") and c[0].endswith("</blockquote>")
+                and c[0].count("<blockquote>") == 1 for c in chunks))
+    s.check("every piece within the limit", all(bot.visible_len(c[0]) <= limit for c in chunks))
+    s.check("no quote line lost or reordered",
+            "\n".join(c[1] for c in chunks) == "\n".join("%03d " % k + "q" * 80 for k in range(120)))
+    fold = "\n".join(">> %02d " % k + "f" * 60 for k in range(20))
+    chunks = bot.chunk(fold, limit)
+    s.check("a folding quote within the limit is one unit",
+            len(chunks) == 1 and chunks[0][0].startswith("<blockquote expandable>")
+            and chunks[0][0].count("</blockquote>") == 1)
+    s.check("a quote's visible length counts its text alone",
+            bot.visible_len(bot.quote_block(["ab", "cd"], "fold")) == 5)
+    s.check("a quote carries no code span -- Telegram nests none inside one",
+            bot.convert("> `x` and **y**") == ["<blockquote>x and <b>y</b></blockquote>"])
+    mixed = "> one\n>> two\n> three"
+    s.check("a change of kind starts a new quote",
+            bot.convert(mixed) == ["<blockquote>one</blockquote>", "<blockquote expandable>two</blockquote>",
+                                   "<blockquote>three</blockquote>"])
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
             ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x),
-            ("Y", section_y))
+            ("Y", section_y), ("Z", section_z))
 
 
 def main():

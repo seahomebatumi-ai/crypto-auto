@@ -40,9 +40,12 @@ DEAD_SUFFIX = ".dead"                 # TZ-55 B3: outbox_files() never lists it;
 STOP_WORDS = ("stop", "/stop", "\u0441\u0442\u043e\u043f")   # TZ-60 §12.6
 
 
-# --- TZ-54 §12.3: conversion ---------------------------------------------------
+# --- TZ-54 §12.3: conversion; TZ-71 adds code spans, fenced blocks and quotes -----
 _HEADER = re.compile(r"^#{1,6} (.+)$")
 _BOLD = re.compile(r"\*\*(.+?)\*\*")
+_CODE = re.compile(r"`([^`]+)`")    # TZ-71: a code span -- Telegram copies its text on a tap
+FENCE = "```"                       # TZ-71: a fenced block, its lines verbatim in one <pre>
+QUOTE, FOLD = "> ", ">> "           # TZ-71: a quote, and a quote that opens on a tap
 
 
 def _escape(text):
@@ -53,16 +56,44 @@ def _is_table(line):
     return line.lstrip(" \t").startswith("|")
 
 
+def _quote_kind(line):
+    """'fold' for a line opening with FOLD, 'quote' for one opening with QUOTE, None otherwise."""
+    if line.startswith(FOLD):
+        return "fold"
+    if line.startswith(QUOTE):
+        return "quote"
+    return None
+
+
+def _inline(escaped):
+    """Code spans first, their text kept as it stands; bold in the text between them. Telegram
+    nests no entity inside a code span, so a bold span never crosses one."""
+    out, pos = [], 0
+    for m in _CODE.finditer(escaped):
+        out.append(_BOLD.sub(r"<b>\1</b>", escaped[pos:m.start()]))
+        out.append("<code>" + m.group(1) + "</code>")
+        pos = m.end()
+    out.append(_BOLD.sub(r"<b>\1</b>", escaped[pos:]))
+    return "".join(out)
+
+
 def convert_line(line):
     escaped = _escape(line)
     head = _HEADER.match(escaped)
     if head:
         return "<b>" + head.group(1).replace("**", "") + "</b>"
-    return _BOLD.sub(r"<b>\1</b>", escaped)
+    return _inline(escaped)
 
 
 def pre_block(lines):
     return "<pre>" + "\n".join(_escape(line) for line in lines) + "</pre>"
+
+
+def quote_block(lines, kind):
+    """One quote of lines whose marker is already removed. Telegram nests no code span inside a
+    quote, so a span keeps its text and loses its backticks; bold converts as on a plain line."""
+    tag = "<blockquote expandable>" if kind == "fold" else "<blockquote>"
+    return tag + "\n".join(_BOLD.sub(r"<b>\1</b>", _CODE.sub(r"\1", _escape(line))) for line in lines) + "</blockquote>"
 
 
 def visible_len(unit_html):
@@ -76,31 +107,54 @@ def convert(text):
     return [html_ for html_, _ in _units(text.split("\n"), None)]
 
 
+def _block(out, block, render, limit):
+    """One block as one unit, or, where it is longer than the limit, split at its own line breaks
+    with every piece rendered whole -- a tag is never left open across two chunks."""
+    if limit is None or visible_len(render(block)) <= limit:
+        out.append((render(block), "\n".join(block)))
+        return
+    group = []
+    for line in block:
+        for piece in _cut(line, limit):
+            if group and visible_len(render(group + [piece])) > limit:
+                out.append((render(group), "\n".join(group)))
+                group = []
+            group.append(piece)
+    if group:
+        out.append((render(group), "\n".join(group)))
+
+
 def _units(lines, limit):
-    """Units in order: a maximal run of table lines is one <pre> block, every
-    other line is one unit. With a limit, a <pre> block longer than it is split
-    at its own line breaks, and a longer plain line is cut in its source text
-    before conversion. Each unit is (html, source)."""
+    """Units in order: a fenced block's lines are one <pre> block (TZ-71), a maximal run of table
+    lines is one <pre> block, a maximal run of quote lines of one kind is one quote (TZ-71), and
+    every other line is one unit. With a limit, a block longer than it is split at its own line
+    breaks, and a longer plain line is cut in its source text before conversion. A fence with no
+    closing fence is a plain line. Each unit is (html, source)."""
     out = []
     i = 0
     while i < len(lines):
+        if lines[i].rstrip().startswith(FENCE):
+            close = next((k for k in range(i + 1, len(lines)) if lines[k].strip() == FENCE), None)
+            if close is not None:
+                if close > i + 1:
+                    _block(out, lines[i + 1:close], pre_block, limit)
+                i = close + 1
+                continue
         if _is_table(lines[i]):
             j = i
             while j < len(lines) and _is_table(lines[j]):
                 j += 1
-            block = lines[i:j]
-            if limit is None or visible_len(pre_block(block)) <= limit:
-                out.append((pre_block(block), "\n".join(block)))
-            else:
-                group = []
-                for line in block:
-                    for piece in _cut(line, limit):
-                        if group and visible_len(pre_block(group + [piece])) > limit:
-                            out.append((pre_block(group), "\n".join(group)))
-                            group = []
-                        group.append(piece)
-                if group:
-                    out.append((pre_block(group), "\n".join(group)))
+            _block(out, lines[i:j], pre_block, limit)
+            i = j
+            continue
+        kind = _quote_kind(lines[i])
+        if kind:
+            marker = FOLD if kind == "fold" else QUOTE
+            j = i
+            while j < len(lines) and _quote_kind(lines[j]) == kind:
+                j += 1
+            _block(out, [line[len(marker):] for line in lines[i:j]],
+                   lambda block, k=kind: quote_block(block, k), limit)
             i = j
             continue
         line = lines[i]
