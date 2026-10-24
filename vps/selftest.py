@@ -2037,6 +2037,27 @@ def section_y(s):
                                              y_row("2026-10-18", 3)]})
     s.check("a later date whose net is absent, NaN or whose date is not YYYY-MM-DD is passed over",
             skipped["date"] == "2026-10-18" and skipped["net"] == 3.0 and skipped["rows"] == 5)
+    s.check("ETF_DAYS is 3", etf.ETF_DAYS == 3)
+    four = [y_row("2026-10-20", "125.5"), y_row("2026-10-19", "-40"), y_row("2026-10-17", "7"),
+            y_row("2026-10-16", "9")]
+    want = [{"date": "2026-10-20", "net": 125.5}, {"date": "2026-10-19", "net": -40.0},
+            {"date": "2026-10-17", "net": 7.0}]
+    s.check("days from four rows newest-first: the three greatest dates, newest first, each with its net",
+            etf.entry({"code": 0, "data": four})["days"] == want)
+    s.check("days from the same four rows oldest-first: the same three, newest first",
+            etf.entry({"code": 0, "data": list(reversed(four))})["days"] == want)
+    s.check("days passes over a date not YYYY-MM-DD, an absent net and a NaN net: valid rows only, newest first",
+            skipped["days"] == [{"date": "2026-10-18", "net": 3.0}, {"date": "2026-10-16", "net": 7.0}])
+    s.check("days from two valid rows holds two entries",
+            etf.entry({"code": 0, "data": four[:2]})["days"] == want[:2])
+    s.check("days from one valid row holds one entry",
+            etf.entry({"code": 0, "data": four[:1]})["days"] == want[:1])
+    twice = etf.entry({"code": 0, "data": [y_row("2026-10-20", "1"), y_row("2026-10-20", "2"),
+                                           y_row("2026-10-19", "5")]})
+    s.check("a date given twice with two nets: one entry for it, carrying the first one's net",
+            twice["days"] == [{"date": "2026-10-20", "net": 1.0}, {"date": "2026-10-19", "net": 5.0}])
+    s.check("a date given twice: days[0] equals the entry's date and net",
+            twice["days"][0] == {"date": twice["date"], "net": twice["net"]})
     tmp = tempfile.mkdtemp(prefix="vps-selftest-y.")
     try:
         # Each refusal of the closed vocabulary from its own stubbed answer; none read.
@@ -2090,9 +2111,16 @@ def section_y(s):
         s.check("record ts is ISO-8601 Z", re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", record["ts"]) is not None)
         s.check("types holds the one type read, refused the two others",
                 list(record["types"]) == [btc] and record["refused"] == {eth: "HTTP 429", sol: "no row"})
+        read_entry = dict(record["types"][btc])
+        read_days = read_entry.pop("days", None)
         s.check("the type's entry: date, net, traded, assets, cum, rows cast, an absent field null",
-                record["types"][btc] == {"date": "2026-10-20", "net": 125.5, "traded": 1000.5, "assets": None,
-                                         "cum": -300.0, "rows": 3})
+                read_entry == {"date": "2026-10-20", "net": 125.5, "traded": 1000.5, "assets": None,
+                               "cum": -300.0, "rows": 3})
+        s.check("the written record's entry carries days: three sessions, newest first, each with its net",
+                read_days == [{"date": "2026-10-20", "net": 125.5}, {"date": "2026-10-17", "net": -40.0},
+                              {"date": "2026-10-16", "net": 7.0}])
+        s.check("the written record's days[0] equals that entry's date and net",
+                bool(read_days) and read_days[0] == {"date": read_entry["date"], "net": read_entry["net"]})
         s.check("the record's mode is 0640", os.stat(out).st_mode & 0o7777 == 0o640)
         s.check("three requests, one per type, in TYPES order",
                 [json.loads(req.data.decode("utf-8")) for req, _ in calls] == [{"type": t} for t in etf.TYPES])

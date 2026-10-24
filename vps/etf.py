@@ -33,6 +33,8 @@ URL = "https://" + HOST + "/openapi/v2/etf/historicalInflowChart"
 TYPES = ("us-btc-spot", "us-eth-spot", "us-sol-spot")
 # Derived: the Architect's reading of 16.10.2026, where one call timed out at 25 s and answered within 40 s.
 ETF_TIMEOUT_S = 40
+# Derived: the owner's request of 24.10.2026 — the three newest US sessions.
+ETF_DAYS = 3
 OUT = common.STATE_DIR + "/etf.json"
 # The record's field for each of the answer's fields, in the record's order.
 FIELDS = (("net", "totalNetInflow"), ("traded", "totalValueTraded"), ("assets", "totalNetAssets"),
@@ -72,6 +74,21 @@ def newest(data):
     return best
 
 
+def recent(data, n):
+    """The n newest sessions newest() could choose, one per date (the first in data's order
+    where a date repeats), newest first, each {"date", "net"}."""
+    seen = {}
+    for row in data:
+        if not isinstance(row, dict):
+            continue
+        date = row.get("date")
+        net = finite(row.get("totalNetInflow"))
+        if not isinstance(date, str) or not _DATE.fullmatch(date) or net is None:
+            continue
+        seen.setdefault(date, net)
+    return [{"date": d, "net": seen[d]} for d in sorted(seen, reverse=True)[:n]]
+
+
 def entry(answer):
     """The record's entry for one parsed answer, or Refused."""
     if not isinstance(answer, dict):
@@ -89,6 +106,7 @@ def entry(answer):
     for name, field in FIELDS:
         out[name] = finite(row.get(field))
     out["rows"] = len(data)
+    out["days"] = recent(data, ETF_DAYS)
     return out
 
 
