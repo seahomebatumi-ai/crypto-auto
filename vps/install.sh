@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 #
-# vps/install.sh — installs the VPS assistant from the checkout it sits in (TZ-54 B9, TZ-55 B5, TZ-64 B3).
+# vps/install.sh — installs the VPS assistant from the checkout it sits in (TZ-54 B9, TZ-55 B5, TZ-64 B3,
+# TZ-72 B1).
 #
 #   install.sh              called by the deployer from /srv/crypto-auto: selftest, provision,
-#                           verify, install units, enable the manifest, disable the rest
+#                           the run's own CLI, verify, install units, enable the manifest,
+#                           disable the rest
 #   install.sh --bootstrap  once, from the TZ-54 branch: users, directories, clone,
 #                           deploy.sh, crypto-deploy.service and .timer, the timer enabled
 #   install.sh --provision  users, groups, directories, the run's and the paper test's own
@@ -35,6 +37,12 @@ RUN_CLONE="$RUN_HOME/crypto-auto"
 RUN_FETCH=https://github.com/seahomebatumi-ai/crypto-auto.git
 PAPER_HOME=/var/lib/cryptopaper
 ROOT_KNOWN_HOSTS=/root/.ssh/known_hosts
+# TZ-72: the run's own Claude Code -- npm's linux-x64 build at this version, whose one file must hash to this
+# SHA-256 -- installed by this script and by nothing else, at $LIBEXEC/claude-code/$CLI_VERSION/claude
+# (contract §7 item 15). vps/run.py names the same version; selftest section AA holds the two equal.
+CLI_VERSION=2.1.308
+CLI_SHA256=356733f185fa988e6bf3aa9a555269fdd167982a2e2a80d3c8a78037bb92ad58
+CLI_URL="https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-$CLI_VERSION.tgz"
 
 mode="${1-}"
 case "$mode" in
@@ -167,6 +175,53 @@ copy_deploy() {
     mv -f -- "$LIBEXEC/.deploy.sh.new" "$LIBEXEC/deploy.sh"
 }
 
+# TZ-72: true when the pinned CLI is in place and hashes to the pin.
+cli_in_place() {
+    local cli="$LIBEXEC/claude-code/$CLI_VERSION/claude"
+    [ -f "$cli" ] && [ "$(sha256sum -- "$cli" | cut -d ' ' -f 1)" = "$CLI_SHA256" ]
+}
+
+# TZ-72: the pinned CLI put in place. A file at its path that does not hash to the pin is removed first, so
+# no run starts it; the package is fetched into a directory beside the target, its one file is checked
+# against the pin, and only a file that passed is renamed into place -- then every other version goes.
+# Every step is checked where it stands: the caller's `if` switches `set -e` off inside this function.
+install_cli() {
+    local base="$LIBEXEC/claude-code" dir="$LIBEXEC/claude-code/$CLI_VERSION" tmp got old
+    if cli_in_place; then
+        return 0
+    fi
+    rm -f -- "$dir/claude"
+    if ! install -d -m 0755 -- "$dir" || ! tmp="$(mktemp -d "$base/.fetch.XXXXXX")"; then
+        say "claude-code $CLI_VERSION: no directory under $base"
+        return 1
+    fi
+    if ! curl -fsS --max-time 900 -o "$tmp/cli.tgz" "$CLI_URL" \
+        || ! tar --no-same-owner -xzf "$tmp/cli.tgz" -C "$tmp" package/claude; then
+        rm -rf -- "$tmp"
+        say "claude-code $CLI_VERSION not fetched"
+        return 1
+    fi
+    got="$(sha256sum -- "$tmp/package/claude" | cut -d ' ' -f 1)"
+    if [ "$got" != "$CLI_SHA256" ]; then
+        rm -rf -- "$tmp"
+        say "claude-code $CLI_VERSION refused: sha256 $got, pinned $CLI_SHA256"
+        return 1
+    fi
+    if ! chmod 0755 -- "$tmp/package/claude" || ! mv -f -- "$tmp/package/claude" "$dir/claude"; then
+        rm -rf -- "$tmp"
+        say "claude-code $CLI_VERSION not placed"
+        return 1
+    fi
+    rm -rf -- "$tmp"
+    for old in "$base"/*; do
+        if [ "$old" != "$dir" ]; then
+            rm -rf -- "$old"
+            say "removed $old"
+        fi
+    done
+    say "claude-code $CLI_VERSION installed"
+}
+
 installable() { grep -q '^\[Install\]' "$UNITS/$1"; }
 
 listed_units() { grep -v -E '^[[:space:]]*(#|$)' "$MANIFEST"; }
@@ -215,6 +270,11 @@ if [ "$mode" = "--dry-run" ]; then
         if installable "$u" && ! is_listed "$u"; then say "would disable --now $u"; fi
     done
     for u in "${listed[@]}"; do case "$u" in *.service) say "would restart $u" ;; esac; done
+    if cli_in_place; then
+        say "claude-code $CLI_VERSION in place"
+    else
+        say "would install claude-code $CLI_VERSION to $LIBEXEC/claude-code/$CLI_VERSION/claude"
+    fi
     say "would copy vps/deploy.sh to $LIBEXEC/deploy.sh"
     if is_listed crypto-run.path; then say "would create $RUNS_ENABLED"; else say "would remove $RUNS_ENABLED"; fi
     exit 0
@@ -229,6 +289,10 @@ provision_user
 provision_dirs
 provision_run_clone
 provision_paper_clone
+if ! install_cli; then
+    say "claude-code not in place, nothing installed"
+    exit 1
+fi
 if ! systemd-analyze verify "$UNITS"/*; then
     say "systemd-analyze verify red, nothing installed"
     exit 1
