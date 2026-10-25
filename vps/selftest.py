@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
-TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2): the sections of TZ-54 §12.14 with TZ-55 §12.7's, TZ-56 §12.6's,
-TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's, TZ-69's and TZ-71's changed and new ones, each printing
+TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
+TZ-56 §12.6's, TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's, TZ-69's, TZ-71's and
+TZ-72's changed and new ones, each printing
 `section <X>: checks <n> failed <m>`, then the total.
 
     python3 vps/selftest.py
@@ -12,14 +13,17 @@ Offline: every fixture is built here or read from the checkout this file sits in
 import array
 import contextlib
 import copy
+import hashlib
 import io
 import json
 import os
 import re
+import shlex
 import shutil
 import signal
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import tracemalloc
@@ -558,6 +562,12 @@ def o_fixtures(tmp, stub_claude, planted):
     return paths, tree, _git(tree, "push", "-q", "origin", "main")
 
 
+def stub_cli(paths):
+    """run.CLAUDE with the fixtures' stub at its head: since TZ-72 the run names its CLI by an absolute path,
+    never through PATH."""
+    return [os.path.join(paths["bin"], "claude")] + run.CLAUDE[1:]
+
+
 def section_o(s):
     cmd = run.CLAUDE
     s.check("run.CLAUDE carries --model immediately followed by claude-opus-5-5",
@@ -566,11 +576,11 @@ def section_o(s):
             any(cmd[i] == "--effort" and cmd[i + 1] == "high" for i in range(len(cmd) - 1)))
     s.check("no element of run.CLAUDE equals opus", "opus" not in cmd)
     # TZ-66: each alias a subagent call can name is pinned to one full id.
-    s.check("run.PINS resolves sonnet to claude-sonnet-5",
-            run.PINS.get("ANTHROPIC_DEFAULT_SONNET_MODEL") == "claude-sonnet-5")
+    s.check("run.PINS resolves sonnet to claude-sonnet-5-5",
+            run.PINS.get("ANTHROPIC_DEFAULT_SONNET_MODEL") == "claude-sonnet-5-5")
     s.check("run.PINS resolves opus to run.MODEL", run.PINS.get("ANTHROPIC_DEFAULT_OPUS_MODEL") == run.MODEL)
-    s.check("run.PINS resolves haiku to claude-haiku-4-5-20251001",
-            run.PINS.get("ANTHROPIC_DEFAULT_HAIKU_MODEL") == "claude-haiku-4-5-20251001")
+    s.check("run.PINS resolves haiku to claude-haiku-5-5",
+            run.PINS.get("ANTHROPIC_DEFAULT_HAIKU_MODEL") == "claude-haiku-5-5")
     tmp = tempfile.mkdtemp(prefix="vps-selftest-o.")
     env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", run.LOGIN_ENV,
                 "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW", "SELFTEST_O_RESULT",
@@ -578,7 +588,7 @@ def section_o(s):
     saved_env = {k: os.environ.get(k) for k in env_keys}
     patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (run, "WRITER"), (run, "own_memory_max"),
                (run, "own_swap_max"), (run, "mem_available"), (run, "swap_free"), (run, "ADMISSION_POLL_S"),
-               (run, "ADMISSION_MAX_S")]
+               (run, "ADMISSION_MAX_S"), (run, "CLAUDE")]
     saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
     saved_term = signal.getsignal(signal.SIGTERM)
     try:
@@ -599,10 +609,11 @@ def section_o(s):
                            "ANTHROPIC_DEFAULT_OPUS_MODEL": "selftest-decoy-opus",
                            "ANTHROPIC_DEFAULT_SONNET_MODEL": "selftest-decoy-sonnet",
                            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "selftest-decoy-haiku",
-                           "SELFTEST_O_MODELS": json.dumps({"claude-opus-5-5": {}, "claude-sonnet-5": {},
+                           "SELFTEST_O_MODELS": json.dumps({"claude-opus-5-5": {}, "claude-sonnet-5-5": {},
                                                             "claude-haiku-selftest": {}})})
         common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
         run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+        run.CLAUDE = stub_cli(paths)
         run.own_memory_max = run.own_swap_max = lambda: None
         with contextlib.redirect_stdout(io.StringIO()) as out:
             code = run.main(["--tree", tree])
@@ -629,7 +640,7 @@ def section_o(s):
         second = [l for l in summary.splitlines() if l.startswith("crypto-run: models=")]
         s.check("the second summary line names every id used, then the one outside run.PINS",
                 len(second) == 1 and second[0].startswith(
-                    "crypto-run: models=claude-haiku-selftest,claude-opus-5-5,claude-sonnet-5 "
+                    "crypto-run: models=claude-haiku-selftest,claude-opus-5-5,claude-sonnet-5-5 "
                     "unpinned=claude-haiku-selftest denied_tools="))
         # TZ-56 §12.4: the third summary line carries the stub's usage and cost.
         third = [l for l in summary.splitlines() if l.startswith("crypto-run: memory_max=")]
@@ -988,7 +999,7 @@ def section_s(s):
         env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", "SELFTEST_O_WRITER_SAW")
         saved_env = {k: os.environ.get(k) for k in env_keys}
         patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (common, "STOP_ACTIVE"), (run, "WRITER"),
-                   (run, "own_memory_max"), (run, "own_swap_max")]
+                   (run, "own_memory_max"), (run, "own_swap_max"), (run, "CLAUDE")]
         saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
         saved_term = signal.getsignal(signal.SIGTERM)
         label = "SIGTERM with STOP_ACTIVE %s: " % ("present" if stopping else "absent")
@@ -1000,6 +1011,7 @@ def section_s(s):
             common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
             common.STOP_ACTIVE = tmp if stopping else os.path.join(tmp, "absent")
             run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+            run.CLAUDE = stub_cli(paths)
             run.own_memory_max = run.own_swap_max = lambda: None
             code = None
             with contextlib.redirect_stdout(io.StringIO()) as out:
@@ -1154,7 +1166,7 @@ def section_u(s):
     env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", "SELFTEST_O_WRITER_SAW", "SELFTEST_U_RESULT")
     saved_env = {k: os.environ.get(k) for k in env_keys}
     patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (run, "WRITER"), (run, "own_memory_max"),
-               (run, "own_swap_max")]
+               (run, "own_swap_max"), (run, "CLAUDE")]
     saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
     saved_term = signal.getsignal(signal.SIGTERM)
     want_line = "crypto-run: final message is not an answer chars=%d" % len(U_STATUS)
@@ -1165,6 +1177,7 @@ def section_u(s):
                            "SELFTEST_O_WRITER_SAW": os.path.join(tmp, "writer-saw"), "SELFTEST_U_RESULT": U_STATUS})
         common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
         run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+        run.CLAUDE = stub_cli(paths)
         run.own_memory_max = run.own_swap_max = lambda: None
         with contextlib.redirect_stdout(io.StringIO()) as out:
             code = run.main(["--tree", tree])
@@ -2236,12 +2249,164 @@ def section_z(s):
                                    "<blockquote>three</blockquote>"])
 
 
+# --- AA: the run's own CLI, pinned by vps/install.sh and named by vps/run.py (TZ-72) ---------------
+CLI_FUNCTIONS = re.compile(r"^(?:cli_in_place|install_cli)\(\) \{\n.*?^\}\n", re.M | re.S)
+
+
+def install_text():
+    with open(os.path.join(HERE, "install.sh"), encoding="utf-8") as fh:
+        return fh.read()
+
+
+def aa_package(path, member, body):
+    """A gzipped tarball at path holding body, mode 0755, under member."""
+    with tarfile.open(path, "w:gz") as tar:
+        info = tarfile.TarInfo(member)
+        info.size, info.mode = len(body), 0o755
+        tar.addfile(info, io.BytesIO(body))
+
+
+def aa_install(libexec, version, pin, url):
+    """install.sh's own cli_in_place and install_cli, run by bash as its default mode calls them -- inside an
+    `if`, under `set -euo pipefail` -- with LIBEXEC, CLI_VERSION, CLI_SHA256 and CLI_URL set here: (exit, output)."""
+    functions = "".join(m.group(0) for m in CLI_FUNCTIONS.finditer(install_text()))
+    script = ("set -euo pipefail\nsay() { echo \"install: $*\"; }\nLIBEXEC=%s\nCLI_VERSION=%s\nCLI_SHA256=%s\n"
+              "CLI_URL=%s\n%sif install_cli; then exit 0; fi\nexit 1\n"
+              % (shlex.quote(libexec), shlex.quote(version), shlex.quote(pin), shlex.quote(url), functions))
+    done = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+    return done.returncode, done.stdout + done.stderr
+
+
+def read_bytes(path):
+    with open(path, "rb") as fh:
+        return fh.read()
+
+
+def section_aa(s):
+    text = install_text()
+    lines = text.splitlines()
+    s.check("run.CLAUDE starts with run.CLI", run.CLAUDE[0] == run.CLI)
+    s.check("run.CLI is /usr/local/libexec/crypto-auto/claude-code/<run.CLI_VERSION>/claude",
+            run.CLI == "/usr/local/libexec/crypto-auto/claude-code/%s/claude" % run.CLI_VERSION)
+    s.check("install.sh pins CLI_VERSION to run.CLI_VERSION, once",
+            [l for l in lines if l.startswith("CLI_VERSION=")] == ["CLI_VERSION=" + run.CLI_VERSION])
+    pins = [l[len("CLI_SHA256="):] for l in lines if l.startswith("CLI_SHA256=")]
+    s.check("install.sh pins one CLI_SHA256 of 64 lowercase hex digits",
+            len(pins) == 1 and re.fullmatch(r"[0-9a-f]{64}", pins[0]) is not None)
+    s.check("install.sh fetches npm's linux-x64 package at CLI_VERSION",
+            'CLI_URL="https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/'
+            'claude-code-linux-x64-$CLI_VERSION.tgz"' in lines)
+    s.check("install.sh's LIBEXEC is /usr/local/libexec/crypto-auto",
+            "LIBEXEC=/usr/local/libexec/crypto-auto" in lines)
+    s.check("install.sh carries cli_in_place and install_cli, once each",
+            [m.group(0).split("(")[0] for m in CLI_FUNCTIONS.finditer(text)] == ["cli_in_place", "install_cli"])
+    steps = ("provision_paper_clone", "if ! install_cli; then", 'if ! systemd-analyze verify "$UNITS"/*; then')
+    at = [[i for i, l in enumerate(lines) if l == step] for step in steps]
+    s.check("the default mode puts the CLI in place after provisioning and before any unit is verified",
+            all(len(x) == 1 for x in at) and at[0][0] < at[1][0] < at[2][0])
+
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-aa.")
+    try:
+        body = b"#!/bin/sh\necho selftest-cli\n" + os.urandom(32)
+        pin = hashlib.sha256(body).hexdigest()
+        good, wrong, bare = (os.path.join(tmp, n) for n in ("good.tgz", "wrong.tgz", "bare.tgz"))
+        aa_package(good, "package/claude", body)
+        aa_package(wrong, "package/claude", body + b"x")
+        aa_package(bare, "package/README.md", b"no binary\n")
+        libexec = os.path.join(tmp, "libexec")
+        base = os.path.join(libexec, "claude-code")
+        target = os.path.join(base, "9.9.9", "claude")
+        os.makedirs(os.path.join(base, "1.0.0"))
+        with open(os.path.join(base, "1.0.0", "claude"), "wb") as fh:
+            fh.write(b"an older version")
+        absent = "file://" + os.path.join(tmp, "absent.tgz")
+
+        code, out = aa_install(libexec, "9.9.9", pin, "file://" + good)
+        s.check("a package whose file hashes to the pin: exit 0", code == 0)
+        s.check("a package whose file hashes to the pin: the file in place, byte for byte",
+                os.path.isfile(target) and read_bytes(target) == body)
+        s.check("a package whose file hashes to the pin: mode 0755",
+                os.path.isfile(target) and os.stat(target).st_mode & 0o777 == 0o755)
+        s.check("a package whose file hashes to the pin: every other version removed", os.listdir(base) == ["9.9.9"])
+        s.check("a package whose file hashes to the pin: one line says it installed",
+                out.splitlines().count("install: claude-code 9.9.9 installed") == 1)
+
+        code, out = aa_install(libexec, "9.9.9", pin, absent)
+        s.check("the pinned file already in place: exit 0, nothing fetched, the file unchanged",
+                code == 0 and out == "" and read_bytes(target) == body)
+
+        with open(target, "ab") as fh:
+            fh.write(b"changed")
+        code, out = aa_install(libexec, "9.9.9", pin, absent)
+        s.check("a file in place that no longer hashes to the pin, nothing to fetch: exit 1", code == 1)
+        s.check("a file in place that no longer hashes to the pin: removed, so no run starts it",
+                not os.path.exists(target))
+        s.check("a file in place that no longer hashes to the pin: one line says not fetched",
+                out.splitlines().count("install: claude-code 9.9.9 not fetched") == 1)
+
+        code, out = aa_install(libexec, "9.9.9", pin, "file://" + wrong)
+        s.check("a package whose file does not hash to the pin: exit 1, nothing in place",
+                code == 1 and not os.path.exists(target))
+        s.check("a package whose file does not hash to the pin: the line names the hash read and the pin",
+                out.splitlines().count("install: claude-code 9.9.9 refused: sha256 %s, pinned %s"
+                                       % (hashlib.sha256(body + b"x").hexdigest(), pin)) == 1)
+        code, out = aa_install(libexec, "9.9.9", pin, "file://" + bare)
+        s.check("a package without package/claude: exit 1, nothing in place", code == 1 and not os.path.exists(target))
+        s.check("no fetch directory left behind by any case", [n for n in os.listdir(base) if n.startswith(".")] == [])
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    # run.py: a CLI not in place is a session that never starts, told as one (TZ-72).
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-aa-run.")
+    env_keys = ("CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW",
+                "SELFTEST_O_RESULT")
+    saved_env = {k: os.environ.get(k) for k in env_keys}
+    patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (run, "WRITER"), (run, "own_memory_max"),
+               (run, "own_swap_max"), (run, "CLAUDE")]
+    saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
+    saved_term = signal.getsignal(signal.SIGTERM)
+    try:
+        paths, tree, _ = o_fixtures(tmp, STUB_CLAUDE, "sk-ant-oat01-selftest-planted-" + os.urandom(6).hex())
+        claude_saw = os.path.join(tmp, "claude-saw")
+        os.environ.update({"CREDENTIALS_DIRECTORY": paths["creds"], "RUNTIME_DIRECTORY": paths["runtime"],
+                           "SELFTEST_O_CLAUDE_SAW": claude_saw, "SELFTEST_O_WRITER_SAW": os.path.join(tmp, "writer-saw"),
+                           "SELFTEST_O_RESULT": run.ANSWER_HEAD + " SELFTEST-AA-RESULT"})
+        common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
+        run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+        missing = os.path.join(tmp, "claude-code", "9.9.9", "claude")
+        run.CLAUDE = [missing] + run.CLAUDE[1:]
+        run.own_memory_max = run.own_swap_max = lambda: None
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = run.main(["--tree", tree])
+        printed = out.getvalue().splitlines()
+        first = [l for l in printed if l.startswith("crypto-run: requests=")]
+        s.check("the CLI absent: exit 1", code == 1)
+        s.check("the CLI absent: one line naming its path",
+                printed.count("crypto-run: %s not executable, no session started" % missing) == 1)
+        s.check("the CLI absent: no session started", not os.path.exists(claude_saw))
+        s.check("the CLI absent: one notice S7 and no answer",
+                notices(paths["outbox"]) == [common.S7]
+                and [n for n in os.listdir(paths["outbox"]) if "-answer-" in n] == [])
+        s.check("the CLI absent: the summary reads claude_exit=- is_error=true",
+                len(first) == 1 and " claude_exit=- is_error=true " in first[0])
+    finally:
+        for mod, name, value in saved_attrs:
+            setattr(mod, name, value)
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        signal.signal(signal.SIGTERM, saved_term)
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
             ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x),
-            ("Y", section_y), ("Z", section_z))
+            ("Y", section_y), ("Z", section_z), ("AA", section_aa))
 
 
 def main():

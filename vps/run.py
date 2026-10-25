@@ -52,13 +52,19 @@ EFFORT = "high"
 # TZ-66: each alias a subagent call can name resolves to one full id in the session's environment. The Agent
 # tool's per-call model outranks any agent definition (Claude Code docs, "Subagents", read 19.10.2026), and the
 # methodology names the hunter's as `sonnet`; the sheriff runs on MODEL, the session's own.
-HUNTER_MODEL = "claude-sonnet-5"
+# TZ-72: the hunter and the CLI's page reader on the current generation, which CLI_VERSION knows and 2.1.282
+# did not (TZ-71's A2) -- each id read answering on this host first.
+HUNTER_MODEL = "claude-sonnet-5-5"
 # TZ-67: the CLI's own helper model -- the one that reads every fetched page for the hunter -- named by
-# TZ-66's A3 in every run since 09.10.2026 and pinned to that id.
-HELPER_MODEL = "claude-haiku-4-5-20251001"
+# TZ-66's A3 in every run since 09.10.2026 and pinned to that id; TZ-72 moves the pin.
+HELPER_MODEL = "claude-haiku-5-5"
 PINS = {"ANTHROPIC_DEFAULT_OPUS_MODEL": MODEL, "ANTHROPIC_DEFAULT_SONNET_MODEL": HUNTER_MODEL,
         "ANTHROPIC_DEFAULT_HAIKU_MODEL": HELPER_MODEL}
-CLAUDE = ["claude", "-p", PROMPT,
+# TZ-72: the run's own Claude Code, which vps/install.sh fetches from npm's registry at this version and
+# installs only where its SHA-256 is the one that script pins -- never the host's shared /usr/bin/claude.
+CLI_VERSION = "2.1.308"
+CLI = "/usr/local/libexec/crypto-auto/claude-code/" + CLI_VERSION + "/claude"
+CLAUDE = [CLI, "-p", PROMPT,
           "--output-format", "json", "--model", MODEL, "--effort", EFFORT,
           "--allowedTools", "Bash Read Write Edit Glob Grep WebSearch WebFetch",
           "--append-system-prompt", APPEND]
@@ -310,6 +316,11 @@ def main(argv=None):
     except common.CredentialMissing:
         env = None
         common.log("crypto-run: credential %s absent, no session started" % LOGIN_CREDENTIAL)
+    # TZ-72: a CLI the deployer has not put in place is a session that never starts, told as one, never a
+    # traceback.
+    if env is not None and not os.access(CLAUDE[0], os.X_OK):
+        env = None
+        common.log("crypto-run: %s not executable, no session started" % CLAUDE[0])
     in_session["on"] = True
     if env is not None:
         with open(result_path, "wb") as out:
