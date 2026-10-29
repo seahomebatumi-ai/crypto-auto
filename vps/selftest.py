@@ -1564,26 +1564,49 @@ def section_w(s):
         paper.TRANSPORT_WAIT_S = saved_wait
     s.check("nearest_rank: median 3, p95 5 of 1..5",
             paper.nearest_rank([5, 1, 3, 2, 4], 0.5) == 3 and paper.nearest_rank([5, 1, 3, 2, 4], 0.95) == 5)
-    # W11. the alert texts
+    # W11. the alert texts (TZ-75 A)
     rule = {"capital_usdt": 10000.0, "risk_pct": 0.5, "inv_floor_sd": 2.0, "fee_taker": 0.0005}
     t_open = int(datetime(2026, 10, 16, 10, 5, tzinfo=timezone.utc).timestamp() * 1000)
     ep = {"a": "0xf97ad6704baec104d00b88e0c157e2b7b3a1ddd1", "coin": "HYPE", "symbol": "HYPEUSDT", "side": 1,
           "t_open": t_open, "px_open": "80.021"}
-    head = ("\U0001f4cb \u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 14:05 "
-            "\u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 \u0441\u0447\u0451\u0442 #1 0xf97a\u2026ddd1 ")
-    s.check("the open alert, character for character", paper.alert_open(ep, 1, rule, 0.02) == head + (
-        "\u043e\u0442\u043a\u0440\u044b\u043b LONG HYPEUSDT \u043f\u043e 80.021 \u00b7 \u0441\u0442\u043e\u043f 4.0% "
-        "\u2192 76.820 \u00b7 \u043e\u0431\u044a\u0451\u043c 1250 USDT \u043f\u0440\u0438 \u0440\u0438\u0441\u043a"
-        "\u0435 0.5% \u043a\u0430\u043f\u0438\u0442\u0430\u043b\u0430"))
-    s.check("the open alert without a sigma", paper.alert_open(ep, 1, rule, None) == head + (
-        "\u043e\u0442\u043a\u0440\u044b\u043b LONG HYPEUSDT \u043f\u043e 80.021 \u00b7 \u0441\u0442\u043e\u043f \u0438 "
-        "\u043e\u0431\u044a\u0451\u043c \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d\u044b: "
-        "\u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance"))
+    head = "\U0001f4cb \u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 14:05 \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 "
+    whale = "1\ufe0f\u20e3 \U0001f40b\u2022 0xf97a\u2026ddd1 "
+    s.check("the open alert, character for character", paper.alert_open(ep, 1, rule, 0.02, (20, 3.04)) == head + whale + (
+        "\u043e\u0442\u043a\u0440\u044b\u043b LONG \U0001f7e2 HYPEUSDT \u043f\u043e 80.021 \u00b7 \u043f\u043b\u0435\u0447\u043e 20x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 3.0x) \u00b7 \u0441\u0442\u043e\u043f 4.0% \u2192 76.820 \u00b7 \u043e\u0431\u044a\u0451\u043c 1250 USDT \u043f\u0440\u0438 \u0440\u0438\u0441\u043a\u0435 0.5% \u043a\u0430\u043f\u0438\u0442\u0430\u043b\u0430."))
+    s.check("the open alert without a sigma or a leverage", paper.alert_open(ep, 1, rule, None) == head + whale + (
+        "\u043e\u0442\u043a\u0440\u044b\u043b LONG \U0001f7e2 HYPEUSDT \u043f\u043e 80.021 \u00b7 \u043f\u043b\u0435\u0447\u043e \u043d/\u0434 \u00b7 \u0441\u0442\u043e\u043f \u0438 \u043e\u0431\u044a\u0451\u043c \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d\u044b: \u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance."))
+    s.check("the short open: red dot, stop above, whale 2", paper.alert_open(dict(ep, side=-1), 2, rule, 0.02) == head + (
+        "2\ufe0f\u20e3 \U0001f40b\u2022 0xf97a\u2026ddd1 \u043e\u0442\u043a\u0440\u044b\u043b SHORT \U0001f534 HYPEUSDT \u043f\u043e 80.021 \u00b7 \u043f\u043b\u0435\u0447\u043e \u043d/\u0434 \u00b7 \u0441\u0442\u043e\u043f 4.0% \u2192 83.222 \u00b7 \u043e\u0431\u044a\u0451\u043c 1250 USDT \u043f\u0440\u0438 \u0440\u0438\u0441\u043a\u0435 0.5% \u043a\u0430\u043f\u0438\u0442\u0430\u043b\u0430."))
     closed = dict(ep, t_close=t_open + (6 * 60 + 12) * 60000, px_close="82.10")
-    s.check("the close alert after 6 h 12 min", paper.alert_close(closed, 1) == head.replace("14:05", "20:17") + (
-        "\u0437\u0430\u043a\u0440\u044b\u043b LONG HYPEUSDT \u043f\u043e 82.10 \u00b7 \u0432 \u043f\u043e\u0437"
-        "\u0438\u0446\u0438\u0438 6.2 \u0447"))
+    s.check("the close alert in gain after 6 h 12 min: green cross", paper.alert_close(closed, 1, rule) == (
+        head.replace("14:05", "20:17") + whale + "\u274e \u0417\u0430\u043a\u0440\u044b\u043b LONG HYPEUSDT \u043f\u043e 82.10 \u00b7 \u0432 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \U0001f55a 6.2 \u0447."))
+    s.check("a move inside the fee both ways is a loss: red cross",
+            paper.alert_close(dict(closed, px_close="80.090"), 1, rule) == head.replace("14:05", "20:17") + whale + (
+                "\u274c \u0417\u0430\u043a\u0440\u044b\u043b LONG HYPEUSDT \u043f\u043e 80.090 \u00b7 \u0432 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \U0001f55a 6.2 \u0447."))
+    s.check("a short closed lower is a gain: green cross",
+            paper.alert_close(dict(closed, side=-1, px_close="79.90"), 1, rule).endswith("\u274e \u0417\u0430\u043a\u0440\u044b\u043b SHORT HYPEUSDT \u043f\u043e 79.90 \u00b7 \u0432 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \U0001f55a 6.2 \u0447."))
     s.check("held 45 min", paper.held_text(45 * 60000) == "45 \u043c\u0438\u043d")
+    s.check("number: keycaps 1 to 9, then #10", paper.number(1) == "1\ufe0f\u20e3" and paper.number(9) == "9\ufe0f\u20e3"
+            and paper.number(10) == "#10")
+    saved_info = paper.info
+    try:
+        doc = {"marginSummary": {"accountValue": "1000000.0", "totalNtlPos": "3000000.0"},
+               "assetPositions": [{"type": "oneWay", "position": {"coin": "LIT", "szi": "10.0",
+                                                                  "leverage": {"type": "isolated", "value": 4}}}]}
+        paper.info = lambda body, limiter: doc if body == {"type": "clearinghouseState", "user": "0xa"} else None
+        s.check("read_leverage: the coin's setting and the account's notional over its value",
+                paper.read_leverage("0xa", "LIT", None) == (4, 3.0))
+        s.check("read_leverage: a coin with no position is None", paper.read_leverage("0xa", "BTC", None) is None)
+        paper.info = lambda body, limiter: {"assetPositions": doc["assetPositions"]}
+        s.check("read_leverage: an answer without marginSummary is None", paper.read_leverage("0xa", "LIT", None) is None)
+
+        def refused(body, limiter):
+            raise paper.Transport("HTTP 429")
+        paper.info = refused
+        s.check("read_leverage: a refused read is None, never raised", paper.read_leverage("0xa", "LIT", None) is None)
+    finally:
+        paper.info = saved_info
+    s.check("lev_text: both numbers, or n/a", paper.lev_text((7, 1.5)) == "7x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 1.5x)" and paper.lev_text(None) == "\u043d/\u0434")
     # W12. the constants cut from index.html
     page = "var INV_FLOOR_SD = 2.0;   // x\nvar FEE_TAKER   = 0.0005;\n"
     s.check("cut_number on a page", common.cut_number(page, "INV_FLOOR_SD") == 2.0
@@ -1625,6 +1648,10 @@ def section_w(s):
     section_w_flow(s)
     # W15. the booking's memory (TZ-65): one symbol's minutes at a time, compact, dropped after the pass
     section_w_memory(s)
+    # W16. the rescan (TZ-75 B): the selection's own function, the schedule, the adoption
+    section_w_rescan(s)
+    # W17. the verdict over each pick's own span (TZ-75 B5)
+    section_w_spans(s)
 
 
 def w_rows(path):
@@ -1668,6 +1695,23 @@ def section_w_flow(s):
         paper.gather_closed(state)
         alerts = sorted(x for x in os.listdir(outbox) if "-alert-" in x)
         s.check("two fresh alerts for the pick, none for the null, none late", len(alerts) == 2)
+        texts = []
+        for name in alerts:
+            with open(os.path.join(outbox, name), encoding="utf-8") as fh:
+                texts.append(json.load(fh)["text"])
+        s.check("the flow's open alert: whale 1, no leverage without a reader", len(texts) == 2
+                and "1\ufe0f\u20e3 \U0001f40b\u2022 " in texts[0] and "\u043f\u043b\u0435\u0447\u043e \u043d/\u0434" in texts[0])
+        s.check("the flow's close at the opening price: red cross", len(texts) == 2 and "\u274c \u0417\u0430\u043a\u0440\u044b\u043b" in texts[1])
+        asked, lone = [], paper.new_state(sel)
+        paper._apply(p, lone["accounts"][p], [w_fill(ff + h, 0, "B", 1, tid=1)], sel, {"BTCUSDT"}, ff + h + 10000,
+                     rule, lambda: inputs, lambda coin: asked.append(coin) or (7, 1.5))
+        fresh = sorted(x for x in os.listdir(outbox) if "-alert-" in x and x not in alerts)
+        with open(os.path.join(outbox, fresh[-1]), encoding="utf-8") as fh:
+            lone_text = json.load(fh)["text"]
+        s.check("_apply asks the reader for the fill's coin and prints its answer",
+                asked == ["BTC"] and "\u043f\u043b\u0435\u0447\u043e 7x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 1.5x)" in lone_text)
+        for name in fresh:
+            os.remove(os.path.join(outbox, name))
         for acct in state["accounts"].values():
             acct["polled_ms"] = we + paper.DAY_SETTLE_S * 1000
         paper.produce_days(state, tmp, sel, we)
@@ -2398,6 +2442,159 @@ def section_aa(s):
             else:
                 os.environ[k] = v
         signal.signal(signal.SIGTERM, saved_term)
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def section_w_rescan(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-w16.")
+    saved = (paper.info, paper.leaderboard_chunks, paper.fetch_exchange, common.OUTBOX_DIR)
+    try:
+        a1, a2, a3, a4 = ("0x%040d" % i for i in (1, 2, 3, 4))
+        blob = json.dumps({"leaderboardRows": [{"ethAddress": a, "windowPerformances": [["allTime", {"vlm": "3e8"}]]}
+                                               for a in (a1, a2, a3, a4)]}).encode("utf-8")
+        worlds = {a1: w_portfolio([0.02, 0.0] * 26), a2: w_portfolio([0.03, -0.01] * 26),
+                  a3: w_portfolio([0.025, -0.005] * 26), a4: w_portfolio([-0.01] * 16 + [0.02, 0.0] * 18)}
+        w0, h = W_T0 - 91 * paper.DAY_MS, 3600000
+        good = [w_fill(w0 + h, 0, "B", 10), w_fill(w0 + 4 * h, 10, "A", 10), w_fill(w0 + 5 * h, 0, "A", 10),
+                w_fill(w0 + 6 * h, -10, "B", 10), w_fill(w0 + 8 * h, 0, "B", 10, coin="xyz:CL")]
+        fills = {a1: good, a2: good, a3: [], a4: good}
+        reads = []
+
+        def fake(body, limiter):
+            reads.append((body["type"], body["user"]))
+            if body["type"] == "portfolio":
+                return worlds[body["user"]]
+            return [f for f in fills[body["user"]] if body["startTime"] <= f["time"] <= body.get("endTime", f["time"])]
+        paper.info, paper.leaderboard_chunks = fake, lambda: [blob]
+        paper.fetch_exchange = lambda: reads.append(("exchange", "-")) or {"symbols": []}
+        clock = lambda: W_T0 + 5 * h  # noqa: E731
+        ranks = sorted((a1, a2, a3), key=lambda a: -paper.metrics(worlds[a], W_T0)["sharpe"])
+        s.check("the fixture ranks a1, a3, a2 and leaves a4 eligible, short of the rule", ranks == [a1, a3, a2]
+                and not paper.metrics(worlds[a4], W_T0)["r12"] and paper.metrics(worlds[a4], W_T0)["eligible"])
+        res = paper.select(tmp, {}, None, clock, work="rescan-1-work.jsonl", symbols=sorted(W_SYMBOLS),
+                           exclude={a1}, k=1, draw_null=False)
+        s.check("rescan: a1 excluded, a3 rejected, a2 picked, no null",
+                [p["address"] for p in res["picks"]] == [a2] and [r["address"] for r in res["rejected"]] == [a3]
+                and res["null"] == [] and res["ranked"] == [a1, a3, a2])
+        s.check("rescan: the excluded account's fills are never read, nor Binance's list",
+                ("userFillsByTime", a1) not in reads and ("exchange", "-") not in reads)
+        s.check("rescan: its T0 is the day it started, and the frozen list is the one used",
+                res["t0_ms"] == W_T0 and res["symbols"] == sorted(W_SYMBOLS))
+        reads.clear()
+        again = paper.select(tmp, {}, None, lambda: W_T0 + 40 * paper.DAY_MS, work="rescan-1-work.jsonl",
+                             symbols=sorted(W_SYMBOLS), exclude={a1}, k=1, draw_null=False)
+        s.check("rescan: resumed from its work file, same T0, no read",
+                reads == [] and again["t0_ms"] == W_T0 and again["picks"] == res["picks"])
+        whole = paper.select(tmp, {}, None, clock, work="selection-work.jsonl", symbols=sorted(W_SYMBOLS))
+        s.check("the selection's defaults: the first TOP_K copyable down the ranking, the null drawn",
+                [p["address"] for p in whole["picks"]] == [a1, a2] and [n["address"] for n in whole["null"]] == [a4])
+        # the schedule
+        sel = {"picks": [{"address": a1, "rank": 1}, {"address": a2, "rank": 2}], "null": [{"address": a4}],
+               "follow_from_ms": W_T0, "window_end_ms": W_T0 + 91 * paper.DAY_MS, "symbols": sorted(W_SYMBOLS)}
+        state = paper.new_state(sel)
+        s.check("a state written before TZ-75: its first rescan is due 14 days after follow_from",
+                paper.rescan_state(state, sel) == {"n": 0, "due_ms": W_T0 + 14 * paper.DAY_MS, "running": False}
+                and state["rescan"]["due_ms"] == W_T0 + 14 * paper.DAY_MS)
+        now = W_T0 + 10 * paper.DAY_MS
+        state["rescan"] = {"n": 0, "due_ms": now, "running": False}
+        s.check("due: two picks, 81 days left", paper.rescan_due(state, sel, now))
+        s.check("not due before its time, nor with no time set",
+                not paper.rescan_due(state, sel, now - 1)
+                and not paper.rescan_due(dict(state, rescan=dict(state["rescan"], due_ms=None)), sel, now))
+        anytime = dict(state, rescan={"n": 0, "due_ms": 0, "running": False})
+        s.check("due with exactly 28 days left, not one millisecond later",
+                paper.rescan_due(anytime, sel, W_T0 + 63 * paper.DAY_MS)
+                and not paper.rescan_due(anytime, sel, W_T0 + 63 * paper.DAY_MS + 1))
+        # the adoption
+        outbox = os.path.join(tmp, "outbox")
+        os.makedirs(outbox)
+        common.OUTBOX_DIR = outbox
+        a5 = "0x" + "c" * 40
+        found = {"t0": paper.iso(W_T0), "t0_ms": W_T0, "counts": {"r12": 5, "eligible": 40}, "ranked": [a1, a5],
+                 "picks": [{"address": a5, "rank": 1, "sharpe": 0.4}], "rejected": []}
+        paper.adopt(state, tmp, sel, found, 1, now)
+        acct = state["accounts"][a5]
+        s.check("adopted: a pick numbered 3, followed from now",
+                (acct["role"], acct["rank"], acct["join_ms"], acct["last_ms"], acct["polled_ms"]) == ("pick", 3, now, now, 0))
+        s.check("pick_joins: the selection's two at follow_from, the third at its join",
+                paper.pick_joins(state, sel) == ([a1, a2, a5], {a1: W_T0, a2: W_T0, a5: now}))
+        s.check("three picks: no rescan is due", not paper.rescan_due(state, sel, now))
+        rel = "rescan/2026-01-07.json"
+        with open(os.path.join(tmp, "records", paper.RECORD_DIR, rel), encoding="utf-8") as fh:
+            doc = json.load(fh)
+        s.check("the rescan record, pending once", state["pending"] == [rel] and doc["k"] == "paper-rescan"
+                and doc["n"] == 1 and [x["rank"] for x in doc["added"]] == [3] and doc["joined_ms"] == now)
+        with open(os.path.join(outbox, sorted(os.listdir(outbox))[-1]), encoding="utf-8") as fh:
+            note = json.load(fh)
+        end = datetime.fromtimestamp(sel["window_end_ms"] / 1000, tz=announce.TBILISI).strftime("%d.%m.%Y")
+        s.check("the notice of a whale added, character for character",
+                note["kind"] == "notice" and note["text"] == "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442: \u043d\u043e\u0432\u044b\u0439 \u043a\u0438\u0442 3\ufe0f\u20e3 \U0001f40b\u2022 0xcccc\u2026cccc \u2014 \u043f\u0440\u043e\u0448\u0451\u043b \u0442\u043e \u0436\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u043e\u0442\u0431\u043e\u0440\u0430 \u043d\u0430 07.01.2026, \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u0434\u043e " + end + ".")
+        none = paper.new_state(sel)
+        paper.adopt(none, tmp, sel, dict(found, t0_ms=W_T0 + 28 * paper.DAY_MS, picks=[]), 2, now)
+        with open(os.path.join(outbox, sorted(os.listdir(outbox))[-1]), encoding="utf-8") as fh:
+            note = json.load(fh)
+        s.check("the notice of a search that added none, character for character",
+                note["text"] == "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 \u043f\u043e\u0438\u0441\u043a \u043a\u0438\u0442\u043e\u0432 07.01.2026: \u043f\u0440\u0430\u0432\u0438\u043b\u043e 12 \u043c\u0435\u0441\u044f\u0446\u0435\u0432 \u043f\u0440\u043e\u0448\u043b\u0438 5 \u0438\u0437 40 \u0441\u0447\u0435\u0442\u043e\u0432, \u043d\u043e\u0432\u044b\u0445 \u043a\u043e\u043f\u0438\u0440\u0443\u0435\u043c\u044b\u0445 \u043d\u0435\u0442.".replace("07.01.2026", "04.02.2026"))
+        s.check("no pick added when none was found", paper.pick_joins(none, sel)[0] == [a1, a2])
+    finally:
+        paper.info, paper.leaderboard_chunks, paper.fetch_exchange, common.OUTBOX_DIR = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def section_w_spans(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-w17.")
+    try:
+        near = lambda x, y: x is not None and abs(x - y) <= 1e-12  # noqa: E731
+        p1, p2, n1, n2 = ("0x%040d" % i for i in (11, 12, 21, 22))
+        ff = paper.day_start("2026-01-05") + 3600000
+        we, j2, h = ff + 2 * paper.DAY_MS, ff + paper.DAY_MS, 3600000
+        sel = {"picks": [{"address": p1, "rank": 1}], "null": [{"address": n1}, {"address": n2}],
+               "follow_from_ms": ff, "window_end_ms": we, "follow_from": paper.iso(ff), "window_end": paper.iso(we)}
+        rule = {"capital_usdt": 10000.0}
+        root = os.path.join(tmp, "records", paper.RECORD_DIR)
+        days = ["2026-01-05", "2026-01-06", "2026-01-07"]
+        # (account, t_open, net in USDT): n1's first episode opens before p2 joins, its second after.
+        eps = [(p1, ff + h, 100.0), (n1, ff + 2 * h, 300.0), (p2, j2 + h, 200.0), (n1, j2 + 2 * h, -100.0)]
+
+        def run(with_p2):
+            state = paper.new_state(sel)
+            if with_p2:
+                state["accounts"][p2] = {"role": "pick", "rank": 2, "join_ms": j2}
+            for d in days:
+                os.makedirs(os.path.join(root, "episodes"), exist_ok=True)
+                with open(os.path.join(root, "episodes", d + ".jsonl"), "w", encoding="utf-8") as fh:
+                    fh.write(json.dumps({"k": "day", "date": d}) + "\n")
+                books, funds = [], []
+                for a, t, net in eps:
+                    if paper.utc_date(t) != d or (a == p2 and not with_p2):
+                        continue
+                    leg = {"gross": net, "fee": 0.0}
+                    books.append({"k": "book", "a": a, "coin": "BTC", "t_open": t,
+                                  "d": {str(x): {"src": leg, "stop": leg} for x in paper.DELAYS_S}})
+                    funds.append({"k": "funding", "a": a, "coin": "BTC", "t_open": t, "absent": False,
+                                  "d": {str(x): {"src": 0.0, "stop": 0.0} for x in paper.DELAYS_S}})
+                for sub, lines in (("book", books), ("funding", funds)):
+                    os.makedirs(os.path.join(root, sub), exist_ok=True)
+                    with open(os.path.join(root, sub, d + ".jsonl"), "w", encoding="utf-8") as fh:
+                        fh.write("".join(json.dumps(x) + "\n" for x in [{"k": "day", "date": d}] + lines))
+            state["written"]["funding"] = days[-1]
+            paper.produce_verdict(state, tmp, sel, rule)
+            with open(os.path.join(root, "verdict.json"), encoding="utf-8") as fh:
+                return json.load(fh)
+
+        one = run(False)
+        c = one["cells"]["1800/stop"]
+        s.check("one span: the registered verdict -- TOP 0.01, the null's median of 0.02 and 0", near(c["top"], 0.01)
+                and near(c["null_median"], 0.01) and one["joined"] == {p1: paper.iso(ff)})
+        two = run(True)
+        c = two["cells"]["1800/stop"]
+        # n1 over p1's span: 0.03 - 0.01 = 0.02; over p2's: -0.01; averaged: 0.005. n2: 0. One pair: 0.0025.
+        s.check("two spans: TOP 0.015 and the null pair's mean 0.0025",
+                near(c["top"], 0.015) and near(c["null_median"], 0.0025) and c["null_share_at_or_above"] == 0.0)
+        s.check("two spans: both picks with their joins, two pick episodes booked",
+                two["picks"] == [p1, p2] and two["joined"] == {p1: paper.iso(ff), p2: paper.iso(j2)}
+                and two["booked"]["1800"] == {"pick": 2, "null": 2})
+    finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
 

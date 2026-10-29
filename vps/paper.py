@@ -27,6 +27,7 @@ import resource
 import shutil
 import statistics
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -63,6 +64,9 @@ SIGMA_DAYS = 30
 EPISODES_MIN = 30
 NULL_MIN = 10
 ALERT_MAX_AGE_S = 600
+RESCAN_FIRST_DAYS = 14        # TZ-75 B: the rule re-applied two weeks after follow_from,
+RESCAN_EVERY_DAYS = 28        # then every four weeks while picks are short of TOP_K
+RESCAN_MIN_LEFT_DAYS = 28     # and only while at least four weeks of the window remain
 PROBE_ACCOUNT = "0xf97ad6704baec104d00b88e0c157e2b7b3a1ddd1"   # the reading's first account
 
 # --- Operation.
@@ -75,7 +79,8 @@ PICK_POLL_S = 30
 NULL_POLL_S = 600
 DAY_SETTLE_S = 600            # a day is written once every account was polled this long after it ended
 ABSENT_AFTER_DAYS = 3         # a 404 for a file dated further back is an absence, nearer is unpublished
-WORK_EVERY_S = 3600           # booking, funding and the verdict are attempted hourly
+WORK_EVERY_S = 3600           # booking, funding and the verdict are attempted hourly; a failed rescan resumes as often
+RESCAN_WEIGHT_PER_MIN = 300   # a rescan's share of WEIGHT_PER_MIN; the service holds the rest while one runs
 PUBLISH_EVERY_S = 300
 TRANSPORT_MAX = 30            # consecutive transport failures on one selection step
 TRANSPORT_WAIT_S = 60
@@ -88,21 +93,15 @@ RECORD_DIR = "analyst/paper"
 DEPLOYED_TREE = os.path.join(common.STATE_DIR, "deployed-vps-tree")
 REPO = os.path.dirname(common.VPS_DIR)
 
-# --- TZ-64 section 12.1, character for character.
-P_OPEN = ("\U0001f4cb \u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 {hhmm} "
-          "\u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 \u0441\u0447\u0451\u0442 #{rank} {addr} "
-          "\u043e\u0442\u043a\u0440\u044b\u043b {side} {symbol} \u043f\u043e {px} \u00b7 \u0441\u0442\u043e\u043f "
-          "{dist}% \u2192 {stop} \u00b7 \u043e\u0431\u044a\u0451\u043c {notional} USDT \u043f\u0440\u0438 "
-          "\u0440\u0438\u0441\u043a\u0435 {risk}% \u043a\u0430\u043f\u0438\u0442\u0430\u043b\u0430")
-P_OPEN_BARE = ("\U0001f4cb \u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 {hhmm} "
-               "\u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 \u0441\u0447\u0451\u0442 #{rank} {addr} "
-               "\u043e\u0442\u043a\u0440\u044b\u043b {side} {symbol} \u043f\u043e {px} \u00b7 \u0441\u0442\u043e\u043f "
-               "\u0438 \u043e\u0431\u044a\u0451\u043c \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d\u044b: "
-               "\u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance")
-P_CLOSE = ("\U0001f4cb \u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 {hhmm} "
-           "\u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 \u0441\u0447\u0451\u0442 #{rank} {addr} "
-           "\u0437\u0430\u043a\u0440\u044b\u043b {side} {symbol} \u043f\u043e {px} \u00b7 \u0432 "
-           "\u043f\u043e\u0437\u0438\u0446\u0438\u0438 {held}")
+# --- TZ-64 section 12.5.2 as TZ-75 A1 restyles it, character for character.
+P_HEAD = "\U0001f4cb \u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 {hhmm} \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 {num} \U0001f40b\u2022 {addr} "
+P_OPEN = P_HEAD + "\u043e\u0442\u043a\u0440\u044b\u043b {side} {dot} {symbol} \u043f\u043e {px} \u00b7 \u043f\u043b\u0435\u0447\u043e {lev} \u00b7 \u0441\u0442\u043e\u043f {dist}% \u2192 {stop} \u00b7 \u043e\u0431\u044a\u0451\u043c {notional} USDT \u043f\u0440\u0438 \u0440\u0438\u0441\u043a\u0435 {risk}% \u043a\u0430\u043f\u0438\u0442\u0430\u043b\u0430."
+P_OPEN_BARE = P_HEAD + "\u043e\u0442\u043a\u0440\u044b\u043b {side} {dot} {symbol} \u043f\u043e {px} \u00b7 \u043f\u043b\u0435\u0447\u043e {lev} \u00b7 \u0441\u0442\u043e\u043f \u0438 \u043e\u0431\u044a\u0451\u043c \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d\u044b: \u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance."
+P_CLOSE = P_HEAD + "{mark} \u0417\u0430\u043a\u0440\u044b\u043b {side} {symbol} \u043f\u043e {px} \u00b7 \u0432 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \U0001f55a {held}."
+P_LEV = "{lev}x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 {acct}x)"
+P_LEV_NONE = "\u043d/\u0434"
+SIDE_DOT = {1: "\U0001f7e2", -1: "\U0001f534"}
+MARK_GAIN, MARK_LOSS = "\u274e", "\u274c"
 N_START = ("\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u043a\u043e\u043f\u0438\u0440"
            "\u043e\u0432\u0430\u043d\u0438\u044f \u043d\u0430\u0447\u0430\u0442: \u043e\u0442\u043e\u0431\u0440\u0430"
            "\u043d\u043e \u0441\u0447\u0435\u0442\u043e\u0432 Hyperliquid \u2014 {k}, \u043e\u043a\u043d\u043e 13 "
@@ -121,6 +120,8 @@ N_VERDICT = ("\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u044
              "\u0440\u043e\u0432\u0430\u043d\u0438\u044f: \u0438\u0442\u043e\u0433 \u0437\u0430\u043f\u0438\u0441"
              "\u0430\u043d \u0438 \u0436\u0434\u0451\u0442 \u0440\u0430\u0437\u0431\u043e\u0440\u0430 \u0410\u0440"
              "\u0445\u0438\u0442\u0435\u043a\u0442\u043e\u0440\u0430.")
+N_ADDED = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442: \u043d\u043e\u0432\u044b\u0439 \u043a\u0438\u0442 {num} \U0001f40b\u2022 {addr} \u2014 \u043f\u0440\u043e\u0448\u0451\u043b \u0442\u043e \u0436\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u043e\u0442\u0431\u043e\u0440\u0430 \u043d\u0430 {date}, \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u0434\u043e {end}."
+N_RESCAN_NONE = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 \u043f\u043e\u0438\u0441\u043a \u043a\u0438\u0442\u043e\u0432 {date}: \u043f\u0440\u0430\u0432\u0438\u043b\u043e 12 \u043c\u0435\u0441\u044f\u0446\u0435\u0432 \u043f\u0440\u043e\u0448\u043b\u0438 {r12} \u0438\u0437 {eligible} \u0441\u0447\u0435\u0442\u043e\u0432, \u043d\u043e\u0432\u044b\u0445 \u043a\u043e\u043f\u0438\u0440\u0443\u0435\u043c\u044b\u0445 \u043d\u0435\u0442."
 MINUTES = "\u043c\u0438\u043d"
 HOURS = "\u0447"
 
@@ -820,10 +821,13 @@ def retrying(call, *args, give_up=False):
     sys.exit(4)
 
 
-def select(state_dir, rule, limiter, clock=now_ms):
+def select(state_dir, rule, limiter, clock=now_ms, work="selection-work.jsonl", symbols=None, exclude=(), k=TOP_K,
+           draw_null=True):
     """The selection, resumable: T0, the pool, every pool account's measures, the Binance list, the
-    picks walked down the ranking and the null walked down its order, each step kept in the work file."""
-    path = os.path.join(state_dir, "selection-work.jsonl")
+    picks walked down the ranking and the null walked down its order, each step kept in the work file.
+    A rescan (TZ-75 B) runs this same function on its own work file with the selection's frozen Binance
+    list, the accounts already followed excluded from the walk, k the picks still missing and no null."""
+    path = os.path.join(state_dir, work)
     work = read_work(path)
     head = next((w for w in work if "t0_ms" in w), None)
     if head is None:
@@ -849,7 +853,7 @@ def select(state_dir, rule, limiter, clock=now_ms):
         append_work(path, {"a": addr, "m": m})
         if len(measured) % 500 == 0:
             common.log("paper: measured %d of %d" % (len(measured), len(pool["pool"])))
-    symbols = next((w["symbols"] for w in work if "symbols" in w), None)
+    symbols = symbols or next((w["symbols"] for w in work if "symbols" in w), None)
     if symbols is None:
         symbols = sorted(p["symbol"] for p in exchange.perpetuals(retrying(fetch_exchange)))
         append_work(path, {"symbols": symbols})
@@ -871,12 +875,13 @@ def select(state_dir, rule, limiter, clock=now_ms):
     ranked = sorted((a for a, m in measured.items() if m.get("r12")), key=lambda a: (-measured[a]["sharpe"], a))
     picks, rejected = [], []
     for addr in ranked:
-        if len(picks) == TOP_K:
+        if len(picks) == k:
             break
-        (picks if check(addr)["copyable"] else rejected).append(addr)
+        if addr not in exclude:
+            (picks if check(addr)["copyable"] else rejected).append(addr)
     eligible = sorted(a for a, m in measured.items() if m.get("eligible"))
     null = []
-    for addr in null_order(t0, [a for a in eligible if a not in picks]):
+    for addr in null_order(t0, [a for a in eligible if a not in picks]) if draw_null else ():
         if len(null) == NULL_M:
             break
         if check(addr)["copyable"]:
@@ -890,7 +895,7 @@ def select(state_dir, rule, limiter, clock=now_ms):
                        "unreadable": sum(1 for m in measured.values() if m.get("unreadable")),
                        "eligible": len(eligible), "r12": len(ranked), "checked": len(checked)},
             "picks": [dict(entry(a), rank=i + 1) for i, a in enumerate(picks)],
-            "rejected": [entry(a) for a in rejected], "null": [entry(a) for a in null],
+            "rejected": [entry(a) for a in rejected], "null": [entry(a) for a in null], "ranked": ranked,
             "eligible": eligible, "symbols": symbols, "fp": fingerprint()}
 
 
@@ -930,9 +935,35 @@ def sigma_for(inputs, sym, t_open):
     return daily_sigma([inputs.close_on(sym, add_days(first, -k)) for k in range(SIGMA_DAYS + 2, 1, -1)])
 
 
-def alert_open(ep, rank, rule, sigma):
-    base = {"hhmm": hhmm(ep["t_open"]), "rank": rank, "addr": addr_short(ep["a"]), "side": side_word(ep["side"]),
-            "symbol": ep["symbol"], "px": ep["px_open"]}
+def number(rank):
+    """The whale's number: a keycap digit for 1 ... 9, else #rank."""
+    return ("%d\ufe0f\u20e3" % rank) if 1 <= rank <= 9 else ("#%d" % rank)
+
+
+def read_leverage(addr, coin, limiter):
+    """(the position's leverage setting, the account's notional over its value) from clearinghouseState,
+    or None: the coin holds no position, or any read or shape failure. Never raises."""
+    try:
+        doc = info({"type": "clearinghouseState", "user": addr}, limiter)
+        pos = next(p["position"] for p in doc["assetPositions"] if p["position"]["coin"] == coin)
+        lev = int(pos["leverage"]["value"])
+        value = float(doc["marginSummary"]["accountValue"])
+        ntl = float(doc["marginSummary"]["totalNtlPos"])
+        if lev < 1 or not value > 0 or not math.isfinite(ntl):
+            return None
+        return lev, ntl / value
+    except (StopIteration, Transport, KeyError, TypeError, ValueError, ArithmeticError, AttributeError):
+        return None
+
+
+def lev_text(lev):
+    return P_LEV_NONE if lev is None else P_LEV.format(lev=lev[0], acct="%.1f" % lev[1])
+
+
+def alert_open(ep, rank, rule, sigma, lev=None):
+    base = {"hhmm": hhmm(ep["t_open"]), "num": number(rank), "addr": addr_short(ep["a"]),
+            "side": side_word(ep["side"]), "dot": SIDE_DOT[ep["side"]], "symbol": ep["symbol"], "px": ep["px_open"],
+            "lev": lev_text(lev)}
     if sigma is None or not sigma > 0:
         return P_OPEN_BARE.format(**base)
     dist = rule["inv_floor_sd"] * sigma
@@ -942,9 +973,74 @@ def alert_open(ep, rank, rule, sigma):
                          notional="%d" % round(notional), risk=("%g" % rule["risk_pct"]), **base)
 
 
-def alert_close(ep, rank):
-    return P_CLOSE.format(hhmm=hhmm(ep["t_close"]), rank=rank, addr=addr_short(ep["a"]), side=side_word(ep["side"]),
+def gained(ep, rule):
+    """The copy's move from the account's opening price to its closing price beats the taker fee both ways."""
+    return ep["side"] * (float(ep["px_close"]) / float(ep["px_open"]) - 1) > 2 * rule["fee_taker"]
+
+
+def alert_close(ep, rank, rule):
+    return P_CLOSE.format(hhmm=hhmm(ep["t_close"]), num=number(rank), addr=addr_short(ep["a"]),
+                          mark=MARK_GAIN if gained(ep, rule) else MARK_LOSS, side=side_word(ep["side"]),
                           symbol=ep["symbol"], px=ep["px_close"], held=held_text(ep["t_close"] - ep["t_open"]))
+
+
+def pick_joins(state, sel):
+    """Every pick, the selection's in rank order then the rescans' by rank, and the instant each is followed
+    from: follow_from for the selection's, its own join for a rescan's."""
+    own = [p["address"] for p in sel["picks"]]
+    added = sorted((a for a, x in state["accounts"].items() if x["role"] == "pick" and a not in own),
+                   key=lambda a: state["accounts"][a]["rank"])
+    return own + added, {a: state["accounts"].get(a, {}).get("join_ms", sel["follow_from_ms"]) for a in own + added}
+
+
+def rescan_state(state, sel):
+    """The rescan's own entry of the state, added to a state written before TZ-75 with its first rescan due
+    RESCAN_FIRST_DAYS after follow_from."""
+    return state.setdefault("rescan", {"n": 0, "due_ms": sel["follow_from_ms"] + RESCAN_FIRST_DAYS * DAY_MS,
+                                       "running": False})
+
+
+def rescan_due(state, sel, now):
+    """A rescan starts, or resumes, when it is due, picks are short of TOP_K and four weeks of the window remain."""
+    rs = state["rescan"]
+    return (rs["due_ms"] is not None and now >= rs["due_ms"] and len(pick_joins(state, sel)[0]) < TOP_K
+            and sel["window_end_ms"] - now >= RESCAN_MIN_LEFT_DAYS * DAY_MS)
+
+
+def rescan_run(box, state_dir, rule, sel, exclude, k, n):
+    """The thread: select() on rescan n's own work file and limiter; its result, or the name of what ended it."""
+    try:
+        box["result"] = select(state_dir, rule, Limiter(RESCAN_WEIGHT_PER_MIN), work="rescan-%d-work.jsonl" % n,
+                               symbols=sel["symbols"], exclude=exclude, k=k, draw_null=False)
+    except BaseException as exc:   # noqa: B036 -- retrying() ends a step it cannot do without by sys.exit
+        box["error"] = exc.__class__.__name__
+
+
+def tbilisi_date(ms):
+    return datetime.fromtimestamp(ms / 1000, tz=announce.TBILISI).strftime("%d.%m.%Y")
+
+
+def adopt(state, state_dir, sel, res, n, now):
+    """Rescan n's picks join as picks from now, numbered after the last; the record, written once; a notice per
+    whale added, or one notice that none was."""
+    have = len(pick_joins(state, sel)[0])
+    added = []
+    for i, row in enumerate(res["picks"]):
+        rank = have + i + 1
+        state["accounts"][row["address"]] = {"role": "pick", "rank": rank, "join_ms": now, "last_ms": now,
+                                             "last_tids": [], "polled_ms": 0, "due_ms": 0, "coins": {}, "fills": {},
+                                             "lost": {}, "failing": False}
+        added.append(dict(row, rank=rank))
+    doc = {"v": 1, "k": "paper-rescan", "n": n, "t0": res["t0"], "t0_ms": res["t0_ms"], "joined": iso(now),
+           "joined_ms": now, "counts": res["counts"], "ranked": res["ranked"], "added": added,
+           "rejected": res["rejected"], "fp": fingerprint()}
+    write_record(state, state_dir, "rescan/%s.json" % utc_date(res["t0_ms"]), doc=doc)
+    for row in added:
+        common.write_outbox("notice", N_ADDED.format(num=number(row["rank"]), addr=addr_short(row["address"]),
+                                                     date=tbilisi_date(res["t0_ms"]), end=tbilisi_date(sel["window_end_ms"])))
+    if not added:
+        common.write_outbox("notice", N_RESCAN_NONE.format(date=tbilisi_date(res["t0_ms"]), r12=res["counts"]["r12"],
+                                                           eligible=res["counts"]["eligible"]))
 
 
 def starts(sel):
@@ -969,12 +1065,12 @@ def poll(addr, acct, sel, symbols, limiter, now, rule, inputs_for):
     The account's state changes only when the whole poll succeeded."""
     fills = fills_since(addr, acct["last_ms"], limiter)
     work = json.loads(json.dumps(acct))
-    _apply(addr, work, fills, sel, symbols, now, rule, inputs_for)
+    _apply(addr, work, fills, sel, symbols, now, rule, inputs_for, lambda coin: read_leverage(addr, coin, limiter))
     acct.clear()
     acct.update(work)
 
 
-def _apply(addr, acct, fills, sel, symbols, now, rule, inputs_for):
+def _apply(addr, acct, fills, sel, symbols, now, rule, inputs_for, leverage_for=lambda coin: None):
     window_end = sel["window_end_ms"]
     for f in fills:
         t = int(f["time"])
@@ -1000,9 +1096,9 @@ def _apply(addr, acct, fills, sel, symbols, now, rule, inputs_for):
                         sigma = sigma_for(inputs_for(), sym, t)
                     except (NotReady, Absent, Transport, ValueError, ZeroDivisionError):
                         sigma = None
-                    common.write_outbox("alert", alert_open(ep, acct["rank"], rule, sigma))
+                    common.write_outbox("alert", alert_open(ep, acct["rank"], rule, sigma, leverage_for(f["coin"])))
                 else:
-                    common.write_outbox("alert", alert_close(ep, acct["rank"]))
+                    common.write_outbox("alert", alert_close(ep, acct["rank"], rule))
     if fills:
         acct["last_ms"] = max(acct["last_ms"], max(int(f["time"]) for f in fills))
         acct["last_tids"] = [f["tid"] for f in fills if int(f["time"]) == acct["last_ms"]]
@@ -1101,9 +1197,11 @@ def produce_verdict(state, state_dir, sel, rule):
         return False
     root = os.path.join(state_dir, "records", RECORD_DIR)
     days = days_between(utc_date(sel["follow_from_ms"]), last)
-    picks = [p["address"] for p in sel["picks"]]
+    picks, joins = pick_joins(state, sel)
     null = [p["address"] for p in sel["null"]]
-    results = {a: {d: {"src": 0.0, "stop": 0.0} for d in DELAYS_S} for a in picks + null}
+    spans = sorted(set(joins.values()))
+    results = {a: {d: {"src": 0.0, "stop": 0.0} for d in DELAYS_S} for a in picks}
+    spanned = {a: {j: {d: {"src": 0.0, "stop": 0.0} for d in DELAYS_S} for j in spans} for a in null}
     booked = {d: {"pick": 0, "null": 0} for d in DELAYS_S}
     lags, unbookable, absent = [], 0, 0
     for day in days:
@@ -1127,10 +1225,19 @@ def produce_verdict(state, state_dir, sel, rule):
                     continue
                 booked[d][role] += 1
                 for v in ("src", "stop"):
-                    results[f["a"]][d][v] += (cell[v]["gross"] - cell[v]["fee"] - f["d"][str(d)][v]) / rule["capital_usdt"]
+                    net = (cell[v]["gross"] - cell[v]["fee"] - f["d"][str(d)][v]) / rule["capital_usdt"]
+                    if role == "pick":
+                        results[f["a"]][d][v] += net
+                    else:
+                        for j in spans:
+                            if f["t_open"] >= j:
+                                spanned[f["a"]][j][d][v] += net
+    for a in null:   # a null account's result over every pick's own span, averaged over the picks (TZ-75 B5)
+        results[a] = spanned[a][spans[0]] if len(spans) == 1 else {d: {v: statistics.fmean(
+            spanned[a][joins[p]][d][v] for p in picks) for v in ("src", "stop")} for d in DELAYS_S}
     verdict = decide(picks, null, results, booked[1800]["pick"])
     doc = {"v": 1, "k": "paper-verdict", "follow_from": sel["follow_from"], "window_end": sel["window_end"],
-           "picks": picks, "null": null, "booked": {str(d): booked[d] for d in DELAYS_S}, "unbookable": unbookable,
+           "picks": picks, "joined": {a: iso(joins[a]) for a in picks}, "null": null, "booked": {str(d): booked[d] for d in DELAYS_S}, "unbookable": unbookable,
            "funding_absent": absent, "lag_s": {"n": len(lags), "p50": nearest_rank(lags, 0.5),
                                                  "p95": nearest_rank(lags, 0.95)}, "fp": fingerprint()}
     doc.update(verdict)
@@ -1177,6 +1284,8 @@ def service(state_dir, tree):
         common.log("paper: selection done picks=%d null=%d" % (len(sel["picks"]), len(sel["null"])))
     rule = sel["rule"]    # frozen at the selection: a later change of owner.json moves nothing here
     state = load_state(state_path, sel)
+    rescan_state(state, sel)
+    box, thread = {}, None
     written = None
     symbols = set(sel["symbols"])
     inputs_box = {}
@@ -1204,6 +1313,27 @@ def service(state_dir, tree):
                         common.log("paper: poll %s failed (%s)" % (addr_short(addr), exc.__class__.__name__))
                     acct["failing"] = True
             gather_closed(state)
+            rs = state["rescan"]
+            if thread is None and rescan_due(state, sel, now):
+                picks = pick_joins(state, sel)[0]
+                if not rs["running"]:
+                    rs.update(n=rs["n"] + 1, running=True)
+                box = {}
+                thread = threading.Thread(target=rescan_run, daemon=True, args=(
+                    box, state_dir, rule, sel, set(picks) | {p["address"] for p in sel["null"]}, TOP_K - len(picks),
+                    rs["n"]))
+                limiter.per_min = WEIGHT_PER_MIN - RESCAN_WEIGHT_PER_MIN
+                thread.start()
+                common.log("paper: rescan %d started" % rs["n"])
+            elif thread is not None and not thread.is_alive():
+                thread, limiter.per_min = None, WEIGHT_PER_MIN
+                if "result" in box:
+                    adopt(state, state_dir, sel, box["result"], rs["n"], now)
+                    rs.update(running=False, due_ms=now + RESCAN_EVERY_DAYS * DAY_MS)
+                    common.log("paper: rescan %d adopted picks=%d" % (rs["n"], len(box["result"]["picks"])))
+                else:
+                    rs["due_ms"] = now + WORK_EVERY_S * 1000
+                    common.log("paper: rescan %d ended (%s), resumes later" % (rs["n"], box.get("error", "-")))
             if now >= sel["window_end_ms"] and all(a["polled_ms"] >= sel["window_end_ms"] + DAY_SETTLE_S * 1000
                                                     for a in state["accounts"].values()):
                 cut_open(state, sel)
@@ -1249,6 +1379,8 @@ def probe():
         ("portfolio", lambda: " ".join("%s=%s" % (k, v) for k, v in sorted(
             metrics(info({"type": "portfolio", "user": PROBE_ACCOUNT}, limiter), t0).items()))),
         ("exchange", lambda: "perpetuals=%d" % len(exchange.perpetuals(fetch_exchange()))),
+        ("leverage", lambda: "positions=%d" % len(info({"type": "clearinghouseState", "user": PROBE_ACCOUNT},
+                                                         limiter)["assetPositions"])),
         ("fills", lambda: (lambda fl: "fills=%d first=%s" % (len(fl), iso(int(fl[0]["time"])) if fl else "-"))(
             fills_since(PROBE_ACCOUNT, t0 - WINDOW_DAYS * DAY_MS, limiter, t0 - 1))),
         ("klines_1m", lambda: "rows=%d" % len(vision_rows("/daily/klines/BTCUSDT/1m/BTCUSDT-1m-%s.zip" % yesterday))),
