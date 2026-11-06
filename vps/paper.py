@@ -2,7 +2,8 @@
 """The copy-trading paper test (TZ-64, TZ-65; map section 10, row \u00abHyperliquid's large accounts\u00bb):
 Hyperliquid accounts selected once by their twelve-month record, followed in real time,
 every copied episode booked on Binance USD-M prices at four delays, and the verdict
-read at week 13 against random eligible accounts copied the same way.
+read at week 13 against random eligible accounts copied the same way -- or, when thirteen
+weeks cannot make it readable, at the thirtieth booked pick episode, by week 26 (TZ-77).
 
     paper.py [--state-dir <dir>] [--tree <dir>]      the service
     paper.py --probe                                  one read of every interface; counts only
@@ -44,6 +45,7 @@ import exchange  # noqa: E402
 INFO_URL = "https://api.hyperliquid.xyz/info"
 LEADERBOARD_URL = "https://stats-data.hyperliquid.xyz/Mainnet/leaderboard"
 VISION = "https://data.binance.vision/data/futures/um"
+FAPI_KLINES = "https://fapi.binance.com/fapi/v1/klines?symbol=%s&interval=%s&startTime=%d&endTime=%d&limit=1500"
 
 # --- The rule, registered by TZ-64 before any data: moved only by a TZ, never after a reading.
 POOL_VOLUME_MIN = 200e6       # all-time volume on the leaderboard, USD
@@ -67,6 +69,9 @@ ALERT_MAX_AGE_S = 600
 RESCAN_FIRST_DAYS = 14        # TZ-75 B: the rule re-applied two weeks after follow_from,
 RESCAN_EVERY_DAYS = 28        # then every four weeks while picks are short of TOP_K
 RESCAN_MIN_LEFT_DAYS = 28     # and only while at least four weeks of the window remain
+RUN_ON_MAX_DAYS = 182         # TZ-77 (1): past thirteen weeks the window runs on only to the verdict's thirtieth booked
+                              # pick episode, and never past 26 weeks after follow_from
+READABLE_AT_S = 1800          # the delay whose booked pick episodes make the verdict readable (TZ-64 12.4.2)
 PROBE_ACCOUNT = "0xf97ad6704baec104d00b88e0c157e2b7b3a1ddd1"   # the reading's first account
 
 # --- Operation.
@@ -74,7 +79,7 @@ WEIGHT_PER_MIN = 600          # half the info API's documented 1 200 per IP per 
                               # Architect's workspace met runs of 429 answers on 16.10.2026
 INFO_WEIGHT = 20              # documented weight of portfolio and userFillsByTime
 FILLS_PAGE = 2000             # documented maximum fills per userFillsByTime answer
-FILL_KEYS = ("coin", "px", "sz", "side", "time", "startPosition", "tid")   # all a fill is read for
+FILL_KEYS = ("coin", "px", "sz", "side", "time", "startPosition", "tid", "oid")   # all a fill is read for; oid TZ-77
 PICK_POLL_S = 30
 NULL_POLL_S = 600
 DAY_SETTLE_S = 600            # a day is written once every account was polled this long after it ended
@@ -82,6 +87,9 @@ ABSENT_AFTER_DAYS = 7         # a 404 for a file dated further back is an absenc
 WORK_EVERY_S = 3600           # booking, funding and the verdict are attempted hourly; a failed rescan resumes as often
 RESCAN_WEIGHT_PER_MIN = 300   # a rescan's share of WEIGHT_PER_MIN; the service holds the rest while one runs
 PUBLISH_EVERY_S = 300
+REBOOK_PREFIX = "/daily/klines/"   # TZ-77 (0): an archive file named in a book line written before the API fallback
+ORDERS_COMPLETE = 2000        # TZ-77 (2): historicalOrders answers its latest 2 000 rows; fewer is the whole record
+ANNOUNCED_S = PICK_POLL_S     # TZ-77 (2): an order resting this long before its fill would reach an order poll first
 TRANSPORT_MAX = 30            # consecutive transport failures on one selection step
 TRANSPORT_WAIT_S = 60
 LOOP_S = 5
@@ -122,6 +130,10 @@ N_VERDICT = ("\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u044
              "\u0445\u0438\u0442\u0435\u043a\u0442\u043e\u0440\u0430.")
 N_ADDED = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442: \u043d\u043e\u0432\u044b\u0439 \u043a\u0438\u0442 {num} \U0001f40b\u2022 {addr} \u2014 \u043f\u0440\u043e\u0448\u0451\u043b \u0442\u043e \u0436\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u043e\u0442\u0431\u043e\u0440\u0430 \u043d\u0430 {date}, \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u0434\u043e {end}."
 N_RESCAN_NONE = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 \u043f\u043e\u0438\u0441\u043a \u043a\u0438\u0442\u043e\u0432 {date}: \u043f\u0440\u0430\u0432\u0438\u043b\u043e 12 \u043c\u0435\u0441\u044f\u0446\u0435\u0432 \u043f\u0440\u043e\u0448\u043b\u0438 {r12} \u0438\u0437 {eligible} \u0441\u0447\u0435\u0442\u043e\u0432, \u043d\u043e\u0432\u044b\u0445 \u043a\u043e\u043f\u0438\u0440\u0443\u0435\u043c\u044b\u0445 \u043d\u0435\u0442."
+# --- TZ-77 (1): the window that runs on past thirteen weeks.
+N_RUN_ON = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f: \u0441\u0434\u0435\u043b\u043e\u043a \u043a\u0438\u0442\u043e\u0432 \u0437\u0430 13 \u043d\u0435\u0434\u0435\u043b\u044c \u2014 {n} \u0438\u0437 30 \u043d\u0443\u0436\u043d\u044b\u0445, \u043e\u043a\u043d\u043e \u043f\u0440\u043e\u0434\u043b\u0435\u043d\u043e \u0434\u043e 30-\u0439, \u043d\u043e \u043d\u0435 \u0434\u043e\u043b\u044c\u0448\u0435 {date}."
+N_END_SET = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f: \u0443\u0447\u0442\u0451\u043d\u043d\u044b\u0445 \u0441\u0434\u0435\u043b\u043e\u043a \u043a\u0438\u0442\u043e\u0432 \u2014 {n} \u0438\u0437 30 \u043d\u0443\u0436\u043d\u044b\u0445, \u043e\u043a\u043d\u043e \u0437\u0430\u043a\u0440\u043e\u0435\u0442\u0441\u044f {date}."
+N_CLOSED_RUN_ON = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f: \u043e\u043a\u043d\u043e \u0437\u0430\u043a\u0440\u044b\u0442\u043e {date}, \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u044b. \u0418\u0442\u043e\u0433 \u2014 \u043f\u043e\u0441\u043b\u0435 \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u0438 \u0434\u0430\u043d\u043d\u044b\u0445 Binance."
 MINUTES = "\u043c\u0438\u043d"
 HOURS = "\u0447"
 
@@ -251,7 +263,7 @@ class Limiter:
 def info(body, limiter):
     limiter.spend(INFO_WEIGHT)
     doc = http_post(INFO_URL, body)
-    if body.get("type") == "userFillsByTime" and isinstance(doc, list):
+    if body.get("type") in ("userFillsByTime", "historicalOrders") and isinstance(doc, list):
         limiter.spend(len(doc) // 20)    # documented: one more per 20 items returned
     return doc
 
@@ -278,7 +290,7 @@ def iter_fills(addr, start_ms, limiter, end_ms=None):
             if ft > t:
                 t, tids_at_t = ft, set()
             tids_at_t.add(f["tid"])
-            yield {k: f[k] for k in FILL_KEYS}
+            yield {k: f.get(k) if k == "oid" else f[k] for k in FILL_KEYS}   # an answer naming no order: oid None
         if len(page) < FILLS_PAGE:
             return
         if t == asked:
@@ -459,7 +471,8 @@ def apply_fill(coins, fill, symbol):
     before the fill is the fill's own startPosition, so a coin first seen with a position open has
     no episode until it is flat. Returns the events in order: ("lost", ep) when the episode held
     disagrees with startPosition, ("close", ep) when the fill flattens or flips it, ("open", ep)
-    when the fill opens from flat or by the flip."""
+    when the fill opens from flat or by the flip. Each episode names the order of its opening and of
+    its closing fill (TZ-77 (2)), None when the fill names none."""
     coin = fill["coin"]
     start = Decimal(fill["startPosition"])
     size = Decimal(fill["sz"])
@@ -470,12 +483,13 @@ def apply_fill(coins, fill, symbol):
         events.append(("lost", ep))
         ep = None
     if ep is not None and sign(after) != ep["side"]:
-        events.append(("close", dict(ep, t_close=t, px_close=px, n=ep["n"] + 1)))
+        events.append(("close", dict(ep, t_close=t, px_close=px, n=ep["n"] + 1, oid_close=fill.get("oid"))))
         ep = None
     elif ep is not None:
         ep = dict(ep, n=ep["n"] + 1)
     if ep is None and after != 0 and sign(start) != sign(after):
-        ep = {"coin": coin, "symbol": symbol, "side": sign(after), "t_open": t, "px_open": px, "n": 1}
+        ep = {"coin": coin, "symbol": symbol, "side": sign(after), "t_open": t, "px_open": px, "n": 1,
+              "oid_open": fill.get("oid")}
         events.append(("open", ep))
     coins[coin] = ep
     return events
@@ -573,6 +587,36 @@ def vision_rows(path):
     return rows[1:] if rows and not rows[0][0].strip().isdigit() else rows
 
 
+def fapi_klines(sym, interval, date):
+    """TZ-77 (0): sym's klines at interval opening inside UTC day date from the exchange's own API, in the
+    archive's column order -- for a day data.binance.vision never published. Absent when the exchange has
+    none or refuses the request itself (HTTP 400); Transport otherwise (inv. 70)."""
+    start = day_start(date)
+    try:
+        with urllib.request.urlopen(FAPI_KLINES % (sym, interval, start, start + DAY_MS - 1),
+                                    timeout=common.HTTP_TIMEOUT_S) as resp:
+            doc = json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        if exc.code == 400:
+            raise Absent("fapi %s %s %s: HTTP 400" % (sym, interval, date)) from None
+        raise Transport("HTTP %d" % exc.code) from None
+    except (urllib.error.URLError, OSError, http.client.HTTPException) as exc:
+        raise Transport(exc.__class__.__name__) from None
+    except ValueError:
+        raise Transport("unparseable") from None
+    if not isinstance(doc, list):
+        raise Transport("klines: not a list")
+    try:
+        rows = [r for r in doc if start <= int(r[0]) < start + DAY_MS]
+        for r in rows:
+            float(r[1]), float(r[2]), float(r[3]), float(r[4])
+    except (TypeError, ValueError, IndexError, KeyError):
+        raise Transport("klines: unreadable") from None
+    if not rows:
+        raise Absent("fapi %s %s %s: no klines" % (sym, interval, date))
+    return rows
+
+
 class Rows:
     """The (open, high, low, close) of consecutive minutes, four doubles a minute in one array: a
     symbol-day is kept in 63 KiB with its times, against 375 KiB as a list of tuples (12.3.6)."""
@@ -592,16 +636,38 @@ class Rows:
 class Inputs:
     """data.binance.vision inputs of one pass: 1m klines of one symbol at a time by day, daily
     closes kept on disk, funding rates by symbol and month. A 404 dated more than ABSENT_AFTER_DAYS
-    before today is Absent; nearer is NotReady."""
+    before today is Absent; nearer is NotReady. With a fallback (TZ-77 (0)) an Absent day of klines
+    is read from the exchange's own API instead, and every symbol-day so read is kept on disk, so a
+    book line names the days it took from there (`used`, which the caller clears)."""
 
-    def __init__(self, state_dir, today, rows=vision_rows):
+    def __init__(self, state_dir, today, rows=vision_rows, fallback=None):
         self.today, self.rows, self.klines, self.kl_sym, self.rates_by = today, rows, {}, None, {}
+        self.fallback, self.used = fallback, set()
         self.closes_path = os.path.join(state_dir, "closes.json")
         try:
             with open(self.closes_path, encoding="utf-8") as fh:
                 self.closes = json.load(fh)
         except (OSError, ValueError):
             self.closes = {}
+        self.api_path = os.path.join(state_dir, "api-days.json")
+        try:
+            with open(self.api_path, encoding="utf-8") as fh:
+                self.api = set(json.load(fh))
+        except (OSError, ValueError):
+            self.api = set()
+
+    def from_api(self, sym, interval, date):
+        """The fallback's rows for one symbol-day, the day remembered on disk."""
+        rows = self.fallback(sym, interval, date)
+        key = "%s %s %s" % (sym, interval, date)
+        if key not in self.api:
+            self.api.add(key)
+            common.atomic_write(self.api_path, sorted(self.api), mode=0o640)
+        return rows
+
+    def mark(self, sym, interval, date):
+        if "%s %s %s" % (sym, interval, date) in self.api:
+            self.used.add("%s %s" % (interval, date))
 
     def fetch(self, path, ref_date):
         try:
@@ -617,11 +683,17 @@ class Inputs:
             self.klines, self.kl_sym = {}, sym
         if (sym, date) not in self.klines:
             start = day_start(date)
-            rows = sorted(x for x in ((int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in
-                                      self.fetch("/daily/klines/%s/1m/%s-1m-%s.zip" % (sym, sym, date), date))
+            try:
+                got = self.fetch("/daily/klines/%s/1m/%s-1m-%s.zip" % (sym, sym, date), date)
+            except Absent:
+                if self.fallback is None:
+                    raise
+                got = self.from_api(sym, "1m", date)
+            rows = sorted(x for x in ((int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in got)
                           if start <= x[0] < start + DAY_MS)
             self.klines[(sym, date)] = (array.array("q", [x[0] for x in rows]),
                                         array.array("d", [v for x in rows for v in x[1:]]))
+        self.mark(sym, "1m", date)
         return self.klines[(sym, date)]
 
     def kl(self, sym, first, last):
@@ -639,9 +711,15 @@ class Inputs:
     def close_on(self, sym, date):
         have = self.closes.setdefault(sym, {})
         if date not in have:
-            rows = self.fetch("/daily/klines/%s/1d/%s-1d-%s.zip" % (sym, sym, date), date)
+            try:
+                rows = self.fetch("/daily/klines/%s/1d/%s-1d-%s.zip" % (sym, sym, date), date)
+            except Absent:
+                if self.fallback is None:
+                    raise
+                rows = self.from_api(sym, "1d", date)
             have[date] = float(rows[0][4])
             common.atomic_write(self.closes_path, self.closes, mode=0o640)
+        self.mark(sym, "1d", date)
         return have[date]
 
     def rates(self, sym, month):
@@ -662,10 +740,13 @@ def last_day(ep, window_end):
 
 def book_episode(ep, inputs, rule, window_end):
     """The book line of one episode: sigma_for, the stop distance INV_FLOOR_SD sigma, and every
-    delay; or an unbookable line."""
+    delay; or an unbookable line. A pick's episode that closed also books, beside the verdict and
+    deciding nothing, the copy entered at each delay and left at the pick's own exit, `x` (TZ-77 (2));
+    a line whose inputs came from the exchange's API names those days, `api` (TZ-77 (0))."""
     line = {"k": "book", "a": ep["a"], "coin": ep["coin"], "symbol": ep["symbol"], "side": ep["side"],
             "t_open": ep["t_open"]}
     first = utc_date(ep["t_open"])
+    inputs.used = set()
     try:
         sigma = sigma_for(inputs, ep["symbol"], ep["t_open"])
         dist = rule["inv_floor_sd"] * sigma
@@ -675,8 +756,14 @@ def book_episode(ep, inputs, rule, window_end):
         line.update(sigma_d=sigma, dist=dist, d={
             str(d): book_delay(ep, d, dist, kl, rule["capital_usdt"], rule["risk_pct"] / 100, rule["fee_taker"],
                                window_end) for d in DELAYS_S})
+        if ep.get("role") == "pick" and not ep.get("cut"):
+            line["x"] = {str(d): book_delay(dict(ep, t_close=ep["t_close"] - d * 1000), d, dist, kl,
+                                            rule["capital_usdt"], rule["risk_pct"] / 100, rule["fee_taker"], window_end)
+                         for d in DELAYS_S}
     except Absent as exc:
         line["unbookable"] = str(exc)
+    if inputs.used:
+        line["api"] = sorted(inputs.used)
     return line
 
 
@@ -701,6 +788,27 @@ def funding_line(book, inputs):
             v: funding_paid(book["side"], b["qty"], b["entry_px"], b["entry_ms"] + 60000, b[v]["exit_ms"] + 60000, rates)
             for v in ("src", "stop")}
     return line
+
+
+def booked_at(b, d):
+    """A book line's copy at delay d, or None: unbookable, or entered after its exit."""
+    return b["d"][str(d)] if "d" in b else None
+
+
+def awaits_rebook(b):
+    """TZ-77 (0): a line written unbookable for an archive file before the API fallback, not yet booked again."""
+    return str(b.get("unbookable", "")).startswith(REBOOK_PREFIX)
+
+
+def book_lines(root, day):
+    """The book lines of one day in the book file's order, each replaced by its line in rebook/<day>.jsonl
+    where that file holds one (TZ-77 (0))."""
+    lines = [b for b in read_jsonl(os.path.join(root, "book", day + ".jsonl")) if b["k"] == "book"]
+    path = os.path.join(root, "rebook", day + ".jsonl")
+    if os.path.exists(path):
+        again = {(r["a"], r["coin"], r["t_open"]): r for r in read_jsonl(path) if r["k"] == "book"}
+        lines = [again.get((b["a"], b["coin"], b["t_open"]), b) for b in lines]
+    return lines
 
 
 # --- the verdict -----------------------------------------------------------------
@@ -1056,8 +1164,8 @@ def new_state(sel):
                                         "last_tids": [], "polled_ms": 0, "due_ms": 0, "coins": {}, "fills": {},
                                         "lost": {}, "failing": False}
     return {"v": 1, "accounts": accounts, "closed": [], "cut": False, "written": {"episodes": None, "book": None,
-            "funding": None}, "verdict": False, "pending": [], "next_work_ms": 0, "next_publish_ms": 0,
-            "closed_notice": False}
+            "funding": None, "rebook": None, "orders": None}, "verdict": False, "pending": [], "next_work_ms": 0,
+            "next_publish_ms": 0, "closed_notice": False}
 
 
 def poll(addr, acct, sel, symbols, limiter, now, rule, inputs_for):
@@ -1099,9 +1207,10 @@ def _apply(addr, acct, fills, sel, symbols, now, rule, inputs_for, leverage_for=
                     common.write_outbox("alert", alert_open(ep, acct["rank"], rule, sigma, leverage_for(f["coin"])))
                 else:
                     common.write_outbox("alert", alert_close(ep, acct["rank"], rule))
-    if fills:
-        acct["last_ms"] = max(acct["last_ms"], max(int(f["time"]) for f in fills))
-        acct["last_tids"] = [f["tid"] for f in fills if int(f["time"]) == acct["last_ms"]]
+    kept = [f for f in fills if int(f["time"]) < window_end]   # TZ-77 (1): a fill past the end as it stands stays
+    if kept:                                                     # unread, so a window that runs on applies it
+        acct["last_ms"] = max(acct["last_ms"], max(int(f["time"]) for f in kept))
+        acct["last_tids"] = [f["tid"] for f in kept if int(f["time"]) == acct["last_ms"]]
     acct["polled_ms"] = now
 
 
@@ -1177,14 +1286,44 @@ def produce_books(state, state_dir, sel, rule, inputs):
         state["written"]["book"] = day
 
 
+def produce_rebooks(state, state_dir, sel, rule, inputs):
+    """TZ-77 (0): every written book day holding episodes unbookable for an archive file -- written before the API
+    fallback -- has those episodes booked again, once, one symbol at a time, into rebook/<day>.jsonl; a day without
+    them writes nothing. NotReady ends the pass and the day is booked again whole at the next."""
+    first, window_end = utc_date(sel["follow_from_ms"]), sel["window_end_ms"]
+    root = os.path.join(state_dir, "records", RECORD_DIR)
+    while True:
+        day = next_date(state["written"]["rebook"], first)
+        if state["written"]["book"] is None or day > state["written"]["book"]:
+            return
+        targets = [b for b in read_jsonl(os.path.join(root, "book", day + ".jsonl")) if b["k"] == "book"
+                   and awaits_rebook(b)]
+        if targets:
+            eps = {(e["a"], e["coin"], e["t_open"]): e for e in read_jsonl(os.path.join(root, "episodes", day + ".jsonl"))
+                   if e["k"] == "ep"}
+            lines = [None] * len(targets)
+            try:
+                for i in sorted(range(len(targets)), key=lambda i: (targets[i]["symbol"], i)):
+                    t = targets[i]
+                    lines[i] = dict(book_episode(eps[(t["a"], t["coin"], t["t_open"])], inputs, rule, window_end),
+                                    rebook=True)
+            finally:
+                inputs.drop_minutes()
+            head = {"k": "day", "date": day, "rebooked": len(lines), "booked": sum(1 for x in lines if "d" in x),
+                    "unbookable": sum(1 for x in lines if "unbookable" in x)}
+            write_record(state, state_dir, "rebook/%s.jsonl" % day, [head] + lines)
+        state["written"]["rebook"] = day
+
+
 def produce_funding(state, state_dir, sel, inputs):
     first = utc_date(sel["follow_from_ms"])
     while True:
         day = next_date(state["written"]["funding"], first)
         if state["written"]["book"] is None or day > state["written"]["book"]:
             return
-        books = [b for b in read_jsonl(os.path.join(state_dir, "records", RECORD_DIR, "book", day + ".jsonl"))
-                 if b["k"] == "book"]
+        books = book_lines(os.path.join(state_dir, "records", RECORD_DIR), day)
+        if any(awaits_rebook(b) for b in books):
+            return                               # TZ-77 (0): the day's rebook comes first
         lines = [funding_line(b, inputs) for b in books]
         head = {"k": "day", "date": day, "lines": len(lines), "absent": sum(1 for x in lines if x["absent"])}
         write_record(state, state_dir, "funding/%s.jsonl" % day, [head] + lines)
@@ -1203,13 +1342,14 @@ def produce_verdict(state, state_dir, sel, rule):
     results = {a: {d: {"src": 0.0, "stop": 0.0} for d in DELAYS_S} for a in picks}
     spanned = {a: {j: {d: {"src": 0.0, "stop": 0.0} for d in DELAYS_S} for j in spans} for a in null}
     booked = {d: {"pick": 0, "null": 0} for d in DELAYS_S}
-    lags, unbookable, absent = [], 0, 0
+    lags, unbookable, absent, rebooked, api = [], 0, 0, 0, 0
     for day in days:
         for e in read_jsonl(os.path.join(root, "episodes", day + ".jsonl")):
             if e["k"] == "ep" and e["role"] == "pick" and e.get("seen_open_ms"):
                 lags.append((e["seen_open_ms"] - e["t_open"]) / 1000)
-        books = {(b["a"], b["coin"], b["t_open"]): b for b in read_jsonl(os.path.join(root, "book", day + ".jsonl"))
-                 if b["k"] == "book"}
+        books = {(b["a"], b["coin"], b["t_open"]): b for b in book_lines(root, day)}
+        rebooked += sum(1 for b in books.values() if b.get("rebook"))
+        api += sum(1 for b in books.values() if "api" in b)
         for f in read_jsonl(os.path.join(root, "funding", day + ".jsonl")):
             if f["k"] != "funding":
                 continue
@@ -1220,7 +1360,7 @@ def produce_verdict(state, state_dir, sel, rule):
             absent += 1 if f["absent"] else 0
             role = "pick" if f["a"] in picks else "null"
             for d in DELAYS_S:
-                cell = b["d"][str(d)]
+                cell = booked_at(b, d)
                 if cell is None:
                     continue
                 booked[d][role] += 1
@@ -1235,14 +1375,198 @@ def produce_verdict(state, state_dir, sel, rule):
     for a in null:   # a null account's result over every pick's own span, averaged over the picks (TZ-75 B5)
         results[a] = spanned[a][spans[0]] if len(spans) == 1 else {d: {v: statistics.fmean(
             spanned[a][joins[p]][d][v] for p in picks) for v in ("src", "stop")} for d in DELAYS_S}
-    verdict = decide(picks, null, results, booked[1800]["pick"])
+    verdict = decide(picks, null, results, booked[READABLE_AT_S]["pick"])
     doc = {"v": 1, "k": "paper-verdict", "follow_from": sel["follow_from"], "window_end": sel["window_end"],
            "picks": picks, "joined": {a: iso(joins[a]) for a in picks}, "null": null, "booked": {str(d): booked[d] for d in DELAYS_S}, "unbookable": unbookable,
            "funding_absent": absent, "lag_s": {"n": len(lags), "p50": nearest_rank(lags, 0.5),
-                                                 "p95": nearest_rank(lags, 0.95)}, "fp": fingerprint()}
+                                                 "p95": nearest_rank(lags, 0.95)}, "fp": fingerprint(),
+           "window": state.get("window"), "rebooked": rebooked, "api": api}
     doc.update(verdict)
     write_record(state, state_dir, "verdict.json", doc=doc)
     state["verdict"] = True
+    return True
+
+
+# --- TZ-77: the window as it stands, and the picks' orders ----------------------------------
+def window_view(state, sel):
+    """The selection with its window as it stands (TZ-77 (1)): thirteen weeks until the decision at their end,
+    then the end that decision and the booking set. selection.json itself never changes."""
+    w = state.get("window")
+    if w is None:
+        return sel
+    return dict(sel, window_end_ms=w["end_ms"], window_end=iso(w["end_ms"]))
+
+
+def pick_book(state, state_dir, sel, picks):
+    """The written book of the picks' episodes, rebooks applied: (booked at READABLE_AT_S, unbookable for good)."""
+    root = os.path.join(state_dir, "records", RECORD_DIR)
+    booked = final = 0
+    if state["written"]["book"] is not None:
+        for day in days_between(utc_date(sel["follow_from_ms"]), state["written"]["book"]):
+            for b in book_lines(root, day):
+                if b["a"] not in picks:
+                    continue
+                if booked_at(b, READABLE_AT_S) is not None:
+                    booked += 1
+                elif "unbookable" in b and not awaits_rebook(b):
+                    final += 1
+    return booked, final
+
+
+def seen_pick_episodes(state, state_dir, sel, picks):
+    """Every pick episode of the window so far: in the written episode files, closed since, and open."""
+    root = os.path.join(state_dir, "records", RECORD_DIR)
+    n = 0
+    if state["written"]["episodes"] is not None:
+        for day in days_between(utc_date(sel["follow_from_ms"]), state["written"]["episodes"]):
+            n += sum(1 for e in read_jsonl(os.path.join(root, "episodes", day + ".jsonl"))
+                     if e["k"] == "ep" and e["a"] in picks)
+    n += sum(1 for e in state["closed"] if e["a"] in picks)
+    return n + sum(1 for a, acct in state["accounts"].items() if a in picks
+                   for ep in acct["coins"].values() if ep is not None)
+
+
+def at_window_end(state, state_dir, sel, now):
+    """The end as it stands is reached and every account polled DAY_SETTLE_S past it: True when the window closes
+    there (TZ-77 (1)). At thirteen weeks it closes whenever its pick episodes -- written, closed since or open, less
+    those written unbookable for good -- number EPISODES_MIN or more, so wherever the verdict of thirteen weeks can
+    be readable the window is thirteen weeks; otherwise it runs on, to the end fix_end sets or RUN_ON_MAX_DAYS after
+    follow_from. A window that ran on closes at its end."""
+    if state.get("window") is not None:
+        return True
+    picks = pick_joins(state, sel)[0]
+    seen = seen_pick_episodes(state, state_dir, sel, picks)
+    final = pick_book(state, state_dir, sel, picks)[1]
+    w = {"weeks13_ms": sel["window_end_ms"], "seen": seen, "unbookable": final, "decided_ms": now}
+    if seen - final >= EPISODES_MIN:
+        state["window"] = dict(w, run_on=False, end_ms=sel["window_end_ms"], fixed=True)
+        return True
+    cap = sel["follow_from_ms"] + RUN_ON_MAX_DAYS * DAY_MS
+    state["window"] = dict(w, run_on=True, end_ms=cap, fixed=False)
+    common.write_outbox("notice", N_RUN_ON.format(n=seen - final, date=tbilisi_date(cap)))
+    return False
+
+
+def fix_end(state, state_dir, sel, now):
+    """While the window runs on and its end is open: once the written book holds EPISODES_MIN pick episodes booked
+    at READABLE_AT_S, the end is fixed at the first instant after now on follow_from's daily grid, the cap at the
+    latest. Every fill before that end is followed as before, so the window closes there as at thirteen weeks."""
+    w = state.get("window")
+    if not w or not w["run_on"] or w["fixed"]:
+        return False
+    booked = pick_book(state, state_dir, sel, pick_joins(state, sel)[0])[0]
+    if booked < EPISODES_MIN:
+        return False
+    e0 = w["weeks13_ms"]
+    end = min(e0 + ((now - e0) // DAY_MS + 1) * DAY_MS, w["end_ms"])
+    w.update(end_ms=end, fixed=True, booked=booked, fixed_ms=now)
+    common.write_outbox("notice", N_END_SET.format(n=booked, date=tbilisi_date(end)))
+    return True
+
+
+def orders_rows(addr, limiter):
+    """Every row historicalOrders answers for addr -- one per status an order took, the latest ORDERS_COMPLETE."""
+    doc = info({"type": "historicalOrders", "user": addr}, limiter)
+    if not isinstance(doc, list):
+        raise ValueError("historicalOrders: not a list")
+    return doc
+
+
+def episode_oid(e, end, limiter):
+    """The order of an episode's opening (end "open") or closing fill: the episode's own; for an episode written
+    before TZ-77, the order of the account's fill of that coin at that millisecond; None for a cut close or none."""
+    key, t = ("oid_open", e["t_open"]) if end == "open" else ("oid_close", e["t_close"])
+    if e.get(key) is not None or (end == "close" and e.get("cut")):
+        return e.get(key)
+    return next((f["oid"] for f in fills_since(e["a"], t, limiter, t) if f["coin"] == e["coin"]), None)
+
+
+def produce_orders(state, state_dir, sel, limiter, symbols, now):
+    """TZ-77 (2), deciding nothing: for each day of the window over DAY_SETTLE_S ago whose episode file is written,
+    orders/<day>.jsonl, once -- each pick episode of that file with the orders of its opening and closing fills, and
+    every row historicalOrders answered for a pick whose status time falls in the day, on a copyable coin. A pick
+    whose answer may have rolled part of that day off is marked incomplete. Transport ends the pass; the day waits."""
+    first, last = utc_date(sel["follow_from_ms"]), utc_date(sel["window_end_ms"])
+    root = os.path.join(state_dir, "records", RECORD_DIR)
+    picks, answers = pick_joins(state, sel)[0], {}
+    while True:
+        day = next_date(state["written"]["orders"], first)
+        start = day_start(day)
+        if (day > last or state["written"]["episodes"] is None or day > state["written"]["episodes"]
+                or now < start + DAY_MS + DAY_SETTLE_S * 1000):
+            return
+        for a in picks:
+            if a not in answers:
+                answers[a] = orders_rows(a, limiter)
+        eps = [{"k": "ep", "a": e["a"], "coin": e["coin"], "t_open": e["t_open"], "t_close": e["t_close"],
+                "cut": bool(e.get("cut")), "oid_open": episode_oid(e, "open", limiter),
+                "oid_close": episode_oid(e, "close", limiter)}
+               for e in read_jsonl(os.path.join(root, "episodes", day + ".jsonl")) if e["k"] == "ep" and e["a"] in picks]
+        rows, heads = [], {}
+        for a in picks:
+            got = answers[a]
+            oldest = min((int(r["statusTimestamp"]) for r in got), default=None)
+            heads[a] = {"rows": len(got), "complete": len(got) < ORDERS_COMPLETE or (oldest is not None and oldest < start)}
+            rows += [dict(r, k="row", a=a) for r in got if start <= int(r["statusTimestamp"]) < start + DAY_MS
+                     and symbol_for(r["order"]["coin"], symbols) is not None]
+        rows.sort(key=lambda r: (int(r["statusTimestamp"]), r["a"], int(r["order"]["oid"]), r["status"]))
+        write_record(state, state_dir, "orders/%s.jsonl" % day,
+                     [{"k": "day", "date": day, "episodes": len(eps), "rows": len(rows), "picks": heads}] + eps + rows)
+        state["written"]["orders"] = day
+
+
+def produce_readout(state, state_dir, sel, rule):
+    """TZ-77 (2), deciding nothing: once the verdict and the window's last orders file are written, orders-readout.json
+    -- over the picks' closed episodes inside their spans: how many opening, and how many closing, orders rested at
+    least ANNOUNCED_S before their fill, and how long; how many orders able to open a position rested, and how many
+    of those opened no episode; and, where the exit rested, the copy entered at each delay and left at the pick's own
+    exit against the copy left at that delay, each gross less fees over capital."""
+    last = utc_date(sel["window_end_ms"])
+    if state.get("readout") or not state["verdict"] or state["written"]["orders"] != last:
+        return False
+    root = os.path.join(state_dir, "records", RECORD_DIR)
+    picks, joins = pick_joins(state, sel)
+    days = days_between(utc_date(sel["follow_from_ms"]), last)
+    placed, rested, eps, books = {}, set(), [], {}
+    for day in days:
+        for x in read_jsonl(os.path.join(root, "orders", day + ".jsonl")):
+            if x["k"] == "row":
+                o = x["order"]
+                placed[o["oid"]] = min(placed.get(o["oid"], o["timestamp"]), o["timestamp"])
+                if (x["status"] == "open" and not o["reduceOnly"] and x["a"] in joins
+                        and joins[x["a"]] <= o["timestamp"] < sel["window_end_ms"]):
+                    rested.add((x["a"], o["oid"]))
+            elif x["k"] == "ep" and not x["cut"] and x["a"] in joins and x["t_open"] >= joins[x["a"]]:
+                eps.append(x)
+        for b in book_lines(root, day):
+            if b["a"] in joins:
+                books[(b["a"], b["coin"], b["t_open"])] = b
+
+    def leads(t, oid):
+        return [(e, (e[t] - placed[e[oid]]) / 1000) for e in eps if e[oid] in placed]
+
+    doc = {"v": 1, "k": "paper-orders", "picks": picks, "announced_s": ANNOUNCED_S, "episodes": len(eps), "fp": fingerprint()}
+    for name, t, oid in (("entry", "t_open", "oid_open"), ("exit", "t_close", "oid_close")):
+        known = leads(t, oid)
+        ahead = [s for _, s in known if s >= ANNOUNCED_S]
+        doc[name] = {"known": len(known), "rested": len(ahead),
+                     "lead_s": {"p50": nearest_rank(ahead, 0.5), "p95": nearest_rank(ahead, 0.95)}}
+    opened = {e["oid_open"] for e in eps}
+    doc["resting_entries"] = {"rested": len(rested), "opened_no_episode": sum(1 for _, o in rested if o not in opened)}
+    doc["exit_copy"] = {}
+    for d in DELAYS_S:
+        cell = {"n": 0, "at_pick_exit": {"src": 0.0, "stop": 0.0}, "at_delay": {"src": 0.0, "stop": 0.0}}
+        for e, s in leads("t_close", "oid_close"):
+            b = books.get((e["a"], e["coin"], e["t_open"]))
+            if s < ANNOUNCED_S or b is None or booked_at(b, d) is None or (b.get("x") or {}).get(str(d)) is None:
+                continue
+            cell["n"] += 1
+            for v in ("src", "stop"):
+                cell["at_pick_exit"][v] += (b["x"][str(d)][v]["gross"] - b["x"][str(d)][v]["fee"]) / rule["capital_usdt"]
+                cell["at_delay"][v] += (b["d"][str(d)][v]["gross"] - b["d"][str(d)][v]["fee"]) / rule["capital_usdt"]
+        doc["exit_copy"][str(d)] = cell
+    write_record(state, state_dir, "orders-readout.json", doc=doc)
+    state["readout"] = True
     return True
 
 
@@ -1285,26 +1609,29 @@ def service(state_dir, tree):
     rule = sel["rule"]    # frozen at the selection: a later change of owner.json moves nothing here
     state = load_state(state_path, sel)
     rescan_state(state, sel)
+    state["written"].setdefault("rebook", None)   # TZ-77: a state written before it
+    state["written"].setdefault("orders", None)
     box, thread = {}, None
-    written = None
+    written, window_failed = None, False
     symbols = set(sel["symbols"])
     inputs_box = {}
 
     def inputs_for():
         today = utc_date(now_ms())
         if inputs_box.get("today") != today:
-            inputs_box.update(today=today, inputs=Inputs(state_dir, today))
+            inputs_box.update(today=today, inputs=Inputs(state_dir, today, fallback=fapi_klines))
         return inputs_box["inputs"]
 
     while True:
         now = now_ms()
+        view = window_view(state, sel)   # TZ-77 (1): every step below reads the window as it stands
         if starts(sel) and not state["cut"]:
             for addr, acct in state["accounts"].items():
                 if now < acct["due_ms"]:
                     continue
                 acct["due_ms"] = now + 1000 * (PICK_POLL_S if acct["role"] == "pick" else NULL_POLL_S)
                 try:
-                    poll(addr, acct, sel, symbols, limiter, now, rule, inputs_for)
+                    poll(addr, acct, view, symbols, limiter, now, rule, inputs_for)
                     if acct["failing"]:
                         common.log("paper: poll %s answered again" % addr_short(addr))
                     acct["failing"] = False
@@ -1314,7 +1641,7 @@ def service(state_dir, tree):
                     acct["failing"] = True
             gather_closed(state)
             rs = state["rescan"]
-            if thread is None and rescan_due(state, sel, now):
+            if thread is None and rescan_due(state, view, now):
                 picks = pick_joins(state, sel)[0]
                 if not rs["running"]:
                     rs.update(n=rs["n"] + 1, running=True)
@@ -1328,34 +1655,64 @@ def service(state_dir, tree):
             elif thread is not None and not thread.is_alive():
                 thread, limiter.per_min = None, WEIGHT_PER_MIN
                 if "result" in box:
-                    adopt(state, state_dir, sel, box["result"], rs["n"], now)
+                    adopt(state, state_dir, view, box["result"], rs["n"], now)
                     rs.update(running=False, due_ms=now + RESCAN_EVERY_DAYS * DAY_MS)
                     common.log("paper: rescan %d adopted picks=%d" % (rs["n"], len(box["result"]["picks"])))
                 else:
                     rs["due_ms"] = now + WORK_EVERY_S * 1000
                     common.log("paper: rescan %d ended (%s), resumes later" % (rs["n"], box.get("error", "-")))
-            if now >= sel["window_end_ms"] and all(a["polled_ms"] >= sel["window_end_ms"] + DAY_SETTLE_S * 1000
-                                                    for a in state["accounts"].values()):
-                cut_open(state, sel)
-                if not state["closed_notice"]:
-                    common.write_outbox("notice", N_CLOSED)
-                    state["closed_notice"] = True
+            end = view["window_end_ms"]
+            if now >= end and all(a["polled_ms"] >= end + DAY_SETTLE_S * 1000 for a in state["accounts"].values()):
+                try:
+                    closes = at_window_end(state, state_dir, sel, now)
+                except (OSError, ValueError, KeyError) as exc:   # the decision waits; the window stays as it stands
+                    closes = None
+                    if not window_failed:
+                        common.log("paper: window decision failed (%s)" % exc.__class__.__name__)
+                window_failed = closes is None
+                view = window_view(state, sel)
+                if closes is None:
+                    pass
+                elif closes:
+                    cut_open(state, view)
+                    if not state["closed_notice"]:
+                        common.write_outbox("notice", N_CLOSED if not state["window"]["run_on"] else
+                                            N_CLOSED_RUN_ON.format(date=tbilisi_date(end)))
+                        state["closed_notice"] = True
+                else:
+                    common.log("paper: window runs on to %s" % view["window_end"])
         if starts(sel):
             try:
-                produce_days(state, state_dir, sel, now)
+                produce_days(state, state_dir, view, now)
             except (OSError, ValueError) as exc:
                 common.log("paper: day file failed (%s)" % exc.__class__.__name__)
             if now >= state["next_work_ms"]:
                 state["next_work_ms"] = now + WORK_EVERY_S * 1000
                 try:
-                    produce_books(state, state_dir, sel, rule, inputs_for())
-                    produce_funding(state, state_dir, sel, inputs_for())
-                    if produce_verdict(state, state_dir, sel, rule):
+                    produce_rebooks(state, state_dir, view, rule, inputs_for())   # TZ-77 (0): its wait ends only it
+                except NotReady:
+                    pass
+                except (Transport, OSError, ValueError, KeyError, ArithmeticError) as exc:
+                    common.log("paper: rebooking failed (%s)" % exc.__class__.__name__)
+                try:
+                    produce_books(state, state_dir, view, rule, inputs_for())
+                    produce_funding(state, state_dir, view, inputs_for())
+                    if produce_verdict(state, state_dir, view, rule):
                         common.write_outbox("notice", N_VERDICT)
                 except NotReady:
                     pass
                 except (Transport, OSError, ValueError, KeyError, ArithmeticError) as exc:
                     common.log("paper: booking failed (%s)" % exc.__class__.__name__)
+                try:
+                    if fix_end(state, state_dir, view, now):                       # TZ-77 (1)
+                        common.log("paper: window ends %s" % window_view(state, sel)["window_end"])
+                except (OSError, ValueError, KeyError) as exc:
+                    common.log("paper: window failed (%s)" % exc.__class__.__name__)
+                try:
+                    produce_orders(state, state_dir, window_view(state, sel), limiter, symbols, now)   # TZ-77 (2)
+                    produce_readout(state, state_dir, window_view(state, sel), rule)
+                except (Transport, OSError, ValueError, KeyError, TypeError, ArithmeticError) as exc:
+                    common.log("paper: orders failed (%s)" % exc.__class__.__name__)
         if state["pending"] and now >= state["next_publish_ms"]:
             state["next_publish_ms"] = now + PUBLISH_EVERY_S * 1000
             common.log("paper: publish " + publish(state, state_dir, tree))
@@ -1367,11 +1724,24 @@ def service(state_dir, tree):
 
 
 # --- the probe -----------------------------------------------------------------------
+def api_against_archive(sym, date):
+    """TZ-77 (0): the API fallback against the archive on a day both hold -- minutes compared on (o, h, l, c) and
+    the day's close; one line of counts."""
+    def by_minute(rows):
+        return {int(r[0]): tuple(float(x) for x in r[1:5]) for r in rows}
+    arch = by_minute(vision_rows("/daily/klines/%s/1m/%s-1m-%s.zip" % (sym, sym, date)))
+    api = by_minute(fapi_klines(sym, "1m", date))
+    close_a = float(vision_rows("/daily/klines/%s/1d/%s-1d-%s.zip" % (sym, sym, date))[0][4])
+    close_b = float(fapi_klines(sym, "1d", date)[0][4])
+    return "%s %s archive=%d api=%d equal=%d close=%s" % (sym, date, len(arch), len(api), sum(
+        1 for t, v in arch.items() if api.get(t) == v), "equal" if close_a == close_b else "differs")
+
+
 def probe():
     """One read of every interface the service uses; one line each, counts only. Exit 0 when every
     read answered."""
     ok, limiter, t0 = True, Limiter(), day_start(utc_date(now_ms()))
-    yesterday = add_days(utc_date(now_ms()), -1)
+    published = add_days(utc_date(now_ms()), -2)   # TZ-77: two days back, a day the archive has published by now
     prev_month = add_days(utc_date(now_ms())[:8] + "01", -1)[:7]
     steps = (
         ("leaderboard", lambda: "rows=%d pool=%d bad=%d" % (lambda p: (p[1], len(p[0]), p[2]))(
@@ -1383,10 +1753,12 @@ def probe():
                                                          limiter)["assetPositions"])),
         ("fills", lambda: (lambda fl: "fills=%d first=%s" % (len(fl), iso(int(fl[0]["time"])) if fl else "-"))(
             fills_since(PROBE_ACCOUNT, t0 - WINDOW_DAYS * DAY_MS, limiter, t0 - 1))),
-        ("klines_1m", lambda: "rows=%d" % len(vision_rows("/daily/klines/BTCUSDT/1m/BTCUSDT-1m-%s.zip" % yesterday))),
-        ("klines_1d", lambda: "rows=%d" % len(vision_rows("/daily/klines/BTCUSDT/1d/BTCUSDT-1d-%s.zip" % yesterday))),
+        ("klines_1m", lambda: "rows=%d" % len(vision_rows("/daily/klines/BTCUSDT/1m/BTCUSDT-1m-%s.zip" % published))),
+        ("klines_1d", lambda: "rows=%d" % len(vision_rows("/daily/klines/BTCUSDT/1d/BTCUSDT-1d-%s.zip" % published))),
         ("funding", lambda: "rows=%d" % len(vision_rows(
             "/monthly/fundingRate/BTCUSDT/BTCUSDT-fundingRate-%s.zip" % prev_month))),
+        ("api", lambda: api_against_archive("BTCUSDT", published)),
+        ("orders", lambda: "rows=%d" % len(orders_rows(PROBE_ACCOUNT, limiter))),
     )
     for name, step in steps:
         try:

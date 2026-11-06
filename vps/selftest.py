@@ -1652,6 +1652,12 @@ def section_w(s):
     section_w_rescan(s)
     # W17. the verdict over each pick's own span (TZ-75 B5)
     section_w_spans(s)
+    # W18. the exchange's own klines for a day the archive never published, and the rebook (TZ-77 (0))
+    section_w_api(s)
+    # W19. the window as it stands: thirteen weeks, or run on to the thirtieth booked pick episode (TZ-77 (1))
+    section_w_window(s)
+    # W20. the picks' orders and their readout, deciding nothing (TZ-77 (2))
+    section_w_orders(s)
 
 
 def w_rows(path):
@@ -2595,6 +2601,436 @@ def section_w_spans(s):
                 two["picks"] == [p1, p2] and two["joined"] == {p1: paper.iso(ff), p2: paper.iso(j2)}
                 and two["booked"]["1800"] == {"pick": 2, "null": 2})
     finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+class W18Answer:
+    """One urlopen answer: a body read once, as a context manager."""
+
+    def __init__(self, body):
+        self.body = body
+
+    def read(self):
+        return self.body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def w18_minutes(date, close="100"):
+    start = paper.day_start(date)
+    return [[str(m), "100", "101", "99", close] for m in range(start, start + paper.DAY_MS, 60000)]
+
+
+def w18_api(calls):
+    """A fallback: flat minutes at 100 and a close of 123.5, every call counted."""
+    def api(sym, interval, date):
+        calls.append((sym, interval, date))
+        if interval == "1m":
+            return w18_minutes(date)
+        return [[str(paper.day_start(date)), "0", "0", "0", "123.5"]]
+    return api
+
+
+def section_w_api(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-w18.")
+    saved = paper.urllib.request.urlopen
+    try:
+        day = "2026-01-05"
+        start, h = paper.day_start(day), 3600000
+        asked, answer = [], {}
+
+        def opener(url, timeout=None):
+            asked.append(url)
+            if isinstance(answer["next"], Exception):
+                raise answer["next"]
+            return W18Answer(json.dumps(answer["next"]).encode("utf-8"))
+        paper.urllib.request.urlopen = opener
+        rows = [[start - 60000, "1", "1", "1", "1"], [start, "100", "101", "99", "100.5"],
+                [start + paper.DAY_MS, "2", "2", "2", "2"]]
+        answer["next"] = rows
+        s.check("fapi_klines: the day's rows alone, in the archive's columns",
+                paper.fapi_klines("BTCUSDT", "1m", day) == [rows[1]])
+        s.check("fapi_klines: the exchange's klines over the day's own milliseconds",
+                asked[-1] == "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1m&startTime=%d&endTime=%d"
+                "&limit=1500" % (start, start + paper.DAY_MS - 1))
+        outcomes = []
+        for got, want in (([], paper.Absent), ({"code": 0}, paper.Transport),
+                          (urllib.error.HTTPError("u", 400, "Bad Request", {}, None), paper.Absent),
+                          (urllib.error.HTTPError("u", 451, "Unavailable", {}, None), paper.Transport),
+                          (urllib.error.URLError("down"), paper.Transport), ([[str(start), "x"]], paper.Transport)):
+            answer["next"] = got
+            try:
+                paper.fapi_klines("BTCUSDT", "1d", day)
+                outcomes.append(False)
+            except (paper.Absent, paper.Transport) as exc:
+                outcomes.append(type(exc) is want)
+        s.check("fapi_klines: none or HTTP 400 is Absent; no list, 451, no answer or an unreadable row is Transport",
+                outcomes == [True] * 6)
+        paper.urllib.request.urlopen = saved
+
+        def archive(path):   # the archive never published the day; every other file is w_rows'
+            if day in path:
+                raise paper.NotPublished(path)
+            return w_rows(path)
+        calls, today = [], paper.add_days(day, 30)
+        inputs = paper.Inputs(tmp, today, rows=archive, fallback=w18_api(calls))
+        times, flat = inputs.minutes("BTCUSDT", day)
+        s.check("minutes: an absent archive day is the fallback's 1 440 minutes",
+                len(times) == 1440 and times[0] == start and paper.Rows(flat)[0] == (100.0, 101.0, 99.0, 100.0))
+        s.check("close_on: an absent archive close is the fallback's", inputs.close_on("BTCUSDT", day) == 123.5)
+        with open(os.path.join(tmp, "api-days.json"), encoding="utf-8") as fh:
+            kept = json.load(fh)
+        s.check("both days kept on disk and marked as used",
+                kept == ["BTCUSDT 1d 2026-01-05", "BTCUSDT 1m 2026-01-05"]
+                and inputs.used == {"1m 2026-01-05", "1d 2026-01-05"} and calls == [("BTCUSDT", "1m", day),
+                                                                                   ("BTCUSDT", "1d", day)])
+        later = paper.Inputs(tmp, today, rows=archive, fallback=w18_api(calls))
+        s.check("a later pass: the close from closes.json, no call, still marked",
+                later.close_on("BTCUSDT", day) == 123.5 and len(calls) == 2 and later.used == {"1d 2026-01-05"})
+        bare_dir = os.path.join(tmp, "bare")
+        os.makedirs(bare_dir)
+        bare = paper.Inputs(bare_dir, today, rows=archive)
+        raised = 0
+        for read in (lambda: bare.minutes("BTCUSDT", day), lambda: bare.close_on("BTCUSDT", day)):
+            try:
+                read()
+            except paper.Absent:
+                raised += 1
+        s.check("without a fallback an absent day stays Absent, minutes and close", raised == 2)
+
+        def refusing(sym, interval, date):
+            raise paper.Absent("fapi %s %s %s: no klines" % (sym, interval, date))
+        refused = paper.Inputs(bare_dir, today, rows=archive, fallback=refusing)
+        try:
+            refused.minutes("ETHUSDT", day)
+            reason = None
+        except paper.Absent as exc:
+            reason = str(exc)
+        s.check("a fallback with no klines is Absent under its own name, never awaiting a rebook",
+                reason == "fapi ETHUSDT 1m 2026-01-05: no klines" and not paper.awaits_rebook({"unbookable": reason}))
+        # book_episode: the API's day named, the copy left at the pick's own exit
+        rule = {"capital_usdt": 10000.0, "risk_pct": 0.5, "inv_floor_sd": 2.0, "fee_taker": 0.0005}
+        pick = {"a": "0x" + "a" * 40, "role": "pick", "coin": "BTC", "symbol": "BTCUSDT", "side": 1, "t_open": start + h,
+                "t_close": start + 2 * h + 30000, "px_open": "100", "px_close": "100", "cut": False}
+        line = paper.book_episode(pick, inputs, rule, start + 10 * paper.DAY_MS)
+        s.check("a pick's episode on the API's day: booked at four delays, the day named",
+                sorted(line["d"]) == ["1800", "300", "5", "7200"] and line["api"] == ["1m 2026-01-05"])
+        s.check("x: entered at 1 800 s, left at the pick's own exit minute",
+                line["x"]["1800"]["entry_ms"] == start + h + 1800000 and line["x"]["1800"]["src"]["exit_ms"] == start + 2 * h
+                and line["d"]["1800"]["src"]["exit_ms"] == start + 2 * h + 1800000)
+        s.check("x: a copy entering after the pick's exit has none", line["x"]["7200"] is None)
+        null = dict(pick, a="0x" + "b" * 40, role="null")
+        cut = dict(pick, cut=True, t_close=start + 5 * h)
+        s.check("x: never for a null account's episode, nor a cut one",
+                "x" not in paper.book_episode(null, inputs, rule, start + 10 * paper.DAY_MS)
+                and "x" not in paper.book_episode(cut, inputs, rule, start + 5 * h))
+        # the rebook: only the line written unbookable for an archive file, booked again, once
+        root = os.path.join(tmp, "records", paper.RECORD_DIR)
+        for sub in ("episodes", "book"):
+            os.makedirs(os.path.join(root, sub))
+        eps = [dict(pick, k="ep", rank=1, n=2), dict(null, k="ep", rank=None, n=2),
+               dict(null, k="ep", rank=None, n=2, t_open=start + 3 * h, t_close=start + 4 * h)]
+        target = {"k": "book", "a": pick["a"], "coin": "BTC", "symbol": "BTCUSDT", "side": 1, "t_open": pick["t_open"],
+                  "unbookable": "/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-01-05.zip"}
+        kept_line = paper.book_episode(eps[1], inputs, rule, start + 10 * paper.DAY_MS)
+        final = {"k": "book", "a": null["a"], "coin": "BTC", "symbol": "BTCUSDT", "side": 1, "t_open": start + 3 * h,
+                 "unbookable": "sigma is zero"}
+        for sub, lines in (("episodes", eps), ("book", [target, kept_line, final])):
+            with open(os.path.join(root, sub, day + ".jsonl"), "w", encoding="utf-8") as fh:
+                fh.write("".join(json.dumps(x) + "\n" for x in [{"k": "day", "date": day}] + lines))
+        sel = {"follow_from_ms": start, "window_end_ms": start + 10 * paper.DAY_MS}
+        state = {"pending": [], "written": {"episodes": day, "book": day, "funding": None, "rebook": None}}
+        before = paper.book_lines(root, day)
+        s.check("before the rebook: the target awaits it, the two others do not",
+                [paper.awaits_rebook(b) for b in before] == [True, False, False])
+        funding_first = copy.deepcopy(state)
+        paper.produce_funding(funding_first, tmp, sel, inputs)
+        s.check("funding waits for a day whose rebook is pending", funding_first["written"]["funding"] is None
+                and not os.path.exists(os.path.join(root, "funding", day + ".jsonl")))
+        paper.produce_rebooks(state, tmp, sel, rule, inputs)
+        again = paper.read_jsonl(os.path.join(root, "rebook", day + ".jsonl"))
+        s.check("rebook/<day>.jsonl: one line, the target, booked again with the API's day",
+                again[0] == {"k": "day", "date": day, "rebooked": 1, "booked": 1, "unbookable": 0} and len(again) == 2
+                and again[1]["rebook"] is True and "d" in again[1] and again[1]["api"] == ["1m 2026-01-05"]
+                and (again[1]["a"], again[1]["t_open"]) == (pick["a"], pick["t_open"]))
+        after = paper.book_lines(root, day)
+        s.check("book_lines: the rebooked line in the target's place, the others untouched",
+                after[0] == again[1] and after[1] == kept_line and after[2] == final)
+        s.check("the rebook is pending once and the day done", state["pending"] == ["rebook/%s.jsonl" % day]
+                and state["written"]["rebook"] == day)
+        paper.produce_rebooks(state, tmp, sel, rule, inputs)
+        s.check("a second pass rebooks nothing", state["pending"] == ["rebook/%s.jsonl" % day])
+        paper.produce_funding(state, tmp, sel, inputs)
+        funding = paper.read_jsonl(os.path.join(root, "funding", day + ".jsonl"))
+        s.check("then funding is written over the rebooked line", state["written"]["funding"] == day
+                and [("unbooked" in f) for f in funding[1:]] == [False, False, True])
+        # the verdict counts the rebooked pick episode as booked
+        vsel = {"picks": [{"address": pick["a"], "rank": 1}], "null": [{"address": null["a"]}], "follow_from_ms": start,
+                "window_end_ms": start + 20 * h, "follow_from": paper.iso(start), "window_end": paper.iso(start + 20 * h)}
+        vstate = paper.new_state(vsel)
+        vstate["written"].update(episodes=day, book=day, funding=day, rebook=day)
+        paper.produce_verdict(vstate, tmp, vsel, rule)
+        with open(os.path.join(root, "verdict.json"), encoding="utf-8") as fh:
+            verdict = json.load(fh)
+        s.check("the verdict reads the rebooked line: one pick episode booked, one rebooked, two from the API",
+                verdict["booked"]["1800"] == {"pick": 1, "null": 1} and verdict["rebooked"] == 1 and verdict["api"] == 2
+                and verdict["unbookable"] == 1 and verdict["window"] is None)
+    finally:
+        paper.urllib.request.urlopen = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def w19_write(root, sub, day, lines):
+    os.makedirs(os.path.join(root, sub), exist_ok=True)
+    with open(os.path.join(root, sub, day + ".jsonl"), "w", encoding="utf-8") as fh:
+        fh.write("".join(json.dumps(x) + "\n" for x in [{"k": "day", "date": day}] + lines))
+
+
+def section_w_window(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-w19.")
+    saved = (paper.EPISODES_MIN, common.OUTBOX_DIR)
+    try:
+        paper.EPISODES_MIN = 2
+        outbox = os.path.join(tmp, "outbox")
+        os.makedirs(outbox)
+        common.OUTBOX_DIR = outbox
+        p, n, h = "0x" + "a" * 40, "0x" + "b" * 40, 3600000
+        ff = paper.day_start("2026-01-05") + h
+        we = ff + 2 * paper.DAY_MS
+        cap = ff + paper.RUN_ON_MAX_DAYS * paper.DAY_MS
+        sel = {"picks": [{"address": p, "rank": 1}], "null": [{"address": n}], "follow_from_ms": ff, "window_end_ms": we,
+               "follow_from": paper.iso(ff), "window_end": paper.iso(we), "symbols": ["BTCUSDT"]}
+        rule = {"capital_usdt": 10000.0, "risk_pct": 0.5, "inv_floor_sd": 2.0, "fee_taker": 0.0005}
+
+        def world(reason):
+            """A pick episode written with its book line unbookable for reason, and one open at the window's end."""
+            root = tempfile.mkdtemp(dir=tmp)
+            records = os.path.join(root, "records", paper.RECORD_DIR)
+            state = paper.new_state(sel)
+            day = paper.utc_date(ff)
+            w19_write(records, "episodes", day, [{"k": "ep", "a": p, "role": "pick", "coin": "BTC", "t_open": ff + h,
+                                                   "t_close": ff + 2 * h}])
+            w19_write(records, "book", day, [{"k": "book", "a": p, "coin": "BTC", "symbol": "BTCUSDT", "side": 1,
+                                              "t_open": ff + h, "unbookable": reason}])
+            state["written"].update(episodes=day, book=day)
+            state["accounts"][p]["coins"]["ETH"] = {"coin": "ETH", "side": 1, "t_open": we - h}
+            return root, state
+
+        s.check("before its end the window is the selection's", paper.window_view(paper.new_state(sel), sel) is sel)
+        root, state = world("/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2026-01-05.zip")
+        s.check("thirteen weeks that can still make the verdict: the window closes at them, as the selection has it",
+                paper.at_window_end(state, root, sel, we + 700000) and state["window"]["run_on"] is False
+                and state["window"]["end_ms"] == we and state["window"]["seen"] == 2 and state["window"]["unbookable"] == 0
+                and paper.window_view(state, sel)["window_end_ms"] == we and os.listdir(outbox) == [])
+        root, state = world("sigma is zero")
+        ran_on = not paper.at_window_end(state, root, sel, we + 700000)
+        s.check("thirteen weeks that cannot: the window runs on to the cap, 182 days after follow_from",
+                ran_on and state["window"]["run_on"] and not state["window"]["fixed"] and state["window"]["end_ms"] == cap
+                and state["window"]["seen"] == 2 and state["window"]["unbookable"] == 1
+                and paper.window_view(state, sel)["window_end"] == paper.iso(cap))
+        with open(os.path.join(outbox, [x for x in sorted(os.listdir(outbox)) if "-notice-" in x][-1]),
+                  encoding="utf-8") as fh:
+            note = json.load(fh)
+        s.check("the notice of the window run on, character for character", note["kind"] == "notice" and note["text"] == (
+            "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f: \u0441\u0434\u0435\u043b\u043e\u043a \u043a\u0438\u0442\u043e\u0432 \u0437\u0430 13 \u043d\u0435\u0434\u0435\u043b\u044c \u2014 1 \u0438\u0437 30 \u043d\u0443\u0436\u043d\u044b\u0445, \u043e\u043a\u043d\u043e \u043f\u0440\u043e\u0434\u043b\u0435\u043d\u043e \u0434\u043e 30-\u0439, \u043d\u043e \u043d\u0435 \u0434\u043e\u043b\u044c\u0448\u0435 "
+            + datetime.fromtimestamp(cap / 1000, tz=announce.TBILISI).strftime("%d.%m.%Y") + "."))
+        s.check("a window that ran on closes at its end", paper.at_window_end(state, root, sel, cap + 700000))
+        # a fill past the end as it stands is held, then applied once the window runs on
+        held = paper.new_state(sel)
+        acct = held["accounts"][p]
+        last = acct["last_ms"]
+        fill = w_fill(we + 1000, 0, "B", 1)
+        inputs = paper.Inputs(tmp, "2026-03-01", rows=w_rows)
+        paper._apply(p, acct, [w_fill(we - 1000, 0, "B", 1, coin="ETH"), fill], sel, {"BTCUSDT", "ETHUSDT"},
+                     we + 2000, rule, lambda: inputs)
+        s.check("a fill past the end is not applied and not passed: last_ms stays before the end",
+                acct["coins"].get("BTC") is None and acct["coins"]["ETH"]["t_open"] == we - 1000
+                and acct["last_ms"] == we - 1000 > last)
+        paper._apply(p, acct, [fill], dict(sel, window_end_ms=cap), {"BTCUSDT", "ETHUSDT"}, we + 2000, rule,
+                     lambda: inputs)
+        s.check("read again once the window runs on, it opens its episode", acct["coins"]["BTC"]["t_open"] == we + 1000)
+        # the end fixed once the written book holds EPISODES_MIN pick episodes booked at 1 800 s
+        root, state = world("sigma is zero")
+        paper.at_window_end(state, root, sel, we + 700000)
+        records = os.path.join(root, "records", paper.RECORD_DIR)
+        cell = {"entry_ms": 0, "entry_px": 1.0, "qty": 1.0, "stop_px": 0.9, "stopped": False,
+                "src": {"exit_ms": 0, "px": 1.0, "gross": 0.0, "fee": 0.0}, "stop": {"exit_ms": 0, "px": 1.0, "gross": 0.0,
+                                                                                    "fee": 0.0}}
+        booked_line = lambda t: {"k": "book", "a": p, "coin": "BTC", "symbol": "BTCUSDT", "side": 1, "t_open": t,  # noqa: E731
+                                 "d": {str(d): cell for d in paper.DELAYS_S}}
+        day2 = paper.utc_date(ff + paper.DAY_MS)
+        w19_write(records, "book", day2, [booked_line(ff + paper.DAY_MS)])
+        state["written"]["book"] = day2
+        s.check("one booked pick episode of two: the end stays open",
+                not paper.fix_end(state, root, sel, we + 2 * paper.DAY_MS) and not state["window"]["fixed"])
+        w19_write(records, "book", day2, [booked_line(ff + paper.DAY_MS), booked_line(ff + paper.DAY_MS + h)])
+        now = we + 2 * paper.DAY_MS + paper.DAY_MS // 2
+        s.check("two: the end fixed at the next instant of follow_from's daily grid",
+                paper.fix_end(state, root, sel, now) and state["window"]["fixed"] and state["window"]["booked"] == 2
+                and state["window"]["end_ms"] == we + 3 * paper.DAY_MS
+                and paper.window_view(state, sel)["window_end_ms"] == we + 3 * paper.DAY_MS)
+        with open(os.path.join(outbox, [x for x in sorted(os.listdir(outbox)) if "-notice-" in x][-1]),
+                  encoding="utf-8") as fh:
+            note = json.load(fh)
+        s.check("the notice of the end, character for character", note["text"] == (
+            "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f: \u0443\u0447\u0442\u0451\u043d\u043d\u044b\u0445 \u0441\u0434\u0435\u043b\u043e\u043a \u043a\u0438\u0442\u043e\u0432 \u2014 2 \u0438\u0437 30 \u043d\u0443\u0436\u043d\u044b\u0445, \u043e\u043a\u043d\u043e \u0437\u0430\u043a\u0440\u043e\u0435\u0442\u0441\u044f "
+            + datetime.fromtimestamp((we + 3 * paper.DAY_MS) / 1000, tz=announce.TBILISI).strftime("%d.%m.%Y") + "."))
+        s.check("a fixed end is fixed once", not paper.fix_end(state, root, sel, now + paper.DAY_MS)
+                and state["window"]["end_ms"] == we + 3 * paper.DAY_MS)
+        late = copy.deepcopy(state)
+        late["window"].update(fixed=False, end_ms=cap)
+        s.check("within the cap's last day the end is the cap", paper.fix_end(late, root, sel, cap - h)
+                and late["window"]["end_ms"] == cap)
+        s.check("the closing notice of a window that ran on, character for character",
+                paper.N_CLOSED_RUN_ON.format(date="17.04.2027") == "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f: \u043e\u043a\u043d\u043e \u0437\u0430\u043a\u0440\u044b\u0442\u043e 17.04.2027, \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u044b. \u0418\u0442\u043e\u0433 \u2014 \u043f\u043e\u0441\u043b\u0435 \u043f\u0443\u0431\u043b\u0438\u043a\u0430\u0446\u0438\u0438 \u0434\u0430\u043d\u043d\u044b\u0445 Binance.")
+        # the verdict over a window that ran on: its days, its end, its record of the decision
+        view = paper.window_view(state, sel)
+        vroot = os.path.join(tmp, "verdict")
+        vrec = os.path.join(vroot, "records", paper.RECORD_DIR)
+        leg = {"gross": 100.0, "fee": 0.0}
+        days = paper.days_between(paper.utc_date(ff), paper.utc_date(view["window_end_ms"]))
+        for i, d in enumerate(days):
+            t = paper.day_start(d) + 2 * h
+            w19_write(vrec, "episodes", d, [])
+            w19_write(vrec, "book", d, [{"k": "book", "a": p, "coin": "BTC", "t_open": t,
+                                         "d": {str(x): {"src": leg, "stop": leg} for x in paper.DELAYS_S}}])
+            w19_write(vrec, "funding", d, [{"k": "funding", "a": p, "coin": "BTC", "t_open": t, "absent": False,
+                                            "d": {str(x): {"src": 0.0, "stop": 0.0} for x in paper.DELAYS_S}}])
+        state["written"]["funding"] = days[-1]
+        paper.produce_verdict(state, vroot, view, rule)
+        with open(os.path.join(vrec, "verdict.json"), encoding="utf-8") as fh:
+            verdict = json.load(fh)
+        s.check("the verdict of a window run on: every day to its end read, the end and the decision recorded",
+                len(days) == 6 and verdict["booked"]["1800"]["pick"] == 6 and verdict["window_end"] == paper.iso(we + 3 * paper.DAY_MS)
+                and verdict["window"]["run_on"] and verdict["window"]["booked"] == 2)
+    finally:
+        paper.EPISODES_MIN, common.OUTBOX_DIR = saved
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def section_w_orders(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-w20.")
+    saved = (paper.info, paper.ORDERS_COMPLETE)
+    try:
+        h = 3600000
+        paper.info = lambda body, limiter: [{"coin": "BTC", "px": "1", "sz": "1", "side": "B", "time": 5,
+                                             "startPosition": "0", "tid": 1, "oid": 77}]
+        s.check("iter_fills keeps the fill's order", paper.fills_since("a", 5, None)[0]["oid"] == 77)
+        coins = {}
+        opened = paper.apply_fill(coins, dict(w_fill(1, 0, "B", 1), oid=11), "BTCUSDT")
+        closed = paper.apply_fill(coins, dict(w_fill(2, 1, "A", 1), oid=12), "BTCUSDT")
+        s.check("an episode names the orders of its opening and closing fills",
+                opened[0][1]["oid_open"] == 11 and closed[0][1]["oid_open"] == 11 and closed[0][1]["oid_close"] == 12)
+        bare = paper.apply_fill({}, w_fill(1, 0, "B", 1), "BTCUSDT")
+        s.check("a fill naming no order: None", bare[0][1]["oid_open"] is None)
+        # orders/<day>.jsonl
+        p, n = "0x" + "a" * 40, "0x" + "b" * 40
+        ff = paper.day_start("2026-01-05") + h
+        we = ff + 2 * paper.DAY_MS
+        d1, d2 = "2026-01-05", "2026-01-06"
+        t1, t2 = ff + h, ff + 3 * h
+        sel = {"picks": [{"address": p, "rank": 1}], "null": [{"address": n}], "follow_from_ms": ff, "window_end_ms": we,
+               "follow_from": paper.iso(ff), "window_end": paper.iso(we), "symbols": ["BTCUSDT", "ETHUSDT"]}
+
+        def row(oid, status, st, placed, coin="BTC", reduce_only=False):
+            return {"order": {"coin": coin, "oid": oid, "timestamp": placed, "reduceOnly": reduce_only,
+                              "orderType": "Limit", "tif": "Gtc", "children": []}, "status": status, "statusTimestamp": st}
+        history = [row(11, "open", t1 - 206000, t1 - 206000), row(11, "filled", t1 + 5000, t1 - 206000),
+                   row(12, "open", t1 - 206000, t1 - 206000, reduce_only=True),
+                   row(12, "filled", t1 + 3 * h, t1 + 3 * h, reduce_only=True),
+                   row(21, "filled", t2, t2 - 400), row(22, "filled", t2 + h, t2 + h, reduce_only=True),
+                   row(31, "open", t1 + 5 * h, t1 + 5 * h), row(31, "canceled", t1 + 6 * h, t1 + 5 * h),
+                   row(41, "open", t1 + 7 * h, t1 + 7 * h, reduce_only=True),
+                   row(51, "open", t1 + 8 * h, t1 + 8 * h, coin="xyz:CL"),
+                   row(61, "open", paper.day_start(d2) + h, paper.day_start(d2) + h)]
+        reads = []
+
+        def fake(body, limiter):
+            reads.append(body["type"])
+            if body["type"] == "historicalOrders":
+                return history if body["user"] == p else []
+            return [{"coin": "BTC", "px": "1", "sz": "1", "side": "B", "time": body["startTime"], "startPosition": "0",
+                     "tid": 9, "oid": {t2: 21, t2 + h: 22}[body["startTime"]]}]
+        paper.info = fake
+        root = os.path.join(tmp, "records", paper.RECORD_DIR)
+        w19_write(root, "episodes", d1, [
+            {"k": "ep", "a": p, "role": "pick", "coin": "BTC", "t_open": t1, "t_close": t1 + 3 * h, "oid_open": 11,
+             "oid_close": 12, "cut": False},
+            {"k": "ep", "a": p, "role": "pick", "coin": "BTC", "t_open": t2, "t_close": t2 + h, "cut": False},
+            {"k": "ep", "a": n, "role": "null", "coin": "BTC", "t_open": t1, "t_close": t1 + h, "cut": False}])
+        state = paper.new_state(sel)
+        state["written"]["episodes"] = d1
+        settled = paper.day_start(d2) + paper.DAY_SETTLE_S * 1000
+        paper.produce_orders(state, tmp, sel, None, set(sel["symbols"]), settled - 1)
+        s.check("a day is not written before it ended DAY_SETTLE_S ago", state["written"]["orders"] is None and reads == [])
+        paper.produce_orders(state, tmp, sel, None, set(sel["symbols"]), settled)
+        got = paper.read_jsonl(os.path.join(root, "orders", d1 + ".jsonl"))
+        s.check("orders/<day>.jsonl: the head, the two pick episodes, the day's nine copyable rows",
+                got[0] == {"k": "day", "date": d1, "episodes": 2, "rows": 9, "picks": {p: {"rows": 11, "complete": True}}}
+                and [x["k"] for x in got[1:]] == ["ep"] * 2 + ["row"] * 9)
+        s.check("an episode written before TZ-77 has its orders read at its fills' millisecond",
+                [(x["oid_open"], x["oid_close"]) for x in got[1:3]] == [(11, 12), (21, 22)]
+                and reads.count("userFillsByTime") == 2)
+        s.check("rows in status-time order, another coin's and another day's left out",
+                [(x["order"]["oid"], x["status"]) for x in got[3:]] == [
+                    (11, "open"), (12, "open"), (11, "filled"), (21, "filled"), (12, "filled"), (22, "filled"),
+                    (31, "open"), (31, "canceled"), (41, "open")] and all(x["a"] == p for x in got[3:]))
+        s.check("the next day waits for its episode file; one read of each pick per pass",
+                state["written"]["orders"] == d1 and reads.count("historicalOrders") == 1
+                and state["pending"] == ["orders/%s.jsonl" % d1])
+        paper.ORDERS_COMPLETE = 11
+        w19_write(os.path.join(tmp, "short", "records", paper.RECORD_DIR), "episodes", d1,
+                  paper.read_jsonl(os.path.join(root, "episodes", d1 + ".jsonl"))[1:])
+        short = paper.new_state(sel)
+        short["written"]["episodes"] = d1
+        paper.produce_orders(short, os.path.join(tmp, "short"), sel, None, set(sel["symbols"]), settled)
+        head = paper.read_jsonl(os.path.join(tmp, "short", "records", paper.RECORD_DIR, "orders", d1 + ".jsonl"))[0]
+        s.check("a full answer whose oldest row is inside the day: marked incomplete", head["picks"][p]["complete"] is False)
+        paper.ORDERS_COMPLETE = saved[1]
+
+        def refused(body, limiter):
+            raise paper.Transport("HTTP 429")
+        paper.info = refused
+        down = paper.new_state(sel)
+        down["written"]["episodes"] = d1
+        try:
+            paper.produce_orders(down, os.path.join(tmp, "down"), sel, None, set(sel["symbols"]), settled)
+            raised = False
+        except paper.Transport:
+            raised = True
+        s.check("a refused read writes nothing and the day waits", raised and down["written"]["orders"] is None)
+        # the readout, once the verdict and the window's last orders file are written
+        for d in ("2026-01-06", "2026-01-07"):
+            w19_write(root, "orders", d, [])
+        x_cell = {"src": {"gross": 50.0, "fee": 2.0}, "stop": {"gross": 40.0, "fee": 2.0}}
+        d_cell = {"src": {"gross": 30.0, "fee": 2.0}, "stop": {"gross": 20.0, "fee": 2.0}}
+        for d, lines in ((d1, [{"k": "book", "a": p, "coin": "BTC", "t_open": t1, "d": {str(x): d_cell for x in paper.DELAYS_S},
+                                "x": dict({str(x): x_cell for x in paper.DELAYS_S}, **{"7200": None})}]),
+                         ("2026-01-06", []), ("2026-01-07", [])):
+            w19_write(root, "book", d, lines)
+        rule = {"capital_usdt": 10000.0}
+        s.check("no readout before the verdict", not paper.produce_readout(state, tmp, sel, rule))
+        state["verdict"] = True
+        s.check("nor before the window's last orders file", not paper.produce_readout(state, tmp, sel, rule))
+        state["written"]["orders"] = "2026-01-07"
+        s.check("then once", paper.produce_readout(state, tmp, sel, rule) and not paper.produce_readout(state, tmp, sel, rule))
+        with open(os.path.join(root, "orders-readout.json"), encoding="utf-8") as fh:
+            out = json.load(fh)
+        s.check("the readout: one entry of two rested 206 s, one exit of two rested 3 h 3 min 26 s",
+                out["episodes"] == 2 and out["entry"] == {"known": 2, "rested": 1, "lead_s": {"p50": 206.0, "p95": 206.0}}
+                and out["exit"] == {"known": 2, "rested": 1, "lead_s": {"p50": 11006.0, "p95": 11006.0}})
+        s.check("the readout: two orders able to open rested, one opened no episode",
+                out["resting_entries"] == {"rested": 2, "opened_no_episode": 1})
+        s.check("the readout: the copy left at the pick's own exit against the delayed exit, gross less fees",
+                out["exit_copy"]["1800"] == {"n": 1, "at_pick_exit": {"src": 0.0048, "stop": 0.0038},
+                                             "at_delay": {"src": 0.0028, "stop": 0.0018}}
+                and out["exit_copy"]["7200"]["n"] == 0)
+    finally:
+        paper.info, paper.ORDERS_COMPLETE = saved
         shutil.rmtree(tmp, ignore_errors=True)
 
 
