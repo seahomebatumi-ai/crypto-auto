@@ -1569,16 +1569,62 @@ def section_w(s):
     t_open = int(datetime(2026, 10, 16, 10, 5, tzinfo=timezone.utc).timestamp() * 1000)
     ep = {"a": "0xf97ad6704baec104d00b88e0c157e2b7b3a1ddd1", "coin": "HYPE", "symbol": "HYPEUSDT", "side": 1,
           "t_open": t_open, "px_open": "80.021"}
-    head = "\U0001f4cb \u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 14:05 \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 "
-    whale = "1\ufe0f\u20e3 \U0001f40b\u2022 0xf97a\u2026ddd1 "
-    s.check("the open alert, character for character", paper.alert_open(ep, 1, rule, 0.02, (20, 3.04)) == head + whale + (
-        "\u043e\u0442\u043a\u0440\u044b\u043b LONG \U0001f7e2 HYPEUSDT \u043f\u043e 80.021 \u00b7 \u043f\u043b\u0435\u0447\u043e 20x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 3.0x) \u00b7 \u0441\u0442\u043e\u043f 4.0% \u2192 76.820 \u00b7 \u043e\u0431\u044a\u0451\u043c 1250 USDT \u043f\u0440\u0438 \u0440\u0438\u0441\u043a\u0435 0.5% \u043a\u0430\u043f\u0438\u0442\u0430\u043b\u0430."))
-    s.check("the open alert without a sigma or a leverage", paper.alert_open(ep, 1, rule, None) == head + whale + (
-        "\u043e\u0442\u043a\u0440\u044b\u043b LONG \U0001f7e2 HYPEUSDT \u043f\u043e 80.021 \u00b7 \u043f\u043b\u0435\u0447\u043e \u043d/\u0434 \u00b7 \u0441\u0442\u043e\u043f \u0438 \u043e\u0431\u044a\u0451\u043c \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d\u044b: \u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance."))
-    s.check("the short open: red dot, stop above, whale 2", paper.alert_open(dict(ep, side=-1), 2, rule, 0.02) == head + (
-        "2\ufe0f\u20e3 \U0001f40b\u2022 0xf97a\u2026ddd1 \u043e\u0442\u043a\u0440\u044b\u043b SHORT \U0001f534 HYPEUSDT \u043f\u043e 80.021 \u00b7 \u043f\u043b\u0435\u0447\u043e \u043d/\u0434 \u00b7 \u0441\u0442\u043e\u043f 4.0% \u2192 83.222 \u00b7 \u043e\u0431\u044a\u0451\u043c 1250 USDT \u043f\u0440\u0438 \u0440\u0438\u0441\u043a\u0435 0.5% \u043a\u0430\u043f\u0438\u0442\u0430\u043b\u0430."))
+    head = "**(SIGNAL)** 14:05 \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 "   # TZ-78: the close's first word
+    new_head = "**(NEW SIGNAL)** 14:05 \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 "   # TZ-78: a new position's first word
+    whale = "\U0001f40b1\ufe0f\u20e3 0xf97a\u2026ddd1 "
+    read = {"side": 1, "lev": (20, 3.04), "entry": "80.021", "value": 1260000.0, "share": 0.125, "stops": ["76.5"],
+            "targets": ["85", "90"]}
+    own = {"capital_usdt": 30000.0, "risk_pct": 0.5, "side_max_pct": 3.0, "book_max_pct": 5.0}
+    opened = "\u043e\u0442\u043a\u0440\u044b\u043b LONG \U0001f7e2 HYPEUSDT\n\u0412\u0445\u043e\u0434 \u043a\u0438\u0442\u0430: `80.021` \u00b7 \u043f\u043b\u0435\u0447\u043e "
+    copy = "\u041a\u043e\u043f\u0438\u044f: \u043e\u0431\u044a\u0451\u043c `3750` USDT \u00b7 \u043c\u0430\u0440\u0436\u0430 `1250` \u043f\u0440\u0438 3x \u00b7 \u0434\u043e \u0441\u0442\u043e\u043f\u0430 \u2212150 USDT (0.5% \u043e\u0442 30 000) \u00b7 "
+    full = paper.alert_open(ep, 1, rule, 0.02, read, own, [1])
+    s.check("the open signal, character for character: the whale's facts and the copy sized at 0.5% of 30 000", full == new_head + whale + opened + (
+        "20x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 3.0x) \u00b7 \u043f\u043e\u0437\u0438\u0446\u0438\u044f 1.3 \u043c\u043b\u043d USDT = 12.5% \u0441\u0447\u0451\u0442\u0430 \u043a\u0438\u0442\u0430\n"
+        "\u0421\u0442\u043e\u043f \u043a\u0438\u0442\u0430: `76.5` (\u22124.4%) \u00b7 \u0442\u0435\u0439\u043a \u043a\u0438\u0442\u0430: `85` (+6.2%) \u0438 \u0435\u0449\u0451 1\n"
+        "\u0421\u0442\u043e\u043f \u043a\u043e\u043f\u0438\u0438: `76.820` (\u22124.0%)\n" + copy + "LONG: 1-\u044f \u0438\u0437 6"))
+    s.check("no owner book: no copy line", paper.alert_open(ep, 1, rule, 0.02, read) == full.rsplit("\n", 1)[0])
+    s.check("the open signal without a sigma or a whale read: no stop, no copy", paper.alert_open(ep, 1, rule, None, None, own, [1])
+            == new_head + whale + opened + ("\u043d/\u0434\n\u0421\u0442\u043e\u043f \u0438 \u0442\u0435\u0439\u043a \u043a\u0438\u0442\u0430: \u043d/\u0434\n"
+                                            "\u0421\u0442\u043e\u043f \u043a\u043e\u043f\u0438\u0438: \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d \u2014 \u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance"))
+    s.check("the short open: red dot, the copy's stop above, whale 2, a short copy",
+            paper.alert_open(dict(ep, side=-1), 2, rule, 0.02, None, own, [-1]) == new_head + (
+                "\U0001f40b2\ufe0f\u20e3 0xf97a\u2026ddd1 \u043e\u0442\u043a\u0440\u044b\u043b SHORT \U0001f534 HYPEUSDT\n\u0412\u0445\u043e\u0434 \u043a\u0438\u0442\u0430: `80.021` \u00b7 \u043f\u043b\u0435\u0447\u043e \u043d/\u0434\n"
+                "\u0421\u0442\u043e\u043f \u0438 \u0442\u0435\u0439\u043a \u043a\u0438\u0442\u0430: \u043d/\u0434\n\u0421\u0442\u043e\u043f \u043a\u043e\u043f\u0438\u0438: `83.222` (\u22124.0%)\n" + copy + "SHORT: 1-\u044f \u0438\u0437 6"))
+    s.check("no stop of the whale: the copy's stop alone",
+            paper.alert_open(ep, 1, rule, 0.02, dict(read, lev=(3, 0.2), stops=[], targets=[])).endswith(
+                "\u0421\u0442\u043e\u043f \u043a\u0438\u0442\u0430: \u043d\u0435\u0442 \u00b7 \u0442\u0435\u0439\u043a \u043a\u0438\u0442\u0430: \u043d\u0435\u0442\n\u0421\u0442\u043e\u043f \u043a\u043e\u043f\u0438\u0438: `76.820` (\u22124.0%)"))
+    ena = dict(ep, symbol="ENAUSDT", px_open="0.17419")
+    s.check("a 10.7% stop sizes the copy at 1402 USDT, the third LONG of six",
+            paper.alert_open(ena, 1, rule, 0.0535, dict(read, lev=(5, 2.8), entry="0.17419", stops=[], targets=[]), own,
+                             [1, 1, 1]).endswith(
+                "\u0421\u0442\u043e\u043f \u043a\u043e\u043f\u0438\u0438: `0.15555` (\u221210.7%)\n"
+                "\u041a\u043e\u043f\u0438\u044f: \u043e\u0431\u044a\u0451\u043c `1402` USDT \u00b7 \u043c\u0430\u0440\u0436\u0430 `467` \u043f\u0440\u0438 3x \u00b7 \u0434\u043e \u0441\u0442\u043e\u043f\u0430 \u2212150 USDT (0.5% \u043e\u0442 30 000) \u00b7 LONG: 3-\u044f \u0438\u0437 6"))
+    s.check("six open LONG signals already: the seventh is a skip",
+            paper.alert_open(ep, 1, rule, 0.02, None, own, [1] * 7).endswith(
+                "\u041a\u043e\u043f\u0438\u044f: \u043f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u2014 \u0432 LONG \u0443\u0436\u0435 6 \u0438\u0437 6, \u044d\u0442\u043e 3% \u0434\u0435\u043f\u043e\u0437\u0438\u0442\u0430"))
+    s.check("ten open signals already: the eleventh is a skip whatever its side",
+            paper.alert_open(ep, 1, rule, 0.02, None, own, [1] * 5 + [-1] * 6).endswith(
+                "\u041a\u043e\u043f\u0438\u044f: \u043f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u2014 \u043e\u0442\u043a\u0440\u044b\u0442\u043e \u0443\u0436\u0435 10 \u0438\u0437 10, \u044d\u0442\u043e 5% \u0434\u0435\u043f\u043e\u0437\u0438\u0442\u0430"))
+    s.check("a full LONG side leaves a SHORT copy open",
+            paper.alert_open(dict(ep, side=-1), 2, rule, 0.02, None, own, [1] * 6 + [-1]).endswith(copy + "SHORT: 1-\u044f \u0438\u0437 6"))
+    s.check("a short's stop above and target below, each a result from the entry",
+            paper.alert_open(dict(ep, side=-1), 2, rule, 0.02, dict(read, side=-1, stops=["82", "84"], targets=["78"]))
+            .split("\n")[2] == "\u0421\u0442\u043e\u043f \u043a\u0438\u0442\u0430: `82` (\u22122.5%) \u0438 \u0435\u0449\u0451 1 \u00b7 \u0442\u0435\u0439\u043a \u043a\u0438\u0442\u0430: `78` (+2.5%)")
+    s.check("a computed stop keeps five significant digits when the fill's price string is short",
+            paper.alert_open(dict(ep, px_open="0.44"), 1, rule, 0.03).endswith("`0.41360` (\u22126.0%)")
+            and paper.price_text(76.82016, 3) == "76.820" and paper.price_text(74708.31, 1) == "74708.3")
+    s.check("a long's stop beyond its price is no stop and no copy", paper.alert_open(ep, 1, rule, 0.6, None, own, [1]).endswith(
+        "\u0421\u0442\u043e\u043f \u043a\u043e\u043f\u0438\u0438: \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d \u2014 \u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance"))
+    s.check("a whale read of the other side is no read", paper.alert_open(ep, 1, rule, 0.02, dict(read, side=-1), own, [1])
+            == paper.alert_open(ep, 1, rule, 0.02, None, own, [1]))
+    s.check("money and grouped", (paper.money(1260000.0), paper.money(23794.87), paper.money(950.4), paper.grouped(1850.4),
+                                  paper.grouped(12345678)) == ("1.3 \u043c\u043b\u043d USDT", "23.8 \u0442\u044b\u0441. USDT", "950 USDT", "1 850", "12 345 678"))
+    s.check("share_text: one decimal, two below 0.1, then a floor",
+            [paper.share_text(x) for x in (0.125, 0.00145, 0.00034, 0.00004)] == ["12.5", "0.1", "0.03", "<0.01"])
+    s.check("a new whale's notice: its number beside the whale",
+            "\u043a\u0438\u0442 \U0001f40b{num} {addr} \u2014" in paper.N_ADDED and "\u2022" not in paper.N_ADDED)
     closed = dict(ep, t_close=t_open + (6 * 60 + 12) * 60000, px_close="82.10")
-    s.check("the close alert in gain after 6 h 12 min: green cross", paper.alert_close(closed, 1, rule) == (
+    s.check("the close signal in gain after 6 h 12 min: green cross", paper.alert_close(closed, 1, rule) == (
         head.replace("14:05", "20:17") + whale + "\u274e \u0417\u0430\u043a\u0440\u044b\u043b LONG HYPEUSDT \u043f\u043e 82.10 \u00b7 \u0432 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \U0001f55a 6.2 \u0447."))
     s.check("a move inside the fee both ways is a loss: red cross",
             paper.alert_close(dict(closed, px_close="80.090"), 1, rule) == head.replace("14:05", "20:17") + whale + (
@@ -1588,25 +1634,59 @@ def section_w(s):
     s.check("held 45 min", paper.held_text(45 * 60000) == "45 \u043c\u0438\u043d")
     s.check("number: keycaps 1 to 9, then #10", paper.number(1) == "1\ufe0f\u20e3" and paper.number(9) == "9\ufe0f\u20e3"
             and paper.number(10) == "#10")
+    s.check("lev_text: both numbers, or n/a", paper.lev_text((7, 1.5)) == "7x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 1.5x)" and paper.lev_text(None) == "\u043d/\u0434")
     saved_info = paper.info
     try:
-        doc = {"marginSummary": {"accountValue": "1000000.0", "totalNtlPos": "3000000.0"},
-               "assetPositions": [{"type": "oneWay", "position": {"coin": "LIT", "szi": "10.0",
-                                                                  "leverage": {"type": "isolated", "value": 4}}}]}
-        paper.info = lambda body, limiter: doc if body == {"type": "clearinghouseState", "user": "0xa"} else None
-        s.check("read_leverage: the coin's setting and the account's notional over its value",
-                paper.read_leverage("0xa", "LIT", None) == (4, 3.0))
-        s.check("read_leverage: a coin with no position is None", paper.read_leverage("0xa", "BTC", None) is None)
-        paper.info = lambda body, limiter: {"assetPositions": doc["assetPositions"]}
-        s.check("read_leverage: an answer without marginSummary is None", paper.read_leverage("0xa", "LIT", None) is None)
+        state_doc = {"marginSummary": {"accountValue": "1000000.0", "totalNtlPos": "3000000.0"},
+                     "assetPositions": [{"type": "oneWay", "position": {"coin": "LIT", "szi": "10.0", "entryPx": "3.10",
+                                                                        "positionValue": "31.0",
+                                                                        "leverage": {"type": "isolated", "value": 4}}}]}
+
+        def order(coin, side, kind, px, ro, trig, oid, children=()):
+            return {"coin": coin, "side": side, "orderType": kind, "limitPx": "0.0" if trig else px, "oid": oid,
+                    "triggerPx": px if trig else "0.0", "isTrigger": trig, "reduceOnly": ro, "children": list(children)}
+        waiting = order("LIT", "A", "Stop Market", "2.7", True, True, 8)
+        orders = [order("LIT", "A", "Stop Market", "2.9", True, True, 1),
+                  order("LIT", "A", "Take Profit Market", "3.6", True, True, 2), order("LIT", "A", "Limit", "3.5", True, False, 3),
+                  order("LIT", "A", "Limit", "3.7", False, False, 4), order("LIT", "B", "Limit", "3.0", True, False, 5),
+                  order("BTC", "A", "Limit", "99000.0", True, False, 6), order("LIT", "B", "Limit", "3.05", False, False, 7, [waiting]),
+                  waiting, order("LIT", "A", "Stop Market", "2.95", True, True, 9)]
+
+        def answers(body, limiter):
+            return {"clearinghouseState": state_doc, "frontendOpenOrders": orders}[body["type"]]
+        paper.info = answers
+        want = {"side": 1, "lev": (4, 3.0), "entry": "3.10", "value": 31.0, "share": 31.0 / 1000000.0,
+                "stops": ["2.95", "2.9"], "targets": ["3.5", "3.6"]}
+        s.check("read_whale: the position, and the closing side's stops and targets in trigger order; an opening order "
+                "and one waiting on a resting parent out", paper.read_whale("0xa", "LIT", None) == want)
+        short_doc = json.loads(json.dumps(state_doc))
+        short_doc["assetPositions"][0]["position"]["szi"] = "-10.0"
+        short_orders = [order("LIT", "B", "Stop Market", "3.4", True, True, 11),
+                        order("LIT", "B", "Take Profit Market", "2.8", True, True, 12),
+                        order("LIT", "B", "Limit", "2.9", True, False, 13), order("LIT", "B", "Stop Market", "3.3", True, True, 14),
+                        order("LIT", "A", "Limit", "3.6", True, False, 15)]
+        paper.info = lambda body, limiter: {"clearinghouseState": short_doc, "frontendOpenOrders": short_orders}[body["type"]]
+        s.check("read_whale: a short's exits on the buying side, in trigger order",
+                paper.read_whale("0xa", "LIT", None) == dict(want, side=-1, stops=["3.3", "3.4"], targets=["2.9", "2.8"]))
+
+        def orders_refused(body, limiter):
+            if body["type"] == "frontendOpenOrders":
+                raise paper.Transport("HTTP 429")
+            return state_doc
+        paper.info = orders_refused
+        s.check("read_whale: open orders refused, the position kept and its exits None",
+                paper.read_whale("0xa", "LIT", None) == dict(want, stops=None, targets=None))
+        paper.info = answers
+        s.check("read_whale: a coin with no position is None", paper.read_whale("0xa", "BTC", None) is None)
+        paper.info = lambda body, limiter: {"assetPositions": state_doc["assetPositions"]}
+        s.check("read_whale: an answer without marginSummary is None", paper.read_whale("0xa", "LIT", None) is None)
 
         def refused(body, limiter):
             raise paper.Transport("HTTP 429")
         paper.info = refused
-        s.check("read_leverage: a refused read is None, never raised", paper.read_leverage("0xa", "LIT", None) is None)
+        s.check("read_whale: a refused read is None, never raised", paper.read_whale("0xa", "LIT", None) is None)
     finally:
         paper.info = saved_info
-    s.check("lev_text: both numbers, or n/a", paper.lev_text((7, 1.5)) == "7x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 1.5x)" and paper.lev_text(None) == "\u043d/\u0434")
     # W12. the constants cut from index.html
     page = "var INV_FLOOR_SD = 2.0;   // x\nvar FEE_TAKER   = 0.0005;\n"
     s.check("cut_number on a page", common.cut_number(page, "INV_FLOOR_SD") == 2.0
@@ -1624,6 +1704,16 @@ def section_w(s):
     s.check("load_rule reads owner.json's capital and medium risk",
             rule_live["capital_usdt"] == float(owner["capital"]["usdt"])
             and rule_live["risk_pct"] == float(owner["risk"]["risk_pct_medium"]))
+    empty = tempfile.mkdtemp(prefix="vps-selftest-owner.")
+    try:
+        s.check("owner_book: the owner file's capital, medium risk and side and book ceilings; owner_now None without it",
+                paper.owner_book(REPO) == {"capital_usdt": float(owner["capital"]["usdt"]),
+                                           "risk_pct": float(owner["risk"]["risk_pct_medium"]),
+                                           "side_max_pct": float(owner["risk"]["side_max_pct"]),
+                                           "book_max_pct": float(owner["risk"]["book_max_pct"])}
+                and paper.owner_now(empty) is None)
+    finally:
+        shutil.rmtree(empty, ignore_errors=True)
     s.check("load_rule cuts two positive numbers from index.html",
             rule_live["inv_floor_sd"] > 0 and 0 < rule_live["fee_taker"] < 0.01)
     # W13. the unit and the manifest
@@ -1705,18 +1795,38 @@ def section_w_flow(s):
         for name in alerts:
             with open(os.path.join(outbox, name), encoding="utf-8") as fh:
                 texts.append(json.load(fh)["text"])
-        s.check("the flow's open alert: whale 1, no leverage without a reader", len(texts) == 2
-                and "1\ufe0f\u20e3 \U0001f40b\u2022 " in texts[0] and "\u043f\u043b\u0435\u0447\u043e \u043d/\u0434" in texts[0])
+        s.check("the flow's open signal: whale 1, no leverage without a reader", len(texts) == 2
+                and "\U0001f40b1\ufe0f\u20e3 " in texts[0] and "\u043f\u043b\u0435\u0447\u043e \u043d/\u0434" in texts[0])
         s.check("the flow's close at the opening price: red cross", len(texts) == 2 and "\u274c \u0417\u0430\u043a\u0440\u044b\u043b" in texts[1])
         asked, lone = [], paper.new_state(sel)
         paper._apply(p, lone["accounts"][p], [w_fill(ff + h, 0, "B", 1, tid=1)], sel, {"BTCUSDT"}, ff + h + 10000,
-                     rule, lambda: inputs, lambda coin: asked.append(coin) or (7, 1.5))
+                     rule, lambda: inputs, lambda coin: asked.append(coin) or {"side": 1, "lev": (7, 1.5), "entry": "100.0",
+                                                                               "value": 25000.0, "share": 0.02, "stops": [],
+                                                                               "targets": []})
         fresh = sorted(x for x in os.listdir(outbox) if "-alert-" in x and x not in alerts)
         with open(os.path.join(outbox, fresh[-1]), encoding="utf-8") as fh:
             lone_text = json.load(fh)["text"]
         s.check("_apply asks the reader for the fill's coin and prints its answer",
                 asked == ["BTC"] and "\u043f\u043b\u0435\u0447\u043e 7x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 1.5x)" in lone_text)
-        for name in fresh:
+        mine = paper.new_state(sel)["accounts"][p]
+        mine["coins"]["ETH"] = {"coin": "ETH", "symbol": "ETHUSDT", "side": 1, "t_open": ff, "px_open": "2000.0", "n": 1}
+        before = set(os.listdir(outbox))
+        paper._apply(p, mine, [w_fill(ff + h, 0, "B", 1, tid=6)], sel, {"BTCUSDT"}, ff + h + 70000, rule, lambda: inputs,
+                     lambda coin: None, lambda: {"capital_usdt": 30000.0, "risk_pct": 0.5, "side_max_pct": 3.0,
+                                                 "book_max_pct": 5.0}, [1, -1])
+        made = sorted(set(os.listdir(outbox)) - before)
+        with open(os.path.join(outbox, made[-1]), encoding="utf-8") as fh:
+            counted = json.load(fh)["text"]
+        s.check("the copy line counts the account's open episodes, this one and the other picks'",
+                len(made) == 1 and counted.endswith("LONG: 3-\u044f \u0438\u0437 6"))
+        asked = []
+        paper._apply(p, paper.new_state(sel)["accounts"][p], [w_fill(ff + h, 0, "B", 1, tid=2), w_fill(ff + h + 60000, 1, "A", 1, tid=3)],
+                     sel, {"BTCUSDT"}, ff + h + 70000, rule, lambda: inputs, lambda coin: asked.append(coin))
+        s.check("closed later in the same poll: the signal reads no position", asked == [])
+        paper._apply(p, paper.new_state(sel)["accounts"][p], [w_fill(ff + h, 0, "B", 1, tid=4), w_fill(ff + h + 60000, 1, "B", 1, tid=5)],
+                     sel, {"BTCUSDT"}, ff + h + 70000, rule, lambda: inputs, lambda coin: asked.append(coin))
+        s.check("added to later in the same poll: the signal reads the position", asked == ["BTC"])
+        for name in [x for x in os.listdir(outbox) if "-alert-" in x and x not in alerts]:
             os.remove(os.path.join(outbox, name))
         for acct in state["accounts"].values():
             acct["polled_ms"] = we + paper.DAY_SETTLE_S * 1000
@@ -2534,7 +2644,7 @@ def section_w_rescan(s):
             note = json.load(fh)
         end = datetime.fromtimestamp(sel["window_end_ms"] / 1000, tz=announce.TBILISI).strftime("%d.%m.%Y")
         s.check("the notice of a whale added, character for character",
-                note["kind"] == "notice" and note["text"] == "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442: \u043d\u043e\u0432\u044b\u0439 \u043a\u0438\u0442 3\ufe0f\u20e3 \U0001f40b\u2022 0xcccc\u2026cccc \u2014 \u043f\u0440\u043e\u0448\u0451\u043b \u0442\u043e \u0436\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u043e\u0442\u0431\u043e\u0440\u0430 \u043d\u0430 07.01.2026, \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u0434\u043e " + end + ".")
+                note["kind"] == "notice" and note["text"] == "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442: \u043d\u043e\u0432\u044b\u0439 \u043a\u0438\u0442 \U0001f40b3\ufe0f\u20e3 0xcccc\u2026cccc \u2014 \u043f\u0440\u043e\u0448\u0451\u043b \u0442\u043e \u0436\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u043e\u0442\u0431\u043e\u0440\u0430 \u043d\u0430 07.01.2026, \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u0434\u043e " + end + ".")
         none = paper.new_state(sel)
         paper.adopt(none, tmp, sel, dict(found, t0_ms=W_T0 + 28 * paper.DAY_MS, picks=[]), 2, now)
         with open(os.path.join(outbox, sorted(os.listdir(outbox))[-1]), encoding="utf-8") as fh:
