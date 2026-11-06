@@ -101,11 +101,27 @@ RECORD_DIR = "analyst/paper"
 DEPLOYED_TREE = os.path.join(common.STATE_DIR, "deployed-vps-tree")
 REPO = os.path.dirname(common.VPS_DIR)
 
-# --- TZ-64 section 12.5.2 as TZ-75 A1 restyles it, character for character.
-P_HEAD = "\U0001f4cb \u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 {hhmm} \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 {num} \U0001f40b\u2022 {addr} "
-P_OPEN = P_HEAD + "\u043e\u0442\u043a\u0440\u044b\u043b {side} {dot} {symbol} \u043f\u043e {px} \u00b7 \u043f\u043b\u0435\u0447\u043e {lev} \u00b7 \u0441\u0442\u043e\u043f {dist}% \u2192 {stop} \u00b7 \u043e\u0431\u044a\u0451\u043c {notional} USDT \u043f\u0440\u0438 \u0440\u0438\u0441\u043a\u0435 {risk}% \u043a\u0430\u043f\u0438\u0442\u0430\u043b\u0430."
-P_OPEN_BARE = P_HEAD + "\u043e\u0442\u043a\u0440\u044b\u043b {side} {dot} {symbol} \u043f\u043e {px} \u00b7 \u043f\u043b\u0435\u0447\u043e {lev} \u00b7 \u0441\u0442\u043e\u043f \u0438 \u043e\u0431\u044a\u0451\u043c \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d\u044b: \u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance."
-P_CLOSE = P_HEAD + "{mark} \u0417\u0430\u043a\u0440\u044b\u043b {side} {symbol} \u043f\u043e {px} \u00b7 \u0432 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \U0001f55a {held}."
+# --- TZ-64 section 12.5.2 as TZ-75 A1 and TZ-78 restyle it, character for character: a pick's own trade is a
+# signal, first word (SIGNAL), the whale's number beside the whale; every other message stays a paper-test notice.
+P_SIGNAL = "**(SIGNAL)** {hhmm} \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 \U0001f40b{num} {addr} "
+P_NEW = "**(NEW SIGNAL)** {hhmm} \u0422\u0431\u0438\u043b\u0438\u0441\u0438 \u00b7 \U0001f40b{num} {addr} "
+P_OPEN_LINE = "\u043e\u0442\u043a\u0440\u044b\u043b {side} {dot} {symbol}"
+P_ENTRY = "\u0412\u0445\u043e\u0434 \u043a\u0438\u0442\u0430: `{px}` \u00b7 \u043f\u043b\u0435\u0447\u043e {lev}{pos}"
+P_POS = " \u00b7 \u043f\u043e\u0437\u0438\u0446\u0438\u044f {value} = {share}% \u0441\u0447\u0451\u0442\u0430 \u043a\u0438\u0442\u0430"
+P_EXITS = "\u0421\u0442\u043e\u043f \u043a\u0438\u0442\u0430: {sl} \u00b7 \u0442\u0435\u0439\u043a \u043a\u0438\u0442\u0430: {tp}"
+P_EXITS_NONE = "\u0421\u0442\u043e\u043f \u0438 \u0442\u0435\u0439\u043a \u043a\u0438\u0442\u0430: \u043d/\u0434"
+P_EXIT = "`{px}` ({pct}%)"
+P_MORE = " \u0438 \u0435\u0449\u0451 {n}"
+P_NO = "\u043d\u0435\u0442"
+P_GUARD = "\u0421\u0442\u043e\u043f \u043a\u043e\u043f\u0438\u0438: `{stop}` (\u2212{dist}%)"
+P_GUARD_NONE = "\u0421\u0442\u043e\u043f \u043a\u043e\u043f\u0438\u0438: \u043d\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043d \u2014 \u043d\u0435\u0442 \u0434\u043d\u0435\u0432\u043d\u044b\u0445 \u0441\u0432\u0435\u0447\u0435\u0439 Binance"
+P_CLOSE = "{mark} \u0417\u0430\u043a\u0440\u044b\u043b {side} {symbol} \u043f\u043e {px} \u00b7 \u0432 \u043f\u043e\u0437\u0438\u0446\u0438\u0438 \U0001f55a {held}."
+MLN, THS = "\u043c\u043b\u043d", "\u0442\u044b\u0441."
+P_COPY = ("\u041a\u043e\u043f\u0438\u044f: \u043e\u0431\u044a\u0451\u043c `{size}` USDT \u00b7 \u043c\u0430\u0440\u0436\u0430 `{margin}` \u043f\u0440\u0438 {lev}x \u00b7 \u0434\u043e \u0441\u0442\u043e\u043f\u0430 \u2212{risk} USDT ({pct}% \u043e\u0442 {capital})"
+          " \u00b7 {side}: {n}-\u044f \u0438\u0437 {cap}")
+P_SKIP_SIDE = "\u041a\u043e\u043f\u0438\u044f: \u043f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u2014 \u0432 {side} \u0443\u0436\u0435 {n} \u0438\u0437 {cap}, \u044d\u0442\u043e {pct}% \u0434\u0435\u043f\u043e\u0437\u0438\u0442\u0430"
+P_SKIP_BOOK = "\u041a\u043e\u043f\u0438\u044f: \u043f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u2014 \u043e\u0442\u043a\u0440\u044b\u0442\u043e \u0443\u0436\u0435 {n} \u0438\u0437 {cap}, \u044d\u0442\u043e {pct}% \u0434\u0435\u043f\u043e\u0437\u0438\u0442\u0430"
+COPY_LEV = 3   # TZ-78: the owner's lowest leverage, his statement of 06.11.2026; a copy's loss does not depend on it
 P_LEV = "{lev}x (\u0432\u0435\u0441\u044c \u0441\u0447\u0451\u0442 {acct}x)"
 P_LEV_NONE = "\u043d/\u0434"
 SIDE_DOT = {1: "\U0001f7e2", -1: "\U0001f534"}
@@ -128,7 +144,7 @@ N_VERDICT = ("\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u044
              "\u0440\u043e\u0432\u0430\u043d\u0438\u044f: \u0438\u0442\u043e\u0433 \u0437\u0430\u043f\u0438\u0441"
              "\u0430\u043d \u0438 \u0436\u0434\u0451\u0442 \u0440\u0430\u0437\u0431\u043e\u0440\u0430 \u0410\u0440"
              "\u0445\u0438\u0442\u0435\u043a\u0442\u043e\u0440\u0430.")
-N_ADDED = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442: \u043d\u043e\u0432\u044b\u0439 \u043a\u0438\u0442 {num} \U0001f40b\u2022 {addr} \u2014 \u043f\u0440\u043e\u0448\u0451\u043b \u0442\u043e \u0436\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u043e\u0442\u0431\u043e\u0440\u0430 \u043d\u0430 {date}, \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u0434\u043e {end}."
+N_ADDED = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442: \u043d\u043e\u0432\u044b\u0439 \u043a\u0438\u0442 \U0001f40b{num} {addr} \u2014 \u043f\u0440\u043e\u0448\u0451\u043b \u0442\u043e \u0436\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u043e\u0442\u0431\u043e\u0440\u0430 \u043d\u0430 {date}, \u043e\u043f\u043e\u0432\u0435\u0449\u0435\u043d\u0438\u044f \u0434\u043e {end}."
 N_RESCAN_NONE = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u00b7 \u043f\u043e\u0438\u0441\u043a \u043a\u0438\u0442\u043e\u0432 {date}: \u043f\u0440\u0430\u0432\u0438\u043b\u043e 12 \u043c\u0435\u0441\u044f\u0446\u0435\u0432 \u043f\u0440\u043e\u0448\u043b\u0438 {r12} \u0438\u0437 {eligible} \u0441\u0447\u0435\u0442\u043e\u0432, \u043d\u043e\u0432\u044b\u0445 \u043a\u043e\u043f\u0438\u0440\u0443\u0435\u043c\u044b\u0445 \u043d\u0435\u0442."
 # --- TZ-77 (1): the window that runs on past thirteen weeks.
 N_RUN_ON = "\u0411\u0443\u043c\u0430\u0436\u043d\u044b\u0439 \u0442\u0435\u0441\u0442 \u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f: \u0441\u0434\u0435\u043b\u043e\u043a \u043a\u0438\u0442\u043e\u0432 \u0437\u0430 13 \u043d\u0435\u0434\u0435\u043b\u044c \u2014 {n} \u0438\u0437 30 \u043d\u0443\u0436\u043d\u044b\u0445, \u043e\u043a\u043d\u043e \u043f\u0440\u043e\u0434\u043b\u0435\u043d\u043e \u0434\u043e 30-\u0439, \u043d\u043e \u043d\u0435 \u0434\u043e\u043b\u044c\u0448\u0435 {date}."
@@ -189,14 +205,30 @@ def minute(ms):
 
 
 # --- the rule's inputs read from the checkout ---------------------------------
-def load_rule(repo=REPO):
-    """Capital and medium risk from analyst/owner.json; INV_FLOOR_SD and FEE_TAKER cut from
-    index.html (inv. 20: one number per threshold, system-wide)."""
+def owner_book(repo=REPO):
+    """TZ-78: the owner's capital, medium risk, and side and book ceilings, from analyst/owner.json as it stands."""
     with open(os.path.join(repo, "analyst", "owner.json"), encoding="utf-8") as fh:
         owner = json.load(fh)
+    return {"capital_usdt": float(owner["capital"]["usdt"]), "risk_pct": float(owner["risk"]["risk_pct_medium"]),
+            "side_max_pct": float(owner["risk"]["side_max_pct"]), "book_max_pct": float(owner["risk"]["book_max_pct"])}
+
+
+def owner_now(repo=REPO):
+    """TZ-78: owner_book at the signal, so the owner's next declaration reaches the next signal; None when the file
+    cannot be read, and the signal then prints no copy line."""
+    try:
+        return owner_book(repo)
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def load_rule(repo=REPO):
+    """Capital and medium risk from analyst/owner.json, through owner_book; INV_FLOOR_SD and FEE_TAKER cut from
+    index.html (inv. 20: one number per threshold, system-wide)."""
+    own = owner_book(repo)
     with open(os.path.join(repo, "index.html"), encoding="utf-8") as fh:
         page = fh.read()
-    return {"capital_usdt": float(owner["capital"]["usdt"]), "risk_pct": float(owner["risk"]["risk_pct_medium"]),
+    return {"capital_usdt": own["capital_usdt"], "risk_pct": own["risk_pct"],
             "inv_floor_sd": common.cut_number(page, "INV_FLOOR_SD"), "fee_taker": common.cut_number(page, "FEE_TAKER")}
 
 
@@ -532,6 +564,11 @@ def daily_sigma(closes):
     return statistics.pstdev([closes[i + 1] / closes[i] - 1 for i in range(len(closes) - 1)])
 
 
+def risk_usdt(capital, risk_frac):
+    """TZ-78: what one copy may lose to its stop -- the booking's size and the signal's copy line alike (inv. 38)."""
+    return risk_frac * capital
+
+
 def book_delay(ep, delay_s, dist, kl, capital, risk_frac, fee, window_end):
     """One episode copied at one delay. kl = (open times ascending, rows (o, h, l, c)). Entry at
     the close of the minute containing t_open + delay; exit at the close of the minute containing
@@ -549,7 +586,7 @@ def book_delay(ep, delay_s, dist, kl, capital, risk_frac, fee, window_end):
     if i < 0:
         raise Absent("no kline at or before the entry minute")
     entry = rows[i][3]
-    qty = risk_frac * capital / (entry * dist)
+    qty = risk_usdt(capital, risk_frac) / (entry * dist)
     stop = entry * (1 - side * dist)
     hit = None
     for k in range(i + 1, j + 1):
@@ -1048,48 +1085,158 @@ def number(rank):
     return ("%d\ufe0f\u20e3" % rank) if 1 <= rank <= 9 else ("#%d" % rank)
 
 
-def read_leverage(addr, coin, limiter):
-    """(the position's leverage setting, the account's notional over its value) from clearinghouseState,
-    or None: the coin holds no position, or any read or shape failure. Never raises."""
+READ_FAILED = (StopIteration, Transport, KeyError, TypeError, ValueError, ArithmeticError, AttributeError)
+
+
+def leverage_in(doc, coin):
+    """((the position's leverage setting, the account's notional over its value), the position, the account's
+    value) of coin in one clearinghouseState answer; raises on no position or a malformed answer."""
+    pos = next(p["position"] for p in doc["assetPositions"] if p["position"]["coin"] == coin)
+    lev = int(pos["leverage"]["value"])
+    value = float(doc["marginSummary"]["accountValue"])
+    ntl = float(doc["marginSummary"]["totalNtlPos"])
+    if lev < 1 or not value > 0 or not math.isfinite(ntl):
+        raise ValueError("leverage")
+    return (lev, ntl / value), pos, value
+
+
+def read_whale(addr, coin, limiter):
+    """TZ-78: the whale's own position in coin as his account answers at the signal -- its side, leverage as
+    leverage_in reads it, his average entry, the position's value and its share of his account -- and his
+    resting exits in it, each price as he placed it, in the order they would trigger: stops (Stop triggers on the
+    closing side) and targets (Take Profit triggers and reduce-only limits on the closing side), an order waiting
+    on a resting parent excluded; both None when his open orders cannot be read. None when the position cannot
+    be. Never raises."""
     try:
-        doc = info({"type": "clearinghouseState", "user": addr}, limiter)
-        pos = next(p["position"] for p in doc["assetPositions"] if p["position"]["coin"] == coin)
-        lev = int(pos["leverage"]["value"])
-        value = float(doc["marginSummary"]["accountValue"])
-        ntl = float(doc["marginSummary"]["totalNtlPos"])
-        if lev < 1 or not value > 0 or not math.isfinite(ntl):
-            return None
-        return lev, ntl / value
-    except (StopIteration, Transport, KeyError, TypeError, ValueError, ArithmeticError, AttributeError):
+        lev, pos, account = leverage_in(info({"type": "clearinghouseState", "user": addr}, limiter), coin)
+        size, entry, value = float(pos["szi"]), float(pos["entryPx"]), float(pos["positionValue"])
+        if size == 0 or not (entry > 0 and math.isfinite(entry) and value >= 0 and math.isfinite(value)):
+            raise ValueError("position")
+        side = 1 if size > 0 else -1
+        out = {"side": side, "lev": lev, "entry": pos["entryPx"], "value": value, "share": value / account}
+    except READ_FAILED:
         return None
+    try:
+        orders = info({"type": "frontendOpenOrders", "user": addr}, limiter)
+        waiting = {c["oid"] for o in orders for c in o.get("children") or ()}
+        stops, targets = [], []
+        for o in orders:
+            if o["coin"] != coin or o["side"] != ("A" if side > 0 else "B") or o["oid"] in waiting:
+                continue
+            px = o["triggerPx"] if o["isTrigger"] else o["limitPx"]
+            if not (float(px) > 0 and math.isfinite(float(px))):
+                continue
+            if o["isTrigger"] and o["orderType"].startswith("Stop"):
+                stops.append(px)
+            elif (o["orderType"].startswith("Take Profit") if o["isTrigger"]
+                  else o["reduceOnly"] and o["orderType"] == "Limit"):
+                targets.append(px)
+        out["stops"] = sorted(stops, key=lambda p: -side * float(p))
+        out["targets"] = sorted(targets, key=lambda p: side * float(p))
+    except READ_FAILED:
+        out["stops"] = out["targets"] = None
+    return out
 
 
 def lev_text(lev):
     return P_LEV_NONE if lev is None else P_LEV.format(lev=lev[0], acct="%.1f" % lev[1])
 
 
-def alert_open(ep, rank, rule, sigma, lev=None):
-    base = {"hhmm": hhmm(ep["t_open"]), "num": number(rank), "addr": addr_short(ep["a"]),
-            "side": side_word(ep["side"]), "dot": SIDE_DOT[ep["side"]], "symbol": ep["symbol"], "px": ep["px_open"],
-            "lev": lev_text(lev)}
-    if sigma is None or not sigma > 0:
-        return P_OPEN_BARE.format(**base)
-    dist = rule["inv_floor_sd"] * sigma
-    stop = float(ep["px_open"]) * (1 - ep["side"] * dist)
-    notional = rule["risk_pct"] / 100 * rule["capital_usdt"] / dist
-    return P_OPEN.format(dist="%.1f" % (dist * 100), stop="%.*f" % (decimals(ep["px_open"]), stop),
-                         notional="%d" % round(notional), risk=("%g" % rule["risk_pct"]), **base)
+def money(usdt):
+    """A position's value in millions or thousands of USDT, one decimal."""
+    if usdt >= 1e6:
+        return "%.1f %s USDT" % (usdt / 1e6, MLN)
+    if usdt >= 1e3:
+        return "%.1f %s USDT" % (usdt / 1e3, THS)
+    return "%d USDT" % round(usdt)
+
+
+def grouped(n):
+    """A whole number with a space between thousands: 1 850."""
+    return "{:,}".format(int(round(n))).replace(",", " ")
+
+
+def price_text(px, nd):
+    """A computed price: the decimals of the price it derives from, and never fewer than five significant digits --
+    a fill's price string drops its trailing zeros."""
+    return "%.*f" % (max(nd, 4 - int(math.floor(math.log10(px)))), px)
+
+
+def share_text(share):
+    """A position's share of the account, in percent: one decimal, two below 0.1."""
+    pct = 100 * share
+    return "%.1f" % pct if pct >= 0.1 else "%.2f" % pct if pct >= 0.01 else "<0.01"
+
+
+def exit_text(prices, entry, side):
+    """The first of a side's resting exits to trigger, as the whale placed it, with its result from his entry, and
+    how many more; or none."""
+    if not prices:
+        return P_NO
+    pct = 100 * result(side, prices[0], entry)
+    text = P_EXIT.format(px=prices[0], pct=("\u2212" if pct < 0 else "+") + "%.1f" % abs(pct))
+    return text + (P_MORE.format(n=len(prices) - 1) if len(prices) > 1 else "")
+
+
+def copy_text(own, dist, side, sides):
+    """TZ-78: the copy line -- sized as the test sizes, the owner's capital at his medium risk to the copy's stop; or
+    a skip, where the open signals on its side or in all, this one counted, would pass his side or book ceiling,
+    each holding as many copies as its ceiling holds his medium risk."""
+    name, n_side, n_all = side_word(side), list(sides).count(side), len(sides)
+    cap_side = int(round(own["side_max_pct"] / own["risk_pct"], 9))
+    cap_all = int(round(own["book_max_pct"] / own["risk_pct"], 9))
+    if n_side > cap_side:
+        return P_SKIP_SIDE.format(side=name, n=n_side - 1, cap=cap_side, pct="%g" % own["side_max_pct"])
+    if n_all > cap_all:
+        return P_SKIP_BOOK.format(n=n_all - 1, cap=cap_all, pct="%g" % own["book_max_pct"])
+    risk = risk_usdt(own["capital_usdt"], own["risk_pct"] / 100)
+    return P_COPY.format(size="%d" % round(risk / dist), margin="%d" % round(risk / dist / COPY_LEV), lev=COPY_LEV,
+                         risk=grouped(risk), pct="%g" % own["risk_pct"], capital=grouped(own["capital_usdt"]),
+                         side=name, n=n_side, cap=cap_side)
+
+
+def alert_open(ep, rank, rule, sigma, whale=None, own=None, sides=()):
+    """TZ-78: the signal of a pick's new position -- the whale's own entry, leverage, position, and resting stop
+    and target as his account answers at the signal; the copy's stop, the test's 2 sigma; and, with the owner's book,
+    the copy line over sides, the open signals' sides with this one. A whale read of another side than the fill's
+    is no read."""
+    side = ep["side"]
+    w = whale if whale is not None and whale.get("side") == side else None
+    nd = decimals(ep["px_open"])
+    px = ep["px_open"] if w is None else w["entry"]
+    entry = float(px)
+    lines = [P_NEW.format(hhmm=hhmm(ep["t_open"]), num=number(rank), addr=addr_short(ep["a"]))
+             + P_OPEN_LINE.format(side=side_word(side), dot=SIDE_DOT[side], symbol=ep["symbol"]),
+             P_ENTRY.format(px=px, lev=lev_text(None if w is None else w["lev"]), pos="" if w is None else P_POS.format(
+                 value=money(w["value"]), share=share_text(w["share"])))]
+    if w is None or w["stops"] is None:
+        lines.append(P_EXITS_NONE)
+    else:
+        lines.append(P_EXITS.format(sl=exit_text(w["stops"], entry, side), tp=exit_text(w["targets"], entry, side)))
+    dist = rule["inv_floor_sd"] * sigma if sigma is not None and sigma > 0 else None
+    if dist is None or float(ep["px_open"]) * (1 - side * dist) <= 0:
+        lines.append(P_GUARD_NONE)
+        return "\n".join(lines)
+    lines.append(P_GUARD.format(stop=price_text(float(ep["px_open"]) * (1 - side * dist), nd), dist="%.1f" % (dist * 100)))
+    if own is not None:
+        lines.append(copy_text(own, dist, side, sides))
+    return "\n".join(lines)
+
+
+def result(side, px, entry):
+    """A side's move from entry to px, as a fraction: positive is a gain."""
+    return side * (float(px) / float(entry) - 1)
 
 
 def gained(ep, rule):
     """The copy's move from the account's opening price to its closing price beats the taker fee both ways."""
-    return ep["side"] * (float(ep["px_close"]) / float(ep["px_open"]) - 1) > 2 * rule["fee_taker"]
+    return result(ep["side"], ep["px_close"], ep["px_open"]) > 2 * rule["fee_taker"]
 
 
 def alert_close(ep, rank, rule):
-    return P_CLOSE.format(hhmm=hhmm(ep["t_close"]), num=number(rank), addr=addr_short(ep["a"]),
-                          mark=MARK_GAIN if gained(ep, rule) else MARK_LOSS, side=side_word(ep["side"]),
-                          symbol=ep["symbol"], px=ep["px_close"], held=held_text(ep["t_close"] - ep["t_open"]))
+    return P_SIGNAL.format(hhmm=hhmm(ep["t_close"]), num=number(rank), addr=addr_short(ep["a"])) + P_CLOSE.format(
+        mark=MARK_GAIN if gained(ep, rule) else MARK_LOSS, side=side_word(ep["side"]), symbol=ep["symbol"],
+        px=ep["px_close"], held=held_text(ep["t_close"] - ep["t_open"]))
 
 
 def pick_joins(state, sel):
@@ -1168,19 +1315,30 @@ def new_state(sel):
             "next_publish_ms": 0, "closed_notice": False}
 
 
-def poll(addr, acct, sel, symbols, limiter, now, rule, inputs_for):
+def poll(addr, acct, sel, symbols, limiter, now, rule, inputs_for, others=()):
     """New fills since the account's last time, through apply_fill; alerts for a pick's fresh events.
     The account's state changes only when the whole poll succeeded."""
     fills = fills_since(addr, acct["last_ms"], limiter)
     work = json.loads(json.dumps(acct))
-    _apply(addr, work, fills, sel, symbols, now, rule, inputs_for, lambda coin: read_leverage(addr, coin, limiter))
+    _apply(addr, work, fills, sel, symbols, now, rule, inputs_for, lambda coin: read_whale(addr, coin, limiter),
+           owner_now, others)
     acct.clear()
     acct.update(work)
 
 
-def _apply(addr, acct, fills, sel, symbols, now, rule, inputs_for, leverage_for=lambda coin: None):
+def closes_later(fills, i, ep):
+    """TZ-78: whether the poll's later fills on ep's coin, applied by apply_fill to a scratch copy holding ep alone,
+    close or lose it -- the whale's account then answers for another position than the signal's, so the signal
+    reads none of it."""
+    scratch = {ep["coin"]: ep}
+    return any(kind != "open" for g in fills[i + 1:] if g["coin"] == ep["coin"]
+               for kind, _ in apply_fill(scratch, g, ep["symbol"]))
+
+
+def _apply(addr, acct, fills, sel, symbols, now, rule, inputs_for, whale_for=lambda coin: None, own_for=lambda: None,
+           others=()):
     window_end = sel["window_end_ms"]
-    for f in fills:
+    for i, f in enumerate(fills):
         t = int(f["time"])
         if (t == acct["last_ms"] and f["tid"] in acct["last_tids"]) or t >= window_end:
             continue
@@ -1204,7 +1362,9 @@ def _apply(addr, acct, fills, sel, symbols, now, rule, inputs_for, leverage_for=
                         sigma = sigma_for(inputs_for(), sym, t)
                     except (NotReady, Absent, Transport, ValueError, ZeroDivisionError):
                         sigma = None
-                    common.write_outbox("alert", alert_open(ep, acct["rank"], rule, sigma, leverage_for(f["coin"])))
+                    whale = None if closes_later(fills, i, ep) else whale_for(f["coin"])
+                    sides = list(others) + [e["side"] for e in acct["coins"].values() if e is not None]
+                    common.write_outbox("alert", alert_open(ep, acct["rank"], rule, sigma, whale, own_for(), sides))
                 else:
                     common.write_outbox("alert", alert_close(ep, acct["rank"], rule))
     kept = [f for f in fills if int(f["time"]) < window_end]   # TZ-77 (1): a fill past the end as it stands stays
@@ -1631,7 +1791,9 @@ def service(state_dir, tree):
                     continue
                 acct["due_ms"] = now + 1000 * (PICK_POLL_S if acct["role"] == "pick" else NULL_POLL_S)
                 try:
-                    poll(addr, acct, view, symbols, limiter, now, rule, inputs_for)
+                    others = [e["side"] for a, other in state["accounts"].items() if a != addr and other["role"] == "pick"
+                              for e in other["coins"].values() if e is not None]   # TZ-78: the copy line's ceilings
+                    poll(addr, acct, view, symbols, limiter, now, rule, inputs_for, others)
                     if acct["failing"]:
                         common.log("paper: poll %s answered again" % addr_short(addr))
                     acct["failing"] = False
