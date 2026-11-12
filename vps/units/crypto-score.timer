@@ -1,0 +1,10 @@
+[Unit]
+Description=Crypto assistant: the book's signal after the daily close
+
+[Timer]
+OnCalendar=*-*-* 00:10:00 UTC
+Persistent=true
+Unit=crypto-score.service
+
+[Install]
+WantedBy=timers.target

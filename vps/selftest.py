@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
-TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
+TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1, TZ-79 B1): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
 TZ-56 §12.6's, TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's, TZ-69's, TZ-71's and
 TZ-72's changed and new ones, each printing
 `section <X>: checks <n> failed <m>`, then the total.
@@ -45,6 +45,7 @@ import etf  # noqa: E402
 import exchange  # noqa: E402
 import paper  # noqa: E402
 import run  # noqa: E402
+import score  # noqa: E402
 import stop  # noqa: E402
 import writer  # noqa: E402
 
@@ -3144,12 +3145,391 @@ def section_w_orders(s):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# --- AB: the book's signal and its forward ledger (TZ-79) ------------------------------------------
+AB_LINE = re.compile(r"score: asof=\d{4}-\d\d-\d\d symbols=\d+ read=\d+ unread=\d+ open=\d+ opened=\d+ closing=\d+ "
+                     r"closed=\d+ pending=\d+ late=\d+ disagree=\d+ ledger=\d+ alert=(yes|no)")
+AB_H8 = 8 * 3600 * 1000
+
+
+def ab_klines(bars, fill):
+    """What fapi's daily klines answer for these closed bars and a forming day that opened at fill."""
+    closed = [[b[0], str(b[1]), str(b[2]), str(b[3]), str(b[4]), "0", b[0] + book.DAY_MS - 1] for b in bars]
+    forming = [bars[-1][0] + book.DAY_MS, str(fill), str(fill + 1), str(fill - 1), str(fill + 0.25), "0", 10 ** 15]
+    return json.dumps(closed + [forming]).encode()
+
+
+def ab_funding(url, rate="0.0001", hole=None):
+    """A print every eight hours from the URL's startTime through its endTime, a page of them at most."""
+    q = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+    start, end = int(q["startTime"][0]), int(q["endTime"][0])
+    rows = [{"symbol": q["symbol"][0], "fundingTime": t, "fundingRate": rate}
+            for t in range(-(-start // AB_H8) * AB_H8, end + 1, AB_H8) if hole is None or not hole[0] <= t <= hole[1]]
+    return json.dumps(rows[:score.FUNDING_PAGE]).encode()
+
+
+class AbHost:
+    """The exchange and the state directory of one test: worlds maps a symbol to its bars, or to an
+    exception its read raises; run(n) reads the day whose forming bar is bar n of every world, each run a
+    second after the one before it."""
+
+    def __init__(self, tmp, worlds, funding=ab_funding):
+        self.tmp, self.worlds, self.funding = tmp, worlds, funding
+        self.state, self.outbox = os.path.join(tmp, "state"), os.path.join(tmp, "outbox")
+        os.makedirs(self.state)
+        os.makedirs(self.outbox)
+        self.sent, self.urls, self.runs = set(), [], 0
+
+    def get(self, url):
+        self.urls.append(url)
+        if "fundingRate" in url:
+            return self.funding(url)
+        symbol = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["symbol"][0]
+        world = self.worlds[symbol]
+        if isinstance(world, Exception):
+            raise world
+        bars = world[:self.n + self.shift.get(symbol, 0)]
+        return ab_klines(bars, world[len(bars)][1] if len(bars) < len(world) else bars[-1][4])
+
+    def run(self, n, shift=None):
+        """(exit code, printed line, the alerts written by this run, the ledger's text, the record or None)."""
+        self.n, self.shift, self.runs = n, shift or {}, self.runs + 1
+        saved = book._get, score.list_symbols, common.OUTBOX_DIR
+        book._get, score.list_symbols, common.OUTBOX_DIR = self.get, lambda: list(self.worlds), self.outbox
+        try:
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                code = score.main(["--state", self.state], now_ms=n * book.DAY_MS + self.runs * 1000)
+        finally:
+            book._get, score.list_symbols, common.OUTBOX_DIR = saved
+        texts = []
+        for name in sorted(set(os.listdir(self.outbox)) - self.sent):
+            self.sent.add(name)
+            with open(os.path.join(self.outbox, name), encoding="utf-8") as fh:
+                doc = json.load(fh)
+            texts.append((doc["kind"], doc["text"]))
+        return code, out.getvalue(), texts, self.ledger(), self.record()
+
+    def ledger(self):
+        """The ledger's files joined in name order, a trade a line; None while there is none."""
+        folder = os.path.join(self.state, score.LEDGER)
+        try:
+            names = sorted(os.listdir(folder))
+        except FileNotFoundError:
+            return None
+        parts = []
+        for name in names:
+            with open(os.path.join(folder, name), encoding="utf-8") as fh:
+                parts.append(fh.read())
+        return "".join(parts) or None
+
+    def stamps(self):
+        """Each ledger file's name, inode, modification time and mode."""
+        folder = os.path.join(self.state, score.LEDGER)
+        return sorted((name, st.st_ino, st.st_mtime_ns, st.st_mode & 0o7777)
+                      for name, st in ((name, os.stat(os.path.join(folder, name))) for name in os.listdir(folder)))
+
+    def record(self):
+        try:
+            with open(os.path.join(self.state, score.RECORD), encoding="utf-8") as fh:
+                return json.load(fh)
+        except FileNotFoundError:
+            return None
+
+
+def ab_field(printed, name):
+    found = re.search(r"\b%s=(\S+)" % name, printed)
+    return found.group(1) if found else None
+
+
+def section_ab(s):
+    eps = 1e-9
+    long_world, short_world = x_world_long(), x_world_short()
+    s.check("GO_LIVE is 2026-10-21 and MAJORS are BTC, ETH, SOL, BNB, XRP",
+            score.GO_LIVE == "2026-10-21"
+            and score.MAJORS == ("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"))
+    s.check("the list is BTCUSDT and then tokens[], as the payload carries it",
+            score.list_symbols() == writer.payload_symbols(REPO) and score.list_symbols()[0] == "BTCUSDT"
+            and len(score.list_symbols()) == len(checkout_tokens()) + 1)
+    s.check("a price prints to six significant figures, no exponent, no float tail",
+            [score.px(v) for v in (79400.75, 0.20335000000000003, 1699.0, 0.0050827, 1.3593000000000002, 100000.0)]
+            == ["79400.8", "0.20335", "1699", "0.0050827", "1.3593", "100000"])
+    s.check("a negative number prints the typographic minus", score.signed(-1.034, 2) == "\u22121.03"
+            and score.signed(8.94, 1) == "+8.9")
+    # book.live_state is the object --live prints.
+    saved_get = book._get
+    try:
+        book._get = lambda url: ab_klines(long_world[:61], 105.0)
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            book.main(["--live", "DUEUSDT"])
+        state, trades, pos = book.live_state("DUEUSDT", 61 * book.DAY_MS + 5)
+        s.check("live_state's state is the line --live prints",
+                json.loads(out.getvalue()) == json.loads(json.dumps(state, sort_keys=True))
+                and state.get("entry_due") is True and trades == [] and pos is not None and pos["entry"] == 105.0)
+        book._get = lambda url: ab_klines(long_world[:40], 100.0)
+        s.check("a history of ENTRY_N days or fewer is short-history",
+                book.live_state("NEWUSDT", 40 * book.DAY_MS + 5)[0] == {"symbol": "NEWUSDT", "state": "short-history"})
+    finally:
+        book._get = saved_get
+    saved_live, saved_page = score.GO_LIVE, score.FUNDING_PAGE
+    score.GO_LIVE = "1970-01-01"
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-ab.")
+    try:
+        # One long trade from its signal to its row: the baseline, a quiet day, the exit, the close.
+        h = AbHost(os.path.join(tmp, "a"), {"AAAUSDT": long_world, "BADUSDT": OSError("refused")})
+        code, printed, alerts, ledger, record = h.run(61)
+        s.check("baseline: exit 0, one line of the fixed shape",
+                code == 0 and printed.count("\n") == 1 and AB_LINE.fullmatch(printed.rstrip("\n")) is not None)
+        s.check("baseline: the line reads symbols=2 read=1 unread=1 open=1 opened=1 ledger=0 alert=yes",
+                [ab_field(printed, f) for f in ("asof", "symbols", "read", "unread", "open", "opened", "closing",
+                                                "closed", "pending", "late", "disagree", "ledger", "alert")]
+                == ["1970-03-02", "2", "1", "1", "1", "1", "0", "0", "0", "0", "0", "0", "yes"])
+        text = alerts[0][1] if alerts else ""
+        s.check("baseline: one alert, of kind alert", len(alerts) == 1 and alerts[0][0] == "alert")
+        s.check("baseline: its head names the day the book stands on",
+                text.split("\n")[0] == score.T_HEAD_BASE.format(d="02.03"))
+        s.check("baseline: the entry due today prints its fill and its stop, 105 - 2 x 2.2, as code spans",
+                score.T_OPEN.format(dot=score.DOT[1], side=score.SIDE[1], sym="AAA", entry="105", stop="100.6",
+                                    dist="\u22124.2") in text.split("\n"))
+        s.check("baseline: no closed trade yet, one open, the held line and the foot",
+                score.T_SCORE_NONE.format(since="01.01.1970") in text and score.T_OPEN_NOW.format(n=1, nl=1, ns=0, r="+0.00") in text
+                and score.T_HELD.format(rows=score.DOT[1] + " AAA") in text and text.split("\n")[-1] == score.T_FOOT)
+        s.check("baseline: the legend of R is printed once, and on no later alert",
+                text.split("\n").count(score.T_LEGEND) == 1)
+        s.check("baseline: no ledger file is written while no trade has closed", ledger is None)
+        s.check("record keys v k ts asof since symbols unread open closed pending late disagree, in order",
+                record is not None and list(record) == ["v", "k", "ts", "asof", "since", "symbols", "unread", "open",
+                                                        "closed", "pending", "late", "disagree"])
+        s.check("record v 1, k score, asof the last closed day, the unread symbol named",
+                record is not None and (record["v"], record["k"], record["asof"], record["unread"])
+                == (1, "score", "1970-03-02", ["BADUSDT"]))
+        held = ((record or {}).get("open") or [{}])[0]
+        s.check("record's open position: the entry due, its stop, no open R",
+                record is not None and len(record["open"]) == 1 and abs(held.get("stop", 0) - 100.6) < eps
+                and {key: value for key, value in held.items() if key != "stop"}
+                == {"symbol": "AAAUSDT", "state": "long", "entry_date": "1970-03-03", "entry": 105.0,
+                    "exit_level": 99.0, "r_open": None, "entry_due": True, "exit_due": False})
+        s.check("record's closed totals are three empty summaries",
+                record is not None and record["closed"] == {"all": {"n": 0}, "majors": {"n": 0}, "others": {"n": 0}})
+        s.check("the record's mode is 0640",
+                os.stat(os.path.join(h.state, score.RECORD)).st_mode & 0o7777 == 0o640)
+        code, printed, alerts, ledger, record = h.run(62)
+        s.check("a day with no entry and no exit: no alert, the record moves to that day",
+                code == 0 and alerts == [] and ab_field(printed, "alert") == "no" and record["asof"] == "1970-03-03"
+                and ab_field(printed, "opened") == "0")
+        code, printed, alerts, ledger, record = h.run(62)
+        s.check("the same day read twice: no alert and nothing told again", code == 0 and alerts == [])
+        code, printed, alerts, ledger, record = h.run(101)
+        text = alerts[0][1] if alerts else ""
+        s.check("a close below the 20-day low: the exit due today is told once, with no row yet",
+                len(alerts) == 1 and text.split("\n")[1] == score.T_CLOSING.format(sym="AAA", side=score.SIDE[1])
+                and ledger is None and ab_field(printed, "closing") == "1")
+        code, printed, alerts, ledger, record = h.run(101)
+        s.check("the exit due is not told twice on its day", alerts == [])
+        code, printed, alerts, ledger, record = h.run(102)
+        rows = [json.loads(line) for line in (ledger or "").split("\n") if line]
+        want = (122.0 / 105.0 - 1 - 120 * 0.0001 - 2 * book.COST_SIDE) / (4.4 / 105.0)
+        s.check("the closed trade is one ledger file, AAAUSDT-<its entry stamp>.json, with the ten keys in order",
+                len(rows) == 1 and list(rows[0]) == list(score.LEDGER_KEYS)
+                and [x[0] for x in h.stamps()] == ["AAAUSDT-%d.json" % (61 * book.DAY_MS)])
+        row = rows[0] if rows else {}
+        s.check("its row: the symbol, the side, the entry and exit days and prices, the cause",
+                (row.get("symbol"), row.get("side"), row.get("t_entry"), row.get("entry"), row.get("t_exit"),
+                 row.get("exit"), row.get("why")) == ("AAAUSDT", 1, 61 * book.DAY_MS, 105.0, 101 * book.DAY_MS, 122.0,
+                                                      "channel"))
+        s.check("its R is book.result_r on the 120 prints after the entry and up to the exit",
+                abs(row.get("r", 0) - want) < eps)
+        text = alerts[0][1] if alerts else ""
+        s.check("an alert after the baseline carries no legend and no list of coins",
+                score.T_LEGEND not in text and not [x for x in text.split("\n") if x.startswith(score.T_HELD.split("{")[0])])
+        s.check("the close is told with its R, and the record of the rule follows it",
+                len(alerts) == 1 and text.split("\n")[1] == score.T_CLOSED.format(
+                    sym="AAA", side=score.SIDE[1], why=score.WHY["channel"], r=score.signed(want, 2))
+                and score.T_SCORE.format(since="01.01.1970", n=1, total=score.signed(want, 2), wins=1) in text
+                and score.T_GROUPS.format(n1=0, r1="+0.00", n2=1, r2=score.signed(want, 2)) in text)
+        s.check("the record totals it: one trade, a null profit factor where nothing lost",
+                record["closed"]["all"]["n"] == 1 and record["closed"]["all"]["pf"] is None
+                and abs(record["closed"]["all"]["total"] - want) < eps and record["closed"]["majors"] == {"n": 0}
+                and record["closed"]["others"]["n"] == 1 and record["open"] == [])
+        s.check("the trade's file has mode 0640", [x[3] for x in h.stamps()] == [0o640])
+        funding_calls, written = len([u for u in h.urls if "fundingRate" in u]), h.stamps()
+        code, printed, alerts, again, record = h.run(103)
+        s.check("a written trade is neither written, told nor asked about again",
+                again == ledger and alerts == [] and len([u for u in h.urls if "fundingRate" in u]) == funding_calls)
+        # A later replay that reads the trade differently changes no byte of its line.
+        moved = list(long_world)
+        moved[101] = (101 * book.DAY_MS, 130.0, 131.0, 129.0, 130.0)
+        h.worlds["AAAUSDT"] = moved
+        code, printed, alerts, again, record = h.run(104)
+        s.check("a replay that disagrees with a written trade: its file stands byte for byte, and is counted",
+                again == ledger and ab_field(printed, "disagree") == "1" and record["disagree"] == 1 and alerts == [])
+        s.check("a file that stands is never reopened: the same inode and the same modification time",
+                h.stamps() == written)
+
+        # The prints: a failure writes nothing and is asked again; a hole is a failure; pages add up.
+        def refused(url):
+            raise OSError("refused")
+        h = AbHost(os.path.join(tmp, "b"), {"AAAUSDT": long_world}, funding=refused)
+        h.run(61)
+        code, printed, alerts, ledger, record = h.run(102)
+        s.check("prints that did not arrive: nothing written, the trade pending, nothing told",
+                code == 0 and ledger is None and ab_field(printed, "pending") == "1" and record["pending"] == 1
+                and alerts == [])
+        s.check("a trade it could not price is named on a line of its own, with the failure's class and no price",
+                printed.split("\n")[0] == "score: pending AAAUSDT OSError" and printed.count("\n") == 2
+                and AB_LINE.fullmatch(printed.split("\n")[1]) is not None)
+        h.funding = lambda url: ab_funding(url, hole=(70 * book.DAY_MS, 71 * book.DAY_MS))
+        code, printed, alerts, ledger, record = h.run(102)
+        s.check("prints with a day missing inside the span: nothing written, the trade pending",
+                ledger is None and ab_field(printed, "pending") == "1")
+        h.funding = lambda url: b'{"code":-1121,"msg":"Invalid symbol."}'
+        code, printed, alerts, ledger, record = h.run(102)
+        s.check("an answer that is not a list of prints: nothing written, the trade pending",
+                ledger is None and ab_field(printed, "pending") == "1")
+        score.FUNDING_PAGE = 50
+        h.funding = ab_funding
+        code, printed, alerts, ledger, record = h.run(102)
+        rows = [json.loads(line) for line in (ledger or "").split("\n") if line]
+        s.check("the prints read in three pages give the same R, and the late close is told once",
+                len(rows) == 1 and abs(rows[0]["r"] - want) < eps and len(alerts) == 1
+                and len([u for u in h.urls[-4:] if "fundingRate" in u]) == 3
+                and alerts[0][1].split("\n")[1].startswith(score.T_CLOSED.split("{sym}")[0]))
+        score.FUNDING_PAGE = saved_page
+
+        # A short stopped through a gap, the long its stop day opens, and a trade stopped on its entry day.
+        same_day = list(long_world)
+        same_day[61] = (61 * book.DAY_MS, 105.0, 107.0, 100.0, 101.0)
+        h = AbHost(os.path.join(tmp, "c"), {"BTCUSDT": short_world, "DAYUSDT": same_day})
+        h.run(61)
+        code, printed, alerts, ledger, record = h.run(63)
+        rows = {r["symbol"]: r for r in (json.loads(line) for line in (ledger or "").split("\n") if line)}
+        want_short = (-(103.0 / 95.0 - 1) + 3 * 0.0001 - 2 * book.COST_SIDE) / (4.4 / 95.0)
+        want_day = (100.6 / 105.0 - 1 - 2 * book.COST_SIDE) / (4.4 / 105.0)
+        s.check("the stopped short: its row closes at the open beyond the stop, the short receiving three prints",
+                rows.get("BTCUSDT", {}).get("why") == "stop" and rows["BTCUSDT"]["exit"] == 103.0
+                and rows["BTCUSDT"]["side"] == -1 and abs(rows["BTCUSDT"]["r"] - want_short) < eps)
+        s.check("a trade stopped on its entry day has no span: its R carries no funding, and no print is asked for",
+                abs(rows.get("DAYUSDT", {}).get("r", 0) - want_day) < eps
+                and not [u for u in h.urls if "fundingRate" in u and "DAYUSDT" in u])
+        text = alerts[0][1] if alerts else ""
+        s.check("one alert carries the long opened today and both closes, a line each",
+                len(alerts) == 1
+                and score.T_OPEN.format(dot=score.DOT[1], side=score.SIDE[1], sym="BTC", entry="103", stop="97.9",
+                                        dist="\u22125.0") in text.split("\n")
+                and score.T_CLOSED.format(sym="BTC", side=score.SIDE[-1], why=score.WHY["stop"],
+                                          r=score.signed(want_short, 2)) in text.split("\n")
+                and score.T_CLOSED.format(sym="DAY", side=score.SIDE[1], why=score.WHY["stop"],
+                                          r=score.signed(want_day, 2)) in text.split("\n"))
+        s.check("the five named symbols are totalled apart from the others",
+                record["closed"]["majors"]["n"] == 1 and record["closed"]["others"]["n"] == 1
+                and record["closed"]["all"]["n"] == 2
+                and score.T_GROUPS.format(n1=1, r1=score.signed(want_short, 2), n2=1, r2=score.signed(want_day, 2))
+                in text)
+        s.check("no number of the alert carries a float's tail or an exponent, and no symbol its USDT",
+                all(re.fullmatch(r"\d+(\.\d{1,8})?", span) for span in re.findall(r"`([^`]*)`", text))
+                and "USDT" not in text and "e-" not in text and bool(re.findall(r"`([^`]*)`", text)))
+
+        # Days the unit did not run, an older read, a stale symbol, an unreadable list and a broken ledger.
+        h = AbHost(os.path.join(tmp, "d"), {"AAAUSDT": long_world, "BBBUSDT": long_world})
+        h.run(60)
+        code, printed, alerts, ledger, record = h.run(63)
+        text = alerts[0][1] if alerts else ""
+        s.check("an entry made on a day with no run is told late, with its day",
+                len(alerts) == 1 and text.count(score.T_LATE.format(date="03.03")) == 2
+                and ab_field(printed, "opened") == "2" and text.split("\n")[0] == score.T_HEAD.format(d="04.03"))
+        before = (h.ledger(), h.record())
+        code, printed, alerts, ledger, record = h.run(61)
+        s.check("a read older than the record: exit 4, nothing written, nothing told",
+                code == 4 and alerts == [] and (h.ledger(), h.record()) == before)
+        code, printed, alerts, ledger, record = h.run(64, shift={"BBBUSDT": -1})
+        s.check("a symbol whose last closed day is not the others' is unread today",
+                code == 0 and record["unread"] == ["BBBUSDT"] and ab_field(printed, "unread") == "1"
+                and [o["symbol"] for o in record["open"]] == ["AAAUSDT"])
+        h = AbHost(os.path.join(tmp, "e"), {"BADUSDT": OSError("refused"), "WORSEUSDT": ValueError("no day")})
+        code, printed, alerts, ledger, record = h.run(61)
+        s.check("no symbol read: exit 4, nothing written, nothing told",
+                code == 4 and alerts == [] and ledger is None and record is None and os.listdir(h.state) == [])
+        h = AbHost(os.path.join(tmp, "f"), {"AAAUSDT": long_world})
+        os.makedirs(os.path.join(h.state, score.LEDGER))
+        with open(os.path.join(h.state, score.LEDGER, "AAAUSDT-1.json"), "w", encoding="utf-8") as fh:
+            fh.write('{"symbol": "AAAUSDT"}\n')
+        code, printed, alerts, ledger, record = h.run(102)
+        s.check("a ledger file that is not a trade: exit 5, the file left as it stood, nothing told",
+                code == 5 and alerts == [] and ledger == '{"symbol": "AAAUSDT"}\n' and record is None)
+        # A close found later than RETRY_DAYS is counted and never written; inside them it is written.
+        h = AbHost(os.path.join(tmp, "h"), {"AAAUSDT": long_world})
+        h.run(61)
+        h.run(102)
+        h.worlds["BBBUSDT"] = long_world
+        saved_retry, score.RETRY_DAYS = score.RETRY_DAYS, 1
+        try:
+            code, printed, alerts, ledger, record = h.run(104)
+        finally:
+            score.RETRY_DAYS = saved_retry
+        s.check("a close found more than RETRY_DAYS after its day: counted late, no file written, nothing told",
+                code == 0 and ab_field(printed, "late") == "1" and record["late"] == 1 and alerts == []
+                and (ledger or "").count("\n") == 1 and "BBBUSDT" not in (ledger or ""))
+        code, printed, alerts, ledger, record = h.run(104)
+        s.check("the same close inside RETRY_DAYS, which is 60: written and told",
+                score.RETRY_DAYS == 60 and ab_field(printed, "late") == "0" and (ledger or "").count("\n") == 2
+                and "BBBUSDT" in (ledger or "") and len(alerts) == 1)
+        # --outbox names where the alert goes; without it, the bot's outbox.
+        h = AbHost(os.path.join(tmp, "i"), {"AAAUSDT": long_world})
+        aside = os.path.join(tmp, "aside")
+        os.makedirs(aside)
+        saved_get, saved_list = book._get, score.list_symbols
+        book._get, score.list_symbols, h.n, h.shift = h.get, lambda: ["AAAUSDT"], 61, {}
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = score.main(["--state", h.state, "--outbox", aside], now_ms=61 * book.DAY_MS + 1000)
+        finally:
+            book._get, score.list_symbols = saved_get, saved_list
+        s.check("--outbox: the alert is written there and nowhere else",
+                code == 0 and len(os.listdir(aside)) == 1 and os.listdir(aside)[0].endswith("-alert-%d.json" % os.getpid())
+                and os.listdir(h.outbox) == [])
+        # GO_LIVE cuts the ledger by the entry's day.
+        score.GO_LIVE = "1970-03-04"
+        h = AbHost(os.path.join(tmp, "g"), {"AAAUSDT": long_world})
+        h.run(61)
+        code, printed, alerts, ledger, record = h.run(102)
+        s.check("a trade entered before GO_LIVE is no file of the ledger",
+                code == 0 and ledger is None and record["closed"]["all"] == {"n": 0} and record["since"] == "1970-03-04")
+    finally:
+        score.GO_LIVE, score.FUNDING_PAGE = saved_live, saved_page
+        shutil.rmtree(tmp, ignore_errors=True)
+    s.check("the default state is /var/lib/crypto-auto, the ledger score-ledger/ and the record score.json",
+            common.STATE_DIR == "/var/lib/crypto-auto" and (score.LEDGER, score.RECORD) == ("score-ledger", "score.json"))
+    # The units and the manifest.
+    service, timer = unit_lines("crypto-score.service"), unit_lines("crypto-score.timer")
+    s.check("service runs as User=cryptoauto, Group=cryptoauto",
+            service.count("User=cryptoauto") == 1 and service.count("Group=cryptoauto") == 1
+            and len([x for x in service if x.startswith(("User=", "Group="))]) == 2)
+    s.check("service reads no credential", not [x for x in service if x.startswith("LoadCredential")])
+    s.check("service is Type=oneshot and has no [Install] section",
+            [x for x in service if x.startswith("Type=")] == ["Type=oneshot"] and "[Install]" not in service)
+    s.check("service runs /usr/bin/python3 /srv/crypto-auto/vps/score.py",
+            [x for x in service if x.startswith("ExecStart")] == ["ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/score.py"])
+    s.check("service may write the spool and the state directory, and nothing else",
+            [x for x in service if x.startswith("ReadWritePaths")] == ["ReadWritePaths=/var/spool/crypto-auto /var/lib/crypto-auto"]
+            and "ProtectSystem=strict" in service)
+    s.check("timer fires at OnCalendar=*-*-* 00:10:00 UTC, Persistent=true",
+            [x for x in timer if x.startswith("OnCalendar")] == ["OnCalendar=*-*-* 00:10:00 UTC"]
+            and "Persistent=true" in timer)
+    s.check("timer's unit is crypto-score.service, WantedBy=timers.target",
+            [x for x in timer if x.startswith("Unit=")] == ["Unit=crypto-score.service"]
+            and "[Install]" in timer and "WantedBy=timers.target" in timer)
+    with open(os.path.join(HERE, "manifest"), encoding="utf-8") as fh:
+        listed = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+    s.check("the manifest lists crypto-score.timer once and not its service",
+            listed.count("crypto-score.timer") == 1 and "crypto-score.service" not in listed)
+    s.check("no unit of vps/units starts a model from a timer: crypto-score.service names no claude",
+            not [x for x in service if "claude" in x.lower()])
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
             ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x),
-            ("Y", section_y), ("Z", section_z), ("AA", section_aa))
+            ("Y", section_y), ("Z", section_z), ("AA", section_aa), ("AB", section_ab))
 
 
 def main():
