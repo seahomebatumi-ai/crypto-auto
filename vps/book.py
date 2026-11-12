@@ -139,6 +139,15 @@ def live_bars(symbol, now_ms):
     return bars, forming[0]
 
 
+def live_state(symbol, now_ms):
+    """One symbol's state today and the replay behind it: (state, trades, position). The state is the object
+    --live prints, and a history of ENTRY_N days or fewer carries none but short-history (TZ-79)."""
+    bars, open_now = live_bars(symbol, now_ms)
+    trades, pos = replay(bars, open_now)
+    out = dict(symbol=symbol, **levels(bars, pos)) if len(bars) > ENTRY_N else dict(symbol=symbol, state="short-history")
+    return out, trades, pos
+
+
 def _csv_rows(blob):
     with zipfile.ZipFile(io.BytesIO(blob)) as z:
         for name in z.namelist():
@@ -273,9 +282,7 @@ def main(argv=None):
         now_ms = int(time.time() * 1000)
         for s in a.symbols:
             try:
-                bars, open_now = live_bars(s, now_ms)
-                trades, pos = replay(bars, open_now)
-                out = dict(symbol=s, **levels(bars, pos)) if len(bars) > ENTRY_N else dict(symbol=s, state="short-history")
+                out = live_state(s, now_ms)[0]
             except Exception as exc:          # one symbol's failure never hides the others
                 out = dict(symbol=s, state="unread", error=exc.__class__.__name__)
             print(json.dumps(out, sort_keys=True), flush=True)
