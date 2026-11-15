@@ -8,3 +8,4 @@ crypto-stop.path
 crypto-paper.service
 crypto-etf.timer
 crypto-score.timer
+crypto-score-forming.timer

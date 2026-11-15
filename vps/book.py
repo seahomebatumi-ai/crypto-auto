@@ -16,6 +16,10 @@ The rules (Architect's decision, TZ-67, on the study of 20.10.2026):
   beyond the prior EXIT_N days' opposite extreme closes the trade at the next day's open, and the stop
   closes it intraday. No target and no time limit: the winners run.
 
+The plan the owner trades (TZ-80): the same entries, exits and stop, and in addition, where the price reaches
+SCALE_R times the initial risk from the entry, half the position closes there and the rest's stop moves to the
+entry. replay(..., scale=SCALE_R) makes the plan's trades and replay(...) the rule's, from one loop.
+
 Python 3.12's standard library only. Time is UTC everywhere.
 """
 import argparse
@@ -37,6 +41,9 @@ ATR_N = 20            # the average true range's window, in days
 STOP_ATR = 2.0        # the initial stop, in ATRs from the entry
 COST_SIDE = 0.001     # taker fee 0.05 % + slippage 0.05 %, a fraction of notional per side
 OOS_START = date(2025, 1, 1)
+# The plan's target, in R from the entry: the owner's request of 24.10.2026 and methodology 2026-10-24-c, measured
+# on the archive by the Architect on 24.10.2026 (map section 10, row "The book prints no target").
+SCALE_R = 2.0
 DAY_MS = 86_400_000
 HTTP_TIMEOUT_S = 20
 FAPI_KLINES = "https://fapi.binance.com/fapi/v1/klines?symbol=%s&interval=1d&limit=400"
@@ -54,23 +61,33 @@ def atr(bars, k):
     return total / ATR_N
 
 
-def replay(bars, open_now=None):
+def replay(bars, open_now=None, scale=None):
     """bars: closed daily bars (t_open_ms, open, high, low, close), oldest first, one per UTC day.
     Returns (trades, position): each closed trade as a dict, and the open position after the last bar
     or None. A signal at day k's close fills at day k+1's open; a stop fills at the stop, or at the open
     when the day opened beyond it; a channel exit at day k's close fills at day k+1's open. A signal at
     the last bar's close fills at open_now, the open of the day still forming, and its position carries
-    entry_due; without open_now (the archive) that signal has no fill yet and opens nothing (TZ-68)."""
+    entry_due; without open_now (the archive) that signal has no fill yet and opens nothing (TZ-68).
+    With scale (TZ-80), a position carries its target, the entry plus scale times the initial risk; a day
+    that reaches it, and does not reach the stop, closes half at that price -- or at the open where the day
+    opened beyond it -- and sets the rest's stop to the entry from the next day on; the position and its
+    trade then carry t_scale and scale_px, and "stop" stays the initial stop, the one the trade's R is
+    measured in. Without scale no position carries a target and nothing here moves."""
     trades, pos = [], None
     for k in range(len(bars)):
         t, o, h, l, c = bars[k]
         if pos is not None and k >= pos["k_entry"]:
-            side, stop = pos["side"], pos["stop"]
+            side, stop = pos["side"], pos.get("stop_now", pos["stop"])
             if (side > 0 and l <= stop) or (side < 0 and h >= stop):
                 px = o if (side > 0 and o < stop) or (side < 0 and o > stop) else stop
                 trades.append(dict(pos, k_exit=k, t_exit=t, exit=px, why="stop"))
                 pos = None
-            elif k >= EXIT_N:
+            elif "target" in pos and "t_scale" not in pos:
+                tgt = pos["target"]
+                if (side > 0 and h >= tgt) or (side < 0 and l <= tgt):
+                    pos.update(t_scale=t, k_scale=k, stop_now=pos["entry"],
+                               scale_px=o if (side > 0 and o > tgt) or (side < 0 and o < tgt) else tgt)
+            if pos is not None and k >= EXIT_N:
                 lo = min(b[3] for b in bars[k - EXIT_N:k]); hi = max(b[2] for b in bars[k - EXIT_N:k])
                 if (side > 0 and c < lo) or (side < 0 and c > hi):
                     if k + 1 < len(bars):
@@ -89,12 +106,16 @@ def replay(bars, open_now=None):
                 t_entry, entry = bars[k + 1][:2] if k + 1 < len(bars) else (t + DAY_MS, open_now)
                 pos = dict(side=side, k_signal=k, k_entry=k + 1, t_entry=t_entry, entry=entry, atr=a,
                            stop=entry - side * STOP_ATR * a, entry_due=k + 1 == len(bars))
+                if scale:
+                    pos["target"] = entry + side * scale * STOP_ATR * a
     return trades, pos
 
 
 def levels(bars, pos):
     """What the next close decides, from the last closed bar: the trigger and the stop a new trade would
-    take, or the open position's exit level. A position whose entry is due has no open R yet."""
+    take, or the open position's exit level. A position whose entry is due has no open R yet. A position
+    of the plan (TZ-80) also carries its target and, once half has closed there, the day it did and the
+    stop the rest now stands on."""
     k = len(bars) - 1
     t, o, h, l, c = bars[k]
     a = atr(bars, k)
@@ -109,6 +130,13 @@ def levels(bars, pos):
                                else max(b[2] for b in bars[k - EXIT_N + 1:k + 1])),
                    r_open=None if pos.get("entry_due") else side * (c - pos["entry"]) / abs(pos["entry"] - pos["stop"]),
                    entry_due=bool(pos.get("entry_due")), exit_due=bool(pos.get("exit_due")))
+        if "target" in pos:
+            out.update(target=pos["target"])
+        if "stop_now" in pos:
+            risk = abs(pos["entry"] - pos["stop"])
+            out.update(stop_now=pos["stop_now"], scale_px=pos["scale_px"],
+                       scale_date=datetime.fromtimestamp(pos["t_scale"] / 1000, timezone.utc).strftime("%Y-%m-%d"),
+                       r_open=0.5 * side * (pos["scale_px"] - pos["entry"]) / risk + 0.5 * side * (c - pos["entry"]) / risk)
     elif k >= ENTRY_N - 1 and a:
         hi = max(b[2] for b in bars[k - ENTRY_N + 1:k + 1]); lo = min(b[3] for b in bars[k - ENTRY_N + 1:k + 1])
         out.update(long_trigger=hi, short_trigger=lo, long_stop=hi - STOP_ATR * a, short_stop=lo + STOP_ATR * a)
@@ -116,11 +144,19 @@ def levels(bars, pos):
 
 
 def result_r(tr, funding):
-    """A closed trade in R after fees, slippage and funding. funding: sorted list of (t_ms, rate)."""
+    """A closed trade in R after fees, slippage and funding. funding: sorted list of (t_ms, rate). A trade
+    that closed half at its target (TZ-80) gains half its move to the target and half its move to the exit,
+    pays the whole position's funding up to the day of the target and half of it after, and the same
+    costs, since it trades the same notional."""
     side, e, x = tr["side"], tr["entry"], tr["exit"]
     dist = abs(e - tr["stop"]) / e
-    paid = side * sum(r for t, r in funding if tr["t_entry"] < t <= tr["t_exit"])
-    return (side * (x / e - 1) - paid - 2 * COST_SIDE) / dist
+    if "t_scale" not in tr:
+        paid = side * sum(r for t, r in funding if tr["t_entry"] < t <= tr["t_exit"])
+        return (side * (x / e - 1) - paid - 2 * COST_SIDE) / dist
+    paid = side * (sum(r for t, r in funding if tr["t_entry"] < t <= tr["t_scale"])
+                   + 0.5 * sum(r for t, r in funding if tr["t_scale"] < t <= tr["t_exit"]))
+    gain = 0.5 * side * (tr["scale_px"] / e - 1) + 0.5 * side * (x / e - 1)
+    return (gain - paid - 2 * COST_SIDE) / dist
 
 
 def _get(url):
@@ -128,24 +164,37 @@ def _get(url):
         return r.read()
 
 
-def live_bars(symbol, now_ms):
-    """The closed daily bars, oldest first, and the open of the day still forming: the fill of a signal at
-    the last close. A read without that day is refused rather than replayed without it (TZ-68)."""
+def live_day(symbol, now_ms):
+    """The closed daily bars, oldest first, and the day still forming as a bar of its own, its close the last
+    price (TZ-80). A read without that day is refused rather than replayed without it (TZ-68)."""
     rows = json.loads(_get(FAPI_KLINES % symbol))
     bars = [(int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in rows if int(r[6]) < now_ms]
-    forming = [float(r[1]) for r in rows if int(r[6]) >= now_ms]
+    forming = [(int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in rows if int(r[6]) >= now_ms]
     if not forming:
         raise ValueError("the read holds no day still forming")
     return bars, forming[0]
 
 
-def live_state(symbol, now_ms):
-    """One symbol's state today and the replay behind it: (state, trades, position). The state is the object
-    --live prints, and a history of ENTRY_N days or fewer carries none but short-history (TZ-79)."""
-    bars, open_now = live_bars(symbol, now_ms)
-    trades, pos = replay(bars, open_now)
+def live_bars(symbol, now_ms):
+    """The closed daily bars, oldest first, and the open of the day still forming: the fill of a signal at
+    the last close (TZ-68)."""
+    bars, today = live_day(symbol, now_ms)
+    return bars, today[1]
+
+
+def state_of(symbol, bars, open_now, scale=None):
+    """One symbol's state on these bars and the replay behind it: (state, trades, position). A history of
+    ENTRY_N days or fewer carries none but short-history (TZ-79); scale makes the plan's (TZ-80)."""
+    trades, pos = replay(bars, open_now, scale)
     out = dict(symbol=symbol, **levels(bars, pos)) if len(bars) > ENTRY_N else dict(symbol=symbol, state="short-history")
     return out, trades, pos
+
+
+def live_state(symbol, now_ms, scale=None):
+    """One symbol's state today and the replay behind it: (state, trades, position). The state is the object
+    --live prints (TZ-79), the plan's with scale (TZ-80)."""
+    bars, open_now = live_bars(symbol, now_ms)
+    return state_of(symbol, bars, open_now, scale)
 
 
 def _csv_rows(blob):
@@ -246,14 +295,14 @@ def archive_paths(symbol, start, end):
     return paths
 
 
-def archive(symbols, start, end, cache, workers=8):
+def archive(symbols, start, end, cache, workers=8, scale=None):
     with concurrent.futures.ThreadPoolExecutor(workers) as ex:
         list(ex.map(lambda path: _archive_blob(path, cache),
                     [path for s in symbols for path in archive_paths(s, start, end)]))
     rows = []
     for s in symbols:
         bars, funding = archive_series(s, start, end, cache)
-        trades, _ = replay(bars)
+        trades, _ = replay(bars, scale=scale)
         for tr in trades:
             rows.append((tr["t_exit"], s, tr["side"], tr["t_entry"], result_r(tr, funding), tr["why"]))
     rows.sort()
@@ -274,6 +323,7 @@ def main(argv=None):
     ap.add_argument("--from", dest="start", default="2023-01-01")
     ap.add_argument("--to", dest="end", default=None)
     ap.add_argument("--cache", default=os.path.join(os.path.expanduser("~"), ".cache", "crypto-book"))
+    ap.add_argument("--scale", type=float, default=None, help="the plan: half closes at this many R (TZ-80)")
     ap.add_argument("symbols", nargs="+")
     a = ap.parse_args(argv)
     if a.live == a.archive:
@@ -282,14 +332,14 @@ def main(argv=None):
         now_ms = int(time.time() * 1000)
         for s in a.symbols:
             try:
-                out = live_state(s, now_ms)[0]
+                out = live_state(s, now_ms, a.scale)[0]
             except Exception as exc:          # one symbol's failure never hides the others
                 out = dict(symbol=s, state="unread", error=exc.__class__.__name__)
             print(json.dumps(out, sort_keys=True), flush=True)
         return 0
     os.makedirs(a.cache, exist_ok=True)
     end = date.fromisoformat(a.end) if a.end else (datetime.now(timezone.utc).date() - timedelta(days=2))
-    rows, out = archive(a.symbols, date.fromisoformat(a.start), end, a.cache)
+    rows, out = archive(a.symbols, date.fromisoformat(a.start), end, a.cache, scale=a.scale)
     for name, s in out.items():
         if not s["n"]:
             print("%-14s no trades" % name); continue

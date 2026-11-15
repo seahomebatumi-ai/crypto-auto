@@ -1178,19 +1178,39 @@ def exit_text(prices, entry, side):
     return text + (P_MORE.format(n=len(prices) - 1) if len(prices) > 1 else "")
 
 
+def ceilings(own):
+    """TZ-80: how many trades at the owner's medium risk his side ceiling and his book ceiling each hold -- the
+    copy line's and the book alert's alike (inv. 38)."""
+    return int(round(own["side_max_pct"] / own["risk_pct"], 9)), int(round(own["book_max_pct"] / own["risk_pct"], 9))
+
+
+def copy_lev(dist):
+    """TZ-80: the leverage a trade's margin is stated at -- COPY_LEV, or the highest below it at which a stop
+    dist of the entry away still stands inside the liquidation distance of one leverage more: an isolated
+    position must reach its stop before its liquidation."""
+    return max(1, min(COPY_LEV, int(1 / dist) - 1))
+
+
+def copy_size(own, dist):
+    """TZ-80: (notional, margin, leverage, risk) of one trade at the owner's medium risk whose stop stands dist
+    of the entry away -- the copy line's and the book alert's alike (inv. 38)."""
+    risk = risk_usdt(own["capital_usdt"], own["risk_pct"] / 100)
+    lev = copy_lev(dist)
+    return risk / dist, risk / dist / lev, lev, risk
+
+
 def copy_text(own, dist, side, sides):
     """TZ-78: the copy line -- sized as the test sizes, the owner's capital at his medium risk to the copy's stop; or
     a skip, where the open signals on its side or in all, this one counted, would pass his side or book ceiling,
     each holding as many copies as its ceiling holds his medium risk."""
     name, n_side, n_all = side_word(side), list(sides).count(side), len(sides)
-    cap_side = int(round(own["side_max_pct"] / own["risk_pct"], 9))
-    cap_all = int(round(own["book_max_pct"] / own["risk_pct"], 9))
+    cap_side, cap_all = ceilings(own)
     if n_side > cap_side:
         return P_SKIP_SIDE.format(side=name, n=n_side - 1, cap=cap_side, pct="%g" % own["side_max_pct"])
     if n_all > cap_all:
         return P_SKIP_BOOK.format(n=n_all - 1, cap=cap_all, pct="%g" % own["book_max_pct"])
-    risk = risk_usdt(own["capital_usdt"], own["risk_pct"] / 100)
-    return P_COPY.format(size="%d" % round(risk / dist), margin="%d" % round(risk / dist / COPY_LEV), lev=COPY_LEV,
+    size, margin, lev, risk = copy_size(own, dist)
+    return P_COPY.format(size="%d" % round(size), margin="%d" % round(margin), lev=lev,
                          risk=grouped(risk), pct="%g" % own["risk_pct"], capital=grouped(own["capital_usdt"]),
                          side=name, n=n_side, cap=cap_side)
 
