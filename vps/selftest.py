@@ -3145,15 +3145,22 @@ def section_w_orders(s):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-# --- AB: the book's signal and its forward ledger (TZ-79), the plan's (TZ-80) -----------------------------
-AB_LINE = re.compile(r"score: asof=\d{4}-\d\d-\d\d symbols=\d+ read=\d+ unread=\d+ open=\d+ opened=\d+ scaled=\d+ "
-                     r"closing=\d+ closed=\d+ pending=\d+ late=\d+ disagree=\d+ ledger=\d+ rule=\d+ "
-                     r"look=(-|\d+/\d+/\d+) alert=(yes|no)")
+# --- AB: the book's signal and its forward ledger (TZ-79), the plan's (TZ-80), the book held (TZ-81) -------------
+AB_LINE = re.compile(r"score: asof=\d{4}-\d\d-\d\d symbols=\d+ read=\d+ unread=\d+ open=\d+ outside=\d+ opened=\d+ "
+                     r"skipped=\d+ scaled=\d+ closing=\d+ closed=\d+ pending=\d+ late=\d+ disagree=\d+ ledger=\d+ "
+                     r"plan=\d+ rule=\d+ look=(-|\d+/\d+/\d+) alert=(yes|no)")
 AB_LOOK = re.compile(r"score: forming day=\d{4}-\d\d-\d\d symbols=\d+ read=\d+ unread=\d+ stopped=\d+ scaled=\d+ "
                      r"entries=\d+ alert=(yes|no)")
 AB_LOOK_MS = 15 * 3600 * 1000 + 10 * 60 * 1000          # the look's hour: 15:10 UTC
 AB_OWN = {"capital_usdt": 30000.0, "risk_pct": 0.5, "side_max_pct": 3.0, "book_max_pct": 5.0}
+AB_TIGHT = {"capital_usdt": 30000.0, "risk_pct": 0.5, "side_max_pct": 0.5, "book_max_pct": 1.0}   # 1 a side, 2 in all
 AB_H8 = 8 * 3600 * 1000
+
+
+def ab_later(world, days):
+    """The same world `days` days later: as many flat days first, every bar after them re-timed."""
+    return ([(k * book.DAY_MS, 100.0, 101.0, 99.0, 100.0) for k in range(days)]
+            + [(b[0] + days * book.DAY_MS,) + tuple(b[1:]) for b in world])
 
 
 def ab_klines(bars, fill, part=None):
@@ -3235,7 +3242,7 @@ class AbHost:
 
     def ledger(self, which=None):
         """A ledger's files joined in name order, a trade a line; None while there is none. The rule's by default,
-        the plan's with which=score.PLAN."""
+        the plan's with which=score.PLAN, the book held's with which=score.HELD."""
         folder = os.path.join(self.state, which or score.LEDGER)
         try:
             names = sorted(os.listdir(folder))
@@ -3269,9 +3276,9 @@ def ab_field(printed, name):
 def section_ab(s):
     eps = 1e-9
     long_world, short_world = x_world_long(), x_world_short()
-    s.check("GO_LIVE is 2026-10-21 and MAJORS are BTC, ETH, SOL, BNB, XRP",
-            score.GO_LIVE == "2026-10-21"
-            and score.MAJORS == ("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"))
+    s.check("GO_LIVE is 2026-10-21 and MAJORS, the book's, are BTC, ETH, SOL, BNB, XRP",
+            score.GO_LIVE == "2026-10-21" and score.MAJORS is book.MAJORS
+            and book.MAJORS == ("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"))
     s.check("the list is BTCUSDT and then tokens[], as the payload carries it",
             score.list_symbols() == writer.payload_symbols(REPO) and score.list_symbols()[0] == "BTCUSDT"
             and len(score.list_symbols()) == len(checkout_tokens()) + 1)
@@ -3304,11 +3311,13 @@ def section_ab(s):
         code, printed, alerts, ledger, record = h.run(61)
         s.check("baseline: exit 0, one line of the fixed shape",
                 code == 0 and printed.count("\n") == 1 and AB_LINE.fullmatch(printed.rstrip("\n")) is not None)
-        s.check("baseline: the line reads symbols=2 read=1 unread=1 open=1 opened=1 ledger=0 rule=0 look=- alert=yes",
-                [ab_field(printed, f) for f in ("asof", "symbols", "read", "unread", "open", "opened", "scaled",
-                                                "closing", "closed", "pending", "late", "disagree", "ledger", "rule",
-                                                "look", "alert")]
-                == ["1970-03-02", "2", "1", "1", "1", "1", "0", "0", "0", "0", "0", "0", "0", "0", "-", "yes"])
+        s.check("baseline: the line reads symbols=2 read=1 unread=1 open=1 outside=0 opened=1 ledger=0 plan=0 rule=0 "
+                "look=- alert=yes",
+                [ab_field(printed, f) for f in ("asof", "symbols", "read", "unread", "open", "outside", "opened",
+                                                "skipped", "scaled", "closing", "closed", "pending", "late", "disagree",
+                                                "ledger", "plan", "rule", "look", "alert")]
+                == ["1970-03-02", "2", "1", "1", "1", "0", "1", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "-",
+                    "yes"])
         text = alerts[0][1] if alerts else ""
         s.check("baseline: one alert, of kind alert", len(alerts) == 1 and alerts[0][0] == "alert")
         s.check("baseline: its head names the day the book stands on",
@@ -3330,14 +3339,18 @@ def section_ab(s):
         s.check("baseline: the legend of R is printed once, and on no later alert",
                 text.split("\n").count(score.T_LEGEND) == 1)
         s.check("baseline: no ledger file is written while no trade has closed",
-                ledger is None and h.ledger(score.PLAN) is None)
-        s.check("record keys v k ts asof since symbols unread open closed pending late disagree look rule, in order",
-                record is not None and list(record) == ["v", "k", "ts", "asof", "since", "symbols", "unread", "open",
-                                                        "closed", "pending", "late", "disagree", "look", "rule"])
+                ledger is None and h.ledger(score.PLAN) is None and h.ledger(score.HELD) is None)
+        s.check("record keys v k ts asof since symbols unread ceilings held open outside closed pending late disagree "
+                "look plan rule, in order",
+                record is not None and list(record) == ["v", "k", "ts", "asof", "since", "symbols", "unread", "ceilings",
+                                                        "held", "open", "outside", "closed", "pending", "late",
+                                                        "disagree", "look", "plan", "rule"])
         s.check("a day nobody looked at carries no look's count", record is not None and record["look"] is None)
-        s.check("record v 2, k score, asof the last closed day, the unread symbol named",
-                record is not None and (record["v"], record["k"], record["asof"], record["unread"])
-                == (2, "score", "1970-03-02", ["BADUSDT"]))
+        s.check("record v 3, k score, asof the last closed day, the unread symbol named, the ceilings 6 and 10, the "
+                "book's one span: the long due at the open, standing",
+                record is not None and (record["v"], record["k"], record["asof"], record["unread"], record["ceilings"])
+                == (3, "score", "1970-03-02", ["BADUSDT"], [6, 10])
+                and record["held"] == [["AAAUSDT", 1, 61 * book.DAY_MS, None]])
         held = ((record or {}).get("open") or [{}])[0]
         s.check("record's open position: the entry due, its stop and target, no open R, no target reached",
                 record is not None and len(record["open"]) == 1 and abs(held.get("stop", 0) - 100.6) < eps
@@ -3346,10 +3359,11 @@ def section_ab(s):
                 == {"symbol": "AAAUSDT", "state": "long", "entry_date": "1970-03-03", "entry": 105.0,
                     "exit_level": 99.0, "r_open": None, "entry_due": True, "exit_due": False, "scale_date": None,
                     "stop_now": None})
-        s.check("record's closed totals, the plan's and the rule's, are empty summaries",
+        s.check("record's closed totals, the book held's, the plan's and the rule's, are empty summaries; nothing outside",
                 record is not None and record["closed"] == {"all": {"n": 0}, "majors": {"n": 0}, "others": {"n": 0}}
                 and record["rule"] == {"open": 1, "closed": {"all": {"n": 0}, "majors": {"n": 0}, "others": {"n": 0}},
-                                       "pending": 0, "late": 0, "disagree": 0})
+                                       "pending": 0, "late": 0, "disagree": 0}
+                and record["plan"] == record["rule"] and record["outside"] == [])
         s.check("the record's mode is 0640",
                 os.stat(os.path.join(h.state, score.RECORD)).st_mode & 0o7777 == 0o640)
         code, printed, alerts, ledger, record = h.run(62)
@@ -3389,6 +3403,9 @@ def section_ab(s):
                 and (plan_rows[0]["exit"], plan_rows[0]["why"]) == (122.0, "channel"))
         s.check("the plan's R: half the move to the target and half to the exit, the whole funding to the target's day "
                 "and half after it", bool(plan_rows) and abs(plan_rows[0]["r"] - want_plan) < eps)
+        s.check("the book held's ledger holds the trade it held, byte for byte the plan's file of it",
+                h.ledger(score.HELD) == h.ledger(score.PLAN) and [x[0] for x in h.stamps(score.HELD)]
+                == ["AAAUSDT-%d.json" % (61 * book.DAY_MS)] and [x[3] for x in h.stamps(score.HELD)] == [0o640])
         s.check("the closed trade is one ledger file, AAAUSDT-<its entry stamp>.json, with the ten keys in order",
                 len(rows) == 1 and list(rows[0]) == list(score.LEDGER_KEYS)
                 and [x[0] for x in h.stamps()] == ["AAAUSDT-%d.json" % (61 * book.DAY_MS)])
@@ -3408,10 +3425,12 @@ def section_ab(s):
                     sym="AAA", side=score.SIDE[1], why=score.WHY["channel"], r=score.signed(want_plan, 2))
                 and score.T_SCORE.format(since="01.01.1970", n=1, total=score.signed(want_plan, 2), wins=1) in text
                 and score.T_GROUPS.format(n1=0, r1="+0.00", n2=1, r2=score.signed(want_plan, 2)) in text)
-        s.check("the record totals the plan and the rule apart: one trade each, a null profit factor where nothing lost",
+        s.check("the record totals the book held, the plan and the rule apart: one trade each, a null profit factor "
+                "where nothing lost",
                 record["closed"]["all"]["n"] == 1 and record["closed"]["all"]["pf"] is None
                 and abs(record["closed"]["all"]["total"] - want_plan) < eps and record["closed"]["majors"] == {"n": 0}
                 and record["closed"]["others"]["n"] == 1 and record["open"] == []
+                and record["plan"]["closed"] == record["closed"] and record["plan"]["open"] == 0
                 and abs(record["rule"]["closed"]["all"]["total"] - want) < eps and record["rule"]["open"] == 0)
         s.check("the trade's file has mode 0640", [x[3] for x in h.stamps()] == [0o640])
         funding_calls, written = len([u for u in h.urls if "fundingRate" in u]), h.stamps()
@@ -3438,10 +3457,11 @@ def section_ab(s):
                 code == 0 and ledger is None and ab_field(printed, "pending") == "1" and record["pending"] == 1
                 and alerts == [])
         s.check("a trade it could not price is named on a line of its own per ledger, with the failure's class and no price",
-                printed.split("\n")[:2] == ["score: pending score-ledger AAAUSDT OSError",
-                                            "score: pending score-plan AAAUSDT OSError"]
-                and printed.count("\n") == 3 and AB_LINE.fullmatch(printed.split("\n")[2]) is not None
-                and record["rule"]["pending"] == 1)
+                printed.split("\n")[:3] == ["score: pending score-ledger AAAUSDT OSError",
+                                            "score: pending score-plan AAAUSDT OSError",
+                                            "score: pending score-held AAAUSDT OSError"]
+                and printed.count("\n") == 4 and AB_LINE.fullmatch(printed.split("\n")[3]) is not None
+                and record["rule"]["pending"] == 1 and record["plan"]["pending"] == 1)
         h.funding = lambda url: ab_funding(url, hole=(70 * book.DAY_MS, 71 * book.DAY_MS))
         code, printed, alerts, ledger, record = h.run(102)
         s.check("prints with a day missing inside the span: nothing written, the trade pending",
@@ -3455,7 +3475,8 @@ def section_ab(s):
         asked = len(h.urls)
         code, printed, alerts, ledger, record = h.run(102)
         rows = [json.loads(line) for line in (ledger or "").split("\n") if line]
-        s.check("the prints read in three pages give the same R, and the late close is told once",
+        s.check("the prints read in three pages give the same R, the plan's trade priced once for both its ledgers, and "
+                "the late close is told once",
                 len(rows) == 1 and abs(rows[0]["r"] - want) < eps and len(alerts) == 1
                 and len([u for u in h.urls[asked:] if "fundingRate" in u]) == 6
                 and alerts[0][1].split("\n")[1].startswith(score.T_CLOSED.split("{sym}")[0]))
@@ -3532,13 +3553,16 @@ def section_ab(s):
             code, printed, alerts, ledger, record = h.run(104)
         finally:
             score.RETRY_DAYS = saved_retry
-        s.check("a close found more than RETRY_DAYS after its day: counted late, no file written, nothing told",
-                code == 0 and ab_field(printed, "late") == "1" and record["late"] == 1 and alerts == []
+        s.check("a close found more than RETRY_DAYS after its day: counted late by the plan's and the rule's ledgers, no "
+                "file written, nothing told",
+                code == 0 and record["plan"]["late"] == 1 and record["rule"]["late"] == 1 and alerts == []
                 and (ledger or "").count("\n") == 1 and "BBBUSDT" not in (ledger or ""))
         code, printed, alerts, ledger, record = h.run(104)
-        s.check("the same close inside RETRY_DAYS, which is 60: written and told",
-                score.RETRY_DAYS == 60 and ab_field(printed, "late") == "0" and (ledger or "").count("\n") == 2
-                and "BBBUSDT" in (ledger or "") and len(alerts) == 1)
+        s.check("the same close inside RETRY_DAYS, which is 60: written -- and, its entry never told, not the book's: "
+                "nothing told, no file of the book held",
+                score.RETRY_DAYS == 60 and record["plan"]["late"] == 0 and (ledger or "").count("\n") == 2
+                and "BBBUSDT" in (ledger or "") and "BBBUSDT" in (h.ledger(score.PLAN) or "")
+                and "BBBUSDT" not in (h.ledger(score.HELD) or "") and alerts == [])
         # --outbox names where the alert goes; without it, the bot's outbox.
         h = AbHost(os.path.join(tmp, "i"), {"AAAUSDT": long_world})
         aside = os.path.join(tmp, "aside")
@@ -3553,48 +3577,53 @@ def section_ab(s):
         s.check("--outbox: the alert is written there and nowhere else",
                 code == 0 and len(os.listdir(aside)) == 1 and os.listdir(aside)[0].endswith("-alert-%d.json" % os.getpid())
                 and os.listdir(h.outbox) == [])
-        # TZ-79's record (v 1) knew no plan: the next run is the plan's baseline and tells no close it fills.
+        # TZ-80's record (v 2) held no book: the next run is the book's baseline and tells no close it fills.
         h = AbHost(os.path.join(tmp, "k"), {"AAAUSDT": long_world, "BBBUSDT": long_world})
         with open(os.path.join(h.state, score.RECORD), "w", encoding="utf-8") as fh:
-            json.dump({"v": 1, "k": "score", "ts": "1970-03-04T00:10:00Z", "asof": "1970-03-03"}, fh)
+            json.dump({"v": 2, "k": "score", "ts": "1970-03-04T00:10:00Z", "asof": "1970-03-03"}, fh)
         h.worlds["BBBUSDT"] = long_world[:70] + [(k * book.DAY_MS, 100.0, 101.0, 99.0, 100.0) for k in range(70, 105)]
         code, printed, alerts, ledger, record = h.run(102)
         text = alerts[0][1] if alerts else ""
-        plan_files = [x[0] for x in h.stamps(score.PLAN)]
-        s.check("after TZ-79's record: one alert under the baseline's head, the plan's closes filled and none told",
+        held_files = [x[0] for x in h.stamps(score.HELD)]
+        s.check("after TZ-80's record: one alert under the baseline's head, the book's closes filled and none told",
                 code == 0 and len(alerts) == 1 and text.split("\n")[0] == score.T_HEAD_BASE.format(d="12.04")
-                and len(plan_files) == 2 and score.T_CLOSED.split("{sym}")[0] not in text and record["v"] == 2)
-        s.check("after TZ-79's record: the plan's record is in the score line, the legend once",
+                and len(held_files) == 2 and score.T_CLOSED.split("{sym}")[0] not in text and record["v"] == 3)
+        s.check("after TZ-80's record: the book's record is in the score line, the legend once",
                 score.T_SCORE.split("{n}")[0].format(since="01.01.1970") in text and text.split("\n").count(score.T_LEGEND) == 1)
         h = AbHost(os.path.join(tmp, "m"), {"AAAUSDT": long_world, "BTCUSDT": long_world})
         with open(os.path.join(h.state, score.RECORD), "w", encoding="utf-8") as fh:
-            json.dump({"v": 1, "k": "score", "ts": "1970-03-02T00:10:00Z", "asof": "1970-03-01"}, fh)
+            json.dump({"v": 2, "k": "score", "ts": "1970-03-02T00:10:00Z", "asof": "1970-03-01"}, fh)
         code, printed, alerts, ledger, record = h.run(70)
         text = alerts[0][1] if alerts else ""
-        s.check("after TZ-79's record: an entry since its day prints in full, with its target, the majors first",
+        s.check("after TZ-80's record: an entry since its day prints in full, with its target, the majors first",
                 text.split("\n")[1:3] == [score.T_ENTRY.format(dot=score.DOT[1], side=score.SIDE_HEAD[1], sym="BTC",
                                                                 entry="105", stop="100.6", dist="\u22124.2")
                                           + score.T_LATE.format(date="03.03"),
                                           score.T_PLAN.format(target="113.8", tdist="+8.4")
                                           + score.T_PLAN_SIZE.format(notional="3580", margin="1193", lev=3)])
         with open(os.path.join(h.state, score.RECORD), "w", encoding="utf-8") as fh:
-            json.dump({"v": 1, "k": "score", "ts": "1970-03-05T00:10:00Z", "asof": "1970-03-04"}, fh)
+            json.dump({"v": 2, "k": "score", "ts": "1970-03-05T00:10:00Z", "asof": "1970-03-04"}, fh)
         code, printed, alerts, ledger, record = h.run(70)
         text = alerts[0][1] if alerts else ""
-        s.check("after TZ-79's record: a position it had told prints on one line, its target reached and the rest's stop",
+        s.check("after TZ-80's record: a position it had told prints on one line, its target reached and the rest's stop",
                 score.T_HELD_DONE.format(dot=score.DOT[1], side=score.SIDE_HEAD[1], sym="BTC", stop="105")
                 in text.split("\n") and score.T_ENTRY.split("**")[0] not in "\n".join(text.split("\n")[1:2]))
-        # The owner's file unreadable: no size and no ceilings; majors first among the day's entries.
+        # The owner's file unreadable: no ceilings, so no book -- nothing read, written or told (TZ-81).
         h = AbHost(os.path.join(tmp, "j"), {"AAAUSDT": long_world, "ETHUSDT": long_world}, own=None)
+        code, printed, alerts, ledger, record = h.run(61)
+        s.check("the owner's file unreadable at the close: exit 6, one line, nothing read, written or told",
+                code == 6 and printed == "score: the owner's ceilings are unread, nothing written\n" and h.urls == []
+                and alerts == [] and os.listdir(h.state) == [])
+        code, printed, alerts, looked = h.look(61)
+        s.check("the owner's file unreadable at the look: exit 6, one line, nothing read, written or told",
+                code == 6 and printed == "score: forming day=1970-03-03 the owner's ceilings are unread, nothing written\n"
+                and h.urls == [] and alerts == [] and os.listdir(h.state) == [])
+        # Majors first among the day's entries.
+        h = AbHost(os.path.join(tmp, "j2"), {"AAAUSDT": long_world, "ETHUSDT": long_world})
         h.run(60)
         code, printed, alerts, ledger, record = h.run(62)
         text = alerts[0][1] if alerts else ""
         heads = [x for x in text.split("\n") if x.startswith(score.DOT[1] + " **")]
-        s.check("an entry without the owner's file: two lines, the target alone on the second, no size, no ceilings",
-                code == 0 and len(heads) == 2 and score.T_PLAN_SIZE.split("`")[0] not in text
-                and score.T_LIMIT.split("{")[0] not in text
-                and text.split("\n").count(score.T_PLAN.format(target="113.8", tdist="+8.4")) == 2
-                and text.split("\n")[-2:] == [score.T_HOW, score.T_WHEN])
         s.check("the day's entries print BTC ETH SOL BNB XRP first, then the others in the list's order",
                 [x.split("**")[1] for x in heads] == [score.SIDE_HEAD[1] + " ETH", score.SIDE_HEAD[1] + " AAA"])
         # The look at the day still forming (TZ-80): what the day has done, and what its close would do.
@@ -3630,9 +3659,9 @@ def section_ab(s):
                 looked is not None and list(looked) == ["v", "k", "ts", "day", "symbols", "unread", "stopped", "scaled",
                                                         "entries"]
                 and os.stat(os.path.join(h.state, score.FORMING, "1970-03-02.json")).st_mode & 0o7777 == 0o640)
-        s.check("the look's record: v 1, k score-forming, its day, the unread symbol, the entries it named with their sides",
+        s.check("the look's record: v 2, k score-forming, its day, the unread symbol, the entries it named with their sides",
                 looked is not None and (looked["v"], looked["k"], looked["day"], looked["symbols"], looked["unread"])
-                == (1, "score-forming", "1970-03-02", 3, ["BADUSDT"])
+                == (2, "score-forming", "1970-03-02", 3, ["BADUSDT"])
                 and looked["entries"] == [{"symbol": "BTCUSDT", "side": -1}, {"symbol": "AAAUSDT", "side": 1}]
                 and (looked["stopped"], looked["scaled"]) == ([], [])
                 and looked["ts"] == "1970-03-02T15:10:02Z")
@@ -3736,6 +3765,135 @@ def section_ab(s):
                     and book.live_bars("AAAUSDT", 61 * book.DAY_MS + AB_LOOK_MS) == (bars, 105.0))
         finally:
             book._get = saved_get
+        # A look TZ-80 wrote (v 1) named the plan's entries, not the book's: the close counts no look of it.
+        h = AbHost(os.path.join(tmp, "w"), {"AAAUSDT": long_world})
+        h.run(60)
+        os.makedirs(os.path.join(h.state, score.FORMING))
+        with open(os.path.join(h.state, score.FORMING, "1970-03-02.json"), "w", encoding="utf-8") as fh:
+            json.dump({"v": 1, "k": "score-forming", "day": "1970-03-02",
+                       "entries": [{"symbol": "AAAUSDT", "side": 1}]}, fh)
+        code, printed, alerts, ledger, record = h.run(61)
+        s.check("a look of TZ-80's record (v 1) is counted by no close", ab_field(printed, "look") == "-"
+                and record["look"] is None and ab_field(printed, "opened") == "1")
+        # The book held under the owner's ceilings (TZ-81): one a side and two in all.
+        dd = short_world + [(k * book.DAY_MS, 103.0, 104.0, 102.0, 103.0) for k in range(65, 105)]
+        h = AbHost(os.path.join(tmp, "q"), {"AAAUSDT": long_world, "BTCUSDT": long_world, "CCCUSDT": long_world,
+                                            "DDDUSDT": dd, "EEEUSDT": ab_later(long_world, 10),
+                                            "FFFUSDT": ab_later(long_world, 40)}, own=AB_TIGHT)
+        code, printed, alerts, ledger, record = h.run(61)
+        text = alerts[0][1] if alerts else ""
+        s.check("one a side and two in all: the baseline tells the major's long and the short in full, and names the "
+                "two longs left out on one line under them",
+                len(alerts) == 1
+                and [x.split("**")[1] for x in text.split("\n") if x.startswith((score.DOT[1], score.DOT[-1]))]
+                == [score.SIDE_HEAD[1] + " BTC", score.SIDE_HEAD[-1] + " DDD"]
+                and text.split("\n")[5] == score.T_OUT.format(items=score.SIDE[1] + " AAA, CCC")
+                and score.T_OPEN_NOW.format(n=2, nl=1, ns=1, r="+0.00") in text.split("\n")
+                and text.split("\n")[-2] == score.T_LIMIT.format(side_n=1, book_n=2, risk="150"))
+        s.check("its line: open=2 outside=2 opened=2 skipped=2; its record: the ceilings 1 and 2, the two held, the two "
+                "left out with their side and day, the plan's four open",
+                [ab_field(printed, f) for f in ("open", "outside", "opened", "skipped")] == ["2", "2", "2", "2"]
+                and record["ceilings"] == [1, 2] and [o["symbol"] for o in record["open"]] == ["BTCUSDT", "DDDUSDT"]
+                and record["outside"] == [{"symbol": "AAAUSDT", "state": "long", "entry_date": "1970-03-03"},
+                                          {"symbol": "CCCUSDT", "state": "long", "entry_date": "1970-03-03"}]
+                and record["plan"]["open"] == 4)
+        code, printed, alerts, ledger, record = h.run(63)
+        text = alerts[0][1] if alerts else ""
+        s.check("the short stopped inside its day is the book's trade, in its ledger as in the plan's; the long its stop "
+                "day opened finds the long side full: named left out with the ceilings, and no entry told",
+                h.ledger(score.HELD) == h.ledger(score.PLAN) is not None
+                and [x[0] for x in h.stamps(score.HELD)] == ["DDDUSDT-%d.json" % (61 * book.DAY_MS)]
+                and len(alerts) == 1 and text.split("\n")[1] == score.T_OUT.format(items=score.SIDE[1] + " DDD")
+                and text.split("\n")[-1] == score.T_LIMIT.format(side_n=1, book_n=2, risk="150")
+                and score.T_WHEN not in text and score.T_HOW not in text
+                and [ab_field(printed, f) for f in ("open", "outside", "opened", "skipped", "closed")]
+                == ["1", "3", "0", "1", "1"])
+        code, printed, alerts, ledger, record = h.run(69)
+        text = alerts[0][1] if alerts else ""
+        s.check("a target reached is told of the position held alone, not of the plan's two left out",
+                len(alerts) == 1
+                and text.split("\n")[1] == score.T_SCALED.format(sym="BTC", side=score.SIDE[1], px="113.8", stop="105")
+                and text.count(score.T_SCALED.split("{sym}")[0]) == 1 and ab_field(printed, "scaled") == "1")
+        code, printed, alerts, ledger, record = h.run(71)
+        text = alerts[0][1] if alerts else ""
+        s.check("a position past its target keeps its slot: the next long is left out",
+                ab_field(printed, "skipped") == "1" and len(alerts) == 1
+                and text.split("\n")[1] == score.T_OUT.format(items=score.SIDE[1] + " EEE")
+                and [o["symbol"] for o in record["open"]] == ["BTCUSDT"])
+        code, printed, alerts, ledger, record = h.run(101)
+        text = alerts[0][1] if alerts else ""
+        s.check("an exit at an open frees its slot for that open's entry: the long due is told beside the exit due",
+                (ab_field(printed, "opened"), ab_field(printed, "closing"), ab_field(printed, "skipped")) == ("1", "1", "0")
+                and score.T_ENTRY.format(dot=score.DOT[1], side=score.SIDE_HEAD[1], sym="FFF", entry="105", stop="100.6",
+                                         dist="\u22124.2") in text.split("\n")
+                and score.T_CLOSING.format(sym="BTC", side=score.SIDE[1]) in text.split("\n"))
+        code, printed, alerts, ledger, record = h.run(102)
+        text = alerts[0][1] if alerts else ""
+        s.check("the book held's ledger takes the trades it held, the plan's every entry: two files against four",
+                [x[0] for x in h.stamps(score.HELD)] == ["BTCUSDT-%d.json" % (61 * book.DAY_MS),
+                                                        "DDDUSDT-%d.json" % (61 * book.DAY_MS)]
+                and [x[0] for x in h.stamps(score.PLAN)] == ["%sUSDT-%d.json" % (c, 61 * book.DAY_MS)
+                                                             for c in ("AAA", "BTC", "CCC", "DDD")]
+                and record["closed"]["all"]["n"] == 2 and record["plan"]["closed"]["all"]["n"] == 4
+                and (ab_field(printed, "ledger"), ab_field(printed, "plan"), ab_field(printed, "closed")) == ("2", "4", "1"))
+        s.check("the close is told of the position held and of none left out, and the score is the book held's",
+                len(alerts) == 1 and text.count(score.T_CLOSED.split("{sym}")[0]) == 1 and text.split("\n")[1].startswith(
+                    score.T_CLOSED.split("{sym}")[0] + "BTC ")
+                and score.T_SCORE.split("{total}")[0].format(since="01.01.1970", n=2) in text)
+        h.own = AB_OWN
+        code, printed, alerts, ledger, record = h.run(103)
+        text = alerts[0][1] if alerts else ""
+        s.check("ceilings that change make the next run a baseline: the book re-read under them from GO_LIVE, the trades "
+                "they hold now written and none told",
+                text.split("\n")[0] == score.T_HEAD_BASE.format(d="13.04") and record["ceilings"] == [6, 10]
+                and [o["symbol"] for o in record["open"]] == ["DDDUSDT", "EEEUSDT", "FFFUSDT"] and record["outside"] == []
+                and (ab_field(printed, "ledger"), ab_field(printed, "closed")) == ("4", "0")
+                and score.T_CLOSED.split("{sym}")[0] not in text)
+        # Run every day, the close holds the book hold() holds over the same bars at once -- live and archive alike.
+        worlds = {"AAAUSDT": long_world, "BTCUSDT": long_world, "CCCUSDT": long_world, "DDDUSDT": dd,
+                  "EEEUSDT": ab_later(long_world, 10), "FFFUSDT": ab_later(long_world, 40)}
+        h = AbHost(os.path.join(tmp, "y"), worlds, own=AB_TIGHT)
+        for n in range(61, 105):
+            h.run(n)
+        whole = [sp for symbol, world in worlds.items()
+                 for sp in book.spans(symbol, *book.replay(world[:104], world[104][1], book.SCALE_R), 104 * book.DAY_MS)]
+        s.check("the close run every day holds the very spans hold() takes over all the days at once",
+                {(sp[0], sp[2]) for sp in h.record()["held"]} == book.hold(whole, book.rank(list(worlds)), 1, 2)
+                and len(h.record()["held"]) == 3)
+        # What a record decided stands: an entry left out stays out, a position held on an unread symbol keeps its slot.
+        h = AbHost(os.path.join(tmp, "x"), {"AAAUSDT": long_world, "BTCUSDT": long_world,
+                                            "EEEUSDT": ab_later(long_world, 10)}, own=AB_TIGHT)
+        h.run(61)
+        h.worlds["BTCUSDT"] = OSError("refused")
+        code, printed, alerts, ledger, record = h.run(71)
+        text = alerts[0][1] if alerts else ""
+        s.check("a position held on a symbol unread today keeps its slot as recorded: the next long is left out, and "
+                "the record keeps the span",
+                record["unread"] == ["BTCUSDT"] and len(alerts) == 1
+                and text.split("\n")[1] == score.T_OUT.format(items=score.SIDE[1] + " EEE")
+                and ["BTCUSDT", 1, 61 * book.DAY_MS, None] in record["held"]
+                and [o["symbol"] for o in record["outside"]] == ["AAAUSDT", "EEEUSDT"])
+        h.worlds["BTCUSDT"] = [(k * book.DAY_MS, 100.0, 101.0, 99.0, 100.0) for k in range(105)]
+        code, printed, alerts, ledger, record = h.run(72)
+        s.check("an entry once left out is never taken: the long that held the slot gone from the replay, the two "
+                "left out stay out and nothing is told",
+                alerts == [] and record["open"] == [] and [o["symbol"] for o in record["outside"]] == ["AAAUSDT", "EEEUSDT"]
+                and record["held"] == [] and (ab_field(printed, "opened"), ab_field(printed, "skipped")) == ("0", "0"))
+        # The look tells the book held alone.
+        h = AbHost(os.path.join(tmp, "u"), {"AAAUSDT": long_world, "BTCUSDT": long_world}, own=AB_TIGHT)
+        h.run(60)
+        code, printed, alerts, looked = h.look(60, {"AAAUSDT": rising, "BTCUSDT": rising})
+        text = alerts[0][1] if alerts else ""
+        s.check("the look names the candidate the book would take, the major's long, and not the long it would leave out",
+                looked["entries"] == [{"symbol": "BTCUSDT", "side": 1}] and ab_field(printed, "entries") == "1"
+                and len(alerts) == 1
+                and text.split("\n")[1].startswith(score.F_ENTRY.format(side=score.SIDE[1], sym="BTC", last="103.5"))
+                and "AAA" not in text)
+        h.run(61)
+        code, printed, alerts, looked = h.look(61, {"AAAUSDT": (105.0, 107.0, 100.0, 101.0),
+                                                    "BTCUSDT": (105.0, 107.0, 104.0, 106.0)})
+        s.check("a stop the day has reached on a position the book left out is not the look's to tell",
+                code == 0 and alerts == [] and looked["stopped"] == [] and ab_field(printed, "stopped") == "0")
         # GO_LIVE cuts the ledger by the entry's day.
         score.GO_LIVE = "1970-03-04"
         h = AbHost(os.path.join(tmp, "g"), {"AAAUSDT": long_world})
@@ -3743,6 +3901,11 @@ def section_ab(s):
         code, printed, alerts, ledger, record = h.run(102)
         s.check("a trade entered before GO_LIVE is no file of the ledger",
                 code == 0 and ledger is None and record["closed"]["all"] == {"n": 0} and record["since"] == "1970-03-04")
+        h = AbHost(os.path.join(tmp, "r"), {"BTCUSDT": long_world, "EEEUSDT": ab_later(long_world, 10)}, own=AB_TIGHT)
+        code, printed, alerts, ledger, record = h.run(71)
+        s.check("a position entered before GO_LIVE holds no slot: it is named left out, and the long it would block is held",
+                [o["symbol"] for o in record["open"]] == ["EEEUSDT"]
+                and [o["symbol"] for o in record["outside"]] == ["BTCUSDT"])
     finally:
         score.GO_LIVE, score.FUNDING_PAGE = saved_live, saved_page
         shutil.rmtree(tmp, ignore_errors=True)
@@ -3791,6 +3954,62 @@ def section_ab(s):
                                                        sort_keys=True)))
     finally:
         book._get = saved_get
+    # The book held (TZ-81): one walk, hold(), live and over the archive alike.
+    d = book.DAY_MS
+    s.check("rank: the MAJORS first, then the others, each in the order given -- the list's",
+            book.rank(["AAAUSDT", "XRPUSDT", "BTCUSDT", "BBBUSDT", "ETHUSDT"])
+            == {"XRPUSDT": 0, "BTCUSDT": 1, "ETHUSDT": 2, "AAAUSDT": 3, "BBBUSDT": 4})
+    s.check("spans: a channel exit frees its slot at the open, a stop inside the day, a position that stands never, and "
+            "one whose exit is due at the next open",
+            book.spans("AUSDT", [{"side": 1, "t_entry": 5 * d, "t_exit": 9 * d, "why": "channel"},
+                                 {"side": -1, "t_entry": 2 * d, "t_exit": 4 * d, "why": "stop"}],
+                       {"side": 1, "t_entry": 10 * d}, 20 * d)
+            == [("AUSDT", 1, 5 * d, (9 * d, book.AT_OPEN)), ("AUSDT", -1, 2 * d, (4 * d, book.IN_DAY)),
+                ("AUSDT", 1, 10 * d, None)]
+            and book.spans("AUSDT", [], {"side": -1, "t_entry": 10 * d, "exit_due": True}, 20 * d)
+            == [("AUSDT", -1, 10 * d, (20 * d, book.AT_OPEN))]
+            and book.AT_OPEN < book.ENTRY < book.IN_DAY)
+    ranks = book.rank(["AUSDT", "BUSDT", "CUSDT", "BTCUSDT"])
+    longs = [(symbol, 1, 5 * d, None) for symbol in ("AUSDT", "BUSDT", "CUSDT", "BTCUSDT")]
+    s.check("hold: one open's entries are taken in rank order while their side has room -- the major's, then the list's",
+            book.hold(longs, ranks, 2, 10) == {("BTCUSDT", 5 * d), ("AUSDT", 5 * d)})
+    s.check("hold: the book's ceiling binds across the sides -- two longs leave no room for a short at two in all",
+            book.hold(longs[:2] + [("CUSDT", -1, 6 * d, None)], ranks, 6, 2) == {("AUSDT", 5 * d), ("BUSDT", 5 * d)})
+    s.check("hold: an exit at an open frees its slot for that open's entry",
+            book.hold([("AUSDT", 1, 5 * d, (8 * d, book.AT_OPEN)), ("BUSDT", 1, 8 * d, None)], ranks, 1, 10)
+            == {("AUSDT", 5 * d), ("BUSDT", 8 * d)})
+    s.check("hold: a stop frees its slot inside its day, after that open's entries -- the next open's entry is taken",
+            book.hold([("AUSDT", 1, 5 * d, (8 * d, book.IN_DAY)), ("BUSDT", 1, 8 * d, None), ("CUSDT", 1, 9 * d, None)],
+                      ranks, 1, 10) == {("AUSDT", 5 * d), ("CUSDT", 9 * d)})
+    s.check("hold: an entry stopped on its own day held its slot through that open",
+            book.hold([("BTCUSDT", 1, 5 * d, (5 * d, book.IN_DAY)), ("AUSDT", 1, 5 * d, None), ("BUSDT", 1, 6 * d, None)],
+                      ranks, 1, 10) == {("BTCUSDT", 5 * d), ("BUSDT", 6 * d)})
+    s.check("hold: an entry not taken at its own open is never taken, though a slot frees while it stands",
+            book.hold([("AUSDT", 1, 5 * d, (8 * d, book.AT_OPEN)), ("BUSDT", 1, 6 * d, None)], ranks, 1, 10)
+            == {("AUSDT", 5 * d)})
+    saved_blob, saved_series = book._archive_blob, book.archive_series
+    book._archive_blob = lambda path, cache: None
+    book.archive_series = lambda symbol, start, end, cache: (long_world, [])
+    try:
+        every, _ = book.archive(["AUSDT", "BTCUSDT"], book.date(1970, 1, 1), book.date(1970, 4, 15), "-",
+                                scale=book.SCALE_R)
+        held, table = book.archive(["AUSDT", "BTCUSDT"], book.date(1970, 1, 1), book.date(1970, 4, 15), "-",
+                                   scale=book.SCALE_R, ceilings=(1, 1))
+    finally:
+        book._archive_blob, book.archive_series = saved_blob, saved_series
+    s.check("the archive with ceilings keeps hold()'s trades: of two longs at one open, the major's alone",
+            [r[1] for r in every] == ["AUSDT", "BTCUSDT"] and [r[1] for r in held] == ["BTCUSDT"]
+            and table["all"]["n"] == 1 and held[0][4] == every[1][4])
+    codes = []
+    for argv in (["--live", "--hold", "6,10", "AUSDT"], ["--archive", "--hold", "6", "AUSDT"],
+                 ["--archive", "--hold", "0,10", "AUSDT"]):
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                book.main(argv)
+            codes.append(0)
+        except SystemExit as exc:
+            codes.append(exc.code)
+    s.check("--hold reads the archive alone, with two positive counts", codes == [2, 2, 2])
     s.check("the ceilings are paper.ceilings: 3 % and 5 % at 0.5 % hold 6 and 10", paper.ceilings(AB_OWN) == (6, 10))
     size = paper.copy_size(AB_OWN, 4.4 / 105.0)
     s.check("the size is paper.copy_size: 150 USDT over a stop 4.4 of 105 away is 3579.5 USDT, a third of it at 3x",
@@ -3807,7 +4026,7 @@ def section_ab(s):
             and "2x" in paper.copy_text(AB_OWN, 0.30, -1, [-1]) and "3x" in paper.copy_text(AB_OWN, 0.10, -1, [-1]))
     s.check("the default state is /var/lib/crypto-auto, the ledger score-ledger/ and the record score.json",
             common.STATE_DIR == "/var/lib/crypto-auto" and (score.LEDGER, score.RECORD) == ("score-ledger", "score.json")
-            and (score.PLAN, score.FORMING) == ("score-plan", "score-forming"))
+            and (score.PLAN, score.FORMING, score.HELD) == ("score-plan", "score-forming", "score-held"))
     # The units and the manifest.
     service, timer = unit_lines("crypto-score.service"), unit_lines("crypto-score.timer")
     s.check("service runs as User=cryptoauto, Group=cryptoauto",
