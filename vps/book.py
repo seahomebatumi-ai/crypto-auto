@@ -20,6 +20,14 @@ The plan the owner trades (TZ-80): the same entries, exits and stop, and in addi
 SCALE_R times the initial risk from the entry, half the position closes there and the rest's stop moves to the
 entry. replay(..., scale=SCALE_R) makes the plan's trades and replay(...) the rule's, from one loop.
 
+The book the owner can hold (TZ-81): the plan's entries taken in time, each only while his side ceiling and his
+book ceiling have room for it, the MAJORS first at one open and then the list's in its order. hold() decides it
+from every symbol's spans() -- live and over the archive alike.
+
+    book.py --archive --scale 2 --hold SIDE,BOOK SYMBOL...
+                                                the plan held under those ceilings, the symbols in the
+                                                list's order
+
 Python 3.12's standard library only. Time is UTC everywhere.
 """
 import argparse
@@ -28,6 +36,7 @@ import csv
 import io
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -44,6 +53,12 @@ OOS_START = date(2025, 1, 1)
 # The plan's target, in R from the entry: the owner's request of 24.10.2026 and methodology 2026-10-24-c, measured
 # on the archive by the Architect on 24.10.2026 (map section 10, row "The book prints no target").
 SCALE_R = 2.0
+# Map section 10, row "The book's out-of-sample loss sits in the alts": the five symbols its lead names. At one
+# open the book takes them before the others, and the alert prints them first (TZ-80, TZ-81).
+MAJORS = ("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT")
+# At one open (TZ-81): an exit at the open frees its slot before the entries, which are taken in rank order; a
+# stop fills inside the day and frees its slot after them.
+AT_OPEN, ENTRY, IN_DAY = 0, 1, 2
 DAY_MS = 86_400_000
 HTTP_TIMEOUT_S = 20
 FAPI_KLINES = "https://fapi.binance.com/fapi/v1/klines?symbol=%s&interval=1d&limit=400"
@@ -157,6 +172,45 @@ def result_r(tr, funding):
                    + 0.5 * sum(r for t, r in funding if tr["t_scale"] < t <= tr["t_exit"]))
     gain = 0.5 * side * (tr["scale_px"] / e - 1) + 0.5 * side * (x / e - 1)
     return (gain - paid - 2 * COST_SIDE) / dist
+
+
+def rank(symbols):
+    """The order the book takes one open's entries in (TZ-81): the MAJORS first, then the others, each in the
+    order given -- the list's. A symbol's rank by name."""
+    return {s: k for k, s in enumerate(sorted(symbols, key=lambda s: s not in MAJORS))}
+
+
+def spans(symbol, trades, pos, t_next=None):
+    """One symbol's positions as hold() reads them (TZ-81): (symbol, side, t_entry, free) each, free the (time,
+    phase) at which the position's slot frees, or None while it stands. A position whose exit is due frees its
+    slot at t_next, the open of the day still forming."""
+    out = [(symbol, tr["side"], tr["t_entry"], (tr["t_exit"], AT_OPEN if tr["why"] == "channel" else IN_DAY))
+           for tr in trades]
+    if pos is not None:
+        out.append((symbol, pos["side"], pos["t_entry"],
+                    (t_next, AT_OPEN) if pos.get("exit_due") and t_next is not None else None))
+    return out
+
+
+def hold(books, ranks, side_max, book_max, fixed=None):
+    """The book the owner can hold (TZ-81): the (symbol, t_entry) of each span it takes. Walked in time from an
+    empty book, an entry is taken where, at its open, fewer than side_max positions are held on its side and
+    fewer than book_max in all, and a position taken keeps its slot until its own exit -- after its target as
+    before it. An entry not taken at its own open is never taken. fixed maps an entry already decided to whether
+    it was taken, and the walk takes or leaves it so whatever the room."""
+    events = []
+    for symbol, side, t_entry, free in books:
+        events.append(((t_entry, ENTRY, ranks[symbol]), (symbol, t_entry), side))
+        if free is not None:
+            events.append((free + (ranks[symbol],), (symbol, t_entry), side))
+    now, taken = {}, set()
+    for (_, phase, _), key, side in sorted(events):
+        if phase != ENTRY:
+            now.pop(key, None)
+        elif (fixed or {}).get(key, list(now.values()).count(side) < side_max and len(now) < book_max):
+            now[key] = side
+            taken.add(key)
+    return taken
 
 
 def _get(url):
@@ -295,16 +349,22 @@ def archive_paths(symbol, start, end):
     return paths
 
 
-def archive(symbols, start, end, cache, workers=8, scale=None):
+def archive(symbols, start, end, cache, workers=8, scale=None, ceilings=None):
+    """Every trade over the archive and its table; with ceilings, (side, book), only the trades hold() takes, the
+    symbols ranked in the order given (TZ-81)."""
     with concurrent.futures.ThreadPoolExecutor(workers) as ex:
         list(ex.map(lambda path: _archive_blob(path, cache),
                     [path for s in symbols for path in archive_paths(s, start, end)]))
-    rows = []
+    rows, books = [], []
     for s in symbols:
         bars, funding = archive_series(s, start, end, cache)
-        trades, _ = replay(bars, scale=scale)
+        trades, pos = replay(bars, scale=scale)
+        books += spans(s, trades, pos)
         for tr in trades:
             rows.append((tr["t_exit"], s, tr["side"], tr["t_entry"], result_r(tr, funding), tr["why"]))
+    if ceilings is not None:
+        taken = hold(books, rank(symbols), *ceilings)
+        rows = [r for r in rows if (r[1], r[3]) in taken]
     rows.sort()
     oos = datetime(OOS_START.year, OOS_START.month, OOS_START.day, tzinfo=timezone.utc).timestamp() * 1000
     out = {}
@@ -324,10 +384,14 @@ def main(argv=None):
     ap.add_argument("--to", dest="end", default=None)
     ap.add_argument("--cache", default=os.path.join(os.path.expanduser("~"), ".cache", "crypto-book"))
     ap.add_argument("--scale", type=float, default=None, help="the plan: half closes at this many R (TZ-80)")
+    ap.add_argument("--hold", default=None, metavar="SIDE,BOOK",
+                    help="the archive's trades the book holds under these ceilings (TZ-81)")
     ap.add_argument("symbols", nargs="+")
     a = ap.parse_args(argv)
     if a.live == a.archive:
         ap.error("exactly one of --live and --archive")
+    if a.hold is not None and (a.live or not re.fullmatch(r"[1-9]\d*,[1-9]\d*", a.hold)):
+        ap.error("--hold SIDE,BOOK reads the archive; the live book held is score.py's")
     if a.live:
         now_ms = int(time.time() * 1000)
         for s in a.symbols:
@@ -339,7 +403,8 @@ def main(argv=None):
         return 0
     os.makedirs(a.cache, exist_ok=True)
     end = date.fromisoformat(a.end) if a.end else (datetime.now(timezone.utc).date() - timedelta(days=2))
-    rows, out = archive(a.symbols, date.fromisoformat(a.start), end, a.cache, scale=a.scale)
+    rows, out = archive(a.symbols, date.fromisoformat(a.start), end, a.cache, scale=a.scale,
+                        ceilings=None if a.hold is None else tuple(int(n) for n in a.hold.split(",")))
     for name, s in out.items():
         if not s["n"]:
             print("%-14s no trades" % name); continue

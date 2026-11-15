@@ -1,26 +1,31 @@
 #!/usr/bin/env python3
-"""The book's signal and its forward ledger (TZ-79, TZ-80). It runs no model and reads no credential.
+"""The book's signal and its forward ledger (TZ-79, TZ-80, TZ-81). It runs no model and reads no credential.
 
     score.py [--state DIR] [--outbox DIR]              the daily close
     score.py --forming [--state DIR] [--outbox DIR]    the look at the day still forming
 
-The daily close: every entry, target and exit of the plan the owner trades on the list reaches him as one
-alert -- each entry with its stop, its target and its size at his medium risk -- and every trade the plan and
-the rule have closed since the book went into code is written once to a ledger that no later run rewrites.
+The daily close: every entry, target and exit of the book the owner holds reaches him as one alert -- each
+entry with its stop, its target and its size at his medium risk, and the plan's entries his ceilings leave no
+room for named on one line -- and every trade the book, the plan and the rule have closed since the book went
+into code is written once to a ledger that no later run rewrites.
 
-The look: once a day, hours before the close, what the day has already done to the plan's positions -- a stop
+The look: once a day, hours before the close, what the day has already done to the book's positions -- a stop
 reached, a target reached -- and the entry its close would make if it came at the last price reach him as one
 alert, the entry named a candidate, because the close may still take it back. The look writes no ledger and
 opens no trade: the daily close alone does.
 
 The book is book.state_of() on one read of each symbol: the rule's state, which `book.py --live` prints, and
 the plan's, which `book.py --live --scale 2` prints; the look's is the plan's on the same bars with the day
-still forming appended as it stands. A trade's result is book.result_r() on the funding prints the exchange
-publishes for its span; a trade whose prints did not arrive whole is not written, and the next run asks again
-(map inv. 70). The size and the ceilings are the owner's, read from analyst/owner.json through paper.py
+still forming appended as it stands. The book held is book.hold() over the plan's positions entered since
+GO_LIVE, under the owner's ceilings (TZ-81): what he is told and what the gate scores are one book, and a run
+that cannot read his ceilings writes nothing. A trade's result is book.result_r() on the funding prints the
+exchange publishes for its span; a trade whose prints did not arrive whole is not written, and the next run asks
+again (map inv. 70). The size and the ceilings are the owner's, read from analyst/owner.json through paper.py
 (inv. 38).
 
-    score-plan/           the plan's ledger: one closed trade a file, as score-ledger/ below
+    score-held/           the book held's ledger, which the gate reads: one closed trade a file, as
+                          score-ledger/ below
+    score-plan/           the plan's every entry, the same way
     score-ledger/         one closed trade a file, <SYMBOL>-<entry stamp>.json, written once and within
                           RETRY_DAYS of its close, and never reopened (map inv. 38): a later replay that
                           reads its trade differently is counted, and a close found later than that is
@@ -29,12 +34,14 @@ publishes for its span; a trade whose prints did not arrive whole is not written
     score-forming/        one look a file, <YYYY-MM-DD>.json, written once: what the look named, so that
                           the next close counts how much of it came true; a day that has its file is not
                           looked at again
-    score.json            the daily close's reading: the day it stands on, the plan's open positions, both
-                          totals, and the look's count for that day
+    score.json            the daily close's reading: the day it stands on, the ceilings, the book held's open
+                          positions and the plan's it leaves out, the three ledgers' totals, and the look's
+                          count for that day
 
 Prints one line, and one before it for each trade it could not price; never a price.
 Exit 0 the reading is written, or the day was already looked at · 4 no symbol was read, or the read is older
-than the record: nothing written · 5 a file of the ledger is not a trade: nothing written.
+than the record: nothing written · 5 a file of the ledger is not a trade: nothing written · 6 the owner's
+ceilings are unread: nothing written.
 """
 import argparse
 import json
@@ -52,9 +59,8 @@ import writer  # noqa: E402
 
 # Methodology 2026-10-21-a: the first day every level the answer prints is this book's.
 GO_LIVE = "2026-10-21"
-# Map section 10, row "The book's out-of-sample loss sits in the alts": the five symbols its lead names,
-# totalled apart from the first forward day, so that the lead is read on trades it has not seen.
-MAJORS = ("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT")
+# book.MAJORS, totalled apart from the first forward day, so that the lead is read on trades it has not seen.
+MAJORS = book.MAJORS
 FUNDING_URL = "https://fapi.binance.com/fapi/v1/fundingRate?symbol=%s&startTime=%d&endTime=%d&limit=1000"
 FUNDING_PAGE = 1000                              # the endpoint's own ceiling of rows an answer
 FUNDING_PAGES_MAX = 20
@@ -68,6 +74,7 @@ FUNDING_GAP_MS = 8 * 3600 * 1000 + 60 * 1000
 RETRY_DAYS = 60
 LEDGER = "score-ledger"
 PLAN = "score-plan"
+HELD = "score-held"
 FORMING = "score-forming"
 RECORD = "score.json"
 LEDGER_KEYS = ("symbol", "side", "t_entry", "entry", "stop", "t_exit", "exit", "why", "r", "seen")
@@ -122,6 +129,7 @@ T_LIMIT = ("\u26a0\ufe0f \u0412\u0430\u0448 \u043b\u0438\u043c\u0438\u0442: {sid
            "\u043a\u0430\u0436\u0434\u0430\u044f \u0434\u043e \u2212{risk} USDT \u2014 "
            "\u0441\u0447\u0438\u0442\u0430\u0439\u0442\u0435 \u0432\u043c\u0435\u0441\u0442\u0435 \u0441 "
            "\u043e\u0442\u043a\u0440\u044b\u0442\u044b\u043c\u0438.")
+T_OUT = "\u23f8 **\u0412\u043d\u0435 \u043b\u0438\u043c\u0438\u0442\u0430:** {items}"
 T_LEGEND = ("R \u2014 \u043e\u0434\u0438\u043d \u0440\u0438\u0441\u043a \u043d\u0430 "
             "\u0441\u0434\u0435\u043b\u043a\u0443.")
 # The look at the day still forming (TZ-80): what has happened is told as it is, what the close may still
@@ -159,6 +167,11 @@ def list_symbols():
 def day(ms):
     """The UTC date of a millisecond stamp, YYYY-MM-DD."""
     return datetime.fromtimestamp(ms / 1000, timezone.utc).strftime("%Y-%m-%d")
+
+
+def day_ms(iso):
+    """The millisecond stamp at which a UTC date, YYYY-MM-DD, begins."""
+    return int(datetime.fromisoformat(iso).replace(tzinfo=timezone.utc).timestamp() * 1000)
 
 
 def funding_prints(symbol, t_entry, t_exit):
@@ -246,15 +259,14 @@ def side_of(state):
 
 
 def entry_lines(o, own):
-    """An entry in two lines: the side, the entry and the stop; then the target and, with the owner's book,
-    the size that loses his medium risk at that stop and its margin at the leverage paper.copy_size names."""
+    """An entry in two lines: the side, the entry and the stop; then the target, the size that loses the owner's
+    medium risk at that stop and its margin at the leverage paper.copy_size names."""
     side = side_of(o)
     line = T_ENTRY.format(dot=DOT[side], side=SIDE_HEAD[side], sym=name(o["symbol"]), entry=px(o["entry"]),
                           stop=px(o["stop"]), dist=signed((o["stop"] / o["entry"] - 1) * 100, 1))
-    plan = T_PLAN.format(target=px(o["target"]), tdist=signed((o["target"] / o["entry"] - 1) * 100, 1))
-    if own is not None:
-        notional, margin, lev, _ = paper.copy_size(own, abs(o["stop"] / o["entry"] - 1))
-        plan += T_PLAN_SIZE.format(notional="%d" % round(notional), margin="%d" % round(margin), lev=lev)
+    notional, margin, lev, _ = paper.copy_size(own, abs(o["stop"] / o["entry"] - 1))
+    plan = (T_PLAN.format(target=px(o["target"]), tdist=signed((o["target"] / o["entry"] - 1) * 100, 1))
+            + T_PLAN_SIZE.format(notional="%d" % round(notional), margin="%d" % round(margin), lev=lev))
     return [line if o["entry_due"] else line + T_LATE.format(date=ddmm(o["entry_date"])), plan]
 
 
@@ -262,13 +274,18 @@ def majors_first(rows):
     return sorted(rows, key=lambda o: o["symbol"] not in MAJORS)
 
 
-def compose(asof, baseline, opened, scaled, closing, closed, rows, open_rows, own):
-    """The daily close's alert: one event to a line -- an entry in two, the majors first -- then the plan's
-    record since GO_LIVE, and under an entry what the target means, when to enter and the owner's ceilings.
-    The baseline also prints every position held, with its stop and its target, one to a line."""
+def compose(asof, baseline, opened, skipped, scaled, closing, closed, rows, open_rows, own):
+    """The daily close's alert: one event to a line -- an entry in two, the majors first, then on one line the
+    plan's entries the ceilings leave out -- then the book's record since GO_LIVE, and under an entry what the
+    target means, when to enter and the owner's ceilings. The baseline also prints every position held, with its
+    stop and its target, one to a line."""
     lines = [(T_HEAD_BASE if baseline else T_HEAD).format(d=ddmm(asof))]
     for o in majors_first(opened):
         lines += entry_lines(o, own)
+    if skipped:
+        lines.append(T_OUT.format(items=" \u00b7 ".join(
+            SIDE[side] + " " + ", ".join(name(o["symbol"]) for o in majors_first(skipped) if side_of(o) == side)
+            for side in (1, -1) if any(side_of(o) == side for o in skipped))))
     for o in scaled:
         lines.append(T_SCALED.format(sym=name(o["symbol"]), side=SIDE[side_of(o)], px=px(o["scale_px"]),
                                      stop=px(o["stop_now"])))
@@ -304,10 +321,10 @@ def compose(asof, baseline, opened, scaled, closing, closed, rows, open_rows, ow
         lines.append(T_HOW)
     if opened:
         lines.append(T_WHEN)
-        if own is not None:
-            side_n, book_n = paper.ceilings(own)
-            lines.append(T_LIMIT.format(side_n=side_n, book_n=book_n, risk="%d" % round(
-                paper.risk_usdt(own["capital_usdt"], own["risk_pct"] / 100))))
+    if opened or skipped:
+        side_n, book_n = paper.ceilings(own)
+        lines.append(T_LIMIT.format(side_n=side_n, book_n=book_n, risk="%d" % round(
+            paper.risk_usdt(own["capital_usdt"], own["risk_pct"] / 100))))
     if baseline:
         lines.append(T_LEGEND)
     return "\n".join(lines)
@@ -330,13 +347,43 @@ def compose_look(day_now, hours, stopped, scaled, entries):
     return "\n".join(lines)
 
 
+def record_of(state_dir):
+    """The daily close's last record, or None where there is none or it does not parse."""
+    try:
+        with open(os.path.join(state_dir, RECORD), encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return None
+
+
+def holds(prev, ceilings):
+    """Whether the last record holds a book under these ceilings (TZ-81): its v is 3 and its ceilings are these."""
+    return isinstance(prev, dict) and prev.get("v") == 3 and prev.get("ceilings") == ceilings
+
+
+def book_held(books, symbols, unread, ceilings, prev):
+    """The book held (TZ-81): the spans book.hold() takes of the plan's, entered since GO_LIVE. Where the last
+    record holds a book under these ceilings, what it decided stands -- each entry up to the open it told is taken
+    if that record took it and left out if not -- and the spans it held on a symbol unread today stand as it
+    recorded them."""
+    fixed, carried = None, []
+    if holds(prev, ceilings):
+        told = day_ms(prev["asof"]) + book.DAY_MS
+        carried = [(s, side, t, None if free is None else tuple(free)) for s, side, t, free in prev["held"]
+                   if s in unread]
+        took = {(s, t) for s, _, t, _ in prev["held"]}
+        fixed = {(s, t): (s, t) in took for s, _, t, _ in books + carried if t <= told}
+    taken = book.hold(books + carried, book.rank(symbols), *ceilings, fixed)
+    return [sp for sp in books + carried if (sp[0], sp[2]) in taken]
+
+
 def look_of(state_dir, day_iso):
     """The look's record of a day as (the entries it named, as (symbol, side) pairs), or None where the day was
     not looked at or its file is not a look."""
     try:
         with open(os.path.join(state_dir, FORMING, day_iso + ".json"), encoding="utf-8") as fh:
             doc = json.load(fh)
-        if doc["day"] != day_iso:
+        if doc["v"] != 2 or doc["day"] != day_iso:
             return None
         return {(str(e["symbol"]), int(e["side"])) for e in doc["entries"]}
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
@@ -347,37 +394,48 @@ def forming(args, now_ms):
     """The look at the day still forming: one read of each symbol, the plan's state at the last close and its
     state if the day closed at the last price. Told as it is: a stop the day has reached, a target it has
     reached -- neither can be taken back. Told as a candidate: the entry a close at the last price would make.
-    An exit that close would make is not told: nothing is done about it before the close, which tells it. One
-    look a UTC day; the alert is written before the record, so that a look that died between them is made
-    again."""
+    An exit that close would make is not told: nothing is done about it before the close, which tells it. Only
+    the book held is told (TZ-81): a stop or a target of a position it holds, and a candidate it would take at
+    the next open. One look a UTC day; the alert is written before the record, so that a look that died between
+    them is made again."""
     day_now = day(now_ms)
     path = os.path.join(args.state, FORMING, day_now + ".json")
     if os.path.exists(path):
         common.log("score: forming day=%s already looked at, nothing written" % day_now)
         return 0
-    symbols = list_symbols()
-    stopped, scaled, entries, unread = [], [], [], []
+    own = paper.owner_now()
+    if own is None:
+        common.log("score: forming day=%s the owner's ceilings are unread, nothing written" % day_now)
+        return 6
+    symbols, go = list_symbols(), day_ms(GO_LIVE)
+    read, books, unread = [], [], []
     for symbol in symbols:
         try:
             bars, today = book.live_day(symbol, now_ms)
             if day(today[0]) != day_now:
                 raise ValueError("the day still forming is not today")
             now = book.state_of(symbol, bars, today[1], book.SCALE_R)[0]
-            then, trades, _ = book.state_of(symbol, bars + [today], today[4], book.SCALE_R)
+            then, trades, pos = book.state_of(symbol, bars + [today], today[4], book.SCALE_R)
         except Exception:                 # one symbol's failure never hides the others
             unread.append(symbol)
             continue
+        read.append((symbol, today, now, then, trades, pos))
+        books += [sp for sp in book.spans(symbol, trades, pos, today[0] + book.DAY_MS) if sp[2] >= go]
+    if len(unread) == len(symbols):
+        common.log("score: forming day=%s symbols=%d read=0 nothing written" % (day_now, len(symbols)))
+        return 4
+    taken = {(s, t) for s, _, t, _ in book_held(books, symbols, unread, list(paper.ceilings(own)),
+                                                record_of(args.state))}
+    stopped, scaled, entries = [], [], []
+    for symbol, today, now, then, trades, pos in read:
         stopped += [(symbol, tr["side"], tr["exit"]) for tr in trades
-                    if tr["t_exit"] == today[0] and tr["why"] == "stop"]
-        if then["state"] not in ("long", "short"):
+                    if tr["t_exit"] == today[0] and tr["why"] == "stop" and (symbol, tr["t_entry"]) in taken]
+        if then["state"] not in ("long", "short") or (symbol, pos["t_entry"]) not in taken:
             continue
         if then.get("scale_date") == day_now:
             scaled.append(then)
         if then["entry_due"]:         # the level the close must cross is the last close's trigger
             entries.append((then, today[4], now.get("long_trigger" if side_of(then) > 0 else "short_trigger")))
-    if len(unread) == len(symbols):
-        common.log("score: forming day=%s symbols=%d read=0 nothing written" % (day_now, len(symbols)))
-        return 4
     stopped.sort(key=lambda item: item[0] not in MAJORS)
     scaled = majors_first(scaled)
     entries.sort(key=lambda item: item[0]["symbol"] not in MAJORS)
@@ -388,7 +446,7 @@ def forming(args, now_ms):
                             outbox_dir=args.outbox)
     os.makedirs(os.path.dirname(path), mode=0o750, exist_ok=True)
     common.atomic_write(path, {
-        "v": 1, "k": "score-forming", "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now_ms / 1000)),
+        "v": 2, "k": "score-forming", "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now_ms / 1000)),
         "day": day_now, "symbols": len(symbols), "unread": sorted(unread),
         "stopped": [symbol for symbol, _, _ in stopped], "scaled": [o["symbol"] for o in scaled],
         "entries": [{"symbol": o["symbol"], "side": side_of(o)} for o, _, _ in entries]}, mode=0o640)
@@ -398,9 +456,10 @@ def forming(args, now_ms):
     return 0
 
 
-def ledger_pass(path, ledger, live, asof, seen):
+def ledger_pass(path, ledger, live, asof, seen, priced=None):
     """One ledger's run: (added, pending, late, disagree). live is (state, trades) per symbol read today; a trade
-    is written as the module's docstring says, each a new file (inv. 38)."""
+    is written as the module's docstring says, each a new file (inv. 38). priced, shared by the ledgers of one
+    replay, keeps each trade's R so that a trade two of them write is priced once (TZ-81)."""
     known = {(row["symbol"], row["t_entry"]): row for row in ledger}
     floor = GO_LIVE if not ledger else (date.fromisoformat(asof) - timedelta(days=RETRY_DAYS)).isoformat()
     added, pending, late, disagree = [], 0, 0, 0
@@ -417,13 +476,17 @@ def ledger_pass(path, ledger, live, asof, seen):
                 late += 1
                 continue
             try:
-                r = book.result_r(tr, funding_prints(state["symbol"], tr["t_entry"], tr["t_exit"]))
+                r = (priced or {}).get(key)
+                if r is None:
+                    r = book.result_r(tr, funding_prints(state["symbol"], tr["t_entry"], tr["t_exit"]))
                 if not math.isfinite(r):
                     raise ValueError("the result is not finite")
             except Exception as exc:      # not written: the next run asks for the prints again (inv. 70)
                 pending += 1
                 common.log("score: pending %s %s %s" % (os.path.basename(path), state["symbol"], exc.__class__.__name__))
                 continue
+            if priced is not None:
+                priced[key] = r
             known[key] = {"symbol": state["symbol"], "side": tr["side"], "t_entry": tr["t_entry"],
                           "entry": tr["entry"], "stop": tr["stop"], "t_exit": tr["t_exit"], "exit": tr["exit"],
                           "why": tr["why"], "r": r, "seen": seen}
@@ -444,21 +507,26 @@ def main(argv=None, now_ms=None):
     now_ms = int(time.time() * 1000) if now_ms is None else now_ms
     if args.forming:
         return forming(args, now_ms)
+    own = paper.owner_now()
+    if own is None:
+        common.log("score: the owner's ceilings are unread, nothing written")
+        return 6
+    ceilings = list(paper.ceilings(own))
     rule_path, plan_path = os.path.join(args.state, LEDGER), os.path.join(args.state, PLAN)
-    record_path = os.path.join(args.state, RECORD)
+    held_path, record_path = os.path.join(args.state, HELD), os.path.join(args.state, RECORD)
     try:
-        rule_ledger, plan_ledger = read_ledger(rule_path), read_ledger(plan_path)
+        rule_ledger, plan_ledger, held_ledger = read_ledger(rule_path), read_ledger(plan_path), read_ledger(held_path)
     except (OSError, ValueError, TypeError):
         common.log("score: a file of the ledger is not a trade, nothing written")
         return 5
+    prev = record_of(args.state)
     try:
-        with open(record_path, encoding="utf-8") as fh:
-            prev = json.load(fh)
-        prev_asof, prev_ts, prev_v = str(prev["asof"]), str(prev["ts"]), prev.get("v")
-    except (OSError, ValueError, KeyError, TypeError, AttributeError):
-        prev_asof = prev_ts = prev_v = None
-    # TZ-79's record (v 1) knew no plan: the first run after it is the plan's baseline, and tells no close.
-    baseline = prev_asof is None or prev_v != 2
+        prev_asof, prev_ts = str(prev["asof"]), str(prev["ts"])
+    except (KeyError, TypeError, AttributeError):
+        prev = prev_asof = prev_ts = None
+    # A record before TZ-81's (v 3) held no book, and one under other ceilings held another: the first run after
+    # it is the book's baseline, and tells no close.
+    baseline = not holds(prev, ceilings)
 
     symbols = list_symbols()
     read, unread = [], []
@@ -478,47 +546,64 @@ def main(argv=None, now_ms=None):
     fresh = baseline or asof > prev_asof
     seen = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now_ms / 1000))
 
+    go, t_next = day_ms(GO_LIVE), day_ms(asof) + book.DAY_MS
+    held = book_held([sp for _, plan in live for sp in book.spans(plan[0]["symbol"], plan[1], plan[2], t_next)
+                      if sp[2] >= go], symbols, unread, ceilings, prev)
+    taken = {(s, t) for s, _, t, _ in held}
+    priced = {}
     rule_added, rule_pending, rule_late, rule_disagree = ledger_pass(
         rule_path, rule_ledger, [(rule[0], rule[1]) for rule, _ in live], asof, seen)
-    plan_added, pending, late, disagree = ledger_pass(
-        plan_path, plan_ledger, [(plan[0], plan[1]) for _, plan in live], asof, seen)
-    rule_rows, rows = rule_ledger + rule_added, plan_ledger + plan_added
+    plan_added, plan_pending, plan_late, plan_disagree = ledger_pass(
+        plan_path, plan_ledger, [(plan[0], plan[1]) for _, plan in live], asof, seen, priced)
+    added, pending, late, disagree = ledger_pass(
+        held_path, held_ledger, [(plan[0], [tr for tr in plan[1] if (plan[0]["symbol"], tr["t_entry"]) in taken])
+                                 for _, plan in live], asof, seen, priced)
+    rule_rows, plan_rows, rows = rule_ledger + rule_added, plan_ledger + plan_added, held_ledger + added
 
-    open_rows = [plan[0] for _, plan in live if plan[0]["state"] in ("long", "short")]
+    plan_open = [plan for _, plan in live if plan[0]["state"] in ("long", "short")]
+    open_rows = [plan[0] for plan in plan_open if (plan[0]["symbol"], plan[2]["t_entry"]) in taken]
+    outside = [plan[0] for plan in plan_open if (plan[0]["symbol"], plan[2]["t_entry"]) not in taken]
     if baseline:
         opened = [o for o in open_rows if o["entry_due"] or (prev_asof is not None and o["entry_date"] > prev_asof)]
+        skipped = list(outside)
     else:
         after = (date.fromisoformat(prev_asof) + timedelta(days=1)).isoformat()
         opened = [o for o in open_rows if fresh and o["entry_date"] > after]
+        skipped = [o for o in outside if fresh and o["entry_date"] > after]
     scaled = [] if baseline else [o for o in open_rows if fresh and o.get("scale_date", "") > prev_asof]
     closing = [o for o in open_rows if fresh and o["exit_due"]]
     # A closed trade is told once: the rows written since the record this run replaces.
     closed = [] if baseline else [row for row in rows if row["seen"] > prev_ts]
-    alert = baseline or bool(opened or scaled or closing or closed)
+    alert = baseline or bool(opened or skipped or scaled or closing or closed)
     # What the look at the day that has just closed named, against the entries that close made.
     named = look_of(args.state, asof)
     due = {(o["symbol"], side_of(o)) for o in open_rows if o["entry_due"]}
     look = None if named is None else {"named": len(named), "hit": len(named & due), "entries": len(due)}
     if alert:
-        common.write_outbox("alert", compose(asof, baseline, opened, scaled, closing, closed, rows, open_rows,
-                                             paper.owner_now()), outbox_dir=args.outbox)
+        common.write_outbox("alert", compose(asof, baseline, opened, skipped, scaled, closing, closed, rows,
+                                             open_rows, own), outbox_dir=args.outbox)
 
     def by_group(group):
         return {"all": totals(group), "majors": totals([row for row in group if row["symbol"] in MAJORS]),
                 "others": totals([row for row in group if row["symbol"] not in MAJORS])}
     common.atomic_write(record_path, {
-        "v": 2, "k": "score", "ts": seen, "asof": asof, "since": GO_LIVE, "symbols": len(symbols),
-        "unread": sorted(unread),
+        "v": 3, "k": "score", "ts": seen, "asof": asof, "since": GO_LIVE, "symbols": len(symbols),
+        "unread": sorted(unread), "ceilings": ceilings,
+        "held": sorted([s, side, t, None if free is None else list(free)] for s, side, t, free in held),
         "open": [{key: o.get(key) for key in ("symbol", "state", "entry_date", "entry", "stop", "target", "exit_level",
                                               "r_open", "entry_due", "exit_due", "scale_date", "stop_now")}
                  for o in open_rows],
+        "outside": [{key: o.get(key) for key in ("symbol", "state", "entry_date")} for o in majors_first(outside)],
         "closed": by_group(rows), "pending": pending, "late": late, "disagree": disagree, "look": look,
+        "plan": {"open": len(plan_open), "closed": by_group(plan_rows), "pending": plan_pending, "late": plan_late,
+                 "disagree": plan_disagree},
         "rule": {"open": sum(1 for rule, _ in live if rule[0]["state"] in ("long", "short")), "closed": by_group(rule_rows),
                  "pending": rule_pending, "late": rule_late, "disagree": rule_disagree}}, mode=0o640)
-    common.log("score: asof=%s symbols=%d read=%d unread=%d open=%d opened=%d scaled=%d closing=%d closed=%d "
-               "pending=%d late=%d disagree=%d ledger=%d rule=%d look=%s alert=%s"
-               % (asof, len(symbols), len(symbols) - len(unread), len(unread), len(open_rows), len(opened),
-                  len(scaled), len(closing), len(closed), pending, late, disagree, len(rows), len(rule_rows),
+    common.log("score: asof=%s symbols=%d read=%d unread=%d open=%d outside=%d opened=%d skipped=%d scaled=%d "
+               "closing=%d closed=%d pending=%d late=%d disagree=%d ledger=%d plan=%d rule=%d look=%s alert=%s"
+               % (asof, len(symbols), len(symbols) - len(unread), len(unread), len(open_rows), len(outside),
+                  len(opened), len(skipped), len(scaled), len(closing), len(closed), pending, late, disagree,
+                  len(rows), len(plan_rows), len(rule_rows),
                   "-" if look is None else "%d/%d/%d" % (look["hit"], look["named"], look["entries"]),
                   "yes" if alert else "no"))
     return 0
