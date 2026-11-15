@@ -1,0 +1,20 @@
+[Unit]
+Description=Crypto assistant: the book's look at the day still forming
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=cryptoauto
+Group=cryptoauto
+ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/score.py --forming
+Environment=PYTHONDONTWRITEBYTECODE=1
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/spool/crypto-auto /var/lib/crypto-auto
+MemoryAccounting=yes
+MemoryMax=64M
+TimeoutStartSec=900

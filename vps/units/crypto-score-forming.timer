@@ -1,0 +1,9 @@
+[Unit]
+Description=Crypto assistant: the book's look at the day still forming, 15:10 UTC
+
+[Timer]
+OnCalendar=*-*-* 15:10:00 UTC
+Unit=crypto-score-forming.service
+
+[Install]
+WantedBy=timers.target
