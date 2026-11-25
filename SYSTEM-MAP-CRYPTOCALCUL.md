@@ -14,19 +14,15 @@ quoted verbatim in Russian because that is what the code prints.
 
 ## 0. Fingerprint
 
-**Revision 2026-11-18-a.** No file of the table below moves; contract v31 stands, and the methodology moves to
-`2026-11-18-a` with `analyst/owner.json` v4 on the owner's decisions of 18.11.2026, recorded in §10 (rows «The engine
-places no order on the exchange», «`СИЛЬНАЯ` rests on a display-only signal» and the seven rows that close the table).
-TZ-81 was accepted on 16.11.2026 (pull request #67) and is in effect when the deployer installs the merge: it closes
-§10's row «The ledger scores a book the owner cannot hold», step 1's repair before step 2 (§10, «Standing
-decisions»). Inv. 73 stands.
+**Revision 2026-11-25-a.** No file of the table below moves; contract v31 stands, and the methodology moves to
+`2026-11-25-a` with `analyst/owner.json` v5 on the owner's messages of 19.11 and 21.11.2026 and the audit of run
+`2026-11-19`, recorded in §10 (rows «Every card is a recommendation the record follows», «A held coin's late entry is
+the methodology's arithmetic», «Outside-list entries have no archive» and «A run that leaves no log»). TZ-81 (pull
+request #67) is accepted and in effect once the deployer installs the merge. Inv. 73 stands.
 
-**`bench/backtest_bench.py` has no row in the file table, and six consecutive TZs have now
-had to explain the absence.** The table pins the four files a TZ header fingerprints: three
-production artifacts plus the calibration record, and the record is there only because it is
-one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists (inv. 46). A bench in that table
-would put a hash in every TZ header for a file that moves whenever a bench moves — the
-argument §11 already makes for `live-gate.sh`. A TZ needing the figure states it in its own
+**`bench/backtest_bench.py` has no row in the file table.** The table pins the four files a TZ header fingerprints:
+three production artifacts plus the calibration record (below). A bench in that table would put a hash in every TZ
+header for a file that moves whenever a bench moves — the argument §11 already makes for `live-gate.sh`. A TZ needing the figure states it in its own
 `§0`. **Current pairs, each measured on the implementation commit of the TZ that last moved
 it:** `bench/backtest_bench.py` **5929 lines**, `ac203e2dc54104b79e08186644337832`;
 `bench/backtest_guard_bench.py` **2578 lines**, `101ec7304467ef966c661a1f5349ae14`;
@@ -37,17 +33,8 @@ TZ-51 at `065ba72`, and TZ-52's session read the same three pairs in the merged 
 that measured it; a ladder of past values here went stale and read as current, and its
 numerals are not repeated, so that a reader grepping one finds no paragraph to mistake.
 
-**The journal's two files leave this block for §3.13, and that is a narrowing of an
-obligation, not a loss of a figure.** Contract §5 makes every pair in `§ 0` a measurement
-every report must take; no TZ touching the backtest gate opens `journal/**`, so those two
-pairs were an obligation nobody honoured — TZ-50's report measured seven of the nine files
-this block listed, and the gap reached the audit rather than the gate.
-
-**`bench/backtest_guard_bench.py` gets no row either, and for the stronger reason:
-its control is being a gate step.** It executes on every push at step 14, so a hash in a TZ
-header would pin a file whose behaviour is already under a control that runs — exactly the
-argument §11 makes for `live-gate.sh` at step 13. A fingerprint entry buys a second, weaker
-check and costs one line in every future TZ header.
+**`bench/backtest_guard_bench.py` gets no row either: its control is being a gate step** —
+it executes on every push at step 14, the argument §11 makes for `live-gate.sh` at step 13.
 
 Every TZ header quotes this block IN FULL — every anchor of the table below and the file
 table, never a subset. The Executor takes the anchor list from that table, cutting it by the
@@ -60,16 +47,13 @@ height of the table, and a count carried beside a table it does not control goes
 first time the table grows (inv. 20).
 
 **An anchor is a string COPIED out of this file, never one recalled from the rule it names,
-and it is verified as a literal substring before this block is published.** The inv. 68 anchor
-carried at `2026-09-08-b` read «must flip and which must not» while the invariant itself reads
-«must FLIP and which must NOT», so no exact-substring matcher could satisfy it — and TZ-36's
-report recorded all seven anchors as present as exact substrings anyway. **An anchor nobody
+and it is verified as a literal substring before this block is published.** **An anchor nobody
 can match does not fail loudly**: it fails in whichever direction the matcher happens to be
 written, and a blocking gate is the one control that may not have such a direction.
 
 | Anchor | Exact string that must be present |
 |---|---|
-| revision | `**Revision 2026-11-18-a.**` |
+| revision | `**Revision 2026-11-25-a.**` |
 | direction engine | `### 3.12 Direction engine — veto cascade` |
 | catalyst registry | `### 3.15 Catalyst registry` |
 | exhaustion measure | `### 3.16 List exhaustion — the day-range measure` |
@@ -91,50 +75,29 @@ it is one of exactly two places `DAY_RANGE_ABNORMAL = 1.39` exists and gate step
 compares the two on every push (inv. 46).
 
 **That record describes the universe of its OWN run and is never edited to match a later
-one.** Its header reads «25 spot of 28 declared tokens … HYPE, XMR, LIT», which was true
-of the run that produced it and is the sentence TZ-25 §4.4 and TZ-26 §2.3 both refused to
-touch. Nothing calibrated in it moved when the universe reached 30: both added coins are
-`fut:true`, the measure never counted them, and the spot basis is still 25 (§3.16).
-Rewriting the header would make the description of one sample describe a different one,
-which is inv. 46 read backwards — the constant would then agree with a record that no
-longer names the run behind it. It goes stale by design; the reader is told so here.
+one** — its header names the 28 declared tokens of that run; nothing calibrated in it moved at
+30, both added coins being `fut:true` (§3.16), and rewriting it would be inv. 46 read
+backwards. It goes stale by design.
 
 Gate at this revision: `bench.yml`, **14 steps, 1 336 181 checks**. TZ-51 moved two steps and
 nothing else any step reads: step 4 59 → **74**, case 12's fifteen checks over lanes P1–P6, and
 step 14 488 → **506**, the new section L at **18** — `1 336 148 + 15 + 18 = 1 336 181`, summed step
-by step from the runner's own log of run `35704029320`. TZ-50 had moved step 14 by exactly one —
-487 → 488, the check-33 pin on `prod`'s key set: `1 336 147 + 1 = 1 336 148`. `2026-09-14-a` is
-where TZ-44 moved TWO steps,
-which no single TZ before it did — step 14 475 → 487, section I 94 → 95 where the I9 pair puts
-two checks where one stood plus the new section K at **11**, and step 4 40 → **59**, the
-nineteen lane assertions added to `verify_bench.py`; `1 336 116 + 12 + 19 = 1 336 147`.
+by step from the runner's own log of run `35704029320`.
 
-**The runner's own per-step COUNTS were first read at `2026-09-17-a`.** TZ-50's
-session took them out of the log body — `gh run view <id> -R seahomebatumi-ai/crypto-auto
---log`, 87 802 and 89 096 bytes on the two `Bench gate` runs of implementation commit
-`2ecefc7`, `35223415269` (push) and `35223439860` (pull_request), both `success` on every job
-step: step 4 `checks run: 59   FAIL 0`, step 14 `checks run: 488   FAIL 0`, sections E 32,
-F 29, G 63, H 107, I 95, J 8, K 11. The negative control read the same step RED on the same
-instrument — `488   FAIL 1` on run `35225366648`, one FAIL line, every other step `success`
-— so the count and the gate's ability to fail were read together. TZ-51's session read them the
-same way on run `35704029320`, `success` on every step: step 4 `checks run: 74   FAIL 0`, step 14
-`checks run: 506   FAIL 0`, sections E 32, F 29, G 63, H 107, I 95, J 8, K 11 and **L 18**. **A conclusion is a
-measurement and a count is a different one** (inv. 22, 43), and until now only the first had
-ever been read off a runner; the clause in inv. 44 that said the second could not be is
-corrected there, not here. **Neither figure was replayed by the Architect**, then or now: what
-the audit verifies is the arithmetic and the committed text, and at `2026-09-17-a` that was
-`487 + 1 = 488` against a diff of `+10 / −0` in one hunk, at this revision `59 + 15 = 74` and
-`488 + 18 = 506` against bench diffs of `+103 / −0` and `+65 / −0` — which is also why no check could
-have been renumbered, since renumbering requires a deletion. **Step 5's own count has never
-been recorded in this map**: it is the residual that makes the recorded total add up
-(255 708) and it is arithmetic, not a reading.
+**The per-step counts are read off the runner's log** — `gh run view <id> -R
+seahomebatumi-ai/crypto-auto --log` — with the negative control read RED on the same
+instrument, so a count and the gate's ability to fail are read together. TZ-51's session read
+run `35704029320` `success` on every step: step 4 `checks run: 74   FAIL 0`, step 14 `checks
+run: 506   FAIL 0`, sections E 32, F 29, G 63, H 107, I 95, J 8, K 11 and **L 18**. **A
+conclusion is one measurement and a count is another** (inv. 22, 43); the Architect replayed
+neither and audits the arithmetic and the committed text. **Step 5's own count has never been
+recorded in this map**: it is the residual that makes the total add up (255 708), arithmetic,
+not a reading.
 
 **A step number in a report is the jobs API's, not this block's, and the two run +5 apart.**
 The API counts the implicit setup and teardown steps around the job, so the figures above read
-14 YAML steps here and 19 on the run page, `verify_bench.py` at step 4 here and step 9 there,
-the garrison at step 14 here and step 19 there. The offset is uniform, and reading one
-numbering as the other manufactures a map lag that does not exist — this audit nearly filed
-one.
+14 YAML steps here and 19 on the run page; the offset is uniform, and reading one numbering
+as the other manufactures a map lag that does not exist.
 
 **Step 7 (`journal_bench.js`) moves with verdict CONTENT, not only with control
 volume.** It counts numeric leaves of the records it writes, and a verdict that
@@ -144,13 +107,9 @@ benign, because a defect that nulls a field lowers it identically. It stands at 
 since TZ-36 and every delta since has been attributed field by field in the report that
 caused it (§10).
 
-**The one delta this map ever attributed by arithmetic of its own was wrong, and the
-correction is the rule.** TZ-33 cost step 7 **−2 059** leaves; this map named the population
-that lost them, and a per-JSON-path census on both trees refuted that population twice over —
-the count that actually moved is every row whose FIRST pass carried `geo.wait`, 3.7× the
-number the map had named, while the population it did name ROSE. **A population named in a
-map is a hypothesis until someone reads the paths** (inv. 43). The closure is recorded in
-§10; the arithmetic is in TZ-36's report and is not restated here (inv. 20).
+**A population named in a map is a hypothesis until someone reads the paths** (inv. 43): the
+one step-7 delta this map attributed by its own arithmetic, TZ-33's −2 059 leaves, named the
+wrong population; the census is in TZ-36's report (§10).
 
 ---
 
@@ -2517,13 +2476,17 @@ until someone re-runs the command.
 | The sheriff's findings are applied by nobody | **open — measured 12.11.2026 on the day logs** | the methodology written for step 2: a finding that names a contradiction inside the answer is repaired before the answer is sent, or the line it names is not printed. Over the seven runs from 15.10 to 06.11.2026 the sheriff returned 8 `KEEP`, 1 `STRIKE`, no `CUT` and 43 `FINDING` lines, four to eight a run, each a defect of the text the owner read — on 06.11 an exit named without its side or its level, a group headed «закроется выше» whose rows read «касание внутри дня», a side refused as full at 150 of 900 USDT — and methodology §15 sends them to the appendix |
 | The venue's own failure reached no answer | **open — measured 12.11.2026** | the methodology written for step 2: the exchange the owner's capital stands on is a class of its own, printed whenever its withdrawals, its reserves or its contracts are in question, and never tested as a coin's catalyst. Binance lost about 6.3 B USD from its hot wallets on 29.10.2026 at 20:05Z and reopened withdrawals in phases from 01.11; no run was pressed from 26.10 to 06.11, and the run of 06.11 held the stream's Recovery Update #9 and printed no line of it under class C's test, its trader recording the objection |
 | The macro calendar is searched and not stored | **open — measured 12.11.2026 on the run of 06.11.2026** | a dated file of the year's scheduled US prints and central-bank decisions, written by the Architect from the publishers' own schedules and read by the hunt before any search; its path takes a row of the Architect's table first. The hunt of 06.11 read BEA's schedule and no date of BLS, so the employment report of that Friday and the CPI of the week after reached no line (its trader's first finding; row «`bls.gov` dates the week's largest print and refuses this machine»), and its two world searches returned no dated hit |
-| STRONG has no forward record | **open — the owner's decision of 18.11.2026** | a TZ giving the scorecard a class read: every STRONG card of the day logs (methodology §12, item 133) followed under the ledger's own rule (`vps/score.py`) and reported beside the rest — closed trades, mean R after costs, the share of winners — so the tiers of `analyst/owner.json` `card` move on STRONG's own record, by the owner's decision, and the confluence is re-derived where it does not separate. Until then STRONG is a rule and never a claimed edge (inv. 32) |
+| STRONG has no forward record | **open — the owner's decision of 18.11.2026** | a TZ giving the scorecard a class read: every STRONG card of the day logs (methodology §12, item 133) followed under the ledger's own rule (`vps/score.py`) and reported beside the rest — closed trades, mean R after costs, the share of winners — so the tiers of `analyst/owner.json` `card` move on STRONG's own record, by the owner's decision, and the confluence is re-derived where it does not separate. Until then STRONG is a rule and never a claimed edge (inv. 32). Since `2026-11-25-a` the card ledger of row «Every card is a recommendation the record follows» carries it: a STRONG card is a `CARD\|` line of group `STRONG` |
 | The market verdict's confidence is unscored | **open — methodology `2026-11-18-a`** | the scorecard of row «The verdict record is unscored», reading every `VERDICT\|MARKET\|7d` line: whether the word's sign held over seven days, per confidence; a confidence that does not separate is re-derived |
 | Liquidations reach the answer from OKX alone | **open — methodology `2026-11-18-a`** | a TZ building a collector on the VPS — the liquidation streams of Binance, Bybit and OKX in 24-hour buckets written to `/var/lib/crypto-auto/deriv.json` by a program that runs no model, under a measured memory ceiling; methodology §16 step E reads the file first |
 | The hunter has no pre-run radar | **open — the owner's request of 18.11.2026** | a TZ building a program that runs no model, twice a day at 08:00 and 20:00 Tbilisi: the liquid perpetuals' open-interest, taker and funding anomalies, the exchange's listing and delisting record, the unlock index and the list coins' own publications, flagged by kind into a record the hunter reads first, with one Telegram alert per read that found something |
 | The bot splits an answer by length, not by section | **open — methodology `2026-11-18-a`** | a TZ teaching `vps/bot.py` the break line — one line holding U+2063 — as the end of a message; until it lands the line reads blank and a message may still split inside a section |
-| The book alert sizes at the medium risk while the cards size by the ladder | **open — methodology `2026-11-18-a`** | a TZ moving the ladder into one function under `vps/` that the daily alert and the analysis run both execute (inv. 38), so one entry prints one size in both messages |
+| The book alert sizes at the medium risk while the cards size by the ladder | **open — methodology `2026-11-18-a`** | a TZ moving the ladder into one function under `vps/` that the daily alert and the analysis run both execute (inv. 38), so one entry prints one size in both messages; since `2026-11-25-a` the answer's record prints USDT at the card's unit, so the alert is the one message left at the medium risk |
 | The score record may be unreadable by the run unit | **open — methodology `2026-11-18-a`** | a reading of `score.json`'s owner and mode (`0640`) against the run unit's user, and a TZ granting read where it is refused; until then `# СЧЁТ СИСТЕМЫ` prints its status line |
+| Every card is a recommendation the record follows | **open — the owner's decision of 19.11.2026** | TZ-82, written against the `CARD\|` lines the day logs carry from the first run under `ANALYST-INSTRUCTIONS.md` `2026-11-25-a` (methodology §12, item 135): a ledger of its own beside `score-held/`, with no cap and no slot — a ⚡ card enters at its printed entry at the freeze, a ⏳ card at the next open only where its day closed beyond the trigger, a limit card on a touch of its limit before the next recalculation, and either lapses where it did not, one trade per coin, side and fill however many runs print it; each follows its card — the stop on a touch, half at the target and the rest's stop at the entry, the rest by the book's exit — R by `book.result_r()` on the funding prints, written once on its close (inv. 38), outside-list cards included, which no ledger reads today. **The owner reads every card and takes none or several, days later or never, so the held book's slots limit nothing in his account; a recommendation closes only at its stop or its target, that close is the record, and a coin recommended again is a new line (his message of 21.11.2026).** The gate of row «The engine places no order on the exchange» reads this ledger from its first close, because the trust line scores what the system tells him; `score-held/` prints beside it as the reference on the cap — TZ-81's archive, out of sample: every entry 298 trades −9.09 R, drawdown 43.03 R, the book held 119 +28.10 R, drawdown 26.34 R; in sample 229 +136.30 R against 115 +38.66 R |
+| A held coin's late entry is the methodology's arithmetic | **open — the owner's decision of 21.11.2026, methodology `2026-11-25-a` §4** | TZ-82: `vps/book.py --live` prints per hold its late object — the band's verdict, the anchor, the stop and `d` — so the methodology reads it rather than computing it (inv. 38), and the same TZ replays it on the archive with costs and funding. The owner presses the button days apart and wants the best entry of that minute, a coin the book entered earlier included: since `2026-11-25-a` a hold has a ⚡ card where its stop — the level that closes it first — stands 1 to 2 `atr20` away, a limit 2 `atr20` inside that stop where it stands further and the limit lies within the week's reach, and none nearer, and STRONG's signal counts it |
+| Outside-list entries have no archive | **open — recorded 19.11.2026** | a report-only TZ replaying `vps/book.py --archive --scale 2` on the outside rows §3B's filters 1, 2 and 4 admitted day by day — each day's rows as that day's turnover chose them, never today's list read backwards — with costs and funding, then an Architect decision. Every book reading is on the list's 31 symbols and the out-of-sample loss already sits in the alts (row «The book's out-of-sample loss sits in the alts»), while the answer publishes up to three outside-list entries a side: run `2026-11-19`'s one ⚡ card was PIEVERSE, stopped within four hours, which the half-way test now refuses |
+| A run that leaves no log | **open — measured 25.11.2026** | TZ-82 reads the run unit's journal on the VPS for 23.11.2026 — `analyst/live.json` was pushed at 16:24 UTC and no day log followed, where every earlier push had one — names the cause, and makes a run that ends without its commit say so in Telegram: a card with no `CARD\|` line is one the record never scores |
 
 **Standing decisions.** The universe is closed at 30 and opens only on an owner
 decision — it was 28 from June 2026 to 03.09.2026 (inv. 2, 59) · weights are never tuned ·
@@ -2533,7 +2496,7 @@ sizing, honesty and geometry, the human owns direction via catalysts and REVIEW 
 analytical engine is one system inside this repository: it gains roles, never a second engine or a
 second project, and it has exactly one decision-maker (owner's objective of 28.09.2026) · it places no
 order on the exchange until its gate opens (§10) · **the build order is fixed by the audit of 12.11.2026, and nothing else is specified until its first two steps are in `main`:** (1) the scorecard and the book's signal in code, (2) the run's numbers in code and a methodology its trader reads in under 20 000 tokens, (3) the paper lane for dated events (§10, the rows dated 12.11.2026).
-**The owner's half is his and is never printed:** the engine cannot know what he holds (owner's decision of 24.09.2026), so he counts his open positions against the same budgets; a day that costs 2 % of capital — two full-size stops — ends his new entries until the next day, a week that costs 5 % — one full book — halves his risk for the week after, and a 10 % fall from the account's peak — the replay's drawdown at 1 % — stops new entries until the scorecard has been read with the Architect.
+**The owner's own rules are his statement of 21.11.2026 and nothing else:** a margin of 1 000 to 10 000 USDT and a leverage of 3× to 15× by his confidence (`analyst/owner.json` `card`); the engine cannot know what he holds (owner's decision of 24.09.2026) and sets him no loss limit of its own.
 
 ---
 
