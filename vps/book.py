@@ -28,6 +28,15 @@ from every symbol's spans() -- live and over the archive alike.
                                                 the plan held under those ceilings, the symbols in the
                                                 list's order
 
+The card a state gives at the run's frozen price (TZ-84): with --payload, each --live line also carries the
+payload's price of its symbol and the card methodology section 4 makes of the state at that price -- an entry's,
+or a flat symbol's two triggers; a hold gives none since methodology 2026-11-26-b -- so that no run computes one.
+The archive replays the late card that revision withdrew, on the same function:
+
+    book.py --live --payload analyst/live.json SYMBOL...
+    book.py --archive --late SYMBOL...          every late card a hold gave at a day's open, filled and
+                                                followed as the card is, and their table
+
 Python 3.12's standard library only. Time is UTC everywhere.
 """
 import argparse
@@ -35,6 +44,7 @@ import concurrent.futures
 import csv
 import io
 import json
+import math
 import os
 import re
 import sys
@@ -59,6 +69,8 @@ MAJORS = ("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT")
 # At one open (TZ-81): an exit at the open frees its slot before the entries, which are taken in rank order; a
 # stop fills inside the day and frees its slot after them.
 AT_OPEN, ENTRY, IN_DAY = 0, 1, 2
+# The week's reach in atr20 (methodology section 2): sqrt(7) days of a daily range read as sqrt(8/pi) of its spread.
+REACH = math.sqrt(7.0) / math.sqrt(8.0 / math.pi)
 DAY_MS = 86_400_000
 HTTP_TIMEOUT_S = 20
 FAPI_KLINES = "https://fapi.binance.com/fapi/v1/klines?symbol=%s&interval=1d&limit=400"
@@ -92,25 +104,11 @@ def replay(bars, open_now=None, scale=None):
     for k in range(len(bars)):
         t, o, h, l, c = bars[k]
         if pos is not None and k >= pos["k_entry"]:
-            side, stop = pos["side"], pos.get("stop_now", pos["stop"])
-            if (side > 0 and l <= stop) or (side < 0 and h >= stop):
-                px = o if (side > 0 and o < stop) or (side < 0 and o > stop) else stop
-                trades.append(dict(pos, k_exit=k, t_exit=t, exit=px, why="stop"))
-                pos = None
-            elif "target" in pos and "t_scale" not in pos:
-                tgt = pos["target"]
-                if (side > 0 and h >= tgt) or (side < 0 and l <= tgt):
-                    pos.update(t_scale=t, k_scale=k, stop_now=pos["entry"],
-                               scale_px=o if (side > 0 and o > tgt) or (side < 0 and o < tgt) else tgt)
-            if pos is not None and k >= EXIT_N:
-                lo = min(b[3] for b in bars[k - EXIT_N:k]); hi = max(b[2] for b in bars[k - EXIT_N:k])
-                if (side > 0 and c < lo) or (side < 0 and c > hi):
-                    if k + 1 < len(bars):
-                        nxt = bars[k + 1]
-                        trades.append(dict(pos, k_exit=k + 1, t_exit=nxt[0], exit=nxt[1], why="channel"))
-                        pos = None
-                        continue          # the exit day's own close cannot also open a trade
-                    pos["exit_due"] = True
+            tr, pos, channel = manage(pos, bars, k)
+            if tr is not None:
+                trades.append(tr)
+            if channel:
+                continue              # the exit day's own close cannot also open a trade
         if pos is None and k >= ENTRY_N and (k + 1 < len(bars) or open_now is not None):
             a = atr(bars, k)
             if a is None or a <= 0:
@@ -124,6 +122,32 @@ def replay(bars, open_now=None, scale=None):
                 if scale:
                     pos["target"] = entry + side * scale * STOP_ATR * a
     return trades, pos
+
+
+def manage(pos, bars, k):
+    """Day k of an open position, as replay() walks it and a card follows it (TZ-84): (the trade it closed that
+    day or None, the position still open after it or None, whether a close beyond the channel closed it). The
+    stop fills intraday, at the open where the day opened beyond it; the target, where one is set, closes half
+    and moves the rest's stop to the entry from the next day on; a close beyond the prior EXIT_N days' opposite
+    extreme closes it at the next day's open, or marks the exit due on the last bar."""
+    t, o, h, l, c = bars[k]
+    side, stop = pos["side"], pos.get("stop_now", pos["stop"])
+    if (side > 0 and l <= stop) or (side < 0 and h >= stop):
+        px = o if (side > 0 and o < stop) or (side < 0 and o > stop) else stop
+        return dict(pos, k_exit=k, t_exit=t, exit=px, why="stop"), None, False
+    if "target" in pos and "t_scale" not in pos:
+        tgt = pos["target"]
+        if (side > 0 and h >= tgt) or (side < 0 and l <= tgt):
+            pos.update(t_scale=t, k_scale=k, stop_now=pos["entry"],
+                       scale_px=o if (side > 0 and o > tgt) or (side < 0 and o < tgt) else tgt)
+    if k >= EXIT_N:
+        lo = min(b[3] for b in bars[k - EXIT_N:k]); hi = max(b[2] for b in bars[k - EXIT_N:k])
+        if (side > 0 and c < lo) or (side < 0 and c > hi):
+            if k + 1 < len(bars):
+                nxt = bars[k + 1]
+                return dict(pos, k_exit=k + 1, t_exit=nxt[0], exit=nxt[1], why="channel"), None, True
+            pos["exit_due"] = True
+    return None, pos, False
 
 
 def levels(bars, pos):
@@ -155,6 +179,93 @@ def levels(bars, pos):
     elif k >= ENTRY_N - 1 and a:
         hi = max(b[2] for b in bars[k - ENTRY_N + 1:k + 1]); lo = min(b[3] for b in bars[k - ENTRY_N + 1:k + 1])
         out.update(long_trigger=hi, short_trigger=lo, long_stop=hi - STOP_ATR * a, short_stop=lo + STOP_ATR * a)
+    return out
+
+
+def card_of(state, p, today=None):
+    """The card a --live state gives at the frozen price p (methodology section 4, TZ-84), or None for an exit or
+    a state with no levels. A hold's late card stands on the level that closes it first -- its stop, or its
+    exit_level where nearer p -- d atr20 away: under STOP_ATR / 2 none (`near`), up to STOP_ATR one at p (`now`,
+    void STOP_ATR / 2 atr20 inside that level), beyond it a limit STOP_ATR atr20 inside that level, `limit`
+    within the week's reach of p and `out` beyond it; a price at or beyond that level has closed it (`closed`).
+    An entry stands on its stop at p, `near` under the half-way test. A flat symbol gives its two triggers, each
+    with its estimated stop and its distance. The target is SCALE_R times the distance from the anchor; touched
+    says whether today, the bar still forming, reached the card's stop."""
+    a = state.get("atr20")
+    if not a or a <= 0 or state.get("state") not in ("long", "short", "flat") or state.get("exit_due"):
+        return None
+    reach = REACH * a
+    if state["state"] == "flat":
+        out = dict(kind="trigger")
+        for name, side in (("long", 1), ("short", -1)):
+            trig, stop = state[name + "_trigger"], state[name + "_stop"]
+            d = abs(trig - p) / a
+            out[name] = dict(anchor=trig, stop=stop, target=trig + side * SCALE_R * abs(trig - stop), d=d,
+                             reach=d <= REACH)
+        return out
+    side = 1 if state["state"] == "long" else -1
+    if state.get("entry_due"):
+        kind, level = "entry", state["stop"]
+    else:
+        kind = "late"
+        level = state["stop"] if abs(p - state["stop"]) <= abs(p - state["exit_level"]) else state["exit_level"]
+    d = abs(p - level) / a
+    out = dict(kind=kind, stop=level, d=d)
+    if side * (p - level) <= 0:
+        out.update(band="closed")
+        return out
+    if d < STOP_ATR / 2:
+        out.update(band="near")
+    elif d <= STOP_ATR or kind == "entry":
+        out.update(band="now", anchor=p, void=level + side * STOP_ATR / 2 * a)
+    else:
+        limit = level + side * STOP_ATR * a
+        out.update(band="limit" if abs(limit - p) <= reach else "out", anchor=limit, gap=abs(limit - p) / a)
+    if "anchor" in out:
+        out["target"] = out["anchor"] + side * SCALE_R * abs(out["anchor"] - level)
+    if today is not None:
+        out["touched"] = bool((side > 0 and today[3] <= level) or (side < 0 and today[2] >= level))
+    return out
+
+
+def late_cards(bars):
+    """Every late card the rule's holds gave over these closed bars (TZ-84): one for each day k at whose open a
+    hold stands -- entered by day k-1 and neither stopped before day k nor told to exit at day k-1's close --
+    made by card_of() from levels() of the bars before day k at day k's open, as a run at that open would see
+    it. A `now` card fills at that open and a `limit` card where day k reaches its limit; each is then followed
+    by manage(): its stop on a touch, half at its target and the rest's stop at the entry, the rest by the
+    channel. On a limit's fill day the stop is checked and the target is not, since a daily bar does not say
+    which came first. (band, trade) each, trade None while the card has not closed; cards that did not fill
+    are not returned."""
+    trades, pos = replay(bars)
+    held = [(tr, tr["k_exit"] if tr["why"] == "stop" else tr["k_exit"] - 1) for tr in trades]
+    if pos is not None:
+        held.append((pos, len(bars) - 1))
+    out = []
+    for tr, k_last in held:
+        hold = dict(side=tr["side"], t_entry=tr["t_entry"], entry=tr["entry"], stop=tr["stop"])
+        for k in range(tr["k_entry"] + 1, k_last + 1):
+            state = levels(bars[:k], hold)
+            t, o, h, l, c = bars[k]
+            card = card_of(state, o)
+            if card is None or card.get("band") not in ("now", "limit"):
+                continue
+            side = tr["side"]
+            pos = dict(side=side, entry=card["anchor"], stop=card["stop"], t_entry=t, k_entry=k)
+            if card["band"] == "limit":
+                if not ((side > 0 and l <= card["anchor"]) or (side < 0 and h >= card["anchor"])):
+                    continue
+                done, pos, _ = manage(pos, bars, k)
+                if done is not None:
+                    out.append((card["band"], done))
+                    continue
+                k += 1
+            pos["target"] = card["target"]
+            done = None
+            while pos is not None and k < len(bars):
+                done, pos, _ = manage(pos, bars, k)
+                k += 1
+            out.append((card["band"], done))
     return out
 
 
@@ -216,6 +327,19 @@ def hold(books, ranks, side_max, book_max, fixed=None):
 def _get(url):
     with urllib.request.urlopen(url, timeout=HTTP_TIMEOUT_S) as r:
         return r.read()
+
+
+def payload_prices(path):
+    """Each symbol's frozen price in the run's payload (TZ-84): a list coin's from `c`, any other row's from `x`
+    -- the two arrays the writer builds (writer.build_payload) and analyst/live-gate.sh checks."""
+    with open(path, encoding="utf-8") as fh:
+        doc = json.load(fh)
+    out = {}
+    for row in doc.get("x") or []:
+        out[row["symbol"]] = float(row["lastPrice"])
+    for row in doc.get("c") or []:
+        out[row["s"]] = float(row["p"])
+    return {k: v for k, v in out.items() if math.isfinite(v) and v > 0}
 
 
 def live_day(symbol, now_ms):
@@ -349,6 +473,36 @@ def archive_paths(symbol, start, end):
     return paths
 
 
+def split(rows):
+    """The table of (t_exit, symbol, side, t_entry, r, ...) rows: in-sample, out-of-sample and all, each with its
+    long and short parts."""
+    oos = datetime(OOS_START.year, OOS_START.month, OOS_START.day, tzinfo=timezone.utc).timestamp() * 1000
+    out = {}
+    for name, keep in (("in-sample", lambda r: r[3] < oos), ("out-of-sample", lambda r: r[3] >= oos),
+                       ("all", lambda r: True)):
+        part = [r for r in rows if keep(r)]
+        out[name] = dict(summary([r[4] for r in part]),
+                         long=summary([r[4] for r in part if r[2] > 0]), short=summary([r[4] for r in part if r[2] < 0]))
+    return out
+
+
+def archive_late(symbols, start, end, cache, workers=8):
+    """Every late card the archive's holds gave and the tables of all of them and of each band (TZ-84): rows as
+    archive()'s, the band last; a card still open at the archive's end is not a row."""
+    with concurrent.futures.ThreadPoolExecutor(workers) as ex:
+        list(ex.map(lambda path: _archive_blob(path, cache),
+                    [path for s in symbols for path in archive_paths(s, start, end)]))
+    rows = []
+    for s in symbols:
+        bars, funding = archive_series(s, start, end, cache)
+        for band, tr in late_cards(bars):
+            if tr is not None:
+                rows.append((tr["t_exit"], s, tr["side"], tr["t_entry"], result_r(tr, funding), tr["why"], band))
+    rows.sort()
+    return rows, dict(all=split(rows), now=split([r for r in rows if r[6] == "now"]),
+                      limit=split([r for r in rows if r[6] == "limit"]))
+
+
 def archive(symbols, start, end, cache, workers=8, scale=None, ceilings=None):
     """Every trade over the archive and its table; with ceilings, (side, book), only the trades hold() takes, the
     symbols ranked in the order given (TZ-81)."""
@@ -366,14 +520,7 @@ def archive(symbols, start, end, cache, workers=8, scale=None, ceilings=None):
         taken = hold(books, rank(symbols), *ceilings)
         rows = [r for r in rows if (r[1], r[3]) in taken]
     rows.sort()
-    oos = datetime(OOS_START.year, OOS_START.month, OOS_START.day, tzinfo=timezone.utc).timestamp() * 1000
-    out = {}
-    for name, keep in (("in-sample", lambda r: r[3] < oos), ("out-of-sample", lambda r: r[3] >= oos),
-                       ("all", lambda r: True)):
-        part = [r for r in rows if keep(r)]
-        out[name] = dict(summary([r[4] for r in part]),
-                         long=summary([r[4] for r in part if r[2] > 0]), short=summary([r[4] for r in part if r[2] < 0]))
-    return rows, out
+    return rows, split(rows)
 
 
 def main(argv=None):
@@ -386,25 +533,41 @@ def main(argv=None):
     ap.add_argument("--scale", type=float, default=None, help="the plan: half closes at this many R (TZ-80)")
     ap.add_argument("--hold", default=None, metavar="SIDE,BOOK",
                     help="the archive's trades the book holds under these ceilings (TZ-81)")
+    ap.add_argument("--payload", default=None, help="the run's payload: each line's price and card (TZ-84)")
+    ap.add_argument("--late", action="store_true", help="the archive's late cards (TZ-84)")
     ap.add_argument("symbols", nargs="+")
     a = ap.parse_args(argv)
     if a.live == a.archive:
         ap.error("exactly one of --live and --archive")
     if a.hold is not None and (a.live or not re.fullmatch(r"[1-9]\d*,[1-9]\d*", a.hold)):
         ap.error("--hold SIDE,BOOK reads the archive; the live book held is score.py's")
+    if a.payload is not None and not a.live:
+        ap.error("--payload prices the live book")
+    if a.late and (a.live or a.scale is not None or a.hold is not None):
+        ap.error("--late reads the archive's rule, alone")
     if a.live:
         now_ms = int(time.time() * 1000)
+        prices = payload_prices(a.payload) if a.payload is not None else None
         for s in a.symbols:
             try:
-                out = live_state(s, now_ms, a.scale)[0]
+                bars, today = live_day(s, now_ms)
+                out = state_of(s, bars, today[1], a.scale)[0]
+                if prices is not None and out.get("state") != "short-history":
+                    p = prices.get(s)
+                    card = None if p is None else card_of(out, p, today)
+                    out["price"], out["card"] = p, None if card is not None and card["kind"] == "late" else card
             except Exception as exc:          # one symbol's failure never hides the others
                 out = dict(symbol=s, state="unread", error=exc.__class__.__name__)
             print(json.dumps(out, sort_keys=True), flush=True)
         return 0
     os.makedirs(a.cache, exist_ok=True)
     end = date.fromisoformat(a.end) if a.end else (datetime.now(timezone.utc).date() - timedelta(days=2))
-    rows, out = archive(a.symbols, date.fromisoformat(a.start), end, a.cache, scale=a.scale,
-                        ceilings=None if a.hold is None else tuple(int(n) for n in a.hold.split(",")))
+    if a.late:
+        rows, tables = archive_late(a.symbols, date.fromisoformat(a.start), end, a.cache)
+        out = dict((band + " " + name, s) for band, t in tables.items() for name, s in t.items())
+    else:
+        rows, out = archive(a.symbols, date.fromisoformat(a.start), end, a.cache, scale=a.scale,
+                            ceilings=None if a.hold is None else tuple(int(n) for n in a.hold.split(",")))
     for name, s in out.items():
         if not s["n"]:
             print("%-14s no trades" % name); continue

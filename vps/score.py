@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The book's signal and its forward ledger (TZ-79, TZ-80, TZ-81). It runs no model and reads no credential.
+"""The book's signal and its forward ledger (TZ-79, TZ-80, TZ-81, TZ-84). It runs no model and reads no credential.
 
     score.py [--state DIR] [--outbox DIR]              the daily close
     score.py --forming [--state DIR] [--outbox DIR]    the look at the day still forming
@@ -31,12 +31,16 @@ again (map inv. 70). The size and the ceilings are the owner's, read from analys
                           reads its trade differently is counted, and a close found later than that is
                           counted and never written -- the replay's window slides, and the ledger takes
                           no file about a past it did not see
+    score-cards/          every card the analysis answer printed (TZ-84), from the CARD| lines of the day
+                          logs this checkout carries, followed as its card says: one trade a coin, side and
+                          fill however many runs print it, one closed trade a file,
+                          <SYMBOL>-<long|short>-<fill stamp>.json, written once on its close and never reopened
     score-forming/        one look a file, <YYYY-MM-DD>.json, written once: what the look named, so that
                           the next close counts how much of it came true; a day that has its file is not
                           looked at again
     score.json            the daily close's reading: the day it stands on, the ceilings, the book held's open
-                          positions and the plan's it leaves out, the three ledgers' totals, and the look's
-                          count for that day
+                          positions and the plan's it leaves out, the three ledgers' totals, the look's count
+                          for that day, and the cards' -- their totals, the cards still open and the counts
 
 Prints one line, and one before it for each trade it could not price; never a price.
 Exit 0 the reading is written, or the day was already looked at · 4 no symbol was read, or the read is older
@@ -78,6 +82,14 @@ HELD = "score-held"
 FORMING = "score-forming"
 RECORD = "score.json"
 LEDGER_KEYS = ("symbol", "side", "t_entry", "entry", "stop", "t_exit", "exit", "why", "r", "seen")
+# TZ-84: the card ledger -- every card the answer printed, the record the trust line scores.
+CARDS = "score-cards"
+CARD_KEYS = ("symbol", "side", "kind", "stem", "rank", "t_entry", "entry", "stop", "target", "t_exit", "exit",
+             "why", "r", "seen")
+CARD_FIELDS = 16                                 # ANALYST-INSTRUCTIONS.md section 12's CARD| line
+CARD_KINDS = ("now", "wait", "limit")
+MINUTES_URL = "https://fapi.binance.com/fapi/v1/klines?symbol=%s&interval=1m&startTime=%d&endTime=%d&limit=1500"
+MINUTE_MS = 60_000
 
 # The alert, in the owner's words; a number he may type prints as a code span (the bot of TZ-71).
 T_HEAD = ("\U0001f4c8 **\u0421\u0414\u0415\u041b\u041a\u0418 \u041f\u0420\u0410\u0412\u0418\u041b\u0410** \u00b7 "
@@ -347,6 +359,201 @@ def compose_look(day_now, hours, stopped, scaled, entries):
     return "\n".join(lines)
 
 
+def log_dir():
+    """The day logs of the checkout this vps/ directory sits in (ANALYST-INSTRUCTIONS.md section 12)."""
+    return os.path.join(os.path.dirname(common.index_html_path()), "analyst", "log")
+
+
+def card_lines(path):
+    """Every CARD| line of the day logs under path (TZ-84), each a card, in the order of their freezes, stems and
+    ranks: (cards, skipped), a line that does not read as a card -- its fields, its side, its kind, three prices
+    standing as a card's must -- counted and left out."""
+    try:
+        names = sorted(n for n in os.listdir(path) if n.endswith(".md") and not n.endswith(".hunt.md"))
+    except FileNotFoundError:
+        return [], 0
+    cards, skipped = [], 0
+    for name in names:
+        with open(os.path.join(path, name), encoding="utf-8") as fh:
+            for line in fh:
+                if not line.startswith("CARD|"):
+                    continue
+                f = line.rstrip("\n").split("|")
+                try:
+                    if len(f) != CARD_FIELDS or f[6] not in ("long", "short") or f[7] not in CARD_KINDS:
+                        raise ValueError("not a card")
+                    side = 1 if f[6] == "long" else -1
+                    anchor, stop, target = float(f[9]), float(f[10]), float(f[11])
+                    if not all(math.isfinite(v) and v > 0 for v in (anchor, stop, target)) \
+                            or side * (anchor - stop) <= 0 or side * (target - anchor) <= 0:
+                        raise ValueError("not a card's prices")
+                    freeze = int(datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                                 .timestamp() * 1000)
+                    cards.append(dict(stem=f[1], freeze=freeze, rank=int(f[3]), symbol=f[5], side=side, kind=f[7],
+                                      anchor=anchor, stop=stop, target=target))
+                except (ValueError, IndexError):
+                    skipped += 1
+    cards.sort(key=lambda c: (c["freeze"], c["stem"], c["rank"]))
+    return cards, skipped
+
+
+def card_minutes(symbol, freeze):
+    """The one-minute bars of a card's freeze day after its freeze minute, (t, open, high, low, close) oldest first
+    (TZ-84); refused unless they run from the minute after the freeze to the day's last minute."""
+    start = freeze - freeze % MINUTE_MS + MINUTE_MS
+    end = freeze - freeze % book.DAY_MS + book.DAY_MS - MINUTE_MS
+    if start > end:
+        return []
+    rows = json.loads(book._get(MINUTES_URL % (symbol, start, end)))
+    out = [(int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in rows]
+    if not out or out[0][0] != start or out[-1][0] != end:
+        raise ValueError("the minutes do not cover the freeze day")
+    return out
+
+
+def card_trade(card, bars, minutes, plan):
+    """The trade one card makes (TZ-84) on its symbol's closed daily bars, its freeze day's minutes after the freeze
+    and the plan's replay of those bars, (trades, position) of book.replay at SCALE_R: ("waiting", None) while
+    the freeze day has not closed, ("lapsed", None) where the card did not fill, else ("open", position) or
+    ("closed", trade). A `now` card fills at its entry at the freeze; a `limit` card at its limit on the first
+    minute that reaches it before the next recalculation, the day's end, or at that minute's open where it
+    opened beyond; a `wait` card is the plan's own entry on its side at the next open, which the book makes only
+    where the freeze day closed beyond the trigger. A `now` or `limit` card's fill day is the part after its fill
+    -- the later minutes' high and low, the fill minute's side toward the stop, the day's close -- and from it
+    the card is followed by book.manage(): its stop on a touch, half at its target and the rest's stop at its
+    entry, the rest by the channel; an event of the fill day is stamped no earlier than the fill."""
+    day0 = card["freeze"] - card["freeze"] % book.DAY_MS
+    if not bars or bars[-1][0] < day0:
+        return "waiting", None
+    k = next((i for i, b in enumerate(bars) if b[0] == day0), None)
+    if k is None:
+        raise ValueError("the freeze day is not a bar of the read")
+    side = card["side"]
+    if card["kind"] == "wait":
+        trades, pos = plan
+        for tr in trades + ([pos] if pos is not None else []):
+            if tr["t_entry"] == day0 + book.DAY_MS and tr["side"] == side:
+                return ("open", tr) if "t_exit" not in tr else ("closed", tr)
+        return "lapsed", None
+    if card["kind"] == "now":
+        fill, t_fill, later, toward = card["anchor"], card["freeze"], minutes, None
+    else:
+        j = next((i for i, m in enumerate(minutes)
+                  if (side < 0 and m[2] >= card["anchor"]) or (side > 0 and m[3] <= card["anchor"])), None)
+        if j is None:
+            return "lapsed", None
+        m = minutes[j]
+        fill = max(m[1], card["anchor"]) if side < 0 else min(m[1], card["anchor"])
+        t_fill, later, toward = m[0], minutes[j + 1:], m[2] if side < 0 else m[3]
+    highs = [b[2] for b in later] + ([toward] if toward is not None and side < 0 else []) + [fill]
+    lows = [b[3] for b in later] + ([toward] if toward is not None and side > 0 else []) + [fill]
+    path = bars[:k] + [(bars[k][0], fill, max(highs), min(lows), bars[k][4])] + bars[k + 1:]
+    pos = dict(side=side, entry=fill, stop=card["stop"], target=card["target"], t_entry=t_fill, k_entry=k)
+    done = None
+    while pos is not None and k < len(path):
+        done, pos, _ = book.manage(pos, path, k)
+        k += 1
+    tr = done if done is not None else pos
+    for key in ("t_exit", "t_scale"):
+        if key in tr:
+            tr[key] = max(tr[key], t_fill)
+    return ("closed", tr) if done is not None else ("open", tr)
+
+
+def card_funding(symbol, t_entry, t_exit):
+    """A card's funding prints (TZ-84): funding_prints() from the start of its fill day, at least FUNDING_GAP_MS
+    long, so that a card filled and closed between two settlements asks for a span that holds one; result_r()
+    counts the prints after the fill alone."""
+    lo = t_entry - t_entry % book.DAY_MS
+    return funding_prints(symbol, lo, max(t_exit, lo + FUNDING_GAP_MS))
+
+
+def card_name(row):
+    """The file a closed card trade is written to: its symbol, its side and the stamp of its fill."""
+    return "%s-%s-%d.json" % (row["symbol"], "long" if row["side"] > 0 else "short", row["t_entry"])
+
+
+def read_cards(path):
+    """Every trade of the card ledger, in the order of the file names; a file that is not the trade its name says
+    raises, as read_ledger()."""
+    try:
+        names = sorted(name for name in os.listdir(path) if name.endswith(".json") and not name.startswith("."))
+    except FileNotFoundError:
+        return []
+    rows = []
+    for name in names:
+        with open(os.path.join(path, name), encoding="utf-8") as fh:
+            row = json.load(fh)
+        if not isinstance(row, dict) or any(key not in row for key in CARD_KEYS) or card_name(row) != name:
+            raise ValueError("a card ledger file is not a trade")
+        rows.append(row)
+    return rows
+
+
+def cards_pass(path, ledger, cards, now_ms, seen, symbols):
+    """The card ledger's run (TZ-84): every card followed on one read of its symbol, the earliest card of a coin,
+    side and fill making its one trade, each new close written as a new file (inv. 38) once its funding prints
+    arrive whole. (the ledger's trades, the record's block)."""
+    known = {(row["symbol"], row["side"], row["t_entry"]) for row in ledger}
+    counts = dict(read=len(cards), waiting=0, lapsed=0, pending=0, unread=0)
+    added, opened, taken = [], [], set()
+    for symbol in sorted({c["symbol"] for c in cards}):
+        group = [c for c in cards if c["symbol"] == symbol]
+        try:
+            bars, open_now = book.live_bars(symbol, now_ms)
+        except Exception:                 # one symbol's failure never hides the others
+            counts["unread"] += len(group)
+            continue
+        plan = book.replay(bars, open_now, book.SCALE_R)
+        for card in group:
+            try:
+                day0 = card["freeze"] - card["freeze"] % book.DAY_MS
+                closed_day = bars and bars[-1][0] >= day0
+                minutes = card_minutes(symbol, card["freeze"]) if closed_day and card["kind"] != "wait" else []
+                status, tr = card_trade(card, bars, minutes, plan)
+            except Exception as exc:      # asked again tomorrow
+                counts["pending"] += 1
+                common.log("score: pending %s %s %s" % (CARDS, symbol, exc.__class__.__name__))
+                continue
+            if status in ("waiting", "lapsed"):
+                counts[status] += 1
+                continue
+            key = (symbol, card["side"], tr["t_entry"])
+            if key in taken:
+                continue
+            taken.add(key)
+            if status == "open":
+                opened.append({"symbol": symbol, "side": card["side"], "kind": card["kind"], "stem": card["stem"],
+                               "rank": card["rank"], "t_entry": tr["t_entry"], "entry": tr["entry"],
+                               "stop": tr["stop"], "target": tr.get("target"), "scaled": "t_scale" in tr,
+                               "exit_due": bool(tr.get("exit_due"))})
+                continue
+            if key in known:
+                continue
+            try:
+                r = book.result_r(tr, card_funding(symbol, tr["t_entry"], tr["t_exit"]))
+                if not math.isfinite(r):
+                    raise ValueError("the result is not finite")
+            except Exception as exc:      # not written: the next run asks for the prints again (inv. 70)
+                counts["pending"] += 1
+                common.log("score: pending %s %s %s" % (CARDS, symbol, exc.__class__.__name__))
+                continue
+            known.add(key)
+            added.append({"symbol": symbol, "side": tr["side"], "kind": card["kind"], "stem": card["stem"],
+                          "rank": card["rank"], "t_entry": tr["t_entry"], "entry": tr["entry"], "stop": tr["stop"],
+                          "target": tr.get("target"), "t_exit": tr["t_exit"], "exit": tr["exit"], "why": tr["why"],
+                          "r": r, "seen": seen})
+    if added:
+        os.makedirs(path, mode=0o750, exist_ok=True)
+        for row in added:                 # a new file each: nothing that stands is opened (inv. 38)
+            common.atomic_write(os.path.join(path, card_name(row)), row, mode=0o640)
+    rows = ledger + added
+    on_list = set(symbols)
+    return rows, dict(counts, added=len(added), closed=totals(rows),
+                      list=totals([row for row in rows if row["symbol"] in on_list]),
+                      outside=totals([row for row in rows if row["symbol"] not in on_list]), open=opened)
+
+
 def record_of(state_dir):
     """The daily close's last record, or None where there is none or it does not parse."""
     try:
@@ -514,8 +721,10 @@ def main(argv=None, now_ms=None):
     ceilings = list(paper.ceilings(own))
     rule_path, plan_path = os.path.join(args.state, LEDGER), os.path.join(args.state, PLAN)
     held_path, record_path = os.path.join(args.state, HELD), os.path.join(args.state, RECORD)
+    cards_path = os.path.join(args.state, CARDS)
     try:
         rule_ledger, plan_ledger, held_ledger = read_ledger(rule_path), read_ledger(plan_path), read_ledger(held_path)
+        card_ledger = read_cards(cards_path)
     except (OSError, ValueError, TypeError):
         common.log("score: a file of the ledger is not a trade, nothing written")
         return 5
@@ -583,6 +792,14 @@ def main(argv=None, now_ms=None):
         common.write_outbox("alert", compose(asof, baseline, opened, skipped, scaled, closing, closed, rows,
                                              open_rows, own), outbox_dir=args.outbox)
 
+    try:
+        cards, unparsed = card_lines(log_dir())
+        card_rows, card_block = cards_pass(cards_path, card_ledger, cards, now_ms, seen, symbols)
+        card_block["skipped"] = unparsed
+    except Exception as exc:              # the card ledger never stops the book's
+        common.log("score: cards unread %s" % exc.__class__.__name__)
+        card_rows, card_block = card_ledger, None
+
     def by_group(group):
         return {"all": totals(group), "majors": totals([row for row in group if row["symbol"] in MAJORS]),
                 "others": totals([row for row in group if row["symbol"] not in MAJORS])}
@@ -598,14 +815,18 @@ def main(argv=None, now_ms=None):
         "plan": {"open": len(plan_open), "closed": by_group(plan_rows), "pending": plan_pending, "late": plan_late,
                  "disagree": plan_disagree},
         "rule": {"open": sum(1 for rule, _ in live if rule[0]["state"] in ("long", "short")), "closed": by_group(rule_rows),
-                 "pending": rule_pending, "late": rule_late, "disagree": rule_disagree}}, mode=0o640)
+                 "pending": rule_pending, "late": rule_late, "disagree": rule_disagree},
+        "cards": card_block}, mode=0o640)
     common.log("score: asof=%s symbols=%d read=%d unread=%d open=%d outside=%d opened=%d skipped=%d scaled=%d "
-               "closing=%d closed=%d pending=%d late=%d disagree=%d ledger=%d plan=%d rule=%d look=%s alert=%s"
+               "closing=%d closed=%d pending=%d late=%d disagree=%d ledger=%d plan=%d rule=%d look=%s alert=%s "
+               "cards=%s"
                % (asof, len(symbols), len(symbols) - len(unread), len(unread), len(open_rows), len(outside),
                   len(opened), len(skipped), len(scaled), len(closing), len(closed), pending, late, disagree,
                   len(rows), len(plan_rows), len(rule_rows),
                   "-" if look is None else "%d/%d/%d" % (look["hit"], look["named"], look["entries"]),
-                  "yes" if alert else "no"))
+                  "yes" if alert else "no",
+                  "-" if card_block is None else "%d/%d/%d" % (len(card_rows), len(card_block["open"]),
+                                                               card_block["pending"])))
     return 0
 
 

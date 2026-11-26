@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1, TZ-60 B3, TZ-83): the writer, then one
+"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1, TZ-60 B3, TZ-83, TZ-84): the writer, then one
 headless role-2 session, admitted only when the host's available memory less
 RESERVE_BYTES covers this unit's ceiling and its free swap covers this unit's swap
 ceiling; the answer goes to the outbox. The run has its own user and its own clone.
@@ -10,9 +10,11 @@ ceiling; the answer goes to the outbox. The run has its own user and its own clo
 
 The run's own Claude login is read from $CREDENTIALS_DIRECTORY and placed in the
 environment of the claude child alone. Never prints the answer. Exit 0 answer
-handed to the outbox · 1 the session failed (notice S7) · 75 not admitted
-(notice S6; SuccessExitStatus=75). A SIGTERM while crypto-stop.service runs is the
-owner's stop (TZ-60 B3): logged, and no notice S7.
+handed to the outbox · 1 the session failed (notice S7, or S17 where the API answered
+429) · 75 not admitted (notice S6; SuccessExitStatus=75). A SIGTERM while
+crypto-stop.service runs is the owner's stop (TZ-60 B3): logged, and no notice S7. An
+answer whose day log did not reach origin/main is followed by notice S16 (TZ-84): its
+cards are ones the card ledger never scores.
 """
 import argparse
 import json
@@ -54,9 +56,11 @@ APPEND = ("Before anything else, run sed '/^# PART B/q' EXECUTOR-INSTRUCTIONS.md
           "and read what it prints, and nothing of that file below it: it is your contract, and the user "
           "message is a trigger from its \u00a74.")
 MODEL  = "claude-opus-5-5"
-# TZ-83: the trader at xhigh (the owner's proposal of 25.11.2026); the pinned CLI lists the level for this
-# model in its own catalog.
-EFFORT = "xhigh"
+# TZ-84: the trader back at high -- the first press at xhigh (TZ-83), 26.11.2026, spent 86 % of the owner's
+# five-hour window, his report of that day; the pinned CLI lists the level for this model in its own catalog.
+EFFORT = "high"
+# TZ-84: the API's answer to an account whose window is spent.
+LIMIT_STATUS = "429"
 # TZ-66: each alias a subagent call can name resolves to one full id in the session's environment. The Agent
 # tool's per-call model outranks any agent definition (Claude Code docs, "Subagents", read 19.10.2026), and the
 # methodology names the hunter's as `sonnet`; the sheriff runs on MODEL, the session's own.
@@ -209,6 +213,13 @@ def prepare_tree(tree):
     git(tree, "clean", "-q", "-fdx")
 
 
+def day_logs(tree):
+    """The day logs origin/main carries in the clone tree (ANALYST-INSTRUCTIONS.md section 12, TZ-84): the names
+    under analyst/log/ ending in .md and not in .hunt.md."""
+    names = git(tree, "ls-tree", "--name-only", "origin/main", "analyst/log/", capture=True).splitlines()
+    return {n for n in names if n.endswith(".md") and not n.endswith(".hunt.md")}
+
+
 def writer_env():
     """The writer's environment: this unit's, never carrying the Claude login."""
     return {k: v for k, v in os.environ.items() if k != LOGIN_ENV}
@@ -267,7 +278,7 @@ def main(argv=None):
         return set_limits()
     tree = os.path.abspath(args.tree)
     line = {"requests": 0, "admitted": "no", "waited_s": 0, "writer_exit": "-", "claude_exit": "-",
-            "is_error": "true", "num_turns": 0, "duration_ms": 0, "denials": 0, "answer_chars": 0}
+            "is_error": "true", "num_turns": 0, "duration_ms": 0, "denials": 0, "answer_chars": 0, "log": "-"}
     extra = {"models": "-", "unpinned": "-", "denied_tools": "-"}
     extra.update((name, "-") for name in RESULT_CATEGORIES)
     # TZ-56 12.4: the limits the run ran under, its peaks and its token usage.
@@ -281,7 +292,7 @@ def main(argv=None):
         common.log("crypto-run: requests=%(requests)s admitted=%(admitted)s waited_s=%(waited_s)s "
                    "writer_exit=%(writer_exit)s claude_exit=%(claude_exit)s is_error=%(is_error)s "
                    "num_turns=%(num_turns)s duration_ms=%(duration_ms)s denials=%(denials)s "
-                   "answer_chars=%(answer_chars)s" % line)
+                   "answer_chars=%(answer_chars)s log=%(log)s" % line)
         # Model ids, denied tool names and result.json's categorical fields (TZ-54 §14,
         # TZ-55 B2.4); never the answer.
         common.log("crypto-run: models=%(models)s unpinned=%(unpinned)s denied_tools=%(denied_tools)s "
@@ -320,6 +331,7 @@ def main(argv=None):
         return EXIT_NOT_ADMITTED
 
     prepare_tree(tree)
+    logs_before = day_logs(tree)
     line["writer_exit"] = subprocess.run([sys.executable, WRITER, "--tree", tree], env=writer_env()).returncode
 
     runtime_dir = os.environ.get("RUNTIME_DIRECTORY") or tempfile.mkdtemp(prefix="crypto-run.")
@@ -380,6 +392,13 @@ def main(argv=None):
     if answered:
         common.write_outbox("answer", result)
         line["answer_chars"] = len(result)
+        # TZ-84: the commit the session pushed is the record's one source of this answer's cards.
+        git(tree, "fetch", "-q", "origin", "main")
+        line["log"] = "yes" if day_logs(tree) - logs_before else "no"
+        if line["log"] == "no":
+            common.write_outbox("notice", common.S16)
+    elif extra["api_error_status"] == LIMIT_STATUS:
+        common.write_outbox("notice", common.S17)
     else:
         common.write_outbox("notice", common.S7)
 
