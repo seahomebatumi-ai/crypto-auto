@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
-TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1, TZ-79 B1): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
+TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1, TZ-79 B1, TZ-84): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
 TZ-56 §12.6's, TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's, TZ-69's, TZ-71's and
 TZ-72's changed and new ones, each printing
 `section <X>: checks <n> failed <m>`, then the total.
@@ -573,8 +573,8 @@ def section_o(s):
     cmd = run.CLAUDE
     s.check("run.CLAUDE carries --model immediately followed by claude-opus-5-5",
             any(cmd[i] == "--model" and cmd[i + 1] == "claude-opus-5-5" for i in range(len(cmd) - 1)))
-    s.check("run.CLAUDE carries --effort immediately followed by xhigh",
-            any(cmd[i] == "--effort" and cmd[i + 1] == "xhigh" for i in range(len(cmd) - 1)))
+    s.check("run.CLAUDE carries --effort immediately followed by high",
+            any(cmd[i] == "--effort" and cmd[i + 1] == "high" for i in range(len(cmd) - 1)))
     # TZ-83: the appended sentence names the contract's Part A by its one command, and never the whole file.
     s.check("run.APPEND names Part A's command", "sed '/^# PART B/q' EXECUTOR-INSTRUCTIONS.md" in run.APPEND)
     s.check("run.APPEND never asks for the contract in full", "in full" not in run.APPEND)
@@ -3177,7 +3177,7 @@ def section_w_orders(s):
 # --- AB: the book's signal and its forward ledger (TZ-79), the plan's (TZ-80), the book held (TZ-81) -------------
 AB_LINE = re.compile(r"score: asof=\d{4}-\d\d-\d\d symbols=\d+ read=\d+ unread=\d+ open=\d+ outside=\d+ opened=\d+ "
                      r"skipped=\d+ scaled=\d+ closing=\d+ closed=\d+ pending=\d+ late=\d+ disagree=\d+ ledger=\d+ "
-                     r"plan=\d+ rule=\d+ look=(-|\d+/\d+/\d+) alert=(yes|no)")
+                     r"plan=\d+ rule=\d+ look=(-|\d+/\d+/\d+) alert=(yes|no) cards=(-|\d+/\d+/\d+)")
 AB_LOOK = re.compile(r"score: forming day=\d{4}-\d\d-\d\d symbols=\d+ read=\d+ unread=\d+ stopped=\d+ scaled=\d+ "
                      r"entries=\d+ alert=(yes|no)")
 AB_LOOK_MS = 15 * 3600 * 1000 + 10 * 60 * 1000          # the look's hour: 15:10 UTC
@@ -3237,14 +3237,14 @@ class AbHost:
     def call(self, argv, n, shift, part, at_ms):
         """(exit code, what it printed, the alerts it wrote) of one score.py call on day n."""
         self.n, self.shift, self.part, self.runs = n, shift or {}, part or {}, self.runs + 1
-        saved = book._get, score.list_symbols, common.OUTBOX_DIR, paper.owner_now
+        saved = book._get, score.list_symbols, common.OUTBOX_DIR, paper.owner_now, score.log_dir
         book._get, score.list_symbols, common.OUTBOX_DIR = self.get, lambda: list(self.worlds), self.outbox
-        paper.owner_now = lambda: self.own
+        paper.owner_now, score.log_dir = (lambda: self.own), (lambda: os.path.join(self.tmp, "logs"))
         try:
             with contextlib.redirect_stdout(io.StringIO()) as out:
                 code = score.main(["--state", self.state] + argv, now_ms=n * book.DAY_MS + at_ms + self.runs * 1000)
         finally:
-            book._get, score.list_symbols, common.OUTBOX_DIR, paper.owner_now = saved
+            book._get, score.list_symbols, common.OUTBOX_DIR, paper.owner_now, score.log_dir = saved
             self.part = {}
         texts = []
         for name in sorted(set(os.listdir(self.outbox)) - self.sent):
@@ -3370,10 +3370,10 @@ def section_ab(s):
         s.check("baseline: no ledger file is written while no trade has closed",
                 ledger is None and h.ledger(score.PLAN) is None and h.ledger(score.HELD) is None)
         s.check("record keys v k ts asof since symbols unread ceilings held open outside closed pending late disagree "
-                "look plan rule, in order",
+                "look plan rule cards, in order",
                 record is not None and list(record) == ["v", "k", "ts", "asof", "since", "symbols", "unread", "ceilings",
                                                         "held", "open", "outside", "closed", "pending", "late",
-                                                        "disagree", "look", "plan", "rule"])
+                                                        "disagree", "look", "plan", "rule", "cards"])
         s.check("a day nobody looked at carries no look's count", record is not None and record["look"] is None)
         s.check("record v 3, k score, asof the last closed day, the unread symbol named, the ceilings 6 and 10, the "
                 "book's one span: the long due at the open, standing",
@@ -4101,12 +4101,266 @@ def section_ab(s):
             not [x for x in service + look_service if "claude" in x.lower()])
 
 
+# --- AC: the card a state gives, the late card's replay, the card ledger and the run's two notices (TZ-84) ------
+AC_STUB_LOG = """#!/usr/bin/env python3
+import json, os, subprocess, sys
+os.makedirs("analyst/log", exist_ok=True)
+with open("analyst/log/1970-01-02.md", "w") as fh:
+    fh.write("x\\n")
+g = ["git", "-c", "user.name=selftest", "-c", "user.email=selftest@invalid"]
+subprocess.run(g + ["add", "analyst/log/1970-01-02.md"], check=True)
+subprocess.run(g + ["commit", "-q", "-m", "analyst: 1970-01-02"], check=True)
+subprocess.run(g + ["push", "-q", "origin", "HEAD:main"], check=True)
+json.dump({"type": "result", "is_error": False, "result": os.environ["SELFTEST_AC_RESULT"], "num_turns": 1}, sys.stdout)
+"""
+AC_STUB_ANSWER = """#!/usr/bin/env python3
+import json, os, sys
+json.dump({"type": "result", "is_error": False, "result": os.environ["SELFTEST_AC_RESULT"], "num_turns": 1}, sys.stdout)
+"""
+AC_STUB_429 = """#!/usr/bin/env python3
+import json, sys
+json.dump({"type": "result", "is_error": True, "api_error_status": 429, "result": "", "num_turns": 0}, sys.stdout)
+"""
+
+
+def ac_world():
+    """60 flat days, a breakout long filled at 105 under a stop at 100.6, a day whose open gives the hold a limit at
+    105.1 that its low reaches, a day through the target at 114.1, a day back through the rest's stop, then flat."""
+    bars = [(k * book.DAY_MS, 100.0, 101.0, 99.0, 100.0) for k in range(60)]
+    bars += [(60 * book.DAY_MS, 100.0, 106.0, 100.0, 105.0), (61 * book.DAY_MS, 105.0, 107.0, 104.0, 106.0),
+             (62 * book.DAY_MS, 106.0, 107.0, 105.0, 106.5), (63 * book.DAY_MS, 106.5, 115.0, 106.0, 114.0),
+             (64 * book.DAY_MS, 114.0, 114.5, 104.0, 104.5)]
+    return bars + [(k * book.DAY_MS, 104.5, 105.0, 104.0, 104.5) for k in range(65, 70)]
+
+
+def ac_flat(days, last=None):
+    bars = [(k * book.DAY_MS, 100.0, 101.0, 99.0, 100.0) for k in range(days)]
+    return bars if last is None else bars[:-1] + [(bars[-1][0],) + last]
+
+
+AC_FREEZE = 70 * book.DAY_MS + 10 * 3600 * 1000      # 1970-03-12 10:00 UTC
+
+
+def ac_minutes(url, spikes):
+    """What fapi's one-minute klines answer for the URL's span: flat at 100, the minute of each spike standing at
+    its (open, high, low, close)."""
+    q = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+    start, end, symbol = int(q["startTime"][0]), int(q["endTime"][0]), q["symbol"][0]
+    rows = []
+    for t in range(start, end + 1, score.MINUTE_MS):
+        o, h, l, c = spikes.get(symbol, {}).get(t, (100.0, 100.5, 99.5, 100.0))
+        rows.append([t, str(o), str(h), str(l), str(c), "0", t + score.MINUTE_MS - 1])
+    return json.dumps(rows).encode()
+
+
+def section_ac(s):
+    eps = 1e-9
+    s.check("REACH is sqrt(7) / sqrt(8/pi)", abs(book.REACH - 7 ** 0.5 / (8 / 3.141592653589793) ** 0.5) < 1e-12)
+    short = {"state": "short", "stop": 110.0, "exit_level": 112.0, "atr20": 4.0, "entry_due": False, "exit_due": False}
+    lim = book.card_of(short, 100.0)
+    s.check("a short hold 2.5 atr20 from its stop: a limit at 102 inside its reach, target 86",
+            lim["kind"] == "late" and lim["band"] == "limit" and abs(lim["anchor"] - 102.0) < eps
+            and abs(lim["stop"] - 110.0) < eps and abs(lim["target"] - 86.0) < eps and abs(lim["gap"] - 0.5) < eps)
+    now = book.card_of(short, 104.0, (0, 104.0, 109.0, 103.0, 104.0))
+    s.check("1.5 atr20 from its stop: now at the price, void at 106, target 92, the day not at its stop",
+            now["band"] == "now" and abs(now["anchor"] - 104.0) < eps and abs(now["void"] - 106.0) < eps
+            and abs(now["target"] - 92.0) < eps and now["touched"] is False)
+    s.check("a forming day whose high reached the stop is touched",
+            book.card_of(short, 104.0, (0, 104.0, 110.0, 103.0, 104.0))["touched"] is True)
+    s.check("under half its stop distance: near; at or beyond the stop: closed; a limit beyond the week's reach: out",
+            [book.card_of(short, p)["band"] for p in (107.0, 110.0, 111.0, 90.0)] == ["near", "closed", "closed", "out"])
+    nearer = book.card_of(dict(short, exit_level=108.0), 100.0)
+    s.check("the exit level nearer the price stands as the card's stop",
+            nearer["band"] == "now" and abs(nearer["stop"] - 108.0) < eps and abs(nearer["target"] - 84.0) < eps)
+    entry = {"state": "long", "stop": 95.0, "exit_level": 90.0, "atr20": 2.5, "entry_due": True, "exit_due": False}
+    e1, e2, e3 = book.card_of(entry, 100.0), book.card_of(entry, 96.0), book.card_of(entry, 108.0)
+    s.check("an entry: now at the price, void 97.5, target 110; near under the half-way test; never a limit",
+            e1["kind"] == "entry" and e1["band"] == "now" and abs(e1["void"] - 97.5) < eps
+            and abs(e1["target"] - 110.0) < eps and e2["band"] == "near" and e3["band"] == "now")
+    flat = {"state": "flat", "long_trigger": 120.0, "short_trigger": 80.0, "long_stop": 112.0, "short_stop": 88.0,
+            "atr20": 4.0}
+    tr = book.card_of(flat, 114.0)
+    s.check("a flat symbol: its two triggers, the long within reach with target 136, the short beyond it",
+            tr["kind"] == "trigger" and tr["long"]["reach"] is True and abs(tr["long"]["d"] - 1.5) < eps
+            and abs(tr["long"]["target"] - 136.0) < eps and tr["short"]["reach"] is False
+            and abs(tr["short"]["target"] - 64.0) < eps)
+    s.check("an exit due and a state with no atr20 give no card",
+            book.card_of(dict(short, exit_due=True), 100.0) is None and book.card_of(dict(short, atr20=None), 100.0) is None)
+
+    world = ac_world()
+    cards = book.late_cards(world)
+    first = [tr for band, tr in cards if tr is not None and tr["t_entry"] == 62 * book.DAY_MS]
+    s.check("the late replay: the hold's limit of day 62 fills at 105.1 under 100.6, targets 114.1",
+            len(first) == 1 and [b for b, t in cards if t is first[0]] == ["limit"]
+            and abs(first[0]["entry"] - 105.1) < eps and abs(first[0]["stop"] - 100.6) < eps
+            and abs(first[0]["target"] - 114.1) < eps)
+    s.check("it closes half at the target on day 63 and the rest at its entry on day 64",
+            len(first) == 1 and first[0]["t_scale"] == 63 * book.DAY_MS and abs(first[0]["scale_px"] - 114.1) < eps
+            and first[0]["t_exit"] == 64 * book.DAY_MS and abs(first[0]["exit"] - 105.1) < eps
+            and first[0]["why"] == "stop")
+    s.check("its R is 1 less the costs over its risk, by result_r",
+            len(first) == 1 and abs(book.result_r(first[0], []) - (1 - 2 * book.COST_SIDE * 105.1 / 4.5)) < 1e-9)
+    s.check("every card stands on a day a hold stands, on the hold's side, and fills on or after that day",
+            all(tr is None or (tr["side"] == 1 and 62 * book.DAY_MS <= tr["t_entry"] < 70 * book.DAY_MS)
+                for _, tr in cards) and len(cards) >= 1)
+    rules, _ = book.replay(world)
+    s.check("replay is unchanged by the cards: the world's own rule holds one long from day 61, still open",
+            rules == [] and book.replay(world)[1]["t_entry"] == 61 * book.DAY_MS)
+
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-ac.")
+    saved_get = book._get
+    try:
+        pay = os.path.join(tmp, "live.json")
+        with open(pay, "w", encoding="utf-8") as fh:
+            json.dump({"c": [{"s": "AUSDT", "p": "2"}],
+                       "x": [{"symbol": "AUSDT", "lastPrice": "3"}, {"symbol": "BUSDT", "lastPrice": "5"}]}, fh)
+        s.check("the payload's price: a list coin's from c, any other row's from x",
+                book.payload_prices(pay) == {"AUSDT": 2.0, "BUSDT": 5.0})
+        long_world = x_world_long()
+        lines = {}
+        for sym, bars, fill in (("AUSDT", long_world[:61], 105.0), ("BUSDT", ac_world()[:66], 104.5)):
+            book._get = lambda url, b=bars, f=fill: ab_klines(b, f)
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                book.main(["--live", "--payload", pay, sym])
+            lines[sym] = json.loads(out.getvalue())
+        s.check("--live --payload: an entry carries its price and its card",
+                lines["AUSDT"]["price"] == 2.0 and lines["AUSDT"]["card"]["kind"] == "entry")
+        s.check("--live --payload: a hold carries its price and no card",
+                lines["BUSDT"]["price"] == 5.0 and lines["BUSDT"]["state"] == "long" and lines["BUSDT"]["card"] is None)
+
+        logs, state = os.path.join(tmp, "logs"), os.path.join(tmp, "state")
+        os.makedirs(logs)
+        stem = score.day(70 * book.DAY_MS)
+        at = datetime.fromtimestamp(AC_FREEZE / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        later = datetime.fromtimestamp((80 * book.DAY_MS + 3600 * 1000) / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        rows = ["CARD|%s|%s|1|ПЕРСП|CCCUSDT|short|now|late|100|104|92|—|1000|3|30" % (stem, at),
+                "CARD|%s|%s|2|ПЕРСП|CCCUSDT|short|limit|late|105|109|97|—|1000|3|30" % (stem, at),
+                "CARD|%s|%s|3|ПЕРСП|DDDUSDT|short|limit|late|102|106|94|—|1000|3|30" % (stem, at),
+                "CARD|%s|%s|4|ПЕРСП|EEEUSDT|short|wait|fresh|99|103.4|90.2|—|1000|3|30" % (stem, at),
+                "CARD|%s|%s|1|ПЕРСП|CCCUSDT|short|now|late|100|104|92|—|1000|3" % (stem, at)]
+        with open(os.path.join(logs, stem + ".md"), "w", encoding="utf-8") as fh:
+            fh.write("answer\n" + "\n".join(rows) + "\n")
+        with open(os.path.join(logs, stem + "-2.md"), "w", encoding="utf-8") as fh:
+            fh.write("CARD|%s-2|%s|1|ПЕРСП|DDDUSDT|short|limit|late|102|106|94|—|1000|3|30\n" % (stem, at))
+            fh.write("CARD|%s-2|%s|2|ПЕРСП|CCCUSDT|short|now|late|100|104|92|—|1000|3|30\n" % (stem, later))
+        with open(os.path.join(logs, stem + ".hunt.md"), "w", encoding="utf-8") as fh:
+            fh.write("CARD|%s|%s|1|ПЕРСП|ZZZUSDT|short|now|late|1|2|0.5|—|1|3|1\n" % (stem, at))
+        found, skipped = score.card_lines(logs)
+        s.check("the day logs' CARD| lines: six cards in freeze, stem and rank order, the short line skipped, no hunt "
+                "record", len(found) == 6 and skipped == 1 and [c["symbol"] for c in found][:4] == ["CCCUSDT", "CCCUSDT",
+                                                                                          "DDDUSDT", "EEEUSDT"]
+                and found[0]["freeze"] == AC_FREEZE and found[0]["side"] == -1 and found[0]["kind"] == "now")
+        worlds = {"CCCUSDT": ac_flat(81), "DDDUSDT": ac_flat(81),
+                  "EEEUSDT": ac_flat(70) + [(70 * book.DAY_MS, 100.0, 100.0, 94.0, 95.0)]
+                  + [(k * book.DAY_MS, 95.0, 96.0, 94.0, 95.0) for k in range(71, 81)]}
+        spikes = {"CCCUSDT": {AC_FREEZE + 2 * 3600 * 1000: (100.0, 104.5, 99.8, 100.2)},
+                  "DDDUSDT": {AC_FREEZE + 5 * 3600 * 1000: (100.0, 102.2, 99.9, 100.1)}}
+        refuse = {"on": True}
+
+        def get(url):
+            if "fundingRate" in url:
+                if refuse["on"]:
+                    raise OSError("refused")
+                return ab_funding(url)
+            if "interval=1m" in url:
+                return ac_minutes(url, spikes)
+            sym = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["symbol"][0]
+            return ab_klines(worlds[sym][:80], worlds[sym][80][1])
+        book._get = get
+        now_ms = 80 * book.DAY_MS + 10 * 60 * 1000
+        found, _ = score.card_lines(logs)
+        with contextlib.redirect_stdout(io.StringIO()):
+            r1, b1 = score.cards_pass(os.path.join(state, score.CARDS), [], found, now_ms, "s1", ["CCCUSDT"])
+        s.check("funding refused: the stopped card pending, nothing written",
+                r1 == [] and b1["pending"] == 1 and not os.path.exists(os.path.join(state, score.CARDS)))
+        refuse["on"] = False
+        with contextlib.redirect_stdout(io.StringIO()):
+            r2, b2 = score.cards_pass(os.path.join(state, score.CARDS), [], found, now_ms, "s2", ["CCCUSDT"])
+        names = sorted(os.listdir(os.path.join(state, score.CARDS)))
+        s.check("the now card stopped on its fill day: one file, R -1.05, stamped at the fill",
+                names == ["CCCUSDT-short-%d.json" % AC_FREEZE] and len(r2) == 1
+                and abs(r2[0]["r"] - (-0.04 - 2 * book.COST_SIDE) / 0.04) < 1e-9 and r2[0]["exit"] == 104.0
+                and r2[0]["t_exit"] == AC_FREEZE and r2[0]["why"] == "stop" and r2[0]["stem"] == stem)
+        opened = {(o["symbol"], o["kind"]): o for o in b2["open"]}
+        s.check("the touched limit open at 102 and the wait card open on the plan's entry at 95, its stop and target",
+                set(opened) == {("DDDUSDT", "limit"), ("EEEUSDT", "wait")}
+                and opened[("DDDUSDT", "limit")]["entry"] == 102.0
+                and opened[("DDDUSDT", "limit")]["t_entry"] == AC_FREEZE + 5 * 3600 * 1000
+                and opened[("EEEUSDT", "wait")]["entry"] == 95.0 and abs(opened[("EEEUSDT", "wait")]["stop"] - 99.4) < eps
+                and abs(opened[("EEEUSDT", "wait")]["target"] - 86.2) < eps)
+        s.check("one trade a coin, side and fill: the second log's DDD card adds none; the untouched limit lapsed; "
+                "the card of a day not yet closed waits",
+                len(b2["open"]) == 2 and b2["lapsed"] == 1 and b2["waiting"] == 1 and b2["read"] == 6
+                and b2["closed"]["n"] == 1 and b2["outside"]["n"] == 0 and b2["list"]["n"] == 1)
+        stamp = os.stat(os.path.join(state, score.CARDS, names[0])).st_mtime_ns
+        with contextlib.redirect_stdout(io.StringIO()):
+            r3, b3 = score.cards_pass(os.path.join(state, score.CARDS), score.read_cards(os.path.join(state, score.CARDS)),
+                                      found, now_ms + 1000, "s3", ["CCCUSDT"])
+        s.check("the next run adds nothing and opens no file",
+                b3["added"] == 0 and len(r3) == 1 and sorted(os.listdir(os.path.join(state, score.CARDS))) == names
+                and os.stat(os.path.join(state, score.CARDS, names[0])).st_mtime_ns == stamp)
+        h = AbHost(os.path.join(tmp, "ab"), {"AAAUSDT": x_world_long()})
+        os.makedirs(os.path.join(h.tmp, "logs"))
+        with open(os.path.join(h.tmp, "logs", "1970-03-02.md"), "w", encoding="utf-8") as fh:
+            fh.write("CARD|1970-03-02|1970-03-02T10:00:00Z|1|ПЕРСП|AAAUSDT|short|now\n")
+        code, printed, _, _, record = h.run(61)
+        s.check("the daily close carries the card ledger's block: nothing read, the bad line skipped",
+                code == 0 and record["cards"]["read"] == 0 and record["cards"]["skipped"] == 1
+                and ab_field(printed, "cards") == "0/0/0")
+    finally:
+        book._get = saved_get
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    for stub, want, label, landed in ((AC_STUB_ANSWER, "no", "an answer whose log never reached main", False),
+                                      (AC_STUB_LOG, "yes", "an answer whose log reached main", True),
+                                      (AC_STUB_429, "-", "a session refused with 429", None)):
+        tmp = tempfile.mkdtemp(prefix="vps-selftest-ac-run.")
+        env_keys = ("CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", "SELFTEST_AC_RESULT", "SELFTEST_O_WRITER_SAW")
+        saved_env = {k: os.environ.get(k) for k in env_keys}
+        patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (run, "WRITER"), (run, "own_memory_max"),
+                   (run, "own_swap_max"), (run, "CLAUDE")]
+        saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
+        saved_term = signal.getsignal(signal.SIGTERM)
+        try:
+            paths, tree, _ = o_fixtures(tmp, stub, "sk-ant-oat01-selftest-planted-" + os.urandom(6).hex())
+            os.environ.update({"CREDENTIALS_DIRECTORY": paths["creds"], "RUNTIME_DIRECTORY": paths["runtime"],
+                               "SELFTEST_AC_RESULT": run.ANSWER_HEAD + " SELFTEST-AC",
+                               "SELFTEST_O_WRITER_SAW": os.path.join(tmp, "writer-saw")})
+            common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
+            run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+            run.CLAUDE = stub_cli(paths)
+            run.own_memory_max = run.own_swap_max = lambda: None
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                code = run.main(["--tree", tree])
+            first = [l for l in out.getvalue().splitlines() if l.startswith("crypto-run: requests=")]
+            answers = [n for n in os.listdir(paths["outbox"]) if "-answer-" in n]
+            if landed is None:
+                s.check(label + ": exit 1, one notice S17 and no answer, log=-",
+                        code == 1 and notices(paths["outbox"]) == [common.S17] and answers == []
+                        and len(first) == 1 and first[0].endswith(" log=-"))
+            else:
+                s.check(label + ": the answer delivered, log=" + want,
+                        code == 0 and len(answers) == 1 and len(first) == 1 and first[0].endswith(" log=" + want))
+                s.check(label + (": no notice" if landed else ": one notice S16"),
+                        notices(paths["outbox"]) == ([] if landed else [common.S16]))
+        finally:
+            for mod, name, value in saved_attrs:
+                setattr(mod, name, value)
+            for k, v in saved_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+            signal.signal(signal.SIGTERM, saved_term)
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
             ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x),
-            ("Y", section_y), ("Z", section_z), ("AA", section_aa), ("AB", section_ab))
+            ("Y", section_y), ("Z", section_z), ("AA", section_aa), ("AB", section_ab), ("AC", section_ac))
 
 
 def main():
