@@ -1,15 +1,16 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
-**Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root). **Revision 2026-11-26-a.**
+**Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root). **Revision 2026-11-26-b.**
 
 **Authority.** Authoritative in GitHub and read there alone; written by the Architect and delivered as the COMPLETE
 file the Boss uploads. The analyst never edits it, a TZ asking for an edit is defective (`EXECUTOR-INSTRUCTIONS.md` §7
 item 14), and a finding may force one. A rule not here is not in force, and a rule here is repeated nowhere else; where
 this methodology and the contract touch, the contract wins. English; Russian labels («…») are quoted verbatim.
 
-**`2026-11-26-a` cuts the trader's read under 20 000 tokens**, the rules of `2026-11-25-a` standing in fewer words;
-it repairs a sheriff's `FINDING contradiction`, runs the sheriff at `xhigh` (§15) and makes the venue a class (§2). **§6
-and §6a do not move, so `sec6_md5` is unchanged;** an item they cite that §7 no longer carries means §14's check or the
+**`2026-11-26-b` withdraws the late card,** which the archive replay of 26.11.2026 found losing (§4), and repairs what
+the audit of run 2026-11-26 found: the venue and the main event, past items, «Ближе всех к STRONG», the order and the
+ПЕРСПЕКТИВНЫЕ ladder (§2, §4), the large players' last day (§16) and the sheriff's repair (§15). **§6 and §6a do not
+move, so `sec6_md5` is unchanged;** an item they cite that §7 no longer carries means §14's check or the
 section named, and a retired form they name means §2's.
 
 **Who reads what:** the trader §15, then its one command (§15); the hunter §16 and what it names; the sheriff §17 alone.
@@ -91,7 +92,7 @@ and wording change only by his decision. A message ends at the break line: one l
 [карточки STRONG по рангу, без ограничения числа]
 [N = 0:] STRONG = сигнал системы + подтверждённый катализатор + деньги в ту же сторону.
 [N = 0:] Ближе всех к STRONG:
-[N = 0:] • XXX — чего не хватает
+[N = 0:] • XXX шорт — чего не хватает
 
 **📈 ПЕРСПЕКТИВНЫЕ — N**
 [карточки по рангу, не больше десяти]
@@ -197,15 +198,12 @@ BTC: крупные игроки ⚪ без перекоса · толпа ⚪ �
 **N. [STRONG:]⭐ STRONG · 🔴 ШОРТ XXX**[ · вне списка][ · разлок ДД.ММ (X.X%)]
 [ВХОД:] ⚡ **ВХОД СЕЙЧАС** — по рынку
 [ЖДАТЬ:] ⏳ **ЖДАТЬ** — вход ещё не подтверждён
-[ОТКАТ:] ⏳ **ЖДАТЬ** — вход на откате
 [STRONG:] 📅 **Катализатор:** ДД.ММ — событие · подтверждено: источник · известно с ДД.ММ (N дн.), с тех пор ±X.X%
 [STRONG:] 💰 **Деньги:** OI ±X.X% за сутки · продавцы XX%
 [ЖДАТЬ:] **Условие:** день закроется ниже $`X`
-[ОТКАТ:] **Условие:** цена поднимется до $`X`
-[ЖДАТЬ, ОТКАТ:] сейчас $X · нужно ещё ±X.X%
+[ЖДАТЬ:] сейчас $X · нужно ещё ±X.X%
 [ВХОД:] **Вход:** $`X` или выше — не выше $`Y`
 [ЖДАТЬ:] **Вход:** ≈ $`X` — в 04:00 Тбилиси, если условие выполнено
-[ОТКАТ:] **Вход:** $`X` — лимитный ордер до 04:00 Тбилиси
 **Стоп:** [ЖДАТЬ: ≈ ]$`X` (±X.X%)
 **Цель:** [ЖДАТЬ: ≈ ]$`X` (±X.X%) — закрыть половину, стоп → на вход
 [ВХОД:] **Остаток:** держать, пока день не закроется выше $`X`
@@ -215,11 +213,11 @@ BTC: крупные игроки ⚪ без перекоса · толпа ⚪ �
 **При стопе:** [ЖДАТЬ: ≈ ]−X USDT (−X.X% депозита)
 **На цели:** [ЖДАТЬ: ≈ ]+X USDT, остаток — без риска
 [причина §2:] ⚠️ Толпа уже в шорте — риск уменьшен вдвое
-[вне списка, поздний вход, или факт сверх правила:] **Почему:** что за проект[; крупные игроки набирают шорт][; тренд уже идёт — вход на продолжение]
-👉 [ВХОД:] Открыть шорт по рынку, сразу поставить стоп и цель. [ЖДАТЬ:] Не входить, пока день не закроется ниже $X. [ОТКАТ:] Поставить лимит на шорт по $X со стопом и целью; в 04:00 — снять.
+[вне списка или факт сверх правила:] **Почему:** что за проект[; крупные игроки набирают шорт]
+👉 [ВХОД:] Открыть шорт по рынку, сразу поставить стоп и цель. [ЖДАТЬ:] Не входить, пока день не закроется ниже $X.
 ````
 
-A long reads «🟢 ЛОНГ», «или ниже — не ниже», «выше» in the condition, «опустится» in a pull-back's, «ниже» in
+A long reads «🟢 ЛОНГ», «или ниже — не ниже», «выше» in the condition, «ниже» in
 `Остаток`, «покупатели» in `Деньги` and «лонг» in the instruction; a short reads the skeleton.
 
 **Head.** «Время анализа:» prints the freeze minute (§5) and is the line the run unit looks for (contract §4); the day
@@ -231,23 +229,24 @@ line prints the book's `asof` and the next UTC midnight in Tbilisi time (UTC+4 a
 coin a veto refused today (§4), or whose long a material cliff closes while the book enters nothing on it, with the
 side and one word of reason («GRAM в лонг — разлок») — bare, or `XXX до ДД.ММ` where a dated event at `primary` or
 `archive` lifts it; never an outside-list coin or one the book could not read. «🌍 Рынок» is §4's market verdict;
-«📅 Главное событие» the item with the widest reaction range. **«ВЕРДИКТ:» is the answer's one verdict** — two or three
-sentences: the market's state, what to do now, what to wait for, the main risk — no unprinted price and no code span.
+«📅 Главное событие» the item ahead whose range is widest on BTC or on a coin with a card — with none in the window,
+the nearest class B or S date of the horizon store beyond it, «— через N дн.»; never a past item or a date the run
+set. **«ВЕРДИКТ:» is the answer's one verdict** — two or three sentences: the market's state, what to do now, what to
+wait for, the main risk — no unprinted price and no code span.
 
 **`# ЛУЧШИЕ СДЕЛКИ` carries every trade the engine offers, as cards:** a list entry due today (§4) · an outside-list
-candidate that passed §3B · a list trigger within the week's reach · a forward item of the hunt at its book trigger · a
-late entry on a coin the book holds (§4's band). An entry and a late entry are ⚡; a trigger, a forward item and a late
-limit are ⏳, never an instruction to open now. A coin refused by a veto, the liquidation test or a `STRIKE` has no
-card. Every run offers the best entries of its own minute, a coin recommended before included. **The week's reach** is
-`√7 × atr20 / √(8/π)`, distances in `atr20` units.
+candidate that passed §3B · a list trigger within the week's reach · a forward item of the hunt at its book trigger.
+An entry is ⚡; a trigger and a forward item are ⏳, never an instruction to open now. A coin the book holds, or refused
+by a veto, the liquidation test or a `STRIKE`, has no card. Every run offers the best entries of its own minute, a coin
+recommended before included. **The week's reach** is `√7 × atr20 / √(8/π)`, distances in `atr20` units.
 
 **Groups and rank.** STRONG — every card meeting §8's four conditions, no cap; ПЕРСПЕКТИВНЫЕ — every other card, at
 most ten, the rest named in «Ещё в очереди:». With no STRONG card the definition line and «Ближе всех к STRONG:» print —
-up to three coins meeting §8's condition 1 or 2 and not all four, nearest first, each with what it lacks in words («LIT,
-TRX — сигнал есть, катализатора нет»). Numbers run on across the groups, ⚡ before ⏳ inside each: STRONG by the nearer
-catalyst date, then the larger 24-hour turnover; ПЕРСПЕКТИВНЫЕ ⚡ — no ⚠️ before ⚠️, then a coin whose large players
-build its side (§16), then turnover; ПЕРСПЕКТИВНЫЕ ⏳ — the trigger or limit nearest the frozen price in `atr20` units,
-then turnover. No probability prints, and none ranks.
+up to three coins meeting §8's condition 1 or 2 and not all four, nearest first, each with its side and what it lacks
+(«LIT шорт, TRX шорт — сигнал есть, катализатора нет»). Numbers run on across the groups, ⚡ before ⏳ inside each:
+STRONG by the nearer catalyst date, then the larger 24-hour turnover; ПЕРСПЕКТИВНЫЕ by more of §8's conditions 1–3
+met, then no ⚠️ before ⚠️, then ⚡ by a coin whose large players build its side (§16) and ⏳ by the trigger nearest the
+frozen price in `atr20` units, then turnover — the order the ladder sizes (§4). No probability prints, and none ranks.
 
 **The card's lines** follow the card template, and these rules fill them:
 
@@ -255,16 +254,16 @@ then turnover. No probability prints, and none ranks.
   STRONG, «📅 Катализатор:» is the hunt's event, date, publisher's host and «известно с» (§4), «💰 Деньги:» its `FLOW`.
 - **«Вход» on ⚡ is the frozen price, decided once at the freeze and never re-taken;** its «не выше / не ниже $`Y`»
   is the price past which the card is void, `Y` lying `STOP_ATR / 2 × atr20` inside the stop.
-- **«Цель»** is `T = P + side × 2 × |P − stop|` — `P` the frozen price, the limit on a limit card, the trigger with «≈»
-  on a trigger card; side +1 long, −1 short; rounded as the price. A plan for the money, never an edge.
+- **«Цель»** is `T = P + side × 2 × |P − stop|` — `P` the frozen price, the trigger with «≈» on a trigger
+  card; side +1 long, −1 short; rounded as the price. A plan for the money, never an edge.
 - **«Остаток»** carries the book's `exit_level`; where it lies beyond the stop, the card's order says what comes first.
 - **⚠️ «<причина> — риск уменьшен вдвое»** has three causes, each read off this run's figures: «событие ДД.ММ» — an
   event on the coin in the holding window, impact `ВЫСОКОЕ`, effect against the side, dated only at `primary` or
   `archive`; «мало ликвидности» — turnover under $10M; «толпа уже в лонге / в шорте» — the crowd class of the card's side
   (§16). It halves the risk (§4) and bars STRONG; «— позиция минимальная» ends it where the owner's floors set the
   size.
-- **«Почему:»** prints off the list — the project, then a dated event or the large players' class of the side — on a
-  late card «тренд уже идёт — вход на продолжение», and on a list card only for a fact beyond the book's rule.
+- **«Почему:»** prints off the list — the project, then a dated event or the large players' class of the side — and
+  on a list card only for a fact beyond the book's rule.
 - «Риск : прибыль: 1 : 2» and the tier's margin print at the owner's request; no other constant of the construction
   prints, and the stop line carries no money.
 
@@ -315,8 +314,9 @@ trigger on the event's side and the distance, or that the book holds or could no
 «Реакция:» and «Что меняет:», only where the payload shows its reaction or BTC travelled more than its `ordinary` day
 from the print's hour — the high less the low of `fapi/v1/klines?symbol=BTCUSDT&interval=1h&startTime=<ms>&limit=25`,
 over that hour's open. Five full items at most, the widest class median first; six «Фон» bullets at most, nearest first,
-each a dated event found this run that moves no side. «⚠️ Поиск событий неполный: …» ends the section exactly where §7
-item 91 holds, naming the coins short, at most six and «и ещё N», and «часть монет вне списка».
+each a dated event ahead found this run that moves no side; a past item prints as a full item or not at all. «⚠️
+Поиск событий неполный: …» ends the section exactly where §7 item 91 holds, naming the coins short, at most six and «и
+ещё N», and «часть монет вне списка».
 
 - **The world's scheduled week prints** — every rate decision of the Fed, the ECB, the Bank of Japan and the Bank of
   England, every US CPI, PCE, payrolls and GDP, every quarterly report of NVIDIA, Microsoft, Apple, Alphabet, Amazon,
@@ -342,10 +342,11 @@ item 91 holds, naming the coins short, at most six and «и ещё N», and «ч
   effect ШОРТ, impact `ВЫСОКОЕ`, verdict МЕДВЕЖИЙ, «❔» until the protocol's schedule dates it; it opens no short, and an
   escrow returning most of each release is no cliff. **A perpetual whose `deliveryDate` falls inside the window has no
   card.**
-- **The venue — Binance itself — is a class of its own:** wherever the hunt's `VENUE` line puts its withdrawals,
-  reserves, wallets or contracts in question, it is `СОБЫТИЯ`'s first item, 🔥, «Влияние: ⚪ направление неизвестно · BTC
-  **±X%** · резкое движение», its sentence on capital held on the exchange, and «ВЕРДИКТ:»'s main risk — never held to
-  class C's payload test, never a coin's catalyst.
+- **The venue — Binance itself — is a class of its own:** where the hunt's `VENUE` line carries a publication of the
+  72 hours before the freeze putting its withdrawals, reserves, wallets or contracts in question, it is `СОБЫТИЯ`'s
+  first item, 🔥, dated by that publication, «Влияние: ⚪ направление неизвестно · BTC **±X%** · резкое движение», its
+  sentence on capital held on the exchange, and «ВЕРДИКТ:»'s main risk — never held to class C's payload test, never a
+  coin's catalyst; a state with no such publication prints nowhere.
 
 **`# ПОТОКИ В ETF США` prints the hunt's `ETF` line**, newest session first, `—` where an asset has none, «За 3 дня»
 each column's sum; «: торги дн ДД.ММ ещё идут» while a US session is open, «⚠️ Данные устарели: нет сессии дн ДД.ММ»
@@ -357,9 +358,9 @@ same-sign sessions and whether it grows.
 frozen price's move from the entry — then «Половина закрыта с прибылью, остаток — без риска», then each held-ledger trade
 closed in the seven days before the freeze with `r` above zero, «→ закрыта с прибылью: +X USDT»; under «🛑 Закрыты в
 убыток — за 7 дней:» every other, «→ по стопу» or «→ по правилу выхода»; then «Итог» from `closed.all` and `open`. R
-becomes USDT at `capital.usdt × card.risk_other_pct / 100`, and a loss is named beside every win. «🎯 Целей пока нет»
-replaces an empty 🎯 heading, an empty 🛑 heading is omitted, and an unreadable record prints «⚠️ Счёт недоступен: запись
-системы не прочитана» alone.
+becomes USDT at `capital.usdt` × the first `card.risk_other_pct` / 100, and a loss is named beside every win. «🎯
+Целей пока нет» replaces an empty 🎯 heading, an empty 🛑 heading is omitted, and an unreadable record prints «⚠️ Счёт
+недоступен: запись системы не прочитана» alone.
 
 **Numbers.** An order number on a card — entry, stop, target, trigger, `Остаток`'s level, quantity, margin, leverage —
 is a code span, its `$` and unit outside and no separator inside. Every other number of four or more digits groups its
@@ -373,8 +374,8 @@ thousands with U+00A0, never an ASCII space.
 the appendix.
 
 **B — outside the list: a mandatory search on the book, at most three cards a side, a STRONG card beyond them.** The book
-runs on every row of `x` passing the four filters that is not a symbol of `c`; a row it prints an entry due for, or a
-hold with a late card, is a candidate, and nothing else is. A candidate is published or refused in the appendix by a
+runs on every row of `x` passing the four filters that is not a symbol of `c`; a row it prints an entry due for is a
+candidate, and nothing else is. A candidate is published or refused in the appendix by a
 named rule — filter 3, an unlock, the large players' class, the forming day's stop, the half-way test, the liquidation
 test, a veto. Slots go, per side, to a dated event naming the side, then the large players' class of the side (§16),
 then turnover; a candidate whose large players stand against its side is refused. An outside-list card is
@@ -416,7 +417,7 @@ python3 vps/book.py --live <every outside-list row passing filters 1, 2 and 4, b
 |---|---|---|
 | `long` / `short`, `entry_due` true | `entry`, `stop`, `exit_level`, `atr20` | an ENTRY today, a ⚡ card; the book fills at the forming day's open |
 | `long` / `short`, `exit_due` true | — | an EXIT today, in the appendix alone |
-| `long` / `short`, otherwise | `stop`, `exit_level`, `atr20` | a HOLD, a late card where the band allows |
+| `long` / `short`, otherwise | `stop`, `exit_level`, `atr20` | a HOLD — no card (below) |
 | `flat` | `long_trigger`, `short_trigger`, `long_stop`, `short_stop`, `atr20` | two TRIGGERS — a close beyond either opens a trade |
 | `unread`, `short-history` | `error` | nothing printed; the appendix names it |
 
@@ -425,17 +426,16 @@ A symbol with no line is `unread`; a failed command, or every list symbol `unrea
 - **An entry** prints at the frozen price with the program's `stop` and `exit_level` — no card where its forming day
   reached its stop (field 3 or 2 of `fapi/v1/klines?symbol=<S>&interval=1d&limit=1`, a long's low, a short's high) or
   where `|P − stop| < STOP_ATR / 2 × atr20`, the half-way test.
-- **A hold's late card:** its stop is the level that closes the hold first — `exit_level`, or `stop` where nearer `P`
-  — and `d = |P − stop| / atr20`: under `STOP_ATR / 2` no card; up to `STOP_ATR` ⚡ at the frozen price; beyond it ⏳
-  «вход на откате», a limit `STOP_ATR × atr20` inside the stop, valid to the next recalculation and published only
-  within the week's reach of `P`. A frozen price at or beyond `stop` has closed the hold. No book entry date or price
-  prints.
+- **A hold gives no card.** `2026-11-25-a`'s late card — a hold's entry at the frozen price, or at a limit inside its
+  stop — replayed on the archive on 26.11.2026 (`vps/book.py --archive --late`, TZ-84; the list from 2023, costs and
+  funding) lost out of sample: 3 435 cards, −0.23 R each, PF 0.64, both bands; averaged per hold −0.47 R in sample and
+  −0.48 R out. It returns only on a replay that pays.
 - **A trigger's stop is an estimate**, «≈», fixed only at the fill.
 - **One coin, one side — the book's;** no word, week or view moves a side, level or status.
 - **A dated event naming a side makes a flat coin a forward ⏳ card at its book trigger on that side;** the event
   nominates, the book prices, and no figure the event carries moves a level.
 
-**What acts on a state is closed, and every act takes away:** an entry, a late one included, is refused by a material
+**What acts on a state is closed, and every act takes away:** an entry is refused by a material
 cliff on a long, a delivery date in the window, the large players against its side with the crowd on it (§16), its
 forming day's stop, the half-way or liquidation test or a `STRIKE`, and halved by a ⚠️ cause or a `CUT`; a trigger is
 left out where a cliff or a delivery closes its side; a hold or an exit is never acted on. **Every state not published as
@@ -487,12 +487,12 @@ corridor   P × exp(± vol × √48)
 constants in one operation, executed, and logged with its command and span. No value is typed anywhere in the run.
 
 **Every card is sized by the owner's ladder** — `analyst/owner.json` `card` (§11) — at its anchor (the frozen price on
-⚡, the trigger or the limit on ⏳) on the distance its stop prints:
+⚡, the trigger on ⏳) on the distance its stop prints:
 
 ```
 tier     ⭐ STRONG, rank r in its group: margin = card.margin_strong_usdt[r], risk = card.risk_strong_pct[r]
                                          (a rank past the list takes its last value)
-         📈 ПЕРСПЕКТИВНЫЕ:               margin = card.margin_other_usdt, risk = card.risk_other_pct
+         📈 ПЕРСПЕКТИВНЫЕ, rank r too:   margin = card.margin_other_usdt[r], risk = card.risk_other_pct[r]
          × risk.risk_mult_high where ⚠️ prints or the sheriff CUT the card
 R$       = capital.usdt × risk / 100
 d        = |anchor − stop| / anchor          f = d + 2 × FEE_TAKER
@@ -567,7 +567,7 @@ said in the first line and the run continues.
 
 **4 · The freeze and the book, before any search:** the two book commands (§4); filter 4's capitalisation read; the
 stem — `YYYY-MM-DD`, or `YYYY-MM-DD-N` where that date's log exists, by listing `analyst/log/`; the hunter's prompt
-lines (§15) — its book rows the outside rows with an entry or a late card that pass the forming-day, half-way and
+lines (§15) — its book rows the outside rows with an entry that pass the forming-day, half-way and
 liquidation tests, per lane by turnover, its forward rows the flat outside rows whose trigger lies within the week's
 reach, nearest first in `atr20`, three a side; and the score record, printed in `# СЧЁТ СИСТЕМЫ` alone:
 
@@ -1568,8 +1568,8 @@ the large players «киты набирают лонг / шорт».
 trades appear where a powerful catalyst, above all a collaboration with another project, meets the market. **A card is
 STRONG where all four hold at the freeze:**
 
-1. **Signal** — the book's own state on the card's side: an entry due today, a trigger within the week's reach, or a
-   late entry on a hold (§4); the side is the program's, never the catalyst's.
+1. **Signal** — the book's own state on the card's side: an entry due today or a trigger within the week's reach
+   (§4); the side is the program's, never the catalyst's.
 2. **Catalyst** — an `ITEMS` line of this run's hunt on the card's coin, class A or S, whose `names` is the card's side,
    dated inside the holding window or in the 72 hours before the freeze, read at its publisher this run, `dclass`
    `primary` or `archive`, and of a powerful kind: for a long, a partnership or integration with a named counterparty,
@@ -1628,11 +1628,11 @@ has passed is deleted; one inside the holding window is re-read at its `src` (§
 **`analyst/owner.json`** is written by the Architect and read here, never written here:
 
 ```
-{ "v":5, "k":"owner", "updated":"YYYY-MM-DD",
+{ "v":6, "k":"owner", "updated":"YYYY-MM-DD",
   "capital":{ "usdt", "asof":"YYYY-MM-DD" },
   "risk":{ "risk_pct_strong", "risk_pct_medium", "risk_mult_high", "side_max_pct",
            "book_max_pct", "lev_max", "margin":"isolated" },
-  "card":{ "margin_strong_usdt":[…], "risk_strong_pct":[…], "margin_other_usdt", "risk_other_pct",
+  "card":{ "margin_strong_usdt":[…], "risk_strong_pct":[…], "margin_other_usdt":[…], "risk_other_pct":[…],
            "margin_min_usdt", "margin_max_usdt", "lev_min", "lev_max" },
   "vectors":[ { "id", "sym"|null, "claim", "raised" } ] }
 ```
@@ -1747,7 +1747,7 @@ subagent's final message as its own result.
    Outside rows: <every outside-list row the book read, in turnover order, or none>
    Forward rows, long lane: <the outside rows whose long trigger lies within reach, nearest first, at most three, or none>
    Forward rows, short lane: <the same for the short trigger, or none>
-   Signal coins: <every list coin the book enters today, whose trigger lies within reach or whose hold §4's band gives a card, with its side, or none>
+   Signal coins: <every list coin the book enters today or whose trigger lies within reach, with its side, or none>
    Return the HUNT REPORT of that section as your final message.
    ```
    **The call's result is the report,** carried verbatim into the appendix; a result without its `HUNT REPORT` line is
@@ -1799,7 +1799,8 @@ T<n> | <STRONG|ПЕРСП> #<rank> | <COIN> <ЛОНГ|ШОРТ> <ВХОД|ЖДА
   re-ranked;
 - **`FINDING contradiction`** — two lines of the answer disagree, or a line disagrees with the card or figure it
   states: **the quoted line is repaired before the answer is sent** — rewritten to agree with what this run computed —
-  **or not printed;** a repair adds no card, moves no level, side or status and raises nothing;
+  **or not printed;** a repair adds no card, moves no level, side or status, raises nothing and dates nothing by the
+  run's clock;
 - every other `FINDING` — the appendix, for the Architect, applied by nobody;
 - a `STRIKE` or `CUT` quoting no field of its ticket and no line of the book is void, logged and not applied.
 
@@ -2030,22 +2031,24 @@ change    at every row t ≥ k:   dL(t) = ln(large[t] / large[t−k])
                                 dC(t) = ln(crowd[t] / crowd[t−k])
                                 dQ(t) = ln(oi[t] / oi[t−k])
 now       the newest row
+day       d1L = ln(large[now] / large[now−6]), the 24 hours before the freeze; `oi24` the flow's (below)
 null      the coin's own values of each change at every t from k to now, now included; the coin's own
           crowd at every row; the coin's own fundingRate at every settlement read
 q25 q50 q75   the values at rank ⌈0.25 m⌉, ⌈0.50 m⌉ and ⌈0.75 m⌉ of a null's m sorted values
 ```
 
 ```
-large long    dL(now) ≥ q75(dL)   and   dC(now) ≤ q50(dC)   and   dQ(now) > 0
-large short   dL(now) ≤ q25(dL)   and   dC(now) ≥ q50(dC)   and   dQ(now) > 0
+large long    dL(now) ≥ q75(dL), dL(now) > 0, d1L > 0   and   dC(now) ≤ q50(dC)   and   dQ(now) > 0, oi24 > 0
+large short   dL(now) ≤ q25(dL), dL(now) < 0, d1L < 0   and   dC(now) ≥ q50(dC)   and   dQ(now) > 0, oi24 > 0
 crowd long    crowd(now) ≥ q75(crowd)   and   the newest fundingRate ≥ q75(fundingRate)
 crowd short   crowd(now) ≤ q25(crowd)   and   the newest fundingRate ≤ q25(fundingRate)
 ```
 
 **In the owner's words: the large players are building a side** where their own long-to-short ratio moved
-that way this week further than in three weeks of four of the coin's own month, while the crowd's did not
-follow and new positions were opened; **the crowd is crowded into a side** where the crowd's ratio and the
-funding it pays both stand in the outer quarter of the coin's own month. A coin carries at most one large
+that way this week further than in three weeks of four of the coin's own month and still moves so today,
+while the crowd's did not follow and new positions were opened this week and today; **the crowd is crowded
+into a side** where the crowd's ratio and the funding it pays both stand in the outer quarter of the coin's
+own month. A coin carries at most one large
 class and at most one crowd class — or none — and `unread` where a read refused or a series fell short.
 
 **The flow, per coin — the owner's decision of 18.11.2026, §8's third condition.** From the same rows: `oi24` =
@@ -2056,14 +2059,15 @@ share = Σ `buyVol` / Σ (`buyVol` + `sellVol`) over the newest six rows of `tak
 carries no band of its own, and the trader alone reads it, against §8.
 
 **No numeral here is a threshold on the answer** (map inv. 49): every band is the coin's own month, computed
-in this run from these reads, and the quartile is the cut §4 already measures a verdict's range with. **What
-a class is WORTH is measured on the exchange's own archive of the same series** — `data.binance.vision`
-keeps, per perpetual and per day, a `metrics` file of five-minute rows carrying the open interest and both
-ratios, back to 2020 for BTC — and until that reading exists no class claims an edge (map §10, inv. 32).
+in this run from these reads, a zero is a sign and no band, and the quartile is the cut §4 already measures
+a verdict's range with. **What a class is WORTH is measured on the exchange's own archive of the same
+series** — `data.binance.vision` keeps, per perpetual and per day, a `metrics` file of five-minute rows
+carrying the open interest and both ratios, back to 2020 for BTC — and until that reading exists no class
+claims an edge (map §10, inv. 32).
 
 **One script computes every coin**, written by you for this run and run once; its text goes verbatim into
 the hunt record beside its output — per coin the four requests, each landing host and status, the row
-counts, `dL`, `dC` and `dQ` now with their quartiles, the crowd and the funding now with theirs, and the
+counts, `dL`, `dC` and `dQ` now with their quartiles, `d1L`, the crowd and the funding now with theirs, and the
 classes. **The first read under this revision is the read's measurement on this machine:** its landing host,
 status and bytes, and the keys of each document's first row, go to the record, and a host is not assumed to
 answer until a read of it has (§6a). **A refusal by the host — 403, 418, 429, 451 or a challenge — ends
