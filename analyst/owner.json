@@ -1,8 +1,8 @@
 {
-  "v": 5,
+  "v": 6,
   "k": "owner",
-  "updated": "2026-11-25",
-  "rule": "capital and risk are the owner's own facts: he declared the capital and delegated the risk policy to the Architect on 2026-09-30, and on 2026-10-01 asked that size follow the quality of the setup rather than be restricted by default. An object graded strong is sized at risk_pct_strong, one graded medium at risk_pct_medium, and either is multiplied by risk_mult_high where the exceptional-risk label prints (ANALYST-INSTRUCTIONS.md sections 2, 4 and 8). The capital changes only on his declaration of his account size; the policy changes only by an owner decision or at the scorecard gate of SYSTEM-MAP-CRYPTOCALCUL.md section 10. The engine reads this file and never writes it. A vectors entry is a hypothesis with no authority: it is resolved against a primary source or reported unresolved with the host that was read. Since v4 (2026-11-18) the card block sizes every card of the analysis answer by the owner's decisions of that day: a margin by rank between margin_min_usdt and margin_max_usdt, the larger margin for the stronger card, the leverage the rank's risk allows on it and never one at which the stop fills after liquidation, up to his own lev_max of 15 (ANALYST-INSTRUCTIONS.md sections 2, 4 and 8). Since v5 (2026-11-21, the owner's own rule) the leverage never falls under lev_min of 3, and portfolio_max_pct left with the portfolio line he struck out. The risk block keeps sizing the scorecard and the paper test unchanged, so their records do not restart; risk_mult_high halves a card's risk where the exceptional-risk label prints.",
+  "updated": "2026-11-26",
+  "rule": "capital and risk are the owner's own facts: he declared the capital and delegated the risk policy to the Architect on 2026-09-30, and on 2026-10-01 asked that size follow the quality of the setup rather than be restricted by default. An object graded strong is sized at risk_pct_strong, one graded medium at risk_pct_medium, and either is multiplied by risk_mult_high where the exceptional-risk label prints (ANALYST-INSTRUCTIONS.md sections 2, 4 and 8). The capital changes only on his declaration of his account size; the policy changes only by an owner decision or at the scorecard gate of SYSTEM-MAP-CRYPTOCALCUL.md section 10. The engine reads this file and never writes it. A vectors entry is a hypothesis with no authority: it is resolved against a primary source or reported unresolved with the host that was read. Since v4 (2026-11-18) the card block sizes every card of the analysis answer by the owner's decisions of that day: a margin by rank between margin_min_usdt and margin_max_usdt, the larger margin for the stronger card, the leverage the rank's risk allows on it and never one at which the stop fills after liquidation, up to his own lev_max of 15 (ANALYST-INSTRUCTIONS.md sections 2, 4 and 8). Since v5 (2026-11-21, the owner's own rule) the leverage never falls under lev_min of 3, and portfolio_max_pct left with the portfolio line he struck out. The risk block keeps sizing the scorecard and the paper test unchanged, so their records do not restart; risk_mult_high halves a card's risk where the exceptional-risk label prints. Since v6 (2026-11-26) the other tier sizes by rank as the strong one does: margin_other_usdt and risk_other_pct are lists, a rank past a list taking its last value, and the first risk prices the record's R.",
   "capital": {
     "usdt": 30000,
     "asof": "2026-11-06"
@@ -29,8 +29,17 @@
       2.0,
       2.0
     ],
-    "margin_other_usdt": 1000,
-    "risk_other_pct": 1.5,
+    "margin_other_usdt": [
+      2500,
+      2000,
+      1500,
+      1000
+    ],
+    "risk_other_pct": [
+      1.5,
+      1.25,
+      1.0
+    ],
     "margin_min_usdt": 1000,
     "margin_max_usdt": 10000,
     "lev_min": 3,
