@@ -4208,7 +4208,8 @@ def section_ac(s):
             rules == [] and book.replay(world)[1]["t_entry"] == 61 * book.DAY_MS)
 
     tmp = tempfile.mkdtemp(prefix="vps-selftest-ac.")
-    saved_get = book._get
+    saved_get, saved_delivered = book._get, score.delivered
+    score.delivered = lambda stem, logs=None: AC_FREEZE     # TZ-85: each answer reached main at its freeze
     try:
         pay = os.path.join(tmp, "live.json")
         with open(pay, "w", encoding="utf-8") as fh:
@@ -4271,16 +4272,17 @@ def section_ac(s):
         found, _ = score.card_lines(logs)
         with contextlib.redirect_stdout(io.StringIO()):
             r1, b1 = score.cards_pass(os.path.join(state, score.CARDS), [], found, now_ms, "s1", ["CCCUSDT"])
-        s.check("funding refused: the stopped card pending, nothing written",
-                r1 == [] and b1["pending"] == 1 and not os.path.exists(os.path.join(state, score.CARDS)))
+        s.check("funding refused: the stopped card pending, no trade written; the untouched limit resolved as lapsed",
+                r1 == [] and b1["pending"] == 1 and not os.path.exists(os.path.join(state, score.CARDS))
+                and b1["lapsed"] == 1 and b1["finished"] == 1)
         refuse["on"] = False
         with contextlib.redirect_stdout(io.StringIO()):
             r2, b2 = score.cards_pass(os.path.join(state, score.CARDS), [], found, now_ms, "s2", ["CCCUSDT"])
         names = sorted(os.listdir(os.path.join(state, score.CARDS)))
-        s.check("the now card stopped on its fill day: one file, R -1.05, stamped at the fill",
-                names == ["CCCUSDT-short-%d.json" % AC_FREEZE] and len(r2) == 1
+        s.check("the now card stopped on its fill day: one file, R -1.05, stamped at the fill, the minute after its "
+                "answer reached main", names == ["CCCUSDT-short-%d.json" % (AC_FREEZE + score.MINUTE_MS)] and len(r2) == 1
                 and abs(r2[0]["r"] - (-0.04 - 2 * book.COST_SIDE) / 0.04) < 1e-9 and r2[0]["exit"] == 104.0
-                and r2[0]["t_exit"] == AC_FREEZE and r2[0]["why"] == "stop" and r2[0]["stem"] == stem)
+                and r2[0]["t_exit"] == AC_FREEZE + score.MINUTE_MS and r2[0]["why"] == "stop" and r2[0]["stem"] == stem)
         opened = {(o["symbol"], o["kind"]): o for o in b2["open"]}
         s.check("the touched limit open at 102 and the wait card open on the plan's entry at 95, its stop and target",
                 set(opened) == {("DDDUSDT", "limit"), ("EEEUSDT", "wait")}
@@ -4288,9 +4290,9 @@ def section_ac(s):
                 and opened[("DDDUSDT", "limit")]["t_entry"] == AC_FREEZE + 5 * 3600 * 1000
                 and opened[("EEEUSDT", "wait")]["entry"] == 95.0 and abs(opened[("EEEUSDT", "wait")]["stop"] - 99.4) < eps
                 and abs(opened[("EEEUSDT", "wait")]["target"] - 86.2) < eps)
-        s.check("one trade a coin, side and fill: the second log's DDD card adds none; the untouched limit lapsed; "
-                "the card of a day not yet closed waits",
-                len(b2["open"]) == 2 and b2["lapsed"] == 1 and b2["waiting"] == 1 and b2["read"] == 6
+        s.check("one trade a coin, side and fill: the second log's DDD card adds none; the lapsed limit not read "
+                "again; the card of a day not yet closed waits",
+                len(b2["open"]) == 2 and b2["lapsed"] == 0 and b2["done"] == 1 and b2["waiting"] == 1 and b2["read"] == 6
                 and b2["closed"]["n"] == 1 and b2["outside"]["n"] == 0 and b2["list"]["n"] == 1)
         stamp = os.stat(os.path.join(state, score.CARDS, names[0])).st_mtime_ns
         with contextlib.redirect_stdout(io.StringIO()):
@@ -4299,6 +4301,9 @@ def section_ac(s):
         s.check("the next run adds nothing and opens no file",
                 b3["added"] == 0 and len(r3) == 1 and sorted(os.listdir(os.path.join(state, score.CARDS))) == names
                 and os.stat(os.path.join(state, score.CARDS, names[0])).st_mtime_ns == stamp)
+        s.check("the closed card and the lapsed one are resolved for good: the next run reads neither",
+                b2["finished"] == 0 and b3["done"] == 2 and b3["finished"] == 0 and b3["lapsed"] == 0
+                and sorted(os.listdir(os.path.join(state, score.CARDS_DONE))) == ["%s-2.json" % stem])
         h = AbHost(os.path.join(tmp, "ab"), {"AAAUSDT": x_world_long()})
         os.makedirs(os.path.join(h.tmp, "logs"))
         with open(os.path.join(h.tmp, "logs", "1970-03-02.md"), "w", encoding="utf-8") as fh:
@@ -4308,7 +4313,7 @@ def section_ac(s):
                 code == 0 and record["cards"]["read"] == 0 and record["cards"]["skipped"] == 1
                 and ab_field(printed, "cards") == "0/0/0")
     finally:
-        book._get = saved_get
+        book._get, score.delivered = saved_get, saved_delivered
         shutil.rmtree(tmp, ignore_errors=True)
 
     for stub, want, label, landed in ((AC_STUB_ANSWER, "no", "an answer whose log never reached main", False),
@@ -4355,12 +4360,183 @@ def section_ac(s):
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+# --- AD: the card ledger from the minute its answer reached main, a card resolved for good, the exchange's refusal
+# (TZ-85) --------------------------------------------------------------------------------------------------------
+AD_MIN = score.MINUTE_MS
+
+
+def ad_git_log(repo, name, text, when):
+    """Commit analyst/log/<name> in repo with its committer time at `when` seconds."""
+    path = os.path.join(repo, "analyst", "log", name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    env = dict(os.environ, GIT_COMMITTER_DATE="@%d +0000" % when, GIT_AUTHOR_DATE="@%d +0000" % when)
+    g = ["git", "-c", "user.name=selftest", "-c", "user.email=selftest@invalid", "-c", "commit.gpgsign=false",
+         "-C", repo]
+    subprocess.run(g + ["add", "analyst/log/" + name], check=True, env=env, capture_output=True)
+    subprocess.run(g + ["commit", "-q", "--no-verify", "-m", name], check=True, env=env, capture_output=True)
+
+
+def section_ad(s):
+    eps = 1e-9
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-ad.")
+    saved_get, saved_delivered = book._get, score.delivered
+    try:
+        repo = os.path.join(tmp, "repo")
+        subprocess.run(["git", "-c", "init.defaultBranch=main", "init", "-q", repo], check=True, capture_output=True)
+        ad_git_log(repo, "2026-11-26.md", "a\n", 1795685159)
+        ad_git_log(repo, "2026-11-26.md", "b\n", 1795700000)
+        ad_git_log(repo, "2026-11-26-2.md", "c\n", 1795710000)
+        logs = os.path.join(repo, "analyst", "log")
+        s.check("delivered(): the committer time of the commit that added the log, in ms; a later edit moves nothing",
+                score.delivered("2026-11-26", logs) == 1795685159000
+                and score.delivered("2026-11-26-2", logs) == 1795710000000)
+        try:
+            got = score.delivered("2026-11-27", logs)
+        except ValueError:
+            got = "raised"
+        s.check("delivered(): a log no commit added raises", got == "raised")
+        bare = os.path.join(tmp, "bare", "analyst", "log")
+        os.makedirs(bare)
+        try:
+            got = score.delivered("2026-11-26", bare)
+        except ValueError:
+            got = "raised"
+        s.check("delivered(): a checkout that is no repository raises", got == "raised")
+
+        at = datetime.fromtimestamp(AC_FREEZE / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        sent = {"1970-03-12": AC_FREEZE + 30 * AD_MIN, "1970-03-12-2": 71 * book.DAY_MS + 5 * AD_MIN,
+                "1970-03-12-3": AC_FREEZE + 30 * AD_MIN}
+        score.delivered = lambda stem, logs=None: sent[stem]
+        d1 = AC_FREEZE + 31 * AD_MIN                                     # the first minute after delivery
+        lines = {"1970-03-12": [("CCCUSDT", "now", 100, 104, 92), ("DDDUSDT", "now", 100, 104, 92),
+                                ("EEEUSDT", "now", 100, 104, 92), ("FFFUSDT", "now", 100, 104, 92),
+                                ("GGGUSDT", "limit", 105, 109, 97), ("HHHUSDT", "limit", 105, 109, 97),
+                                ("IIIUSDT", "limit", 105, 109, 97), ("LLLUSDT", "wait", 99, 103.4, 90.2),
+                                ("MMMUSDT", "limit", 105, 109, 97)],
+                 "1970-03-12-2": [("JJJUSDT", "now", 100, 104, 92), ("KKKUSDT", "wait", 99, 103.4, 90.2)],
+                 "1970-03-12-3": [("MMMUSDT", "limit", 105, 109, 97)]}
+        clogs, state = os.path.join(tmp, "logs"), os.path.join(tmp, "state")
+        os.makedirs(clogs)
+        for stem, cards in lines.items():
+            with open(os.path.join(clogs, stem + ".md"), "w", encoding="utf-8") as fh:
+                for rank, (sym, kind, a, st, t) in enumerate(cards, 1):
+                    fh.write("CARD|%s|%s|%d|ПЕРСП|%s|short|%s|fresh|%s|%s|%s|—|1000|3|30\n"
+                             % (stem, at, rank, sym, kind, a, st, t))
+        trend = ac_flat(70) + [(70 * book.DAY_MS, 100.0, 100.0, 94.0, 95.0)] \
+            + [(k * book.DAY_MS, 95.0, 96.0, 94.0, 95.0) for k in range(71, 81)]
+        worlds = {sym: ac_flat(81) for sym in ("CCCUSDT", "DDDUSDT", "EEEUSDT", "FFFUSDT", "GGGUSDT", "HHHUSDT",
+                                               "IIIUSDT", "JJJUSDT", "MMMUSDT")}
+        worlds.update(LLLUSDT=trend, KKKUSDT=trend)
+        spikes = {"CCCUSDT": {d1: (100.5, 100.6, 100.4, 100.5)}, "DDDUSDT": {d1: (102.5, 102.6, 102.4, 102.5)},
+                  "EEEUSDT": {d1: (102.0, 102.1, 101.9, 102.0)}, "FFFUSDT": {d1: (92.0, 92.1, 91.9, 92.0)},
+                  "GGGUSDT": {AC_FREEZE + 10 * AD_MIN: (100.0, 105.5, 99.9, 100.1)},
+                  "HHHUSDT": {AC_FREEZE + 10 * AD_MIN: (100.0, 105.5, 99.9, 100.1),
+                              AC_FREEZE + 120 * AD_MIN: (100.0, 105.2, 99.9, 100.1)},
+                  "IIIUSDT": {d1: (109.5, 109.6, 109.4, 109.5)},
+                  "MMMUSDT": {AC_FREEZE + 120 * AD_MIN: (100.0, 109.5, 99.9, 100.1)}}
+        asked, mode = [], {"fail": None}
+
+        def get(url):
+            asked.append(url)
+            if mode["fail"] is not None and mode["fail"][0] in url:
+                raise urllib.error.HTTPError(url, mode["fail"][1], "refused", {}, None)
+            if "fundingRate" in url:
+                return ab_funding(url)
+            if "interval=1m" in url:
+                return ac_minutes(url, spikes)
+            sym = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["symbol"][0]
+            return ab_klines(worlds[sym][:80], worlds[sym][80][1])
+        book._get = get
+        now_ms = 80 * book.DAY_MS + 10 * AD_MIN
+        found, _ = score.card_lines(clogs)
+        path = os.path.join(state, score.CARDS)
+        with contextlib.redirect_stdout(io.StringIO()):
+            r1, b1 = score.cards_pass(path, [], found, now_ms, "s1", [])
+        op = {o["symbol"]: o for o in b1["open"]}
+        minutes_of = lambda sym: [u for u in asked if "interval=1m" in u and "symbol=%s&" % sym in u]
+        s.check("a now card fills at the first minute's open after its answer reached main: 100.5, stamped then, the "
+                "minutes asked from that minute",
+                "CCCUSDT" in op and abs(op["CCCUSDT"]["entry"] - 100.5) < eps and op["CCCUSDT"]["t_entry"] == d1
+                and len(minutes_of("CCCUSDT")) == 1 and "startTime=%d&" % d1 in minutes_of("CCCUSDT")[0])
+        s.check("its void price, atr20 2 inside its stop at 104: 102.5 past it makes no trade, 102 at it fills",
+                "DDDUSDT" not in op and "EEEUSDT" in op and abs(op["EEEUSDT"]["entry"] - 102.0) < eps)
+        s.check("a now card whose first price stands at its target makes no trade", "FFFUSDT" not in op)
+        s.check("a limit reached only before the answer reached main makes no trade; reached after, it fills at 105 "
+                "on that minute", "GGGUSDT" not in op and "HHHUSDT" in op and abs(op["HHHUSDT"]["entry"] - 105.0) < eps
+                and op["HHHUSDT"]["t_entry"] == AC_FREEZE + 120 * AD_MIN)
+        s.check("a limit whose fill opened past its stop makes no trade", "IIIUSDT" not in op)
+        s.check("a wait card fills on the plan's entry at 95; one whose entry came before its answer reached main "
+                "makes none", "LLLUSDT" in op and abs(op["LLLUSDT"]["entry"] - 95.0) < eps and "KKKUSDT" not in op)
+        s.check("an answer that reached main after its freeze day ended fills no now card and asks for no minute",
+                "JJJUSDT" not in op and minutes_of("JJJUSDT") == [])
+        done_dir = os.path.join(state, score.CARDS_DONE)
+        names = sorted(os.listdir(done_dir))
+        want = sorted(["1970-03-12-2.json", "1970-03-12-4.json", "1970-03-12-5.json", "1970-03-12-7.json",
+                       "1970-03-12-2-1.json", "1970-03-12-2-2.json", "1970-03-12-3-1.json"])
+        rows = [json.load(open(os.path.join(done_dir, n), encoding="utf-8")) for n in names]
+        same = [row for row in rows if row["why"] == "same"]
+        s.check("six cards that made no trade and the second card of a closed trade are each written once, resolved",
+                names == want and b1["lapsed"] == 6 and b1["finished"] == 7 and len(same) == 1
+                and same[0]["stem"] == "1970-03-12-3" and same[0]["symbol"] == "MMMUSDT"
+                and all(set(row) == set(score.DONE_KEYS) for row in rows))
+        s.check("the first card of that trade writes it: MMM filled at 105 and stopped on its fill day",
+                len(r1) == 1 and r1[0]["symbol"] == "MMMUSDT" and r1[0]["why"] == "stop" and r1[0]["stem"] == "1970-03-12"
+                and abs(r1[0]["entry"] - 105.0) < eps and b1["added"] == 1)
+        stamps = {n: os.stat(os.path.join(done_dir, n)).st_mtime_ns for n in names}
+        asked.clear()
+        with contextlib.redirect_stdout(io.StringIO()):
+            r2, b2 = score.cards_pass(path, score.read_cards(path), found, now_ms + 1000, "s2", [])
+        quiet = ("DDDUSDT", "FFFUSDT", "GGGUSDT", "IIIUSDT", "JJJUSDT", "KKKUSDT", "MMMUSDT")
+        s.check("the next pass reads no symbol whose every card is resolved, and opens no file",
+                b2["done"] == 8 and b2["finished"] == 0 and b2["added"] == 0 and len(b2["open"]) == 4
+                and not any("symbol=%s&" % sym in u for u in asked for sym in quiet)
+                and {n: os.stat(os.path.join(done_dir, n)).st_mtime_ns for n in os.listdir(done_dir)} == stamps)
+        s.check("read_done gives every resolved card", score.read_done(done_dir) == {
+            ("1970-03-12", 2), ("1970-03-12", 4), ("1970-03-12", 5), ("1970-03-12", 7), ("1970-03-12-2", 1),
+            ("1970-03-12-2", 2), ("1970-03-12-3", 1)})
+
+        for target, code, reads in (("interval=1d", 429, 1), ("interval=1m", 418, 2)):
+            fresh = os.path.join(tmp, "fresh-%d" % code, score.CARDS)
+            asked.clear()
+            mode["fail"] = (target, code)
+            with contextlib.redirect_stdout(io.StringIO()):
+                r3, b3 = score.cards_pass(fresh, [], found, now_ms, "s3", [])
+            mode["fail"] = None
+            s.check("the exchange answering %d ends the pass: %d request%s, every card unread, nothing written"
+                    % (code, reads, "" if reads == 1 else "s"),
+                    len(asked) == reads and b3["refused"] == code and b3["unread"] == len(found) and r3 == []
+                    and not os.path.exists(os.path.dirname(fresh)))
+
+        score.delivered = lambda stem, logs=None: (_ for _ in ()).throw(ValueError("no commit"))
+        fresh = os.path.join(tmp, "nocommit", score.CARDS)
+        with contextlib.redirect_stdout(io.StringIO()):
+            r4, b4 = score.cards_pass(fresh, [], found, now_ms, "s4", [])
+        s.check("a log whose commit git cannot name keeps its cards pending, none resolved",
+                b4["pending"] == len(found) and b4["finished"] == 0 and not os.path.exists(os.path.dirname(fresh)))
+        bad = os.path.join(tmp, "bad")
+        os.makedirs(bad)
+        with open(os.path.join(bad, "1970-03-12-9.json"), "w", encoding="utf-8") as fh:
+            json.dump(dict(rows[0]), fh)
+        try:
+            score.read_done(bad)
+            got = "read"
+        except ValueError:
+            got = "raised"
+        s.check("a done file that is not the card its name says raises", got == "raised")
+    finally:
+        book._get, score.delivered = saved_get, saved_delivered
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
             ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x),
-            ("Y", section_y), ("Z", section_z), ("AA", section_aa), ("AB", section_ab), ("AC", section_ac))
+            ("Y", section_y), ("Z", section_z), ("AA", section_aa), ("AB", section_ab), ("AC", section_ac),
+            ("AD", section_ad))
 
 
 def main():

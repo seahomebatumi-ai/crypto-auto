@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""The book's signal and its forward ledger (TZ-79, TZ-80, TZ-81, TZ-84). It runs no model and reads no credential.
+"""The book's signal and its forward ledger (TZ-79, TZ-80, TZ-81, TZ-84, TZ-85). It runs no model and reads no
+credential.
 
     score.py [--state DIR] [--outbox DIR]              the daily close
     score.py --forming [--state DIR] [--outbox DIR]    the look at the day still forming
@@ -32,9 +33,13 @@ again (map inv. 70). The size and the ceilings are the owner's, read from analys
                           counted and never written -- the replay's window slides, and the ledger takes
                           no file about a past it did not see
     score-cards/          every card the analysis answer printed (TZ-84), from the CARD| lines of the day
-                          logs this checkout carries, followed as its card says: one trade a coin, side and
-                          fill however many runs print it, one closed trade a file,
-                          <SYMBOL>-<long|short>-<fill stamp>.json, written once on its close and never reopened
+                          logs this checkout carries, followed as its card says from the minute its answer
+                          reached main (TZ-85): one trade a coin, side and fill however many runs print it,
+                          one closed trade a file, <SYMBOL>-<long|short>-<fill stamp>.json, written once on its
+                          close and never reopened
+    score-cards-done/     one card a file, <stem>-<rank>.json, written once where the card made no trade or
+                          the trade it made stands closed under an earlier card (TZ-85): a card that has its
+                          file, or a closed trade of its own, is never read again
     score-forming/        one look a file, <YYYY-MM-DD>.json, written once: what the look named, so that
                           the next close counts how much of it came true; a day that has its file is not
                           looked at again
@@ -51,8 +56,10 @@ import argparse
 import json
 import math
 import os
+import subprocess
 import sys
 import time
+import urllib.error
 from datetime import date, datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -90,6 +97,12 @@ CARD_FIELDS = 16                                 # ANALYST-INSTRUCTIONS.md secti
 CARD_KINDS = ("now", "wait", "limit")
 MINUTES_URL = "https://fapi.binance.com/fapi/v1/klines?symbol=%s&interval=1m&startTime=%d&endTime=%d&limit=1500"
 MINUTE_MS = 60_000
+# TZ-85: a card resolved for good -- no trade, or the trade of an earlier card that stands closed.
+CARDS_DONE = "score-cards-done"
+DONE_KEYS = ("stem", "rank", "symbol", "side", "kind", "why", "seen")
+# TZ-85: the exchange's answers to an address it limits (429) and bans (418); after either, the pass asks no more.
+REFUSED_CODES = (418, 429)
+GIT_TIMEOUT_S = 30
 
 # The alert, in the owner's words; a number he may type prints as a code span (the bot of TZ-71).
 T_HEAD = ("\U0001f4c8 **\u0421\u0414\u0415\u041b\u041a\u0418 \u041f\u0420\u0410\u0412\u0418\u041b\u0410** \u00b7 "
@@ -397,11 +410,53 @@ def card_lines(path):
     return cards, skipped
 
 
-def card_minutes(symbol, freeze):
-    """The one-minute bars of a card's freeze day after its freeze minute, (t, open, high, low, close) oldest first
-    (TZ-84); refused unless they run from the minute after the freeze to the day's last minute."""
-    start = freeze - freeze % MINUTE_MS + MINUTE_MS
-    end = freeze - freeze % book.DAY_MS + book.DAY_MS - MINUTE_MS
+def delivered(stem, logs=None):
+    """The moment the answer of day log <stem> reached main, in ms (TZ-85): the committer time of the commit that
+    added analyst/log/<stem>.md -- the earliest, should the path have been added twice -- read with git in the
+    checkout the logs sit in, a clone another user owns (install.sh's own_git). Raises where git names none."""
+    checkout = os.path.dirname(os.path.dirname(os.path.abspath(logs or log_dir())))
+    proc = subprocess.run(["git", "-c", "safe.directory=" + checkout, "-C", checkout, "log", "--diff-filter=A",
+                           "--format=%ct", "--", "analyst/log/%s.md" % stem],
+                          capture_output=True, text=True, timeout=GIT_TIMEOUT_S)
+    stamps = proc.stdout.split()
+    if proc.returncode != 0 or not stamps or not all(s.isdigit() for s in stamps):
+        raise ValueError("the day log has no commit")
+    return int(stamps[-1]) * 1000
+
+
+def refused(exc):
+    """Whether an error is the exchange limiting or banning this address (TZ-85)."""
+    return isinstance(exc, urllib.error.HTTPError) and exc.code in REFUSED_CODES
+
+
+class Refused(Exception):
+    """The exchange refused this address: the card pass asks no more today (TZ-85)."""
+
+
+def read_done(path):
+    """The (stem, rank) of every card resolved for good (TZ-85); a file that is not the card its name says raises,
+    as read_ledger()."""
+    try:
+        names = sorted(name for name in os.listdir(path) if name.endswith(".json") and not name.startswith("."))
+    except FileNotFoundError:
+        return set()
+    out = set()
+    for name in names:
+        with open(os.path.join(path, name), encoding="utf-8") as fh:
+            row = json.load(fh)
+        if not isinstance(row, dict) or any(key not in row for key in DONE_KEYS) \
+                or "%s-%d.json" % (row["stem"], row["rank"]) != name:
+            raise ValueError("a card's done file is not a card")
+        out.add((row["stem"], row["rank"]))
+    return out
+
+
+def card_minutes(symbol, after):
+    """The one-minute bars of the UTC day of `after` from the minute after its minute to the day's last minute,
+    (t, open, high, low, close) oldest first (TZ-84; TZ-85 reads them from the moment the answer reached main);
+    refused unless they run from the first to the last."""
+    start = after - after % MINUTE_MS + MINUTE_MS
+    end = after - after % book.DAY_MS + book.DAY_MS - MINUTE_MS
     if start > end:
         return []
     rows = json.loads(book._get(MINUTES_URL % (symbol, start, end)))
@@ -411,17 +466,22 @@ def card_minutes(symbol, freeze):
     return out
 
 
-def card_trade(card, bars, minutes, plan):
-    """The trade one card makes (TZ-84) on its symbol's closed daily bars, its freeze day's minutes after the freeze
-    and the plan's replay of those bars, (trades, position) of book.replay at SCALE_R: ("waiting", None) while
-    the freeze day has not closed, ("lapsed", None) where the card did not fill, else ("open", position) or
-    ("closed", trade). A `now` card fills at its entry at the freeze; a `limit` card at its limit on the first
-    minute that reaches it before the next recalculation, the day's end, or at that minute's open where it
-    opened beyond; a `wait` card is the plan's own entry on its side at the next open, which the book makes only
-    where the freeze day closed beyond the trigger. A `now` or `limit` card's fill day is the part after its fill
-    -- the later minutes' high and low, the fill minute's side toward the stop, the day's close -- and from it
-    the card is followed by book.manage(): its stop on a touch, half at its target and the rest's stop at its
-    entry, the rest by the channel; an event of the fill day is stamped no earlier than the fill."""
+def card_trade(card, bars, minutes, plan, sent):
+    """The trade one card makes (TZ-84) on its symbol's closed daily bars, the minutes of its freeze day after the
+    minute its answer reached main, `sent` (TZ-85), and the plan's replay of those bars, (trades, position) of
+    book.replay at SCALE_R: ("waiting", None) while the freeze day has not closed, ("lapsed", None) where the card
+    made no trade the owner could take, else ("open", position) or ("closed", trade). No card fills before the
+    owner read it: a `now` card at the first minute's open after `sent`, unless that price stands past its void
+    price -- `STOP_ATR / 2` atr20 inside its stop, its «не выше / не ниже» line, atr20 the book's on the days before
+    the freeze day -- or at or past its target; a `limit` card at its limit on the first of those minutes that
+    reaches it before the next recalculation, the day's end, or at that minute's open where it opened beyond, unless
+    that fill stands at or past its stop; a `wait` card is the plan's own entry on its side at the next open, which
+    the book makes only where the freeze day closed beyond the trigger, unless that open came before `sent`. An
+    answer that reached main after its freeze day ended fills no `now` or `limit` card. A `now` or `limit` card's
+    fill day is the part after its fill -- the later minutes' high and low, the fill minute's side toward the
+    stop, the day's close -- and from it the card is followed by book.manage(): its stop on a touch, half at its
+    target and the rest's stop at its entry, the rest by the channel; an event of the fill day is stamped no
+    earlier than the fill."""
     day0 = card["freeze"] - card["freeze"] % book.DAY_MS
     if not bars or bars[-1][0] < day0:
         return "waiting", None
@@ -433,10 +493,20 @@ def card_trade(card, bars, minutes, plan):
         trades, pos = plan
         for tr in trades + ([pos] if pos is not None else []):
             if tr["t_entry"] == day0 + book.DAY_MS and tr["side"] == side:
+                if tr["t_entry"] < sent:
+                    return "lapsed", None
                 return ("open", tr) if "t_exit" not in tr else ("closed", tr)
         return "lapsed", None
+    if sent >= day0 + book.DAY_MS - MINUTE_MS or not minutes:
+        return "lapsed", None
     if card["kind"] == "now":
-        fill, t_fill, later, toward = card["anchor"], card["freeze"], minutes, None
+        a = book.atr(bars, k - 1) if k > 0 else None
+        if not a:
+            raise ValueError("no atr20 on the days before the freeze day")
+        fill, t_fill, later, toward = minutes[0][1], minutes[0][0], minutes, None
+        void = card["stop"] + side * book.STOP_ATR / 2 * a
+        if side * (fill - void) < 0 or side * (card["target"] - fill) <= 0:
+            return "lapsed", None
     else:
         j = next((i for i, m in enumerate(minutes)
                   if (side < 0 and m[2] >= card["anchor"]) or (side > 0 and m[3] <= card["anchor"])), None)
@@ -444,6 +514,8 @@ def card_trade(card, bars, minutes, plan):
             return "lapsed", None
         m = minutes[j]
         fill = max(m[1], card["anchor"]) if side < 0 else min(m[1], card["anchor"])
+        if side * (fill - card["stop"]) <= 0:
+            return "lapsed", None
         t_fill, later, toward = m[0], minutes[j + 1:], m[2] if side < 0 else m[3]
     highs = [b[2] for b in later] + ([toward] if toward is not None and side < 0 else []) + [fill]
     lows = [b[3] for b in later] + ([toward] if toward is not None and side > 0 else []) + [fill]
@@ -493,32 +565,69 @@ def read_cards(path):
 def cards_pass(path, ledger, cards, now_ms, seen, symbols):
     """The card ledger's run (TZ-84): every card followed on one read of its symbol, the earliest card of a coin,
     side and fill making its one trade, each new close written as a new file (inv. 38) once its funding prints
-    arrive whole. (the ledger's trades, the record's block)."""
+    arrive whole. A card resolved for good -- a closed trade of its own, or a file under CARDS_DONE beside `path`
+    -- is never read again, and a card that made no trade, or whose trade stands closed under an earlier card,
+    is written there once (TZ-85); a symbol whose every card is resolved is not read. An answer of the exchange
+    limiting or banning this address ends the pass: no further request, the cards not reached unread.
+    (the ledger's trades, the record's block)."""
+    done_path = os.path.join(os.path.dirname(path), CARDS_DONE)
+    done = read_done(done_path) | {(row["stem"], row["rank"]) for row in ledger}
     known = {(row["symbol"], row["side"], row["t_entry"]) for row in ledger}
-    counts = dict(read=len(cards), waiting=0, lapsed=0, pending=0, unread=0)
-    added, opened, taken = [], [], set()
+    counts = dict(read=len(cards), done=0, waiting=0, lapsed=0, pending=0, unread=0)
+    added, opened, finished, taken, sent_at, stopped = [], [], [], set(), {}, None
+
+    def finish(card, why):
+        finished.append({"stem": card["stem"], "rank": card["rank"], "symbol": card["symbol"],
+                         "side": card["side"], "kind": card["kind"], "why": why, "seen": seen})
+
     for symbol in sorted({c["symbol"] for c in cards}):
-        group = [c for c in cards if c["symbol"] == symbol]
+        group = [c for c in cards if c["symbol"] == symbol and (c["stem"], c["rank"]) not in done]
+        counts["done"] += sum(1 for c in cards if c["symbol"] == symbol) - len(group)
+        if not group:
+            continue
+        if stopped is not None:
+            counts["unread"] += len(group)
+            continue
         try:
             bars, open_now = book.live_bars(symbol, now_ms)
-        except Exception:                 # one symbol's failure never hides the others
+        except Exception as exc:          # one symbol's failure never hides the others
+            stopped = exc.code if refused(exc) else None
             counts["unread"] += len(group)
             continue
         plan = book.replay(bars, open_now, book.SCALE_R)
         for card in group:
+            if stopped is not None:
+                counts["unread"] += 1
+                continue
             try:
                 day0 = card["freeze"] - card["freeze"] % book.DAY_MS
-                closed_day = bars and bars[-1][0] >= day0
-                minutes = card_minutes(symbol, card["freeze"]) if closed_day and card["kind"] != "wait" else []
-                status, tr = card_trade(card, bars, minutes, plan)
+                closed_day = bool(bars) and bars[-1][0] >= day0
+                sent = card["freeze"]
+                if closed_day:
+                    if card["stem"] not in sent_at:
+                        sent_at[card["stem"]] = delivered(card["stem"])
+                    sent = max(sent_at[card["stem"]], card["freeze"])
+                minutes = (card_minutes(symbol, sent) if closed_day and card["kind"] != "wait"
+                           and sent < day0 + book.DAY_MS - MINUTE_MS else [])
+                status, tr = card_trade(card, bars, minutes, plan, sent)
             except Exception as exc:      # asked again tomorrow
+                if refused(exc):
+                    stopped = exc.code
+                    counts["unread"] += 1
+                    continue
                 counts["pending"] += 1
                 common.log("score: pending %s %s %s" % (CARDS, symbol, exc.__class__.__name__))
                 continue
             if status in ("waiting", "lapsed"):
                 counts[status] += 1
+                if status == "lapsed":
+                    finish(card, "lapsed")
                 continue
             key = (symbol, card["side"], tr["t_entry"])
+            if key in known:
+                if status == "closed":
+                    finish(card, "same")
+                continue
             if key in taken:
                 continue
             taken.add(key)
@@ -528,13 +637,15 @@ def cards_pass(path, ledger, cards, now_ms, seen, symbols):
                                "stop": tr["stop"], "target": tr.get("target"), "scaled": "t_scale" in tr,
                                "exit_due": bool(tr.get("exit_due"))})
                 continue
-            if key in known:
-                continue
             try:
                 r = book.result_r(tr, card_funding(symbol, tr["t_entry"], tr["t_exit"]))
                 if not math.isfinite(r):
                     raise ValueError("the result is not finite")
             except Exception as exc:      # not written: the next run asks for the prints again (inv. 70)
+                if refused(exc):
+                    stopped = exc.code
+                    counts["unread"] += 1
+                    continue
                 counts["pending"] += 1
                 common.log("score: pending %s %s %s" % (CARDS, symbol, exc.__class__.__name__))
                 continue
@@ -543,13 +654,21 @@ def cards_pass(path, ledger, cards, now_ms, seen, symbols):
                           "rank": card["rank"], "t_entry": tr["t_entry"], "entry": tr["entry"], "stop": tr["stop"],
                           "target": tr.get("target"), "t_exit": tr["t_exit"], "exit": tr["exit"], "why": tr["why"],
                           "r": r, "seen": seen})
+    if stopped is not None:
+        common.log("score: cards refused %d" % stopped)
     if added:
         os.makedirs(path, mode=0o750, exist_ok=True)
         for row in added:                 # a new file each: nothing that stands is opened (inv. 38)
             common.atomic_write(os.path.join(path, card_name(row)), row, mode=0o640)
+    if finished:
+        os.makedirs(done_path, mode=0o750, exist_ok=True)
+        for row in finished:              # the same: a card's file is written once
+            name = os.path.join(done_path, "%s-%d.json" % (row["stem"], row["rank"]))
+            if not os.path.exists(name):
+                common.atomic_write(name, row, mode=0o640)
     rows = ledger + added
     on_list = set(symbols)
-    return rows, dict(counts, added=len(added), closed=totals(rows),
+    return rows, dict(counts, added=len(added), finished=len(finished), refused=stopped, closed=totals(rows),
                       list=totals([row for row in rows if row["symbol"] in on_list]),
                       outside=totals([row for row in rows if row["symbol"] not in on_list]), open=opened)
 
