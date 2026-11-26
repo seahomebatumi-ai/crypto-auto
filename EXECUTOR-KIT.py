@@ -13,7 +13,7 @@ Written by the Architect, uploaded by the Boss, pinned by SHA-256 in the contrac
     usage TZ-NN | --session ID | --since ISO-8601 [--dir PATH]
                           tokens of Claude Code transcripts, per model: input, cache creation, cache read, output
     close TZ-NN           secrets, report, caps and units, on the report about to be committed
-    clean [TZ-NN]         the tree clean, main and the TZ's branch equal to their remotes
+    clean [TZ-NN]         the tree clean, main (or a detached HEAD) and the TZ's branch equal to their remotes
     ready [TZ-NN] · number TZ-NN · fingerprint TZ-NN · host [vps] · units · secrets [BASE] [FILE...] · caps FILE...
     grow OLD NEW · report PATH · self
                           one block each
@@ -249,7 +249,16 @@ def block_ready(root, nn=None):
     if loose:
         say("ready", "WARN untracked, pre-existing, for the report: %s" % ", ".join(loose[:10]))
     branch = gitout(root, "rev-parse", "--abbrev-ref", "HEAD")
-    if branch != "main":
+    other = held_elsewhere(root)
+    detached = other is not None
+    if detached:
+        # a linked worktree cannot check out the main another checkout holds: its main is HEAD at origin/main
+        ahead = int(gitout(root, "rev-list", "--count", "origin/main..HEAD"))
+        if ahead:
+            raise Fail("HEAD is %d commit(s) ahead of origin/main" % ahead)
+        git(root, "switch", "-q", "--detach", "origin/main", check=True)
+        notes.append("detached at origin/main: main is held by the worktree at %s" % other)
+    elif branch != "main":
         git(root, "switch", "-q", "main", check=True)
         notes.append("switched from %s to main" % branch)
     ahead = int(gitout(root, "rev-list", "--count", "origin/main..HEAD"))
@@ -275,11 +284,24 @@ def block_ready(root, nn=None):
                 merged = [b for b in bs if git(root, "merge-base", "--is-ancestor", b, "origin/main")[0] == 0]
                 prev = "TZ-%d %s" % (p, "merged" if len(merged) == len(bs) else "NOT MERGED: " + ", ".join(
                     b for b in bs if b not in merged))
-    say("ready", "main at %s = origin/main%s" % (head, (" (" + "; ".join(notes) + ")") if notes else ""))
+    where = "detached HEAD" if detached else "main"
+    say("ready", "%s at %s = origin/main%s" % (where, head, (" (" + "; ".join(notes) + ")") if notes else ""))
     if unmerged:
         say("ready", "remote branches not in main: %s" % ", ".join(unmerged))
-    return "PASS main %s = origin/main · tracked tree clean · clone complete · previous %s · %d branch(es) ahead" % (
-        head, prev, len(unmerged))
+    return "PASS %s %s = origin/main · tracked tree clean · clone complete · previous %s · %d branch(es) ahead" % (
+        where, head, prev, len(unmerged))
+
+
+def held_elsewhere(root, branch="main"):
+    """The path of another worktree of this repository that has `branch` checked out, or None."""
+    code, out = git(root, "worktree", "list", "--porcelain")
+    here, path = os.path.realpath(root), None
+    for line in out.splitlines() if code == 0 else []:
+        if line.startswith("worktree "):
+            path = line[len("worktree "):]
+        elif line == "branch refs/heads/" + branch and path and os.path.realpath(path) != here:
+            return path
+    return None
 
 
 def elsewhere(root, nn):
@@ -509,10 +531,11 @@ def block_stage(root, nn):
     except Fail:
         if created:
             # the branch this call made goes, so that the BLOCKED report is written on a clean main
+            back = ["switch", "-q", "--detach", "origin/main"] if cur == "HEAD" else ["switch", "-q", cur]
             git(root, "reset", "-q", "--hard")
-            git(root, "switch", "-q", "main")
+            git(root, *back)
             git(root, "branch", "-q", "-D", branch)
-            say("stage", "the branch %s this call made is removed; main is clean" % branch)
+            say("stage", "the branch %s this call made is removed; %s is clean" % (branch, cur))
         raise
 
 
@@ -928,8 +951,11 @@ def block_clean(root, nn=None):
         say("clean", "WARN untracked: %s -- remove what this session made" % ", ".join(loose[:20]))
     git(root, "fetch", "-q", "origin")
     branch = gitout(root, "rev-parse", "--abbrev-ref", "HEAD")
-    note = "on %s" % branch
-    want = [branch]
+    note, want = "on %s" % branch, [branch]
+    if branch == "HEAD":
+        if gitout(root, "rev-parse", "HEAD") != gitout(root, "rev-parse", "origin/main"):
+            raise Fail("the detached HEAD differs from origin/main: the report is not pushed")
+        note, want = "detached HEAD = origin/main", []
     if nn is not None:
         b = literal(header(tz_file(root, nn)[1]).get("branch", ""))
         if b and b not in want:
