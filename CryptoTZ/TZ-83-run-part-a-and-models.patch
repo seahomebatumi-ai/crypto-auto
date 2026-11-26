@@ -1,0 +1,170 @@
+diff --git a/vps/run.py b/vps/run.py
+index bce0fb3..baf56c8 100644
+--- a/vps/run.py
++++ b/vps/run.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1, TZ-60 B3): the writer, then one
++"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1, TZ-60 B3, TZ-83): the writer, then one
+ headless role-2 session, admitted only when the host's available memory less
+ RESERVE_BYTES covers this unit's ceiling and its free swap covers this unit's swap
+ ceiling; the answer goes to the outbox. The run has its own user and its own clone.
+@@ -36,19 +36,27 @@ LOGIN_CREDENTIAL = "claude-oauth-token"   # TZ-55 B2.3: the run's own Claude log
+ LOGIN_ENV = "CLAUDE_CODE_OAUTH_TOKEN"
+ # TZ-55 B2.4: categorical fields of result.json for the second summary line; never `result`.
+ RESULT_CATEGORIES = ("subtype", "api_error_status", "terminal_reason", "stop_reason")
++# TZ-83: one summary line per model id of result.json's modelUsage -- the run's own tokens by model.
++MODEL_FIELDS = (("input", "inputTokens"), ("output", "outputTokens"), ("thinking", "thinkingTokens"),
++                ("cache_read", "cacheReadInputTokens"), ("cache_creation", "cacheCreationInputTokens"),
++                ("web_searches", "webSearchRequests"))
+ # TZ-63: the market answer's first line opens with this head (ANALYST-INSTRUCTIONS.md section 2,
+ # contract v28 section 4); a final message with no line opening with it is not an answer.
+ ANSWER_HEAD = "\u0412\u0440\u0435\u043c\u044f \u0430\u043d\u0430\u043b\u0438\u0437\u0430:"
+ ANSWER_MARKS = " \t*_#>"   # set aside before the head: indentation and markdown emphasis or heading
+ 
+ # TZ-54 §12.2, exactly: the production trigger verbatim, one appended sentence
+-# naming the contract (contract §4), nothing else.
++# naming the contract (contract §4), nothing else. TZ-83: the sentence names Part A, the part
++# contract §4b step 1 gives role 2, by the one command that prints it.
+ PROMPT = ("ANALYZE TODAY'S CRYPTO MARKET AND DETERMINE THE STRATEGY FOR ENTERING ALTCOINS "
+           "ON BINANCE FUTURES.")
+-APPEND = ("Read EXECUTOR-INSTRUCTIONS.md at the repository root in full before anything else: "
+-          "it is your contract, and the user message is a trigger from its \u00a74.")
++APPEND = ("Before anything else, run sed '/^# PART B/q' EXECUTOR-INSTRUCTIONS.md at the repository root "
++          "and read what it prints, and nothing of that file below it: it is your contract, and the user "
++          "message is a trigger from its \u00a74.")
+ MODEL  = "claude-opus-5-5"
+-EFFORT = "high"
++# TZ-83: the trader at xhigh (the owner's proposal of 25.11.2026); the pinned CLI lists the level for this
++# model in its own catalog.
++EFFORT = "xhigh"
+ # TZ-66: each alias a subagent call can name resolves to one full id in the session's environment. The Agent
+ # tool's per-call model outranks any agent definition (Claude Code docs, "Subagents", read 19.10.2026), and the
+ # methodology names the hunter's as `sonnet`; the sheriff runs on MODEL, the session's own.
+@@ -56,8 +64,9 @@ EFFORT = "high"
+ # did not (TZ-71's A2) -- each id read answering on this host first.
+ HUNTER_MODEL = "claude-sonnet-5-5"
+ # TZ-67: the CLI's own helper model -- the one that reads every fetched page for the hunter -- named by
+-# TZ-66's A3 in every run since 09.10.2026 and pinned to that id; TZ-72 moves the pin.
+-HELPER_MODEL = "claude-haiku-5-5"
++# TZ-66's A3 in every run since 09.10.2026 and pinned to that id; TZ-72 moves the pin; TZ-83 moves the page
++# reader to Sonnet 5.5 (the owner's proposal of 25.11.2026), so the haiku alias resolves to that id.
++HELPER_MODEL = "claude-sonnet-5-5"
+ PINS = {"ANTHROPIC_DEFAULT_OPUS_MODEL": MODEL, "ANTHROPIC_DEFAULT_SONNET_MODEL": HUNTER_MODEL,
+         "ANTHROPIC_DEFAULT_HAIKU_MODEL": HELPER_MODEL}
+ # TZ-72: the run's own Claude Code, which vps/install.sh fetches from npm's registry at this version and
+@@ -266,6 +275,7 @@ def main(argv=None):
+     usage = {"input_tokens": "-", "output_tokens": "-", "cache_read_tokens": "-",
+              "cache_creation_tokens": "-", "cost_usd": "-"}
+     in_session = {"on": False, "notified": False}
++    per_model = []
+ 
+     def summary():
+         common.log("crypto-run: requests=%(requests)s admitted=%(admitted)s waited_s=%(waited_s)s "
+@@ -286,6 +296,9 @@ def main(argv=None):
+                       integer(_own_cgroup_limit("memory.swap.peak")), usage["input_tokens"],
+                       usage["output_tokens"], usage["cache_read_tokens"], usage["cache_creation_tokens"],
+                       usage["cost_usd"]))
++        # TZ-83: the tokens of each model the session and its subagents ran on.
++        for entry in per_model:
++            common.log(entry)
+ 
+     def on_term(signum, frame):
+         if os.path.exists(common.STOP_ACTIVE):
+@@ -345,6 +358,12 @@ def main(argv=None):
+     line["denials"] = len(denials)
+     used = sorted(doc.get("modelUsage") or {})
+     extra["models"] = ",".join(used) or "-"
++    by_model = doc.get("modelUsage") if isinstance(doc.get("modelUsage"), dict) else {}
++    for model_id in used:
++        entry = by_model.get(model_id) if isinstance(by_model.get(model_id), dict) else {}
++        per_model.append("crypto-run: usage model=%s %s cost_usd=%s" % (
++            category(model_id), " ".join("%s=%s" % (name, integer(entry.get(key))) for name, key in MODEL_FIELDS),
++            finite(entry.get("costUSD"))))
+     extra["unpinned"] = ",".join(m for m in used if m not in PINS.values()) or "-"
+     extra["denied_tools"] = ",".join(sorted({str(d.get("tool_name")) for d in denials if isinstance(d, dict)})) or "-"
+     for name in RESULT_CATEGORIES:
+diff --git a/vps/selftest.py b/vps/selftest.py
+index d0f8243..86e1525 100644
+--- a/vps/selftest.py
++++ b/vps/selftest.py
+@@ -573,15 +573,22 @@ def section_o(s):
+     cmd = run.CLAUDE
+     s.check("run.CLAUDE carries --model immediately followed by claude-opus-5-5",
+             any(cmd[i] == "--model" and cmd[i + 1] == "claude-opus-5-5" for i in range(len(cmd) - 1)))
+-    s.check("run.CLAUDE carries --effort immediately followed by high",
+-            any(cmd[i] == "--effort" and cmd[i + 1] == "high" for i in range(len(cmd) - 1)))
++    s.check("run.CLAUDE carries --effort immediately followed by xhigh",
++            any(cmd[i] == "--effort" and cmd[i + 1] == "xhigh" for i in range(len(cmd) - 1)))
++    # TZ-83: the appended sentence names the contract's Part A by its one command, and never the whole file.
++    s.check("run.APPEND names Part A's command", "sed '/^# PART B/q' EXECUTOR-INSTRUCTIONS.md" in run.APPEND)
++    s.check("run.APPEND never asks for the contract in full", "in full" not in run.APPEND)
++    with open(os.path.join(REPO, "EXECUTOR-INSTRUCTIONS.md"), encoding="utf-8") as fh:
++        contract = fh.read()
++    s.check("EXECUTOR-INSTRUCTIONS.md carries exactly one line opening with '# PART B'",
++            len([l for l in contract.split("\n") if l.startswith("# PART B")]) == 1)
+     s.check("no element of run.CLAUDE equals opus", "opus" not in cmd)
+     # TZ-66: each alias a subagent call can name is pinned to one full id.
+     s.check("run.PINS resolves sonnet to claude-sonnet-5-5",
+             run.PINS.get("ANTHROPIC_DEFAULT_SONNET_MODEL") == "claude-sonnet-5-5")
+     s.check("run.PINS resolves opus to run.MODEL", run.PINS.get("ANTHROPIC_DEFAULT_OPUS_MODEL") == run.MODEL)
+-    s.check("run.PINS resolves haiku to claude-haiku-5-5",
+-            run.PINS.get("ANTHROPIC_DEFAULT_HAIKU_MODEL") == "claude-haiku-5-5")
++    s.check("run.PINS resolves haiku to claude-sonnet-5-5, the page reader's id since TZ-83",
++            run.PINS.get("ANTHROPIC_DEFAULT_HAIKU_MODEL") == "claude-sonnet-5-5")
+     tmp = tempfile.mkdtemp(prefix="vps-selftest-o.")
+     env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", run.LOGIN_ENV,
+                 "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW", "SELFTEST_O_RESULT",
+@@ -610,8 +617,11 @@ def section_o(s):
+                            "ANTHROPIC_DEFAULT_OPUS_MODEL": "selftest-decoy-opus",
+                            "ANTHROPIC_DEFAULT_SONNET_MODEL": "selftest-decoy-sonnet",
+                            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "selftest-decoy-haiku",
+-                           "SELFTEST_O_MODELS": json.dumps({"claude-opus-5-5": {}, "claude-sonnet-5-5": {},
+-                                                            "claude-haiku-selftest": {}})})
++                           "SELFTEST_O_MODELS": json.dumps({
++                               "claude-opus-5-5": {"inputTokens": 1, "outputTokens": 2, "thinkingTokens": 3,
++                                                   "cacheReadInputTokens": 4, "cacheCreationInputTokens": 5,
++                                                   "webSearchRequests": 6, "costUSD": 0.25},
++                               "claude-sonnet-5-5": {}, "claude-haiku-selftest": {}})})
+         common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
+         run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+         run.CLAUDE = stub_cli(paths)
+@@ -649,6 +659,17 @@ def section_o(s):
+         s.check("it carries input_tokens=11 output_tokens=22 cache_read_tokens=33 cache_creation_tokens=44 "
+                 "cost_usd=0.5", len(third) == 1 and third[0].endswith(
+                     " input_tokens=11 output_tokens=22 cache_read_tokens=33 cache_creation_tokens=44 cost_usd=0.5"))
++        # TZ-83: one usage line per model id, its fields in the fixed order, `-` for a field the entry lacks.
++        fourth = [l for l in summary.splitlines() if l.startswith("crypto-run: usage model=")]
++        s.check("one usage line per model id, in id order",
++                [l.split()[2] for l in fourth] == ["model=claude-haiku-selftest", "model=claude-opus-5-5",
++                                                   "model=claude-sonnet-5-5"])
++        s.check("the opus line carries every field of its entry",
++                "crypto-run: usage model=claude-opus-5-5 input=1 output=2 thinking=3 cache_read=4 cache_creation=5 "
++                "web_searches=6 cost_usd=0.25" in fourth)
++        s.check("an entry with no field prints `-` for each",
++                "crypto-run: usage model=claude-sonnet-5-5 input=- output=- thinking=- cache_read=- cache_creation=- "
++                "web_searches=- cost_usd=-" in fourth)
+         s.check("the summary never carries the login", planted not in summary and decoy not in summary)
+         s.check("the request was consumed first", "requests=1 " in summary and os.listdir(paths["requests"]) == [])
+         answers = [n for n in os.listdir(paths["outbox"]) if "-answer-" in n]
+@@ -1148,9 +1169,17 @@ def section_u(s):
+     starts = [i for i, line in enumerate(lines) if line.startswith("## 2. ")]
+     fence = None
+     if len(starts) == 1:
+-        fence = next((i for i in range(starts[0] + 1, len(lines)) if lines[i] == "`" * 3), None)
+-    s.check("ANALYST-INSTRUCTIONS.md section 2's skeleton opens with run.ANSWER_HEAD",
+-            fence is not None and fence + 1 < len(lines) and lines[fence + 1].startswith(head + " "))
++        fence = next((i for i in range(starts[0] + 1, len(lines)) if re.fullmatch("`{3,}", lines[i])), None)
++    # TZ-83: since the methodology of 18.11.2026 the skeleton opens with its title and the head follows it, so the
++    # head is sought in the skeleton's opening block -- its lines up to the first blank one.
++    block = []
++    if fence is not None:
++        for line in lines[fence + 1:]:
++            if not line.strip() or re.fullmatch("`{3,}", line):
++                break
++            block.append(line)
++    s.check("ANALYST-INSTRUCTIONS.md section 2's skeleton carries run.ANSWER_HEAD in its opening block",
++            any(line.startswith(head + " ") for line in block))
+     cases = ((head + " 22:59 Tbilisi\n\n# R\n", True, "an answer"),
+              ("\n\n  " + head + " 22:59\n", True, "an answer after blank lines and indentation"),
+              ("**" + head + "** 22:59\n", True, "an answer under emphasis"),
