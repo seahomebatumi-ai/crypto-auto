@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
-TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1, TZ-79 B1, TZ-84): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
+TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1, TZ-79 B1, TZ-84, TZ-86): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
 TZ-56 §12.6's, TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's, TZ-69's, TZ-71's and
 TZ-72's changed and new ones, each printing
 `section <X>: checks <n> failed <m>`, then the total.
@@ -44,6 +44,7 @@ import common  # noqa: E402
 import etf  # noqa: E402
 import exchange  # noqa: E402
 import paper  # noqa: E402
+import radar  # noqa: E402
 import run  # noqa: E402
 import score  # noqa: E402
 import stop  # noqa: E402
@@ -4530,13 +4531,395 @@ def section_ad(s):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# --- AE: TZ-86's radar -------------------------------------------------------------------------------------------
+AE_KINDS = ["partnership", "integration", "listing", "mainnet", "upgrade"]
+AE_PATHS = ["blog", "news", "post", "press", "announce", "update", "insight"]
+AE_NOW = 1795665600000                                 # 2026-11-26T04:00:00Z, 08:00 in Tbilisi
+
+
+def ae_forum(topics):
+    return json.dumps({"topic_list": {"topics": topics}}).encode()
+
+
+def ae_topic(tid, title, created, bumped=None, pinned=False):
+    return {"id": tid, "slug": "t-%d" % tid, "title": title, "created_at": created, "bumped_at": bumped or created,
+            "pinned": pinned, "pinned_globally": False}
+
+
+def ae_index(rows):
+    return json.dumps({"data": rows}).encode()
+
+
+def ae_row(gid, circ, events):
+    return {"gecko_id": gid, "circSupply": circ, "unlockEvents": events, "name": gid}
+
+
+def ae_event(t_s, tokens, recipients):
+    return {"timestamp": t_s, "cliffAllocations": [{"recipient": r, "amount": tokens} for r in recipients],
+            "summary": {"totalTokensCliff": tokens}}
+
+
+class AeWeb:
+    """What curl would have written for each URL: (status, landed URL, body); an unknown URL answers 404."""
+
+    def __init__(self, pages):
+        self.pages, self.calls = dict(pages), []
+
+    def __call__(self, url, timeout, path):
+        self.calls.append((url, timeout))
+        status, landed, body = self.pages.get(url, (404, url, b""))
+        with open(path, "wb") as fh:
+            fh.write(body)
+        return status, landed, len(body)
+
+
+def ae_rules(channels, ids=None, symbols=None):
+    return dict(channels=channels, window=7, material=1.0, kinds=list(AE_KINDS), paths=list(AE_PATHS),
+                ids=ids or {"AAA": "aaa-id"}, symbols=symbols or {"AAA": "AAAUSDT"})
+
+
+def ae_klines(closes):
+    """Daily klines as fapi answers them, the last one the day still forming at AE_NOW."""
+    first = AE_NOW - (AE_NOW % book.DAY_MS) - (len(closes) - 1) * book.DAY_MS
+    rows = []
+    for k, c in enumerate(closes):
+        t = first + k * book.DAY_MS
+        rows.append([t, str(c), str(c + 1), str(c - 1), str(c), "0", t + book.DAY_MS - 1])
+    return json.dumps(rows).encode()
+
+
+def section_ae(s):
+    eps = 1e-9
+    # The rules, cut from the checkout's own files.
+    with open(os.path.join(REPO, radar.METHODOLOGY), encoding="utf-8") as fh:
+        methodology = fh.read()
+    rules = radar.read_rules(REPO)
+    lanes = [row["lane"] for row in rules["channels"]]
+    s.check("the checkout's channel table cuts to rows, every lane once, every class 1-3, every host named",
+            lanes and len(set(lanes)) == len(lanes) and all(r["cls"] in (1, 2, 3) and r["host"] for r in rules["channels"]))
+    per = {}
+    for r in rules["channels"]:
+        per.setdefault(r["coin"], []).append(int(r["lane"].rsplit("|", 1)[1]))
+    s.check("a coin's rows are its lanes 1, 2, 3 in the table's order",
+            all(v == list(range(1, len(v) + 1)) for v in per.values()))
+    s.check("the checkout's holding window, UNLOCK_MATERIAL, kinds and sitemap words cut",
+            1 <= rules["window"] <= 14 and rules["material"] > 0 and rules["kinds"] and rules["paths"]
+            and all(re.fullmatch(r"[a-z]+", w) for w in rules["kinds"] + rules["paths"]))
+    s.check("main.py's TOKENS and index.html's tokens[] cut", rules["ids"] and rules["symbols"]
+            and all(v for v in rules["ids"].values()))
+    head = "| Coin | Class | Request | Answers from |\n|---|---|---|---|\n"
+    row = "| AAA | 1 \u00b7 forum | `https://f.example/latest.json` | **`g.example`** \u2014 redirect |\n"
+    got = radar.cut_channels(head + row + "| AAA | 3 \u00b7 site | `https://s.example/rss.xml` | `s.example` |\n\nafter")
+    s.check("a redirect row answers from its bold host; a coin's rows are lanes 1 and 2",
+            [(r["lane"], r["host"], r["cls"]) for r in got] == [("AAA|1", "g.example", 1), ("AAA|2", "s.example", 3)])
+    for label, text in (("two tables", head + row + "\n" + head + row), ("a row the pattern does not read",
+                        head + "| AAA | forum | f | g |\n"), ("no table", "nothing")):
+        try:
+            radar.cut_channels(text)
+            raised = False
+        except radar.TreeUnreadable:
+            raised = True
+        s.check("cut_channels fails on %s" % label, raised)
+    for label, fn, text in (("UNLOCK_MATERIAL twice", radar.cut_material, "**`UNLOCK_MATERIAL` = 1.0 %\n**`UNLOCK_MATERIAL` = 2 %"),
+                            ("a window that is no number", radar.cut_window, "the holding window, many days from the freeze"),
+                            ("no sweep query", radar.cut_kinds, methodology.replace("\u00ab<project> partnership", "\u00ab<x>")),
+                            ("no TOKENS", radar.cut_ids, "OTHER = {'A': 'a'}")):
+        try:
+            fn(text)
+            raised = False
+        except radar.TreeUnreadable:
+            raised = True
+        s.check("%s fails" % label, raised)
+    s.check("the sweep's words, in its order", radar.cut_kinds("\u00ab<project> partnership OR\n  integration OR listing\u00bb")
+            == ["partnership", "integration", "listing"])
+    # Kinds.
+    cases = (("Hashi Mainnet is Live: 20+ Partners Bring Bitcoin Finance to Sui at Scale", ["partnership", "mainnet"]),
+             ("Upgrading the bridge", ["upgrade"]), ("Now listed on Coinbase", ["listing"]),
+             ("AAA integrates with Chainlink", ["integration"]), ("Devcon 8 India Recap", []))
+    s.check("a title names the kinds a word of it begins with the stem of",
+            [radar.kinds_of(t, AE_KINDS) for t, _ in cases] == [k for _, k in cases])
+    # Pages, by class.
+    forum = {"cls": 1, "request": "https://f.example/latest.json", "host": "f.example"}
+    recs, frm = radar.parse_page(forum, "f.example", ae_forum([
+        ae_topic(1, "pinned rules", "2026-01-01T00:00:00Z", pinned=True),
+        ae_topic(2, "AAA partnership", "2026-11-26T03:00:00.500Z", "2026-11-26T03:30:00Z"),
+        {"id": 3, "slug": "x", "title": "no date"}]), AE_PATHS)
+    s.check("a forum page: the pinned topic and the undated one are no records; the url is the topic's",
+            [(r["key"], r["title"], r["url"]) for r in recs] == [("2", "AAA partnership", "https://f.example/t/t-2/2")]
+            and recs[0]["ms"] == radar.when("2026-11-26T03:00:00.500Z") and frm == radar.when("2026-11-26T03:30:00Z"))
+    gh = {"cls": 2, "request": "https://api.github.com/repos/a/b/releases?per_page=5", "host": "api.github.com"}
+    recs, _ = radar.parse_page(gh, "api.github.com", json.dumps([
+        {"draft": True, "published_at": "2026-11-25T00:00:00Z", "name": "draft", "tag_name": "v0", "html_url": "u0"},
+        {"draft": False, "published_at": "2026-11-25T12:00:00Z", "name": "", "tag_name": "v1.2", "html_url": "u1"}]).encode(),
+        AE_PATHS)
+    s.check("GitHub releases: a draft is no record; a release without a name is titled by its tag",
+            [(r["key"], r["title"], r["url"]) for r in recs] == [("v1.2", "v1.2", "u1")])
+    gl = {"cls": 2, "request": "https://gitlab.com/api/v4/projects/x/releases", "host": "gitlab.com"}
+    recs, _ = radar.parse_page(gl, "gitlab.com", json.dumps([{"name": "Node v2", "tag_name": "v2",
+                               "released_at": "2026-11-20T00:00:00Z", "_links": {"self": "https://gitlab.com/r/v2"}}]).encode(), AE_PATHS)
+    s.check("GitLab releases: released_at and _links.self", [(r["title"], r["url"], r["ms"]) for r in recs]
+            == [("Node v2", "https://gitlab.com/r/v2", radar.when("2026-11-20T00:00:00Z"))])
+    site = {"cls": 3, "request": "https://s.example/feed", "host": "s.example"}
+    rss = (b"<rss><channel><item><title>AAA mainnet</title><link>https://s.example/a</link><guid>g1</guid>"
+           b"<pubDate>Wed, 25 Nov 2026 10:00:00 GMT</pubDate></item><item><title>undated</title>"
+           b"<link>https://s.example/b</link></item></channel></rss>")
+    recs, _ = radar.parse_page(site, "s.example", rss, AE_PATHS)
+    s.check("an RSS feed: an item without pubDate is no record; the key is its guid",
+            [(r["key"], r["title"], r["ms"]) for r in recs] == [("g1", "AAA mainnet", radar.when("2026-11-25T10:00:00Z"))])
+    ns = b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+    picked, _ = radar.parse_page(site, "s.example", ns + b"<url><loc>https://s.example/blog/aaa-upgrade-live</loc>"
+                                 b"<lastmod>2026-11-26</lastmod></url><url><loc>https://s.example/about</loc>"
+                                 b"<lastmod>2026-11-26</lastmod></url><url><loc>https://s.example/blog/x</loc></url></urlset>",
+                                 AE_PATHS)
+    every, _ = radar.parse_page(site, "s.example", ns + b"<url><loc>https://s.example/about</loc><lastmod>2026-11-01"
+                                b"</lastmod></url></urlset>", AE_PATHS)
+    s.check("a sitemap: its urls with a word in their path, titled by their slug; every url where none has one",
+            [(r["url"], r["title"]) for r in picked] == [("https://s.example/blog/aaa-upgrade-live", "aaa upgrade live")]
+            and [r["url"] for r in every] == ["https://s.example/about"])
+    for label, page, blob, want in (("a sitemap index", site, b'<sitemapindex xmlns="x"></sitemapindex>', "sitemap index"),
+                                    ("an unknown root", site, b"<html></html>", "shape"),
+                                    ("broken XML", site, b"<rss><channel>", "unparseable"),
+                                    ("a forum without topic_list", forum, b'{"x": 1}', "shape"),
+                                    ("a forum page that is no JSON", forum, b"<html>", "unparseable"),
+                                    ("releases that are no list", gh, b'{"message": "x"}', "shape")):
+        try:
+            radar.parse_page(page, page["host"], blob, AE_PATHS)
+            got = None
+        except radar.Refused as exc:
+            got = str(exc)
+        s.check("%s is refused as %s" % (label, want), got == want)
+    # One read: robots, landing, status.
+    tmp = tempfile.mkdtemp(prefix="selftest-ae-")
+    saved_fetch, saved_get = radar.fetch, book._get
+    try:
+        row = {"coin": "AAA", "cls": 1, "kind": "forum", "request": "https://f.example/latest.json", "host": "f.example",
+               "lane": "AAA|1"}
+        page = ae_forum([ae_topic(5, "x", "2026-11-26T01:00:00Z")])
+        outcomes = []
+        for robots, answer in (((200, "https://f.example/robots.txt", b"User-agent: *\nDisallow: /latest.json\n"), None),
+                               ((503, "https://f.example/robots.txt", b""), None),
+                               ((404, "https://f.example/robots.txt", b""), (200, "https://g.example/latest.json", page)),
+                               ((404, "https://f.example/robots.txt", b""), (403, "https://f.example/latest.json", b"")),
+                               ((404, "https://f.example/robots.txt", b""), (0, "https://f.example/latest.json", b"")),
+                               ((200, "https://f.example/robots.txt", b"User-agent: *\nDisallow: /admin\n"),
+                                (200, "https://f.example/en/latest.json", page))):
+            pages = {"https://f.example/robots.txt": robots}
+            if answer:
+                pages[row["request"]] = answer
+            radar.fetch = AeWeb(pages)
+            try:
+                got = radar.read_channel(row, tmp, {}, AE_PATHS)
+                outcomes.append(("read", len(got[0]), got[2]))
+            except radar.Refused as exc:
+                outcomes.append((str(exc), exc.host))
+        s.check("robots disallowing the path, robots unreachable, a landing off the row's host, a 403 and no answer "
+                "are refused; a redirect on the row's own host is read",
+                outcomes == [("robots", None), ("robots unreachable", None), ("landed g.example", "g.example"),
+                             ("HTTP 403", "f.example"), ("transport", "f.example"), ("read", 1, "f.example")])
+        web = AeWeb({"https://f.example/robots.txt": (404, "https://f.example/robots.txt", b""),
+                     row["request"]: (200, row["request"], page)})
+        radar.fetch, cache = web, {}
+        radar.read_channel(row, tmp, cache, AE_PATHS)
+        radar.read_channel(dict(row, lane="AAA|2"), tmp, cache, AE_PATHS)
+        s.check("one robots.txt read a host a pass, every read at -m 20",
+                [u for u, _ in web.calls].count("https://f.example/robots.txt") == 1 and {t for _, t in web.calls} == {20})
+        gh_rows = [{"coin": c, "cls": 2, "kind": "releases", "request": "https://api.github.com/repos/%s/r/releases" % c,
+                    "host": "api.github.com", "lane": c + "|1"} for c in ("AAA", "BBB")]
+        web = AeWeb({"https://api.github.com/robots.txt": (404, "https://api.github.com/robots.txt", b""),
+                     gh_rows[0]["request"]: (403, gh_rows[0]["request"], b"")})
+        radar.fetch, held, got = web, {}, []
+        for r in gh_rows:
+            try:
+                radar.read_channel(r, tmp, {}, AE_PATHS, held)
+            except radar.Refused as exc:
+                got.append(str(exc))
+        s.check("a host's 403 holds its next rows for the pass, asked nothing",
+                got == ["HTTP 403", "held HTTP 403"] and gh_rows[1]["request"] not in [u for u, _ in web.calls])
+        # New records.
+        old = dict(key="1", ms=AE_NOW - 3 * book.DAY_MS, title="old", url="u")
+        seen = dict(key="2", ms=AE_NOW - 3600_000, title="seen", url="u")
+        prev = {"d": AE_NOW - 12 * 3600_000, "seen": [radar.digest("2")]}
+        new = dict(key="3", ms=AE_NOW - 13 * 3600_000, title="new", url="u")
+        s.check("a first read is a baseline; a record unseen and dated after a day before the last read is new, "
+                "an unseen record older than that is not", radar.fresh([old, seen, new], None) == []
+                and radar.fresh([old, seen, new], prev) == [new])
+        # The unlock lane.
+        now_s = AE_NOW // 1000
+        doc = ae_index([ae_row("aaa-id", 1000.0, [ae_event(now_s - 86400, 500, ["Past"]),
+                                                    ae_event(now_s + 6 * 86400, 30, ["Team", "Investors", "Team"]),
+                                                    ae_event(now_s + 3 * 86400, 20, ["Team"]),
+                                                    {"timestamp": now_s + 86400, "cliffAllocations": []}]),
+                        ae_row("bbb-id", 10.0, [ae_event(now_s - 10, 5, ["x"])]),
+                        ae_row("aaa-id", 1000.0, [ae_event(now_s + 5 * 86400, 1, ["later"])])])
+        rows = list(radar.index_rows(doc.decode()))
+        s.check("the index read row by row equals the document read whole", rows == json.loads(doc)["data"])
+        u = radar.unlocks(rows, {"AAA": "aaa-id", "BBB": "bbb-id", "CCC": "ccc-id"}, now_s)
+        s.check("the earliest cliff after now with allocations, over every row of the id; its share of circSupply",
+                u["AAA"]["status"] == "next" and u["AAA"]["t"] == now_s + 3 * 86400 and u["AAA"]["to"] == "Team"
+                and abs(u["AAA"]["pct"] - 2.0) < eps and u["BBB"] == {"status": "no cliff"}
+                and u["CCC"] == {"status": "not covered"})
+        u2 = radar.unlocks(radar.index_rows(ae_index([ae_row("aaa-id", 1000.0, [ae_event(now_s + 9, 30, ["T", "I", "T"])])]).decode()),
+                           {"AAA": "aaa-id"}, now_s)
+        s.check("recipients joined once each, in their order", u2["AAA"]["to"] == "T, I")
+        for label, text, want in (("rows carrying no gecko_id", '{"data":[{"name":"x"}]}', "shape"),
+                                  ("a document without data first", '{"x":1,"data":[]}', "shape"),
+                                  ("a truncated document", '{"data":[{"gecko_id":"a","unlockEvents":[]},', "unparseable")):
+            try:
+                radar.unlocks(radar.index_rows(text), {"AAA": "aaa-id"}, now_s)
+                got = None
+            except radar.Refused as exc:
+                got = str(exc)
+            s.check("%s is refused as %s" % (label, want), got == want)
+        # The book's view.
+        long_entry = {"state": "long", "entry_due": True, "exit_due": False, "stop": 90.0, "exit_level": 80.0, "atr20": 5.0}
+        hold = dict(long_entry, entry_due=False, entry_date="2026-11-20", exit_level=92.0)
+        flat = {"state": "flat", "long_trigger": 110.0, "short_trigger": 80.0, "long_stop": 100.0, "short_stop": 90.0,
+                "atr20": 5.0}
+        views = [{"state": "long", "p": 100.0, "card": book.card_of(long_entry, 100.0), "exit_due": False},
+                 {"state": "long", "p": 93.0, "card": book.card_of(long_entry, 93.0), "exit_due": False},
+                 {"state": "long", "p": 89.0, "card": book.card_of(long_entry, 89.0), "exit_due": False},
+                 {"state": "long", "p": 100.0, "card": book.card_of(hold, 100.0), "entry_date": "2026-11-20",
+                  "exit_due": False},
+                 {"state": "flat", "p": 100.0, "card": book.card_of(flat, 100.0)},
+                 {"state": "flat", "p": 111.0, "card": book.card_of(flat, 111.0)},
+                 {"state": "short", "p": 100.0, "card": None, "exit_due": True},
+                 {"state": "short-history"}, {"state": "unread", "error": "HTTPError"}]
+        s.check("the book's view in words: an entry open above its void, one at its stop, one past it, a hold, two flats, "
+                "an exit, a short history, an unread price",
+                [radar.heat_text(v) for v in views] == [
+                    radar.H_ENTRY.format(side="\u043b\u043e\u043d\u0433", bound="\u043d\u0435 \u043d\u0438\u0436\u0435",
+                                         void="95", stop="90"),
+                    radar.H_NEAR.format(side="\u043b\u043e\u043d\u0433"), radar.H_CLOSED,
+                    radar.H_HOLD.format(side="\u043b\u043e\u043d\u0433", date="20.11"),
+                    radar.H_FLAT.format(trigger="110", d="2.0"), radar.H_BREAK.format(trigger="110"),
+                    radar.H_EXIT, radar.H_SHORT, radar.H_UNREAD])
+        book._get = lambda url: ae_klines([100.0] * 70 + [100.0 + k for k in range(1, 11)])
+        h = radar.heat("AAAUSDT", AE_NOW)
+        s.check("heat() reads the symbol's daily klines and takes the forming day's close as the price",
+                h["p"] == 110.0 and h["state"] in ("long", "flat", "short") and "card" in h)
+        def refuse(url):
+            raise urllib.error.HTTPError(url, 451, "x", None, None)
+        book._get = refuse
+        s.check("a refused price is unread", radar.heat("AAAUSDT", AE_NOW) == {"state": "unread", "error": "HTTPError"})
+        book._get = lambda url: ae_klines([100.0] * 70 + [100.0 + k for k in range(1, 11)])
+        # The pass, twice.
+        ch = [{"coin": "AAA", "cls": 1, "kind": "forum", "request": "https://f.example/latest.json", "host": "f.example",
+               "lane": "AAA|1"},
+              {"coin": "AAA", "cls": 3, "kind": "site", "request": "https://s.example/feed", "host": "s.example",
+               "lane": "AAA|2"}]
+        cliff = [ae_row("aaa-id", 1000.0, [ae_event(now_s + 3 * 86400, 20, ["Team"])]),
+                 ae_row("bbb-id", 1000.0, [ae_event(now_s + 3 * 86400, 5, ["Team"])]),
+                 ae_row("ccc-id", 1000.0, [ae_event(now_s + 9 * 86400, 50, ["Team"])])]
+        ids = {"AAA": "aaa-id", "BBB": "bbb-id", "CCC": "ccc-id"}
+        base = {"https://f.example/robots.txt": (404, "https://f.example/robots.txt", b""),
+                "https://s.example/robots.txt": (404, "https://s.example/robots.txt", b""),
+                radar.INDEX_URL: (200, radar.INDEX_URL, ae_index(cliff))}
+
+        def feed(items):
+            return ("<rss><channel>" + "".join("<item><title>%s</title><link>https://s.example/%s</link><guid>%s</guid>"
+                                               "<pubDate>%s</pubDate></item>" % (t, g, g, d) for t, g, d in items)
+                    + "</channel></rss>").encode()
+        old_item = ("AAA partnership", "p1", "Wed, 25 Nov 2026 00:00:00 GMT")
+        radar.fetch = AeWeb(dict(base, **{ch[0]["request"]: (200, ch[0]["request"], ae_forum([ae_topic(
+            1, "AAA partnership", "2026-11-25T00:00:00Z")])), ch[1]["request"]: (200, ch[1]["request"], feed([old_item]))}))
+        state = {}
+        rec1, read1 = radar.run_pass(ae_rules(ch, ids), state, AE_NOW, tmp)
+        s.check("a first pass: both channels a baseline, the material cliff inside the window alone is found",
+                read1 == 3 and all(rec1["channels"][k]["baseline"] is True and rec1["channels"][k]["new"] == 0
+                                   for k in ("AAA|1", "AAA|2"))
+                and [(f["lane"], f["sym"], f["alert"]) for f in rec1["found"]] == [("unlock", "AAA", True)])
+        radar.fetch = AeWeb(dict(base, **{
+            ch[0]["request"]: (200, ch[0]["request"], ae_forum([ae_topic(3, "AAA mainnet partnership with BBB",
+                                                                         "2026-11-26T10:00:00Z")])),
+            ch[1]["request"]: (200, ch[1]["request"], feed([("AAA integrates with CCC", "p3", "Thu, 26 Nov 2026 11:00:00 GMT"),
+                                                            ("Weekly recap", "p2", "Thu, 26 Nov 2026 09:00:00 GMT"),
+                                                            old_item]))}))
+        later = AE_NOW + 12 * 3600_000
+        rec2, _ = radar.run_pass(ae_rules(ch, ids), state, later, tmp)
+        posts = [f for f in rec2["found"] if f["lane"] != "unlock"]
+        s.check("a second pass: the new records in channel order, then time; a forum topic naming kinds is recorded "
+                "and not alerted; the site's post naming one is alerted with the book's view",
+                [(f["lane"], f["title"], f["kinds"], f["alert"]) for f in posts]
+                == [("AAA|1", "AAA mainnet partnership with BBB", ["partnership", "mainnet"], False),
+                    ("AAA|2", "Weekly recap", [], False), ("AAA|2", "AAA integrates with CCC", ["integration"], True)]
+                and "heat" in posts[2] and "heat" not in posts[0] and "heat" not in posts[1]
+                and posts[2]["heat"]["p"] == 110.0)
+        s.check("a cliff alerted once is found again and not alerted", [(f["sym"], f["alert"]) for f in rec2["found"]
+                                                                       if f["lane"] == "unlock"] == [("AAA", False)])
+        text = radar.alert_text(rec2, AE_NOW)
+        s.check("the alert: its head at 08:00 Tbilisi, the post with its title, link and the book's view, the foot",
+                text.split("\n")[0] == "\U0001f4e1 **\u0420\u0410\u0414\u0410\u0420** \u00b7 26.11 08:00 \u0422\u0431\u0438\u043b\u0438\u0441\u0438"
+                and text.split("\n")[1] == radar.R_POST.format(sym="AAA", kinds="\u0438\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u044f",
+                                                               host="s.example", when="26.11 11:00")
+                and text.split("\n")[2:4] == ["AAA integrates with CCC", "https://s.example/p3"]
+                and text.split("\n")[4] == radar.heat_text(posts[2]["heat"]) and text.split("\n")[-1] == radar.R_FOOT
+                and len(text.split("\n")) == 6)
+        s.check("the cliff's line", radar.alert_text(rec1, AE_NOW).split("\n")[1] == radar.R_CLIFF.format(
+            sym="AAA", pct="2.0", when="29.11 04:00", to="Team"))
+        s.check("a pass that alerts nothing has no alert", radar.alert_text({"found": posts[:2]}, AE_NOW) is None)
+        # main(): the record, the state, the outbox; the probe writes nothing.
+        state_dir, outbox = os.path.join(tmp, "state"), os.path.join(tmp, "outbox")
+        os.makedirs(state_dir)
+        os.makedirs(outbox)
+        now_s = int(time.time())
+        live = {radar.INDEX_URL: (200, radar.INDEX_URL, ae_index([ae_row(rules["ids"][sorted(rules["ids"])[0]], 100.0,
+                                                                         [ae_event(now_s + 86400, 5, ["Team"])])]))}
+        radar.fetch = AeWeb(live)
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = radar.main(["--probe", "--tree", REPO, "--state-dir", state_dir, "--outbox", outbox])
+        s.check("the probe reads the index, writes no record, no state and no alert",
+                code == 0 and os.listdir(state_dir) == [] and os.listdir(outbox) == [])
+        radar.fetch = AeWeb(live)
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = radar.main(["--tree", REPO, "--state-dir", state_dir, "--outbox", outbox])
+        with open(os.path.join(state_dir, radar.RECORD), encoding="utf-8") as fh:
+            record = json.load(fh)
+        s.check("a pass: exit 0, the record and the state written, the cliff's one alert in the outbox",
+                code == 0 and record["k"] == "radar" and len(record["channels"]) == len(rules["channels"])
+                and sorted(os.listdir(state_dir)) == sorted([radar.RECORD, radar.STATE]) and len(os.listdir(outbox)) == 1)
+        radar.fetch = AeWeb({})
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = radar.main(["--tree", REPO, "--state-dir", state_dir, "--outbox", outbox])
+        with open(os.path.join(state_dir, radar.RECORD), encoding="utf-8") as fh:
+            record = json.load(fh)
+        s.check("no lane read: exit 4, the record written with every refusal, no second alert",
+                code == 4 and record["unlock"]["refused"] == "HTTP 404" and len(os.listdir(outbox)) == 1
+                and all("refused" in c for c in record["channels"].values()))
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = radar.main(["--tree", tmp, "--state-dir", state_dir])
+        s.check("a tree without the methodology: exit 2", code == 2)
+    finally:
+        radar.fetch, book._get = saved_fetch, saved_get
+        shutil.rmtree(tmp, ignore_errors=True)
+    # The program, the units and the manifest.
+    with open(os.path.join(HERE, "radar.py"), "rb") as fh:
+        s.check("radar.py is ASCII: every Russian string an escape", all(b < 128 for b in fh.read()))
+    service, timer = unit_lines("crypto-radar.service"), unit_lines("crypto-radar.timer")
+    s.check("service: oneshot, cryptoauto, no credential, no [Install], its program",
+            [x for x in service if x.startswith(("Type=", "User=", "Group=", "ExecStart"))]
+            == ["Type=oneshot", "User=cryptoauto", "Group=cryptoauto",
+                "ExecStart=/usr/bin/python3 /srv/crypto-auto/vps/radar.py"]
+            and not [x for x in service if x.startswith("LoadCredential")] and "[Install]" not in service)
+    s.check("service: its sandbox, writing the state directory and the spool alone, MemoryMax=128M",
+            all(x in service for x in ("NoNewPrivileges=yes", "ProtectSystem=strict", "ProtectHome=yes", "PrivateTmp=yes",
+                                       "ReadWritePaths=/var/spool/crypto-auto /var/lib/crypto-auto", "MemoryMax=128M")))
+    s.check("timer: 04:00 and 16:00 UTC -- 08:00 and 20:00 in Tbilisi --, persistent, its service, timers.target",
+            [x for x in timer if x.startswith(("OnCalendar", "Unit="))]
+            == ["OnCalendar=*-*-* 04,16:00:00 UTC", "Unit=crypto-radar.service"]
+            and "Persistent=true" in timer and "WantedBy=timers.target" in timer)
+    with open(os.path.join(HERE, "manifest"), encoding="utf-8") as fh:
+        listed = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+    s.check("the manifest lists crypto-radar.timer once and not its service",
+            listed.count("crypto-radar.timer") == 1 and "crypto-radar.service" not in listed)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
             ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x),
             ("Y", section_y), ("Z", section_z), ("AA", section_aa), ("AB", section_ab), ("AC", section_ac),
-            ("AD", section_ad))
+            ("AD", section_ad), ("AE", section_ae))
 
 
 def main():

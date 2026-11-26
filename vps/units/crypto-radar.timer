@@ -1,0 +1,10 @@
+[Unit]
+Description=Crypto assistant: the radar at 08:00 and 20:00 Tbilisi
+
+[Timer]
+OnCalendar=*-*-* 04,16:00:00 UTC
+Persistent=true
+Unit=crypto-radar.service
+
+[Install]
+WantedBy=timers.target
