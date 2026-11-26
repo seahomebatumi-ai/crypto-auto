@@ -1,16 +1,15 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 32.** Permanent operating contract for the Claude Code Executor. It lives at the repository root, is read
+**Version 33.** Permanent operating contract for the Claude Code Executor. It lives at the repository root, is read
 from the repository and supersedes every earlier version; it is never attached to a session, never re-sent and never
 restated in a TZ — if you are waiting for it, you are already wrong. **Role 1 reads all of it at the start of every
 task, before the TZ; role 2 reads Part A alone (§4b step 1).**
 
-**Kit:** `EXECUTOR-KIT.py`, SHA-256 `0d4d8f9aee89bd989430e21603c9ba5fcfb363512b86351d339f2f1aa52d6bf3`.
+**Kit:** `EXECUTOR-KIT.py`, SHA-256 `3716dc4b6b98de3021615f87e8803abfb6b7503d9b77ee5ea23b02d96f6cd531`.
 
-**v32 cuts what a session reads and never uses** — the owner's decision of 25.11.2026 (map §10, row «Sessions read
-text they never use»): code ships beside its TZ and is applied unread, the standard blocks run as the kit's modes
-(§15), every report records its own tokens, and role 2's part comes first so that a run reads it alone. No rule of v31
-is withdrawn; its explanations are in git.
+**v33 runs from a linked worktree** — TZ-82's block of 26.11.2026: a session started in a worktree of its own cannot
+check out the `main` the primary clone holds, so `kit ready` takes a detached `HEAD` at `origin/main` there and the
+report reaches `main` by `git push origin HEAD:main` (§4a). No rule of v32 is withdrawn.
 
 A clause that names no role governs role 1. Role 2 is granted only what this file grants it by name and is otherwise
 bound by the same hard floor, repository rules and evidence standard.
@@ -113,9 +112,8 @@ Every file belongs to exactly one class. Nothing outside this table is created w
 | Generated artifacts | `bench/_*`, `bench/cache/`, `__pycache__/` | — | tooling | ignored, never committed |
 
 **`.claude/settings.json` holds `"autoMemoryEnabled": false` and is the one Claude Code setting this repository
-carries:** auto memory would feed every later session notes an earlier one wrote — an analysis run would start from a
-previous run's conclusions, which the owner's decision of 24.09.2026 forbids, and an implementation from a recollection
-instead of a reading. A TZ that adds a key to this file names it and says why.
+carries:** auto memory would feed a later session an earlier one's notes, which the owner's decision of 24.09.2026
+forbids. A TZ that adds a key to this file names it and says why.
 
 `CryptoTZ/` and `CryptoReports/` are created by you on first use; the Boss never creates a directory or types a path.
 A file that fits no class is reported, never removed — `image.PNG` reads as debris and is the PWA icon `index.html`
@@ -154,8 +152,10 @@ An unrecognised trigger is not guessed: say in one line which triggers exist, an
 The Boss clears the conversation and sends `EXECUTE TZ-NN` and nothing else — but for the credentials a TZ names
 (item 6). On receipt:
 
-1. **`git fetch --all --prune`, then `git merge --ff-only origin/main` on a clean `main`,** so that this file, the kit
-   and the TZ you read next are the ones the Boss uploaded; a session that found the TZ first reads this file now.
+1. **`git fetch --all --prune`, then `git merge --ff-only origin/main` on a clean `main` — in a linked worktree whose
+   `main` another checkout holds, a clean detached `HEAD` at `origin/main`, which `kit ready` takes —** so that this
+   file, the kit and the TZ you read next are the ones the Boss uploaded; a session that found the TZ first reads it
+   now.
 2. Read this file in full.
 3. **`python3 -I EXECUTOR-KIT.py open TZ-NN`** — the blocks §15 runs before any work: fetch, the TZ located and its
    number, the fingerprint gate (§5), the repository's state, the host where the TZ names one, the shipped files'
@@ -167,9 +167,10 @@ The Boss clears the conversation and sends `EXECUTE TZ-NN` and nothing else — 
 6. Run the specified validation in full (§9), commit, push the branch and open a pull request — or follow §8's
    fallback. **On a report-only TZ this step holds the validation alone:** no branch, and step 7 is the whole of the
    writing.
-7. `kit usage TZ-NN` and `kit units`, whose lines the report carries; write `CryptoReports/TZ-NN-<short-name>-report.md`
-   in §10's format on `main`; `kit close TZ-NN` until it passes; commit the report **directly to `main`** and push it
-   (§8).
+7. `kit usage TZ-NN` and `kit units`, whose lines the report carries; back on step 1's checkout — `git switch main`, or
+   `git switch --detach origin/main` in that worktree — write `CryptoReports/TZ-NN-<short-name>-report.md` in §10's
+   format; `kit close TZ-NN` until it passes; commit the report directly to `main` and push it with the destination
+   inside the command, **`git push origin HEAD:main`** (§8).
 8. `kit clean TZ-NN`, then the closing message to the Boss in Russian (§11), and stop.
 
 ### 4b. Analysis run
@@ -184,9 +185,7 @@ around it.
    run exactly as if Part A held it. This is a context decision, never a licence: no clause is repealed for role 2.
 2. **Bring the WORKING TREE to `origin/main`:** `git fetch --all --prune`, the tree clean and on `main`, then `git pull
    --ff-only` (`git merge --ff-only origin/main` where the branch has no upstream) and `git status --porcelain` empty.
-   A fetch moves refs and no file, and the analyst reads files: the Boss's Shortcut writes `analyst/live.json` to
-   `main` minutes before the trigger, so a run that only fetched reads the previous payload and fails a gate whose
-   snapshot is fresh at the remote. **The requirement is two facts:** the tree byte-identical to `origin/main` before
+   A fetch moves refs and no file, and the payload is a file. **The requirement is two facts:** the tree byte-identical to `origin/main` before
    the gate runs, reached without a merge commit; a checkout that is not literally `main` is allowed while both hold
    and step 8 names its own destination. A non-fast-forward result means someone wrote `main` mid-run: stop, report it
    in one line, merge nothing.
@@ -604,7 +603,7 @@ and closes with `<block>: PASS …` or `<block>: FAIL …`; the report copies th
 | Block | Kit | Checks | On FAIL |
 |---|---|---|---|
 | open | `open TZ-NN` | ready, number, fingerprint and host below, and every shipped file's bytes and SHA-256 | BLOCKED before any work |
-| ready | inside `open` | fetch `--all --prune`, unshallow, no tracked file modified — untracked ones listed for the report —, `main` = `origin/main` by fast-forward, the previous TZ's branch merged, branches ahead of `main` | BLOCKED; an unmerged previous branch is said at the top of the report |
+| ready | inside `open` | fetch `--all --prune`, unshallow, no tracked file modified — untracked ones listed for the report —, `main` = `origin/main` by fast-forward, or a detached `HEAD` at `origin/main` where another worktree holds `main`, the previous TZ's branch merged, branches ahead of `main` | BLOCKED; an unmerged previous branch is said at the top of the report |
 | number | inside `open` | the TZ on `main`, in the root or on another branch; its canonical filename; the newest number; a report already present names the next `-report-K` | BLOCKED when absent; a mangled name is `git mv`'d and filed (§3) |
 | fingerprint | inside `open` | §5, and the header's `**Contract:**` against this file's version | BLOCKED (§5) |
 | host | inside `open` when the header names the VPS | the VPS's own directories present | BLOCKED |
@@ -614,7 +613,7 @@ and closes with `<block>: PASS …` or `<block>: FAIL …`; the report copies th
 | usage | `usage TZ-NN` | the transcripts' tokens per model for this TZ's session | recorded as absent, never blocking |
 | units | `units` | no transient `crypto` unit left on the host | stop what the session started, then report it |
 | close | `close TZ-NN` | secrets in everything the session wrote, the branch and the report; the report's sections, sentences and cap; units | a value found: revoke and replace it (item 6); a report defect: fix it before the commit |
-| clean | `clean TZ-NN` | no tracked file modified, `main` and the branch equal to their remotes; untracked files listed | fix before the closing message |
+| clean | `clean TZ-NN` | no tracked file modified, `main` — or the detached `HEAD` — and the branch equal to their remotes; untracked files listed | fix before the closing message |
 
 **Reading rules — what a session holds is what it pays for on every later step.**
 
