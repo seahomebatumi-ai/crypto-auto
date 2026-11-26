@@ -1,0 +1,1057 @@
+diff --git a/vps/book.py b/vps/book.py
+index 39f4d9f..94eeb78 100644
+--- a/vps/book.py
++++ b/vps/book.py
+@@ -28,6 +28,15 @@ from every symbol's spans() -- live and over the archive alike.
+                                                 the plan held under those ceilings, the symbols in the
+                                                 list's order
+ 
++The card a state gives at the run's frozen price (TZ-84): with --payload, each --live line also carries the
++payload's price of its symbol and the card methodology section 4 makes of the state at that price -- an entry's,
++or a flat symbol's two triggers; a hold gives none since methodology 2026-11-26-b -- so that no run computes one.
++The archive replays the late card that revision withdrew, on the same function:
++
++    book.py --live --payload analyst/live.json SYMBOL...
++    book.py --archive --late SYMBOL...          every late card a hold gave at a day's open, filled and
++                                                followed as the card is, and their table
++
+ Python 3.12's standard library only. Time is UTC everywhere.
+ """
+ import argparse
+@@ -35,6 +44,7 @@ import concurrent.futures
+ import csv
+ import io
+ import json
++import math
+ import os
+ import re
+ import sys
+@@ -59,6 +69,8 @@ MAJORS = ("BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT")
+ # At one open (TZ-81): an exit at the open frees its slot before the entries, which are taken in rank order; a
+ # stop fills inside the day and frees its slot after them.
+ AT_OPEN, ENTRY, IN_DAY = 0, 1, 2
++# The week's reach in atr20 (methodology section 2): sqrt(7) days of a daily range read as sqrt(8/pi) of its spread.
++REACH = math.sqrt(7.0) / math.sqrt(8.0 / math.pi)
+ DAY_MS = 86_400_000
+ HTTP_TIMEOUT_S = 20
+ FAPI_KLINES = "https://fapi.binance.com/fapi/v1/klines?symbol=%s&interval=1d&limit=400"
+@@ -92,25 +104,11 @@ def replay(bars, open_now=None, scale=None):
+     for k in range(len(bars)):
+         t, o, h, l, c = bars[k]
+         if pos is not None and k >= pos["k_entry"]:
+-            side, stop = pos["side"], pos.get("stop_now", pos["stop"])
+-            if (side > 0 and l <= stop) or (side < 0 and h >= stop):
+-                px = o if (side > 0 and o < stop) or (side < 0 and o > stop) else stop
+-                trades.append(dict(pos, k_exit=k, t_exit=t, exit=px, why="stop"))
+-                pos = None
+-            elif "target" in pos and "t_scale" not in pos:
+-                tgt = pos["target"]
+-                if (side > 0 and h >= tgt) or (side < 0 and l <= tgt):
+-                    pos.update(t_scale=t, k_scale=k, stop_now=pos["entry"],
+-                               scale_px=o if (side > 0 and o > tgt) or (side < 0 and o < tgt) else tgt)
+-            if pos is not None and k >= EXIT_N:
+-                lo = min(b[3] for b in bars[k - EXIT_N:k]); hi = max(b[2] for b in bars[k - EXIT_N:k])
+-                if (side > 0 and c < lo) or (side < 0 and c > hi):
+-                    if k + 1 < len(bars):
+-                        nxt = bars[k + 1]
+-                        trades.append(dict(pos, k_exit=k + 1, t_exit=nxt[0], exit=nxt[1], why="channel"))
+-                        pos = None
+-                        continue          # the exit day's own close cannot also open a trade
+-                    pos["exit_due"] = True
++            tr, pos, channel = manage(pos, bars, k)
++            if tr is not None:
++                trades.append(tr)
++            if channel:
++                continue              # the exit day's own close cannot also open a trade
+         if pos is None and k >= ENTRY_N and (k + 1 < len(bars) or open_now is not None):
+             a = atr(bars, k)
+             if a is None or a <= 0:
+@@ -126,6 +124,32 @@ def replay(bars, open_now=None, scale=None):
+     return trades, pos
+ 
+ 
++def manage(pos, bars, k):
++    """Day k of an open position, as replay() walks it and a card follows it (TZ-84): (the trade it closed that
++    day or None, the position still open after it or None, whether a close beyond the channel closed it). The
++    stop fills intraday, at the open where the day opened beyond it; the target, where one is set, closes half
++    and moves the rest's stop to the entry from the next day on; a close beyond the prior EXIT_N days' opposite
++    extreme closes it at the next day's open, or marks the exit due on the last bar."""
++    t, o, h, l, c = bars[k]
++    side, stop = pos["side"], pos.get("stop_now", pos["stop"])
++    if (side > 0 and l <= stop) or (side < 0 and h >= stop):
++        px = o if (side > 0 and o < stop) or (side < 0 and o > stop) else stop
++        return dict(pos, k_exit=k, t_exit=t, exit=px, why="stop"), None, False
++    if "target" in pos and "t_scale" not in pos:
++        tgt = pos["target"]
++        if (side > 0 and h >= tgt) or (side < 0 and l <= tgt):
++            pos.update(t_scale=t, k_scale=k, stop_now=pos["entry"],
++                       scale_px=o if (side > 0 and o > tgt) or (side < 0 and o < tgt) else tgt)
++    if k >= EXIT_N:
++        lo = min(b[3] for b in bars[k - EXIT_N:k]); hi = max(b[2] for b in bars[k - EXIT_N:k])
++        if (side > 0 and c < lo) or (side < 0 and c > hi):
++            if k + 1 < len(bars):
++                nxt = bars[k + 1]
++                return dict(pos, k_exit=k + 1, t_exit=nxt[0], exit=nxt[1], why="channel"), None, True
++            pos["exit_due"] = True
++    return None, pos, False
++
++
+ def levels(bars, pos):
+     """What the next close decides, from the last closed bar: the trigger and the stop a new trade would
+     take, or the open position's exit level. A position whose entry is due has no open R yet. A position
+@@ -158,6 +182,93 @@ def levels(bars, pos):
+     return out
+ 
+ 
++def card_of(state, p, today=None):
++    """The card a --live state gives at the frozen price p (methodology section 4, TZ-84), or None for an exit or
++    a state with no levels. A hold's late card stands on the level that closes it first -- its stop, or its
++    exit_level where nearer p -- d atr20 away: under STOP_ATR / 2 none (`near`), up to STOP_ATR one at p (`now`,
++    void STOP_ATR / 2 atr20 inside that level), beyond it a limit STOP_ATR atr20 inside that level, `limit`
++    within the week's reach of p and `out` beyond it; a price at or beyond that level has closed it (`closed`).
++    An entry stands on its stop at p, `near` under the half-way test. A flat symbol gives its two triggers, each
++    with its estimated stop and its distance. The target is SCALE_R times the distance from the anchor; touched
++    says whether today, the bar still forming, reached the card's stop."""
++    a = state.get("atr20")
++    if not a or a <= 0 or state.get("state") not in ("long", "short", "flat") or state.get("exit_due"):
++        return None
++    reach = REACH * a
++    if state["state"] == "flat":
++        out = dict(kind="trigger")
++        for name, side in (("long", 1), ("short", -1)):
++            trig, stop = state[name + "_trigger"], state[name + "_stop"]
++            d = abs(trig - p) / a
++            out[name] = dict(anchor=trig, stop=stop, target=trig + side * SCALE_R * abs(trig - stop), d=d,
++                             reach=d <= REACH)
++        return out
++    side = 1 if state["state"] == "long" else -1
++    if state.get("entry_due"):
++        kind, level = "entry", state["stop"]
++    else:
++        kind = "late"
++        level = state["stop"] if abs(p - state["stop"]) <= abs(p - state["exit_level"]) else state["exit_level"]
++    d = abs(p - level) / a
++    out = dict(kind=kind, stop=level, d=d)
++    if side * (p - level) <= 0:
++        out.update(band="closed")
++        return out
++    if d < STOP_ATR / 2:
++        out.update(band="near")
++    elif d <= STOP_ATR or kind == "entry":
++        out.update(band="now", anchor=p, void=level + side * STOP_ATR / 2 * a)
++    else:
++        limit = level + side * STOP_ATR * a
++        out.update(band="limit" if abs(limit - p) <= reach else "out", anchor=limit, gap=abs(limit - p) / a)
++    if "anchor" in out:
++        out["target"] = out["anchor"] + side * SCALE_R * abs(out["anchor"] - level)
++    if today is not None:
++        out["touched"] = bool((side > 0 and today[3] <= level) or (side < 0 and today[2] >= level))
++    return out
++
++
++def late_cards(bars):
++    """Every late card the rule's holds gave over these closed bars (TZ-84): one for each day k at whose open a
++    hold stands -- entered by day k-1 and neither stopped before day k nor told to exit at day k-1's close --
++    made by card_of() from levels() of the bars before day k at day k's open, as a run at that open would see
++    it. A `now` card fills at that open and a `limit` card where day k reaches its limit; each is then followed
++    by manage(): its stop on a touch, half at its target and the rest's stop at the entry, the rest by the
++    channel. On a limit's fill day the stop is checked and the target is not, since a daily bar does not say
++    which came first. (band, trade) each, trade None while the card has not closed; cards that did not fill
++    are not returned."""
++    trades, pos = replay(bars)
++    held = [(tr, tr["k_exit"] if tr["why"] == "stop" else tr["k_exit"] - 1) for tr in trades]
++    if pos is not None:
++        held.append((pos, len(bars) - 1))
++    out = []
++    for tr, k_last in held:
++        hold = dict(side=tr["side"], t_entry=tr["t_entry"], entry=tr["entry"], stop=tr["stop"])
++        for k in range(tr["k_entry"] + 1, k_last + 1):
++            state = levels(bars[:k], hold)
++            t, o, h, l, c = bars[k]
++            card = card_of(state, o)
++            if card is None or card.get("band") not in ("now", "limit"):
++                continue
++            side = tr["side"]
++            pos = dict(side=side, entry=card["anchor"], stop=card["stop"], t_entry=t, k_entry=k)
++            if card["band"] == "limit":
++                if not ((side > 0 and l <= card["anchor"]) or (side < 0 and h >= card["anchor"])):
++                    continue
++                done, pos, _ = manage(pos, bars, k)
++                if done is not None:
++                    out.append((card["band"], done))
++                    continue
++                k += 1
++            pos["target"] = card["target"]
++            done = None
++            while pos is not None and k < len(bars):
++                done, pos, _ = manage(pos, bars, k)
++                k += 1
++            out.append((card["band"], done))
++    return out
++
++
+ def result_r(tr, funding):
+     """A closed trade in R after fees, slippage and funding. funding: sorted list of (t_ms, rate). A trade
+     that closed half at its target (TZ-80) gains half its move to the target and half its move to the exit,
+@@ -218,6 +329,19 @@ def _get(url):
+         return r.read()
+ 
+ 
++def payload_prices(path):
++    """Each symbol's frozen price in the run's payload (TZ-84): a list coin's from `c`, any other row's from `x`
++    -- the two arrays the writer builds (writer.build_payload) and analyst/live-gate.sh checks."""
++    with open(path, encoding="utf-8") as fh:
++        doc = json.load(fh)
++    out = {}
++    for row in doc.get("x") or []:
++        out[row["symbol"]] = float(row["lastPrice"])
++    for row in doc.get("c") or []:
++        out[row["s"]] = float(row["p"])
++    return {k: v for k, v in out.items() if math.isfinite(v) and v > 0}
++
++
+ def live_day(symbol, now_ms):
+     """The closed daily bars, oldest first, and the day still forming as a bar of its own, its close the last
+     price (TZ-80). A read without that day is refused rather than replayed without it (TZ-68)."""
+@@ -349,6 +473,36 @@ def archive_paths(symbol, start, end):
+     return paths
+ 
+ 
++def split(rows):
++    """The table of (t_exit, symbol, side, t_entry, r, ...) rows: in-sample, out-of-sample and all, each with its
++    long and short parts."""
++    oos = datetime(OOS_START.year, OOS_START.month, OOS_START.day, tzinfo=timezone.utc).timestamp() * 1000
++    out = {}
++    for name, keep in (("in-sample", lambda r: r[3] < oos), ("out-of-sample", lambda r: r[3] >= oos),
++                       ("all", lambda r: True)):
++        part = [r for r in rows if keep(r)]
++        out[name] = dict(summary([r[4] for r in part]),
++                         long=summary([r[4] for r in part if r[2] > 0]), short=summary([r[4] for r in part if r[2] < 0]))
++    return out
++
++
++def archive_late(symbols, start, end, cache, workers=8):
++    """Every late card the archive's holds gave and the tables of all of them and of each band (TZ-84): rows as
++    archive()'s, the band last; a card still open at the archive's end is not a row."""
++    with concurrent.futures.ThreadPoolExecutor(workers) as ex:
++        list(ex.map(lambda path: _archive_blob(path, cache),
++                    [path for s in symbols for path in archive_paths(s, start, end)]))
++    rows = []
++    for s in symbols:
++        bars, funding = archive_series(s, start, end, cache)
++        for band, tr in late_cards(bars):
++            if tr is not None:
++                rows.append((tr["t_exit"], s, tr["side"], tr["t_entry"], result_r(tr, funding), tr["why"], band))
++    rows.sort()
++    return rows, dict(all=split(rows), now=split([r for r in rows if r[6] == "now"]),
++                      limit=split([r for r in rows if r[6] == "limit"]))
++
++
+ def archive(symbols, start, end, cache, workers=8, scale=None, ceilings=None):
+     """Every trade over the archive and its table; with ceilings, (side, book), only the trades hold() takes, the
+     symbols ranked in the order given (TZ-81)."""
+@@ -366,14 +520,7 @@ def archive(symbols, start, end, cache, workers=8, scale=None, ceilings=None):
+         taken = hold(books, rank(symbols), *ceilings)
+         rows = [r for r in rows if (r[1], r[3]) in taken]
+     rows.sort()
+-    oos = datetime(OOS_START.year, OOS_START.month, OOS_START.day, tzinfo=timezone.utc).timestamp() * 1000
+-    out = {}
+-    for name, keep in (("in-sample", lambda r: r[3] < oos), ("out-of-sample", lambda r: r[3] >= oos),
+-                       ("all", lambda r: True)):
+-        part = [r for r in rows if keep(r)]
+-        out[name] = dict(summary([r[4] for r in part]),
+-                         long=summary([r[4] for r in part if r[2] > 0]), short=summary([r[4] for r in part if r[2] < 0]))
+-    return rows, out
++    return rows, split(rows)
+ 
+ 
+ def main(argv=None):
+@@ -386,25 +533,41 @@ def main(argv=None):
+     ap.add_argument("--scale", type=float, default=None, help="the plan: half closes at this many R (TZ-80)")
+     ap.add_argument("--hold", default=None, metavar="SIDE,BOOK",
+                     help="the archive's trades the book holds under these ceilings (TZ-81)")
++    ap.add_argument("--payload", default=None, help="the run's payload: each line's price and card (TZ-84)")
++    ap.add_argument("--late", action="store_true", help="the archive's late cards (TZ-84)")
+     ap.add_argument("symbols", nargs="+")
+     a = ap.parse_args(argv)
+     if a.live == a.archive:
+         ap.error("exactly one of --live and --archive")
+     if a.hold is not None and (a.live or not re.fullmatch(r"[1-9]\d*,[1-9]\d*", a.hold)):
+         ap.error("--hold SIDE,BOOK reads the archive; the live book held is score.py's")
++    if a.payload is not None and not a.live:
++        ap.error("--payload prices the live book")
++    if a.late and (a.live or a.scale is not None or a.hold is not None):
++        ap.error("--late reads the archive's rule, alone")
+     if a.live:
+         now_ms = int(time.time() * 1000)
++        prices = payload_prices(a.payload) if a.payload is not None else None
+         for s in a.symbols:
+             try:
+-                out = live_state(s, now_ms, a.scale)[0]
++                bars, today = live_day(s, now_ms)
++                out = state_of(s, bars, today[1], a.scale)[0]
++                if prices is not None and out.get("state") != "short-history":
++                    p = prices.get(s)
++                    card = None if p is None else card_of(out, p, today)
++                    out["price"], out["card"] = p, None if card is not None and card["kind"] == "late" else card
+             except Exception as exc:          # one symbol's failure never hides the others
+                 out = dict(symbol=s, state="unread", error=exc.__class__.__name__)
+             print(json.dumps(out, sort_keys=True), flush=True)
+         return 0
+     os.makedirs(a.cache, exist_ok=True)
+     end = date.fromisoformat(a.end) if a.end else (datetime.now(timezone.utc).date() - timedelta(days=2))
+-    rows, out = archive(a.symbols, date.fromisoformat(a.start), end, a.cache, scale=a.scale,
+-                        ceilings=None if a.hold is None else tuple(int(n) for n in a.hold.split(",")))
++    if a.late:
++        rows, tables = archive_late(a.symbols, date.fromisoformat(a.start), end, a.cache)
++        out = dict((band + " " + name, s) for band, t in tables.items() for name, s in t.items())
++    else:
++        rows, out = archive(a.symbols, date.fromisoformat(a.start), end, a.cache, scale=a.scale,
++                            ceilings=None if a.hold is None else tuple(int(n) for n in a.hold.split(",")))
+     for name, s in out.items():
+         if not s["n"]:
+             print("%-14s no trades" % name); continue
+diff --git a/vps/common.py b/vps/common.py
+index 2665fdc..298c3b5 100644
+--- a/vps/common.py
++++ b/vps/common.py
+@@ -66,6 +66,18 @@ S6 = ("\u0410\u043d\u0430\u043b\u0438\u0437 \u043d\u0435 \u0437\u0430\u043f\u044
+       "\u0441\u0435\u0441\u0441\u0438\u0435\u0439.")
+ S7 = "\u0410\u043d\u0430\u043b\u0438\u0437 \u043d\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d."
+ S8 = "\u041a\u043e\u043c\u0430\u043d\u0434\u044b: " + S1 + " \u00b7 \u0421\u0422\u041e\u041f"   # TZ-60 §12.1
++# TZ-84: an answer whose day log never reached main, and a session the API refused on a spent window.
++S16 = ("\u26a0\ufe0f \u0410\u043d\u0430\u043b\u0438\u0437 \u043e\u0442\u043f\u0440\u0430\u0432\u043b"
++       "\u0435\u043d, \u043d\u043e \u0435\u0433\u043e \u0437\u0430\u043f\u0438\u0441\u044c \u043d\u0435 "
++       "\u0441\u043e\u0445\u0440\u0430\u043d\u0438\u043b\u0430\u0441\u044c: \u0435\u0433\u043e \u0441"
++       "\u0434\u0435\u043b\u043a\u0438 \u043d\u0435 \u0432\u043e\u0439\u0434\u0443\u0442 \u0432 \u0441"
++       "\u0447\u0451\u0442 \u0441\u0438\u0441\u0442\u0435\u043c\u044b.")
++S17 = ("\u0410\u043d\u0430\u043b\u0438\u0437 \u043d\u0435 \u0432\u044b\u043f\u043e\u043b\u043d\u0435"
++       "\u043d: \u043b\u0438\u043c\u0438\u0442 Claude \u0438\u0441\u0447\u0435\u0440\u043f\u0430\u043d. "
++       "\u041f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0438 \u0430\u043a\u043a\u0430\u0443\u043d"
++       "\u0442 \u0438\u043b\u0438 \u0434\u043e\u0436\u0434\u0438\u0441\u044c \u0441\u0431\u0440\u043e"
++       "\u0441\u0430 \u043b\u0438\u043c\u0438\u0442\u0430 \u0438 \u043d\u0430\u0436\u043c\u0438 \u0441"
++       "\u043d\u043e\u0432\u0430.")
+ S9 = ("\u0421\u0432\u044f\u0437\u044c \u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u043e\u043c "
+       "\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.")
+ S10 = ("\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 "
+diff --git a/vps/run.py b/vps/run.py
+index baf56c8..d870292 100644
+--- a/vps/run.py
++++ b/vps/run.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1, TZ-60 B3, TZ-83): the writer, then one
++"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1, TZ-60 B3, TZ-83, TZ-84): the writer, then one
+ headless role-2 session, admitted only when the host's available memory less
+ RESERVE_BYTES covers this unit's ceiling and its free swap covers this unit's swap
+ ceiling; the answer goes to the outbox. The run has its own user and its own clone.
+@@ -10,9 +10,11 @@ ceiling; the answer goes to the outbox. The run has its own user and its own clo
+ 
+ The run's own Claude login is read from $CREDENTIALS_DIRECTORY and placed in the
+ environment of the claude child alone. Never prints the answer. Exit 0 answer
+-handed to the outbox · 1 the session failed (notice S7) · 75 not admitted
+-(notice S6; SuccessExitStatus=75). A SIGTERM while crypto-stop.service runs is the
+-owner's stop (TZ-60 B3): logged, and no notice S7.
++handed to the outbox · 1 the session failed (notice S7, or S17 where the API answered
++429) · 75 not admitted (notice S6; SuccessExitStatus=75). A SIGTERM while
++crypto-stop.service runs is the owner's stop (TZ-60 B3): logged, and no notice S7. An
++answer whose day log did not reach origin/main is followed by notice S16 (TZ-84): its
++cards are ones the card ledger never scores.
+ """
+ import argparse
+ import json
+@@ -54,9 +56,11 @@ APPEND = ("Before anything else, run sed '/^# PART B/q' EXECUTOR-INSTRUCTIONS.md
+           "and read what it prints, and nothing of that file below it: it is your contract, and the user "
+           "message is a trigger from its \u00a74.")
+ MODEL  = "claude-opus-5-5"
+-# TZ-83: the trader at xhigh (the owner's proposal of 25.11.2026); the pinned CLI lists the level for this
+-# model in its own catalog.
+-EFFORT = "xhigh"
++# TZ-84: the trader back at high -- the first press at xhigh (TZ-83), 26.11.2026, spent 86 % of the owner's
++# five-hour window, his report of that day; the pinned CLI lists the level for this model in its own catalog.
++EFFORT = "high"
++# TZ-84: the API's answer to an account whose window is spent.
++LIMIT_STATUS = "429"
+ # TZ-66: each alias a subagent call can name resolves to one full id in the session's environment. The Agent
+ # tool's per-call model outranks any agent definition (Claude Code docs, "Subagents", read 19.10.2026), and the
+ # methodology names the hunter's as `sonnet`; the sheriff runs on MODEL, the session's own.
+@@ -209,6 +213,13 @@ def prepare_tree(tree):
+     git(tree, "clean", "-q", "-fdx")
+ 
+ 
++def day_logs(tree):
++    """The day logs origin/main carries in the clone tree (ANALYST-INSTRUCTIONS.md section 12, TZ-84): the names
++    under analyst/log/ ending in .md and not in .hunt.md."""
++    names = git(tree, "ls-tree", "--name-only", "origin/main", "analyst/log/", capture=True).splitlines()
++    return {n for n in names if n.endswith(".md") and not n.endswith(".hunt.md")}
++
++
+ def writer_env():
+     """The writer's environment: this unit's, never carrying the Claude login."""
+     return {k: v for k, v in os.environ.items() if k != LOGIN_ENV}
+@@ -267,7 +278,7 @@ def main(argv=None):
+         return set_limits()
+     tree = os.path.abspath(args.tree)
+     line = {"requests": 0, "admitted": "no", "waited_s": 0, "writer_exit": "-", "claude_exit": "-",
+-            "is_error": "true", "num_turns": 0, "duration_ms": 0, "denials": 0, "answer_chars": 0}
++            "is_error": "true", "num_turns": 0, "duration_ms": 0, "denials": 0, "answer_chars": 0, "log": "-"}
+     extra = {"models": "-", "unpinned": "-", "denied_tools": "-"}
+     extra.update((name, "-") for name in RESULT_CATEGORIES)
+     # TZ-56 12.4: the limits the run ran under, its peaks and its token usage.
+@@ -281,7 +292,7 @@ def main(argv=None):
+         common.log("crypto-run: requests=%(requests)s admitted=%(admitted)s waited_s=%(waited_s)s "
+                    "writer_exit=%(writer_exit)s claude_exit=%(claude_exit)s is_error=%(is_error)s "
+                    "num_turns=%(num_turns)s duration_ms=%(duration_ms)s denials=%(denials)s "
+-                   "answer_chars=%(answer_chars)s" % line)
++                   "answer_chars=%(answer_chars)s log=%(log)s" % line)
+         # Model ids, denied tool names and result.json's categorical fields (TZ-54 §14,
+         # TZ-55 B2.4); never the answer.
+         common.log("crypto-run: models=%(models)s unpinned=%(unpinned)s denied_tools=%(denied_tools)s "
+@@ -320,6 +331,7 @@ def main(argv=None):
+         return EXIT_NOT_ADMITTED
+ 
+     prepare_tree(tree)
++    logs_before = day_logs(tree)
+     line["writer_exit"] = subprocess.run([sys.executable, WRITER, "--tree", tree], env=writer_env()).returncode
+ 
+     runtime_dir = os.environ.get("RUNTIME_DIRECTORY") or tempfile.mkdtemp(prefix="crypto-run.")
+@@ -380,6 +392,13 @@ def main(argv=None):
+     if answered:
+         common.write_outbox("answer", result)
+         line["answer_chars"] = len(result)
++        # TZ-84: the commit the session pushed is the record's one source of this answer's cards.
++        git(tree, "fetch", "-q", "origin", "main")
++        line["log"] = "yes" if day_logs(tree) - logs_before else "no"
++        if line["log"] == "no":
++            common.write_outbox("notice", common.S16)
++    elif extra["api_error_status"] == LIMIT_STATUS:
++        common.write_outbox("notice", common.S17)
+     else:
+         common.write_outbox("notice", common.S7)
+ 
+diff --git a/vps/score.py b/vps/score.py
+index be317ae..db13285 100644
+--- a/vps/score.py
++++ b/vps/score.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""The book's signal and its forward ledger (TZ-79, TZ-80, TZ-81). It runs no model and reads no credential.
++"""The book's signal and its forward ledger (TZ-79, TZ-80, TZ-81, TZ-84). It runs no model and reads no credential.
+ 
+     score.py [--state DIR] [--outbox DIR]              the daily close
+     score.py --forming [--state DIR] [--outbox DIR]    the look at the day still forming
+@@ -31,12 +31,16 @@ again (map inv. 70). The size and the ceilings are the owner's, read from analys
+                           reads its trade differently is counted, and a close found later than that is
+                           counted and never written -- the replay's window slides, and the ledger takes
+                           no file about a past it did not see
++    score-cards/          every card the analysis answer printed (TZ-84), from the CARD| lines of the day
++                          logs this checkout carries, followed as its card says: one trade a coin, side and
++                          fill however many runs print it, one closed trade a file,
++                          <SYMBOL>-<long|short>-<fill stamp>.json, written once on its close and never reopened
+     score-forming/        one look a file, <YYYY-MM-DD>.json, written once: what the look named, so that
+                           the next close counts how much of it came true; a day that has its file is not
+                           looked at again
+     score.json            the daily close's reading: the day it stands on, the ceilings, the book held's open
+-                          positions and the plan's it leaves out, the three ledgers' totals, and the look's
+-                          count for that day
++                          positions and the plan's it leaves out, the three ledgers' totals, the look's count
++                          for that day, and the cards' -- their totals, the cards still open and the counts
+ 
+ Prints one line, and one before it for each trade it could not price; never a price.
+ Exit 0 the reading is written, or the day was already looked at · 4 no symbol was read, or the read is older
+@@ -78,6 +82,14 @@ HELD = "score-held"
+ FORMING = "score-forming"
+ RECORD = "score.json"
+ LEDGER_KEYS = ("symbol", "side", "t_entry", "entry", "stop", "t_exit", "exit", "why", "r", "seen")
++# TZ-84: the card ledger -- every card the answer printed, the record the trust line scores.
++CARDS = "score-cards"
++CARD_KEYS = ("symbol", "side", "kind", "stem", "rank", "t_entry", "entry", "stop", "target", "t_exit", "exit",
++             "why", "r", "seen")
++CARD_FIELDS = 16                                 # ANALYST-INSTRUCTIONS.md section 12's CARD| line
++CARD_KINDS = ("now", "wait", "limit")
++MINUTES_URL = "https://fapi.binance.com/fapi/v1/klines?symbol=%s&interval=1m&startTime=%d&endTime=%d&limit=1500"
++MINUTE_MS = 60_000
+ 
+ # The alert, in the owner's words; a number he may type prints as a code span (the bot of TZ-71).
+ T_HEAD = ("\U0001f4c8 **\u0421\u0414\u0415\u041b\u041a\u0418 \u041f\u0420\u0410\u0412\u0418\u041b\u0410** \u00b7 "
+@@ -347,6 +359,201 @@ def compose_look(day_now, hours, stopped, scaled, entries):
+     return "\n".join(lines)
+ 
+ 
++def log_dir():
++    """The day logs of the checkout this vps/ directory sits in (ANALYST-INSTRUCTIONS.md section 12)."""
++    return os.path.join(os.path.dirname(common.index_html_path()), "analyst", "log")
++
++
++def card_lines(path):
++    """Every CARD| line of the day logs under path (TZ-84), each a card, in the order of their freezes, stems and
++    ranks: (cards, skipped), a line that does not read as a card -- its fields, its side, its kind, three prices
++    standing as a card's must -- counted and left out."""
++    try:
++        names = sorted(n for n in os.listdir(path) if n.endswith(".md") and not n.endswith(".hunt.md"))
++    except FileNotFoundError:
++        return [], 0
++    cards, skipped = [], 0
++    for name in names:
++        with open(os.path.join(path, name), encoding="utf-8") as fh:
++            for line in fh:
++                if not line.startswith("CARD|"):
++                    continue
++                f = line.rstrip("\n").split("|")
++                try:
++                    if len(f) != CARD_FIELDS or f[6] not in ("long", "short") or f[7] not in CARD_KINDS:
++                        raise ValueError("not a card")
++                    side = 1 if f[6] == "long" else -1
++                    anchor, stop, target = float(f[9]), float(f[10]), float(f[11])
++                    if not all(math.isfinite(v) and v > 0 for v in (anchor, stop, target)) \
++                            or side * (anchor - stop) <= 0 or side * (target - anchor) <= 0:
++                        raise ValueError("not a card's prices")
++                    freeze = int(datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
++                                 .timestamp() * 1000)
++                    cards.append(dict(stem=f[1], freeze=freeze, rank=int(f[3]), symbol=f[5], side=side, kind=f[7],
++                                      anchor=anchor, stop=stop, target=target))
++                except (ValueError, IndexError):
++                    skipped += 1
++    cards.sort(key=lambda c: (c["freeze"], c["stem"], c["rank"]))
++    return cards, skipped
++
++
++def card_minutes(symbol, freeze):
++    """The one-minute bars of a card's freeze day after its freeze minute, (t, open, high, low, close) oldest first
++    (TZ-84); refused unless they run from the minute after the freeze to the day's last minute."""
++    start = freeze - freeze % MINUTE_MS + MINUTE_MS
++    end = freeze - freeze % book.DAY_MS + book.DAY_MS - MINUTE_MS
++    if start > end:
++        return []
++    rows = json.loads(book._get(MINUTES_URL % (symbol, start, end)))
++    out = [(int(r[0]), float(r[1]), float(r[2]), float(r[3]), float(r[4])) for r in rows]
++    if not out or out[0][0] != start or out[-1][0] != end:
++        raise ValueError("the minutes do not cover the freeze day")
++    return out
++
++
++def card_trade(card, bars, minutes, plan):
++    """The trade one card makes (TZ-84) on its symbol's closed daily bars, its freeze day's minutes after the freeze
++    and the plan's replay of those bars, (trades, position) of book.replay at SCALE_R: ("waiting", None) while
++    the freeze day has not closed, ("lapsed", None) where the card did not fill, else ("open", position) or
++    ("closed", trade). A `now` card fills at its entry at the freeze; a `limit` card at its limit on the first
++    minute that reaches it before the next recalculation, the day's end, or at that minute's open where it
++    opened beyond; a `wait` card is the plan's own entry on its side at the next open, which the book makes only
++    where the freeze day closed beyond the trigger. A `now` or `limit` card's fill day is the part after its fill
++    -- the later minutes' high and low, the fill minute's side toward the stop, the day's close -- and from it
++    the card is followed by book.manage(): its stop on a touch, half at its target and the rest's stop at its
++    entry, the rest by the channel; an event of the fill day is stamped no earlier than the fill."""
++    day0 = card["freeze"] - card["freeze"] % book.DAY_MS
++    if not bars or bars[-1][0] < day0:
++        return "waiting", None
++    k = next((i for i, b in enumerate(bars) if b[0] == day0), None)
++    if k is None:
++        raise ValueError("the freeze day is not a bar of the read")
++    side = card["side"]
++    if card["kind"] == "wait":
++        trades, pos = plan
++        for tr in trades + ([pos] if pos is not None else []):
++            if tr["t_entry"] == day0 + book.DAY_MS and tr["side"] == side:
++                return ("open", tr) if "t_exit" not in tr else ("closed", tr)
++        return "lapsed", None
++    if card["kind"] == "now":
++        fill, t_fill, later, toward = card["anchor"], card["freeze"], minutes, None
++    else:
++        j = next((i for i, m in enumerate(minutes)
++                  if (side < 0 and m[2] >= card["anchor"]) or (side > 0 and m[3] <= card["anchor"])), None)
++        if j is None:
++            return "lapsed", None
++        m = minutes[j]
++        fill = max(m[1], card["anchor"]) if side < 0 else min(m[1], card["anchor"])
++        t_fill, later, toward = m[0], minutes[j + 1:], m[2] if side < 0 else m[3]
++    highs = [b[2] for b in later] + ([toward] if toward is not None and side < 0 else []) + [fill]
++    lows = [b[3] for b in later] + ([toward] if toward is not None and side > 0 else []) + [fill]
++    path = bars[:k] + [(bars[k][0], fill, max(highs), min(lows), bars[k][4])] + bars[k + 1:]
++    pos = dict(side=side, entry=fill, stop=card["stop"], target=card["target"], t_entry=t_fill, k_entry=k)
++    done = None
++    while pos is not None and k < len(path):
++        done, pos, _ = book.manage(pos, path, k)
++        k += 1
++    tr = done if done is not None else pos
++    for key in ("t_exit", "t_scale"):
++        if key in tr:
++            tr[key] = max(tr[key], t_fill)
++    return ("closed", tr) if done is not None else ("open", tr)
++
++
++def card_funding(symbol, t_entry, t_exit):
++    """A card's funding prints (TZ-84): funding_prints() from the start of its fill day, at least FUNDING_GAP_MS
++    long, so that a card filled and closed between two settlements asks for a span that holds one; result_r()
++    counts the prints after the fill alone."""
++    lo = t_entry - t_entry % book.DAY_MS
++    return funding_prints(symbol, lo, max(t_exit, lo + FUNDING_GAP_MS))
++
++
++def card_name(row):
++    """The file a closed card trade is written to: its symbol, its side and the stamp of its fill."""
++    return "%s-%s-%d.json" % (row["symbol"], "long" if row["side"] > 0 else "short", row["t_entry"])
++
++
++def read_cards(path):
++    """Every trade of the card ledger, in the order of the file names; a file that is not the trade its name says
++    raises, as read_ledger()."""
++    try:
++        names = sorted(name for name in os.listdir(path) if name.endswith(".json") and not name.startswith("."))
++    except FileNotFoundError:
++        return []
++    rows = []
++    for name in names:
++        with open(os.path.join(path, name), encoding="utf-8") as fh:
++            row = json.load(fh)
++        if not isinstance(row, dict) or any(key not in row for key in CARD_KEYS) or card_name(row) != name:
++            raise ValueError("a card ledger file is not a trade")
++        rows.append(row)
++    return rows
++
++
++def cards_pass(path, ledger, cards, now_ms, seen, symbols):
++    """The card ledger's run (TZ-84): every card followed on one read of its symbol, the earliest card of a coin,
++    side and fill making its one trade, each new close written as a new file (inv. 38) once its funding prints
++    arrive whole. (the ledger's trades, the record's block)."""
++    known = {(row["symbol"], row["side"], row["t_entry"]) for row in ledger}
++    counts = dict(read=len(cards), waiting=0, lapsed=0, pending=0, unread=0)
++    added, opened, taken = [], [], set()
++    for symbol in sorted({c["symbol"] for c in cards}):
++        group = [c for c in cards if c["symbol"] == symbol]
++        try:
++            bars, open_now = book.live_bars(symbol, now_ms)
++        except Exception:                 # one symbol's failure never hides the others
++            counts["unread"] += len(group)
++            continue
++        plan = book.replay(bars, open_now, book.SCALE_R)
++        for card in group:
++            try:
++                day0 = card["freeze"] - card["freeze"] % book.DAY_MS
++                closed_day = bars and bars[-1][0] >= day0
++                minutes = card_minutes(symbol, card["freeze"]) if closed_day and card["kind"] != "wait" else []
++                status, tr = card_trade(card, bars, minutes, plan)
++            except Exception as exc:      # asked again tomorrow
++                counts["pending"] += 1
++                common.log("score: pending %s %s %s" % (CARDS, symbol, exc.__class__.__name__))
++                continue
++            if status in ("waiting", "lapsed"):
++                counts[status] += 1
++                continue
++            key = (symbol, card["side"], tr["t_entry"])
++            if key in taken:
++                continue
++            taken.add(key)
++            if status == "open":
++                opened.append({"symbol": symbol, "side": card["side"], "kind": card["kind"], "stem": card["stem"],
++                               "rank": card["rank"], "t_entry": tr["t_entry"], "entry": tr["entry"],
++                               "stop": tr["stop"], "target": tr.get("target"), "scaled": "t_scale" in tr,
++                               "exit_due": bool(tr.get("exit_due"))})
++                continue
++            if key in known:
++                continue
++            try:
++                r = book.result_r(tr, card_funding(symbol, tr["t_entry"], tr["t_exit"]))
++                if not math.isfinite(r):
++                    raise ValueError("the result is not finite")
++            except Exception as exc:      # not written: the next run asks for the prints again (inv. 70)
++                counts["pending"] += 1
++                common.log("score: pending %s %s %s" % (CARDS, symbol, exc.__class__.__name__))
++                continue
++            known.add(key)
++            added.append({"symbol": symbol, "side": tr["side"], "kind": card["kind"], "stem": card["stem"],
++                          "rank": card["rank"], "t_entry": tr["t_entry"], "entry": tr["entry"], "stop": tr["stop"],
++                          "target": tr.get("target"), "t_exit": tr["t_exit"], "exit": tr["exit"], "why": tr["why"],
++                          "r": r, "seen": seen})
++    if added:
++        os.makedirs(path, mode=0o750, exist_ok=True)
++        for row in added:                 # a new file each: nothing that stands is opened (inv. 38)
++            common.atomic_write(os.path.join(path, card_name(row)), row, mode=0o640)
++    rows = ledger + added
++    on_list = set(symbols)
++    return rows, dict(counts, added=len(added), closed=totals(rows),
++                      list=totals([row for row in rows if row["symbol"] in on_list]),
++                      outside=totals([row for row in rows if row["symbol"] not in on_list]), open=opened)
++
++
+ def record_of(state_dir):
+     """The daily close's last record, or None where there is none or it does not parse."""
+     try:
+@@ -514,8 +721,10 @@ def main(argv=None, now_ms=None):
+     ceilings = list(paper.ceilings(own))
+     rule_path, plan_path = os.path.join(args.state, LEDGER), os.path.join(args.state, PLAN)
+     held_path, record_path = os.path.join(args.state, HELD), os.path.join(args.state, RECORD)
++    cards_path = os.path.join(args.state, CARDS)
+     try:
+         rule_ledger, plan_ledger, held_ledger = read_ledger(rule_path), read_ledger(plan_path), read_ledger(held_path)
++        card_ledger = read_cards(cards_path)
+     except (OSError, ValueError, TypeError):
+         common.log("score: a file of the ledger is not a trade, nothing written")
+         return 5
+@@ -583,6 +792,14 @@ def main(argv=None, now_ms=None):
+         common.write_outbox("alert", compose(asof, baseline, opened, skipped, scaled, closing, closed, rows,
+                                              open_rows, own), outbox_dir=args.outbox)
+ 
++    try:
++        cards, unparsed = card_lines(log_dir())
++        card_rows, card_block = cards_pass(cards_path, card_ledger, cards, now_ms, seen, symbols)
++        card_block["skipped"] = unparsed
++    except Exception as exc:              # the card ledger never stops the book's
++        common.log("score: cards unread %s" % exc.__class__.__name__)
++        card_rows, card_block = card_ledger, None
++
+     def by_group(group):
+         return {"all": totals(group), "majors": totals([row for row in group if row["symbol"] in MAJORS]),
+                 "others": totals([row for row in group if row["symbol"] not in MAJORS])}
+@@ -598,14 +815,18 @@ def main(argv=None, now_ms=None):
+         "plan": {"open": len(plan_open), "closed": by_group(plan_rows), "pending": plan_pending, "late": plan_late,
+                  "disagree": plan_disagree},
+         "rule": {"open": sum(1 for rule, _ in live if rule[0]["state"] in ("long", "short")), "closed": by_group(rule_rows),
+-                 "pending": rule_pending, "late": rule_late, "disagree": rule_disagree}}, mode=0o640)
++                 "pending": rule_pending, "late": rule_late, "disagree": rule_disagree},
++        "cards": card_block}, mode=0o640)
+     common.log("score: asof=%s symbols=%d read=%d unread=%d open=%d outside=%d opened=%d skipped=%d scaled=%d "
+-               "closing=%d closed=%d pending=%d late=%d disagree=%d ledger=%d plan=%d rule=%d look=%s alert=%s"
++               "closing=%d closed=%d pending=%d late=%d disagree=%d ledger=%d plan=%d rule=%d look=%s alert=%s "
++               "cards=%s"
+                % (asof, len(symbols), len(symbols) - len(unread), len(unread), len(open_rows), len(outside),
+                   len(opened), len(skipped), len(scaled), len(closing), len(closed), pending, late, disagree,
+                   len(rows), len(plan_rows), len(rule_rows),
+                   "-" if look is None else "%d/%d/%d" % (look["hit"], look["named"], look["entries"]),
+-                  "yes" if alert else "no"))
++                  "yes" if alert else "no",
++                  "-" if card_block is None else "%d/%d/%d" % (len(card_rows), len(card_block["open"]),
++                                                               card_block["pending"])))
+     return 0
+ 
+ 
+diff --git a/vps/selftest.py b/vps/selftest.py
+index 86e1525..e1d3a98 100644
+--- a/vps/selftest.py
++++ b/vps/selftest.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
+-TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1, TZ-79 B1): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
++TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1, TZ-79 B1, TZ-84): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
+ TZ-56 §12.6's, TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's, TZ-69's, TZ-71's and
+ TZ-72's changed and new ones, each printing
+ `section <X>: checks <n> failed <m>`, then the total.
+@@ -573,8 +573,8 @@ def section_o(s):
+     cmd = run.CLAUDE
+     s.check("run.CLAUDE carries --model immediately followed by claude-opus-5-5",
+             any(cmd[i] == "--model" and cmd[i + 1] == "claude-opus-5-5" for i in range(len(cmd) - 1)))
+-    s.check("run.CLAUDE carries --effort immediately followed by xhigh",
+-            any(cmd[i] == "--effort" and cmd[i + 1] == "xhigh" for i in range(len(cmd) - 1)))
++    s.check("run.CLAUDE carries --effort immediately followed by high",
++            any(cmd[i] == "--effort" and cmd[i + 1] == "high" for i in range(len(cmd) - 1)))
+     # TZ-83: the appended sentence names the contract's Part A by its one command, and never the whole file.
+     s.check("run.APPEND names Part A's command", "sed '/^# PART B/q' EXECUTOR-INSTRUCTIONS.md" in run.APPEND)
+     s.check("run.APPEND never asks for the contract in full", "in full" not in run.APPEND)
+@@ -3177,7 +3177,7 @@ def section_w_orders(s):
+ # --- AB: the book's signal and its forward ledger (TZ-79), the plan's (TZ-80), the book held (TZ-81) -------------
+ AB_LINE = re.compile(r"score: asof=\d{4}-\d\d-\d\d symbols=\d+ read=\d+ unread=\d+ open=\d+ outside=\d+ opened=\d+ "
+                      r"skipped=\d+ scaled=\d+ closing=\d+ closed=\d+ pending=\d+ late=\d+ disagree=\d+ ledger=\d+ "
+-                     r"plan=\d+ rule=\d+ look=(-|\d+/\d+/\d+) alert=(yes|no)")
++                     r"plan=\d+ rule=\d+ look=(-|\d+/\d+/\d+) alert=(yes|no) cards=(-|\d+/\d+/\d+)")
+ AB_LOOK = re.compile(r"score: forming day=\d{4}-\d\d-\d\d symbols=\d+ read=\d+ unread=\d+ stopped=\d+ scaled=\d+ "
+                      r"entries=\d+ alert=(yes|no)")
+ AB_LOOK_MS = 15 * 3600 * 1000 + 10 * 60 * 1000          # the look's hour: 15:10 UTC
+@@ -3237,14 +3237,14 @@ class AbHost:
+     def call(self, argv, n, shift, part, at_ms):
+         """(exit code, what it printed, the alerts it wrote) of one score.py call on day n."""
+         self.n, self.shift, self.part, self.runs = n, shift or {}, part or {}, self.runs + 1
+-        saved = book._get, score.list_symbols, common.OUTBOX_DIR, paper.owner_now
++        saved = book._get, score.list_symbols, common.OUTBOX_DIR, paper.owner_now, score.log_dir
+         book._get, score.list_symbols, common.OUTBOX_DIR = self.get, lambda: list(self.worlds), self.outbox
+-        paper.owner_now = lambda: self.own
++        paper.owner_now, score.log_dir = (lambda: self.own), (lambda: os.path.join(self.tmp, "logs"))
+         try:
+             with contextlib.redirect_stdout(io.StringIO()) as out:
+                 code = score.main(["--state", self.state] + argv, now_ms=n * book.DAY_MS + at_ms + self.runs * 1000)
+         finally:
+-            book._get, score.list_symbols, common.OUTBOX_DIR, paper.owner_now = saved
++            book._get, score.list_symbols, common.OUTBOX_DIR, paper.owner_now, score.log_dir = saved
+             self.part = {}
+         texts = []
+         for name in sorted(set(os.listdir(self.outbox)) - self.sent):
+@@ -3370,10 +3370,10 @@ def section_ab(s):
+         s.check("baseline: no ledger file is written while no trade has closed",
+                 ledger is None and h.ledger(score.PLAN) is None and h.ledger(score.HELD) is None)
+         s.check("record keys v k ts asof since symbols unread ceilings held open outside closed pending late disagree "
+-                "look plan rule, in order",
++                "look plan rule cards, in order",
+                 record is not None and list(record) == ["v", "k", "ts", "asof", "since", "symbols", "unread", "ceilings",
+                                                         "held", "open", "outside", "closed", "pending", "late",
+-                                                        "disagree", "look", "plan", "rule"])
++                                                        "disagree", "look", "plan", "rule", "cards"])
+         s.check("a day nobody looked at carries no look's count", record is not None and record["look"] is None)
+         s.check("record v 3, k score, asof the last closed day, the unread symbol named, the ceilings 6 and 10, the "
+                 "book's one span: the long due at the open, standing",
+@@ -4101,12 +4101,266 @@ def section_ab(s):
+             not [x for x in service + look_service if "claude" in x.lower()])
+ 
+ 
++# --- AC: the card a state gives, the late card's replay, the card ledger and the run's two notices (TZ-84) ------
++AC_STUB_LOG = """#!/usr/bin/env python3
++import json, os, subprocess, sys
++os.makedirs("analyst/log", exist_ok=True)
++with open("analyst/log/1970-01-02.md", "w") as fh:
++    fh.write("x\\n")
++g = ["git", "-c", "user.name=selftest", "-c", "user.email=selftest@invalid"]
++subprocess.run(g + ["add", "analyst/log/1970-01-02.md"], check=True)
++subprocess.run(g + ["commit", "-q", "-m", "analyst: 1970-01-02"], check=True)
++subprocess.run(g + ["push", "-q", "origin", "HEAD:main"], check=True)
++json.dump({"type": "result", "is_error": False, "result": os.environ["SELFTEST_AC_RESULT"], "num_turns": 1}, sys.stdout)
++"""
++AC_STUB_ANSWER = """#!/usr/bin/env python3
++import json, os, sys
++json.dump({"type": "result", "is_error": False, "result": os.environ["SELFTEST_AC_RESULT"], "num_turns": 1}, sys.stdout)
++"""
++AC_STUB_429 = """#!/usr/bin/env python3
++import json, sys
++json.dump({"type": "result", "is_error": True, "api_error_status": 429, "result": "", "num_turns": 0}, sys.stdout)
++"""
++
++
++def ac_world():
++    """60 flat days, a breakout long filled at 105 under a stop at 100.6, a day whose open gives the hold a limit at
++    105.1 that its low reaches, a day through the target at 114.1, a day back through the rest's stop, then flat."""
++    bars = [(k * book.DAY_MS, 100.0, 101.0, 99.0, 100.0) for k in range(60)]
++    bars += [(60 * book.DAY_MS, 100.0, 106.0, 100.0, 105.0), (61 * book.DAY_MS, 105.0, 107.0, 104.0, 106.0),
++             (62 * book.DAY_MS, 106.0, 107.0, 105.0, 106.5), (63 * book.DAY_MS, 106.5, 115.0, 106.0, 114.0),
++             (64 * book.DAY_MS, 114.0, 114.5, 104.0, 104.5)]
++    return bars + [(k * book.DAY_MS, 104.5, 105.0, 104.0, 104.5) for k in range(65, 70)]
++
++
++def ac_flat(days, last=None):
++    bars = [(k * book.DAY_MS, 100.0, 101.0, 99.0, 100.0) for k in range(days)]
++    return bars if last is None else bars[:-1] + [(bars[-1][0],) + last]
++
++
++AC_FREEZE = 70 * book.DAY_MS + 10 * 3600 * 1000      # 1970-03-12 10:00 UTC
++
++
++def ac_minutes(url, spikes):
++    """What fapi's one-minute klines answer for the URL's span: flat at 100, the minute of each spike standing at
++    its (open, high, low, close)."""
++    q = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
++    start, end, symbol = int(q["startTime"][0]), int(q["endTime"][0]), q["symbol"][0]
++    rows = []
++    for t in range(start, end + 1, score.MINUTE_MS):
++        o, h, l, c = spikes.get(symbol, {}).get(t, (100.0, 100.5, 99.5, 100.0))
++        rows.append([t, str(o), str(h), str(l), str(c), "0", t + score.MINUTE_MS - 1])
++    return json.dumps(rows).encode()
++
++
++def section_ac(s):
++    eps = 1e-9
++    s.check("REACH is sqrt(7) / sqrt(8/pi)", abs(book.REACH - 7 ** 0.5 / (8 / 3.141592653589793) ** 0.5) < 1e-12)
++    short = {"state": "short", "stop": 110.0, "exit_level": 112.0, "atr20": 4.0, "entry_due": False, "exit_due": False}
++    lim = book.card_of(short, 100.0)
++    s.check("a short hold 2.5 atr20 from its stop: a limit at 102 inside its reach, target 86",
++            lim["kind"] == "late" and lim["band"] == "limit" and abs(lim["anchor"] - 102.0) < eps
++            and abs(lim["stop"] - 110.0) < eps and abs(lim["target"] - 86.0) < eps and abs(lim["gap"] - 0.5) < eps)
++    now = book.card_of(short, 104.0, (0, 104.0, 109.0, 103.0, 104.0))
++    s.check("1.5 atr20 from its stop: now at the price, void at 106, target 92, the day not at its stop",
++            now["band"] == "now" and abs(now["anchor"] - 104.0) < eps and abs(now["void"] - 106.0) < eps
++            and abs(now["target"] - 92.0) < eps and now["touched"] is False)
++    s.check("a forming day whose high reached the stop is touched",
++            book.card_of(short, 104.0, (0, 104.0, 110.0, 103.0, 104.0))["touched"] is True)
++    s.check("under half its stop distance: near; at or beyond the stop: closed; a limit beyond the week's reach: out",
++            [book.card_of(short, p)["band"] for p in (107.0, 110.0, 111.0, 90.0)] == ["near", "closed", "closed", "out"])
++    nearer = book.card_of(dict(short, exit_level=108.0), 100.0)
++    s.check("the exit level nearer the price stands as the card's stop",
++            nearer["band"] == "now" and abs(nearer["stop"] - 108.0) < eps and abs(nearer["target"] - 84.0) < eps)
++    entry = {"state": "long", "stop": 95.0, "exit_level": 90.0, "atr20": 2.5, "entry_due": True, "exit_due": False}
++    e1, e2, e3 = book.card_of(entry, 100.0), book.card_of(entry, 96.0), book.card_of(entry, 108.0)
++    s.check("an entry: now at the price, void 97.5, target 110; near under the half-way test; never a limit",
++            e1["kind"] == "entry" and e1["band"] == "now" and abs(e1["void"] - 97.5) < eps
++            and abs(e1["target"] - 110.0) < eps and e2["band"] == "near" and e3["band"] == "now")
++    flat = {"state": "flat", "long_trigger": 120.0, "short_trigger": 80.0, "long_stop": 112.0, "short_stop": 88.0,
++            "atr20": 4.0}
++    tr = book.card_of(flat, 114.0)
++    s.check("a flat symbol: its two triggers, the long within reach with target 136, the short beyond it",
++            tr["kind"] == "trigger" and tr["long"]["reach"] is True and abs(tr["long"]["d"] - 1.5) < eps
++            and abs(tr["long"]["target"] - 136.0) < eps and tr["short"]["reach"] is False
++            and abs(tr["short"]["target"] - 64.0) < eps)
++    s.check("an exit due and a state with no atr20 give no card",
++            book.card_of(dict(short, exit_due=True), 100.0) is None and book.card_of(dict(short, atr20=None), 100.0) is None)
++
++    world = ac_world()
++    cards = book.late_cards(world)
++    first = [tr for band, tr in cards if tr is not None and tr["t_entry"] == 62 * book.DAY_MS]
++    s.check("the late replay: the hold's limit of day 62 fills at 105.1 under 100.6, targets 114.1",
++            len(first) == 1 and [b for b, t in cards if t is first[0]] == ["limit"]
++            and abs(first[0]["entry"] - 105.1) < eps and abs(first[0]["stop"] - 100.6) < eps
++            and abs(first[0]["target"] - 114.1) < eps)
++    s.check("it closes half at the target on day 63 and the rest at its entry on day 64",
++            len(first) == 1 and first[0]["t_scale"] == 63 * book.DAY_MS and abs(first[0]["scale_px"] - 114.1) < eps
++            and first[0]["t_exit"] == 64 * book.DAY_MS and abs(first[0]["exit"] - 105.1) < eps
++            and first[0]["why"] == "stop")
++    s.check("its R is 1 less the costs over its risk, by result_r",
++            len(first) == 1 and abs(book.result_r(first[0], []) - (1 - 2 * book.COST_SIDE * 105.1 / 4.5)) < 1e-9)
++    s.check("every card stands on a day a hold stands, on the hold's side, and fills on or after that day",
++            all(tr is None or (tr["side"] == 1 and 62 * book.DAY_MS <= tr["t_entry"] < 70 * book.DAY_MS)
++                for _, tr in cards) and len(cards) >= 1)
++    rules, _ = book.replay(world)
++    s.check("replay is unchanged by the cards: the world's own rule holds one long from day 61, still open",
++            rules == [] and book.replay(world)[1]["t_entry"] == 61 * book.DAY_MS)
++
++    tmp = tempfile.mkdtemp(prefix="vps-selftest-ac.")
++    saved_get = book._get
++    try:
++        pay = os.path.join(tmp, "live.json")
++        with open(pay, "w", encoding="utf-8") as fh:
++            json.dump({"c": [{"s": "AUSDT", "p": "2"}],
++                       "x": [{"symbol": "AUSDT", "lastPrice": "3"}, {"symbol": "BUSDT", "lastPrice": "5"}]}, fh)
++        s.check("the payload's price: a list coin's from c, any other row's from x",
++                book.payload_prices(pay) == {"AUSDT": 2.0, "BUSDT": 5.0})
++        long_world = x_world_long()
++        lines = {}
++        for sym, bars, fill in (("AUSDT", long_world[:61], 105.0), ("BUSDT", ac_world()[:66], 104.5)):
++            book._get = lambda url, b=bars, f=fill: ab_klines(b, f)
++            with contextlib.redirect_stdout(io.StringIO()) as out:
++                book.main(["--live", "--payload", pay, sym])
++            lines[sym] = json.loads(out.getvalue())
++        s.check("--live --payload: an entry carries its price and its card",
++                lines["AUSDT"]["price"] == 2.0 and lines["AUSDT"]["card"]["kind"] == "entry")
++        s.check("--live --payload: a hold carries its price and no card",
++                lines["BUSDT"]["price"] == 5.0 and lines["BUSDT"]["state"] == "long" and lines["BUSDT"]["card"] is None)
++
++        logs, state = os.path.join(tmp, "logs"), os.path.join(tmp, "state")
++        os.makedirs(logs)
++        stem = score.day(70 * book.DAY_MS)
++        at = datetime.fromtimestamp(AC_FREEZE / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
++        later = datetime.fromtimestamp((80 * book.DAY_MS + 3600 * 1000) / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
++        rows = ["CARD|%s|%s|1|ПЕРСП|CCCUSDT|short|now|late|100|104|92|—|1000|3|30" % (stem, at),
++                "CARD|%s|%s|2|ПЕРСП|CCCUSDT|short|limit|late|105|109|97|—|1000|3|30" % (stem, at),
++                "CARD|%s|%s|3|ПЕРСП|DDDUSDT|short|limit|late|102|106|94|—|1000|3|30" % (stem, at),
++                "CARD|%s|%s|4|ПЕРСП|EEEUSDT|short|wait|fresh|99|103.4|90.2|—|1000|3|30" % (stem, at),
++                "CARD|%s|%s|1|ПЕРСП|CCCUSDT|short|now|late|100|104|92|—|1000|3" % (stem, at)]
++        with open(os.path.join(logs, stem + ".md"), "w", encoding="utf-8") as fh:
++            fh.write("answer\n" + "\n".join(rows) + "\n")
++        with open(os.path.join(logs, stem + "-2.md"), "w", encoding="utf-8") as fh:
++            fh.write("CARD|%s-2|%s|1|ПЕРСП|DDDUSDT|short|limit|late|102|106|94|—|1000|3|30\n" % (stem, at))
++            fh.write("CARD|%s-2|%s|2|ПЕРСП|CCCUSDT|short|now|late|100|104|92|—|1000|3|30\n" % (stem, later))
++        with open(os.path.join(logs, stem + ".hunt.md"), "w", encoding="utf-8") as fh:
++            fh.write("CARD|%s|%s|1|ПЕРСП|ZZZUSDT|short|now|late|1|2|0.5|—|1|3|1\n" % (stem, at))
++        found, skipped = score.card_lines(logs)
++        s.check("the day logs' CARD| lines: six cards in freeze, stem and rank order, the short line skipped, no hunt "
++                "record", len(found) == 6 and skipped == 1 and [c["symbol"] for c in found][:4] == ["CCCUSDT", "CCCUSDT",
++                                                                                          "DDDUSDT", "EEEUSDT"]
++                and found[0]["freeze"] == AC_FREEZE and found[0]["side"] == -1 and found[0]["kind"] == "now")
++        worlds = {"CCCUSDT": ac_flat(81), "DDDUSDT": ac_flat(81),
++                  "EEEUSDT": ac_flat(70) + [(70 * book.DAY_MS, 100.0, 100.0, 94.0, 95.0)]
++                  + [(k * book.DAY_MS, 95.0, 96.0, 94.0, 95.0) for k in range(71, 81)]}
++        spikes = {"CCCUSDT": {AC_FREEZE + 2 * 3600 * 1000: (100.0, 104.5, 99.8, 100.2)},
++                  "DDDUSDT": {AC_FREEZE + 5 * 3600 * 1000: (100.0, 102.2, 99.9, 100.1)}}
++        refuse = {"on": True}
++
++        def get(url):
++            if "fundingRate" in url:
++                if refuse["on"]:
++                    raise OSError("refused")
++                return ab_funding(url)
++            if "interval=1m" in url:
++                return ac_minutes(url, spikes)
++            sym = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["symbol"][0]
++            return ab_klines(worlds[sym][:80], worlds[sym][80][1])
++        book._get = get
++        now_ms = 80 * book.DAY_MS + 10 * 60 * 1000
++        found, _ = score.card_lines(logs)
++        with contextlib.redirect_stdout(io.StringIO()):
++            r1, b1 = score.cards_pass(os.path.join(state, score.CARDS), [], found, now_ms, "s1", ["CCCUSDT"])
++        s.check("funding refused: the stopped card pending, nothing written",
++                r1 == [] and b1["pending"] == 1 and not os.path.exists(os.path.join(state, score.CARDS)))
++        refuse["on"] = False
++        with contextlib.redirect_stdout(io.StringIO()):
++            r2, b2 = score.cards_pass(os.path.join(state, score.CARDS), [], found, now_ms, "s2", ["CCCUSDT"])
++        names = sorted(os.listdir(os.path.join(state, score.CARDS)))
++        s.check("the now card stopped on its fill day: one file, R -1.05, stamped at the fill",
++                names == ["CCCUSDT-short-%d.json" % AC_FREEZE] and len(r2) == 1
++                and abs(r2[0]["r"] - (-0.04 - 2 * book.COST_SIDE) / 0.04) < 1e-9 and r2[0]["exit"] == 104.0
++                and r2[0]["t_exit"] == AC_FREEZE and r2[0]["why"] == "stop" and r2[0]["stem"] == stem)
++        opened = {(o["symbol"], o["kind"]): o for o in b2["open"]}
++        s.check("the touched limit open at 102 and the wait card open on the plan's entry at 95, its stop and target",
++                set(opened) == {("DDDUSDT", "limit"), ("EEEUSDT", "wait")}
++                and opened[("DDDUSDT", "limit")]["entry"] == 102.0
++                and opened[("DDDUSDT", "limit")]["t_entry"] == AC_FREEZE + 5 * 3600 * 1000
++                and opened[("EEEUSDT", "wait")]["entry"] == 95.0 and abs(opened[("EEEUSDT", "wait")]["stop"] - 99.4) < eps
++                and abs(opened[("EEEUSDT", "wait")]["target"] - 86.2) < eps)
++        s.check("one trade a coin, side and fill: the second log's DDD card adds none; the untouched limit lapsed; "
++                "the card of a day not yet closed waits",
++                len(b2["open"]) == 2 and b2["lapsed"] == 1 and b2["waiting"] == 1 and b2["read"] == 6
++                and b2["closed"]["n"] == 1 and b2["outside"]["n"] == 0 and b2["list"]["n"] == 1)
++        stamp = os.stat(os.path.join(state, score.CARDS, names[0])).st_mtime_ns
++        with contextlib.redirect_stdout(io.StringIO()):
++            r3, b3 = score.cards_pass(os.path.join(state, score.CARDS), score.read_cards(os.path.join(state, score.CARDS)),
++                                      found, now_ms + 1000, "s3", ["CCCUSDT"])
++        s.check("the next run adds nothing and opens no file",
++                b3["added"] == 0 and len(r3) == 1 and sorted(os.listdir(os.path.join(state, score.CARDS))) == names
++                and os.stat(os.path.join(state, score.CARDS, names[0])).st_mtime_ns == stamp)
++        h = AbHost(os.path.join(tmp, "ab"), {"AAAUSDT": x_world_long()})
++        os.makedirs(os.path.join(h.tmp, "logs"))
++        with open(os.path.join(h.tmp, "logs", "1970-03-02.md"), "w", encoding="utf-8") as fh:
++            fh.write("CARD|1970-03-02|1970-03-02T10:00:00Z|1|ПЕРСП|AAAUSDT|short|now\n")
++        code, printed, _, _, record = h.run(61)
++        s.check("the daily close carries the card ledger's block: nothing read, the bad line skipped",
++                code == 0 and record["cards"]["read"] == 0 and record["cards"]["skipped"] == 1
++                and ab_field(printed, "cards") == "0/0/0")
++    finally:
++        book._get = saved_get
++        shutil.rmtree(tmp, ignore_errors=True)
++
++    for stub, want, label, landed in ((AC_STUB_ANSWER, "no", "an answer whose log never reached main", False),
++                                      (AC_STUB_LOG, "yes", "an answer whose log reached main", True),
++                                      (AC_STUB_429, "-", "a session refused with 429", None)):
++        tmp = tempfile.mkdtemp(prefix="vps-selftest-ac-run.")
++        env_keys = ("CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", "SELFTEST_AC_RESULT", "SELFTEST_O_WRITER_SAW")
++        saved_env = {k: os.environ.get(k) for k in env_keys}
++        patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (run, "WRITER"), (run, "own_memory_max"),
++                   (run, "own_swap_max"), (run, "CLAUDE")]
++        saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
++        saved_term = signal.getsignal(signal.SIGTERM)
++        try:
++            paths, tree, _ = o_fixtures(tmp, stub, "sk-ant-oat01-selftest-planted-" + os.urandom(6).hex())
++            os.environ.update({"CREDENTIALS_DIRECTORY": paths["creds"], "RUNTIME_DIRECTORY": paths["runtime"],
++                               "SELFTEST_AC_RESULT": run.ANSWER_HEAD + " SELFTEST-AC",
++                               "SELFTEST_O_WRITER_SAW": os.path.join(tmp, "writer-saw")})
++            common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
++            run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
++            run.CLAUDE = stub_cli(paths)
++            run.own_memory_max = run.own_swap_max = lambda: None
++            with contextlib.redirect_stdout(io.StringIO()) as out:
++                code = run.main(["--tree", tree])
++            first = [l for l in out.getvalue().splitlines() if l.startswith("crypto-run: requests=")]
++            answers = [n for n in os.listdir(paths["outbox"]) if "-answer-" in n]
++            if landed is None:
++                s.check(label + ": exit 1, one notice S17 and no answer, log=-",
++                        code == 1 and notices(paths["outbox"]) == [common.S17] and answers == []
++                        and len(first) == 1 and first[0].endswith(" log=-"))
++            else:
++                s.check(label + ": the answer delivered, log=" + want,
++                        code == 0 and len(answers) == 1 and len(first) == 1 and first[0].endswith(" log=" + want))
++                s.check(label + (": no notice" if landed else ": one notice S16"),
++                        notices(paths["outbox"]) == ([] if landed else [common.S16]))
++        finally:
++            for mod, name, value in saved_attrs:
++                setattr(mod, name, value)
++            for k, v in saved_env.items():
++                if v is None:
++                    os.environ.pop(k, None)
++                else:
++                    os.environ[k] = v
++            signal.signal(signal.SIGTERM, saved_term)
++            shutil.rmtree(tmp, ignore_errors=True)
++
++
+ SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
+             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
+             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
+             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
+             ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x),
+-            ("Y", section_y), ("Z", section_z), ("AA", section_aa), ("AB", section_ab))
++            ("Y", section_y), ("Z", section_z), ("AA", section_aa), ("AB", section_ab), ("AC", section_ac))
+ 
+ 
+ def main():
