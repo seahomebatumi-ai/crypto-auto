@@ -573,15 +573,22 @@ def section_o(s):
     cmd = run.CLAUDE
     s.check("run.CLAUDE carries --model immediately followed by claude-opus-5-5",
             any(cmd[i] == "--model" and cmd[i + 1] == "claude-opus-5-5" for i in range(len(cmd) - 1)))
-    s.check("run.CLAUDE carries --effort immediately followed by high",
-            any(cmd[i] == "--effort" and cmd[i + 1] == "high" for i in range(len(cmd) - 1)))
+    s.check("run.CLAUDE carries --effort immediately followed by xhigh",
+            any(cmd[i] == "--effort" and cmd[i + 1] == "xhigh" for i in range(len(cmd) - 1)))
+    # TZ-83: the appended sentence names the contract's Part A by its one command, and never the whole file.
+    s.check("run.APPEND names Part A's command", "sed '/^# PART B/q' EXECUTOR-INSTRUCTIONS.md" in run.APPEND)
+    s.check("run.APPEND never asks for the contract in full", "in full" not in run.APPEND)
+    with open(os.path.join(REPO, "EXECUTOR-INSTRUCTIONS.md"), encoding="utf-8") as fh:
+        contract = fh.read()
+    s.check("EXECUTOR-INSTRUCTIONS.md carries exactly one line opening with '# PART B'",
+            len([l for l in contract.split("\n") if l.startswith("# PART B")]) == 1)
     s.check("no element of run.CLAUDE equals opus", "opus" not in cmd)
     # TZ-66: each alias a subagent call can name is pinned to one full id.
     s.check("run.PINS resolves sonnet to claude-sonnet-5-5",
             run.PINS.get("ANTHROPIC_DEFAULT_SONNET_MODEL") == "claude-sonnet-5-5")
     s.check("run.PINS resolves opus to run.MODEL", run.PINS.get("ANTHROPIC_DEFAULT_OPUS_MODEL") == run.MODEL)
-    s.check("run.PINS resolves haiku to claude-haiku-5-5",
-            run.PINS.get("ANTHROPIC_DEFAULT_HAIKU_MODEL") == "claude-haiku-5-5")
+    s.check("run.PINS resolves haiku to claude-sonnet-5-5, the page reader's id since TZ-83",
+            run.PINS.get("ANTHROPIC_DEFAULT_HAIKU_MODEL") == "claude-sonnet-5-5")
     tmp = tempfile.mkdtemp(prefix="vps-selftest-o.")
     env_keys = ("PATH", "CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", run.LOGIN_ENV,
                 "SELFTEST_O_CLAUDE_SAW", "SELFTEST_O_WRITER_SAW", "SELFTEST_O_RESULT",
@@ -610,8 +617,11 @@ def section_o(s):
                            "ANTHROPIC_DEFAULT_OPUS_MODEL": "selftest-decoy-opus",
                            "ANTHROPIC_DEFAULT_SONNET_MODEL": "selftest-decoy-sonnet",
                            "ANTHROPIC_DEFAULT_HAIKU_MODEL": "selftest-decoy-haiku",
-                           "SELFTEST_O_MODELS": json.dumps({"claude-opus-5-5": {}, "claude-sonnet-5-5": {},
-                                                            "claude-haiku-selftest": {}})})
+                           "SELFTEST_O_MODELS": json.dumps({
+                               "claude-opus-5-5": {"inputTokens": 1, "outputTokens": 2, "thinkingTokens": 3,
+                                                   "cacheReadInputTokens": 4, "cacheCreationInputTokens": 5,
+                                                   "webSearchRequests": 6, "costUSD": 0.25},
+                               "claude-sonnet-5-5": {}, "claude-haiku-selftest": {}})})
         common.OUTBOX_DIR, common.REQUESTS_DIR = paths["outbox"], paths["requests"]
         run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
         run.CLAUDE = stub_cli(paths)
@@ -649,6 +659,17 @@ def section_o(s):
         s.check("it carries input_tokens=11 output_tokens=22 cache_read_tokens=33 cache_creation_tokens=44 "
                 "cost_usd=0.5", len(third) == 1 and third[0].endswith(
                     " input_tokens=11 output_tokens=22 cache_read_tokens=33 cache_creation_tokens=44 cost_usd=0.5"))
+        # TZ-83: one usage line per model id, its fields in the fixed order, `-` for a field the entry lacks.
+        fourth = [l for l in summary.splitlines() if l.startswith("crypto-run: usage model=")]
+        s.check("one usage line per model id, in id order",
+                [l.split()[2] for l in fourth] == ["model=claude-haiku-selftest", "model=claude-opus-5-5",
+                                                   "model=claude-sonnet-5-5"])
+        s.check("the opus line carries every field of its entry",
+                "crypto-run: usage model=claude-opus-5-5 input=1 output=2 thinking=3 cache_read=4 cache_creation=5 "
+                "web_searches=6 cost_usd=0.25" in fourth)
+        s.check("an entry with no field prints `-` for each",
+                "crypto-run: usage model=claude-sonnet-5-5 input=- output=- thinking=- cache_read=- cache_creation=- "
+                "web_searches=- cost_usd=-" in fourth)
         s.check("the summary never carries the login", planted not in summary and decoy not in summary)
         s.check("the request was consumed first", "requests=1 " in summary and os.listdir(paths["requests"]) == [])
         answers = [n for n in os.listdir(paths["outbox"]) if "-answer-" in n]
@@ -1148,9 +1169,17 @@ def section_u(s):
     starts = [i for i, line in enumerate(lines) if line.startswith("## 2. ")]
     fence = None
     if len(starts) == 1:
-        fence = next((i for i in range(starts[0] + 1, len(lines)) if lines[i] == "`" * 3), None)
-    s.check("ANALYST-INSTRUCTIONS.md section 2's skeleton opens with run.ANSWER_HEAD",
-            fence is not None and fence + 1 < len(lines) and lines[fence + 1].startswith(head + " "))
+        fence = next((i for i in range(starts[0] + 1, len(lines)) if re.fullmatch("`{3,}", lines[i])), None)
+    # TZ-83: since the methodology of 18.11.2026 the skeleton opens with its title and the head follows it, so the
+    # head is sought in the skeleton's opening block -- its lines up to the first blank one.
+    block = []
+    if fence is not None:
+        for line in lines[fence + 1:]:
+            if not line.strip() or re.fullmatch("`{3,}", line):
+                break
+            block.append(line)
+    s.check("ANALYST-INSTRUCTIONS.md section 2's skeleton carries run.ANSWER_HEAD in its opening block",
+            any(line.startswith(head + " ") for line in block))
     cases = ((head + " 22:59 Tbilisi\n\n# R\n", True, "an answer"),
              ("\n\n  " + head + " 22:59\n", True, "an answer after blank lines and indentation"),
              ("**" + head + "** 22:59\n", True, "an answer under emphasis"),
