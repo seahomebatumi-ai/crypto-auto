@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The VPS assistant's selftest (TZ-54 B10, TZ-55 B7, TZ-56 B5, TZ-57 B5, TZ-58 B3, TZ-60 B7,
-TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1, TZ-79 B1, TZ-84, TZ-86): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
+TZ-62 B2, TZ-64 B4, TZ-65 B1, TZ-69 B1, TZ-71 B2, TZ-72 B1, TZ-79 B1, TZ-84, TZ-86, TZ-87): the sections of TZ-54 §12.14 with TZ-55 §12.7's,
 TZ-56 §12.6's, TZ-57 §12.8's, TZ-58 §12.7's, TZ-60 §12.11's, TZ-62 §12.4's, TZ-64's, TZ-65's, TZ-69's, TZ-71's and
 TZ-72's changed and new ones, each printing
 `section <X>: checks <n> failed <m>`, then the total.
@@ -16,6 +16,7 @@ import copy
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import shlex
@@ -31,7 +32,7 @@ import types
 import urllib.error
 import urllib.parse
 import zipfile
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -44,6 +45,7 @@ import common  # noqa: E402
 import etf  # noqa: E402
 import exchange  # noqa: E402
 import paper  # noqa: E402
+import press  # noqa: E402
 import radar  # noqa: E402
 import run  # noqa: E402
 import score  # noqa: E402
@@ -4913,13 +4915,775 @@ def section_ae(s):
             listed.count("crypto-radar.timer") == 1 and "crypto-radar.service" not in listed)
 
 
+# --- AF: the press -- the run's numbers in code before the model starts, its sizes and its checks (TZ-87) --------
+AF_DAY = book.DAY_MS
+AF_T0 = 1_780_000_000_000 - 1_780_000_000_000 % AF_DAY          # a UTC midnight
+AF_N = 400
+
+
+def af_flat(n=AF_N, mid=100.0):
+    """n closed daily bars of a quiet range: open and close mid, high mid+1, low mid-1."""
+    return [(AF_T0 + k * AF_DAY, mid, mid + 1.0, mid - 1.0, mid) for k in range(n)]
+
+
+def af_breakout(side, n=AF_N):
+    """A quiet range whose last closed bar breaks out: an entry due at the next open (methodology section 4)."""
+    bars = af_flat(n - 1)
+    t = AF_T0 + (n - 1) * AF_DAY
+    bars.append((t, 100.0, 103.5, 100.0, 103.0) if side > 0 else (t, 100.0, 100.0, 96.5, 97.0))
+    return bars
+
+
+def af_hold_short(n=AF_N):
+    """A break down ten days before the last bar and a drift lower since: a hold, which gives no card."""
+    bars = af_flat(n - 11)
+    px = 97.0
+    bars.append((AF_T0 + (n - 11) * AF_DAY, 100.0, 100.0, 96.5, px))
+    for k in range(n - 10, n):
+        bars.append((AF_T0 + k * AF_DAY, px, px + 0.5, px - 1.2, px - 0.8))
+        px -= 0.8
+    return bars
+
+
+def af_today(bars, o, h, l, c):
+    return (bars[-1][0] + AF_DAY, o, h, l, c)
+
+
+AF_BARS = {
+    "AAAUSDT": (af_breakout(1), (103.2, 103.6, 103.0, 103.5)),
+    "BBBUSDT": (af_flat(), (100.0, 100.2, 99.4, 99.5)),
+    "CCCUSDT": (af_hold_short(), (89.4, 89.8, 89.0, 89.2)),
+    "DDDUSDT": (af_breakout(-1), (97.0, 103.0, 96.8, 97.1)),
+    "EEEUSDT": (af_breakout(-1), (96.9, 97.2, 96.6, 97.0)),
+    "FFFUSDT": (af_flat(), (100.0, 100.3, 99.7, 99.8)),
+}
+
+
+def af_btc_bars():
+    """BTC's 400 closed days: a seeded walk around 50 000, every value fixed by the seed."""
+    import random
+    rnd = random.Random(87)
+    bars, px = [], 50000.0
+    for k in range(AF_N):
+        o = px
+        px *= 1 + rnd.uniform(-0.03, 0.03)
+        bars.append((AF_T0 + k * AF_DAY, o, max(o, px) * 1.004, min(o, px) * 0.996, px))
+    return bars
+
+
+def af_wild():
+    """A breakout on a range of thirty per cent a day: production gives no leverage the owner trades."""
+    bars = [(AF_T0 + k * AF_DAY, 100.0, 130.0, 70.0, 100.0) for k in range(AF_N - 1)]
+    bars.append((AF_T0 + (AF_N - 1) * AF_DAY, 100.0, 140.0, 95.0, 135.0))
+    return bars
+
+
+AF_BARS["BTCUSDT"] = (af_btc_bars(), None)
+AF_BARS["IIIUSDT"] = (af_wild(), (135.0, 136.0, 134.0, 135.0))
+AF_BARS["JJJUSDT"] = (af_breakout(1), (103.2, 103.6, 100.5, 100.8))
+AF_BARS["HHHUSDT"] = (af_flat(), (100.0, 100.2, 99.8, 100.0))
+AF_BARS["KKKUSDT"] = (af_breakout(-1), (96.9, 97.2, 96.6, 97.0))
+
+
+def af_day_of(symbol, now_ms):
+    bars, today = AF_BARS[symbol]
+    if today is None:
+        last = bars[-1]
+        today = (last[4], last[4] * 1.002, last[4] * 0.997, last[4] * 1.001)
+    return list(bars), af_today(bars, *today)
+
+
+AF_FREEZE = datetime.fromtimestamp((AF_T0 + AF_N * AF_DAY + 9 * 3_600_000) / 1000, timezone.utc)
+AF_PRICES = {"BTCUSDT": None, "IIIUSDT": "135.0", "JJJUSDT": "100.8", "AAAUSDT": "103.5", "BBBUSDT": "99.5", "CCCUSDT": "89.2", "DDDUSDT": "97.1",
+             "EEEUSDT": "97.0", "FFFUSDT": "99.8"}
+
+
+def af_cycle(n, values, now_value):
+    """A series of n values repeating `values` with period len(values), its newest value `now_value` -- every
+    change over one period is exactly zero."""
+    out = [values[k % len(values)] for k in range(n)]
+    out[-1] = now_value
+    return out
+
+
+def af_pos_series(kind):
+    """(oi, large, crowd) of 180 four-hour rows for a large-players class by construction (methodology section 16);
+    a kind ending in +crowdlong puts the crowd and its funding in the outer quarter of the coin's month."""
+    n = press.POS_LIMIT
+    crowd = [1.0 + 0.05 * ((k % 42) - 21) / 21 for k in range(n)]
+    crowd[-1] = crowd[-1 - 42]
+    if kind.endswith("+crowdlong"):
+        crowd[-1] = max(crowd) * 1.01
+        kind = kind.split("+")[0]
+    if kind == "flat":
+        return [1000.0 + 10 * ((k % 42) - 21) for k in range(n)], [1.0] * n, crowd
+    sign = 1 if kind == "long" else -1
+    large = [1.0 if k < 160 else math.exp(sign * 0.02 * (k - 159)) for k in range(n)]
+    oi = [1000.0 if k < 160 else 1000.0 * math.exp(0.01 * (k - 159)) for k in range(n)]
+    return oi, large, crowd
+
+
+class AfNet(press.Net):
+    """The press's every read, served from fixtures; anything else answers 451."""
+
+    def __init__(self, kinds, refuse=(), shape=(), deriv=True, okx_liq=None):
+        super().__init__(get=self.serve)
+        self.kinds, self.refuse, self.shape, self.deriv, self.okx_liq = kinds, set(refuse), set(shape), deriv, okx_liq
+        self.urls = []
+
+    def serve(self, url):
+        self.urls.append(url)
+        fms = press.ms_of(AF_FREEZE)
+        if url == press.CG_URL:
+            rows = [{"symbol": s} for s in ["eee", "fff", "btc", "hhh", "kkk"] + ["x%d" % k for k in range(95)]]
+            return 200, json.dumps(rows).encode()
+        q = dict(kv.split("=", 1) for kv in url.split("?", 1)[1].split("&")) if "?" in url else {}
+        sym = q.get("symbol")
+        if "/fapi/v1/klines" in url:
+            if q["interval"] == "4h":
+                start = fms - (fms % (4 * 3_600_000)) - 180 * 4 * 3_600_000
+                rows, px = [], 50000.0
+                for k in range(181):
+                    t = start + k * 4 * 3_600_000
+                    o = px
+                    px *= 1 + (0.004 if (k // 7) % 2 else -0.004)
+                    rows.append([t, str(o), str(max(o, px) * 1.001), str(min(o, px) * 0.999), str(px), "0",
+                                 t + 4 * 3_600_000 - 1])
+                return 200, json.dumps(rows).encode()
+            if q["interval"] == "1d" and q["limit"] == "8":
+                base = fms - fms % AF_DAY - 7 * AF_DAY
+                return 200, json.dumps([[base + k * AF_DAY, "1", "1", "1", "500" if sym == "QQQUSDT" else "80", "0",
+                                         base + (k + 1) * AF_DAY - 1] for k in range(8)]).encode()
+            return 451, b""
+        if "/futures/data/" in url and sym in self.kinds:
+            if sym in self.refuse:
+                return 451, b""
+            oi, large, crowd = af_pos_series(self.kinds[sym])
+            start = fms - fms % (4 * 3_600_000) - 179 * 4 * 3_600_000
+            ts = [start + k * 4 * 3_600_000 for k in range(press.POS_LIMIT)]
+            if sym in self.shape:
+                return 200, json.dumps([{"time": t} for t in ts]).encode()
+            if "openInterestHist" in url and "period=4h" in url:
+                return 200, json.dumps([{"timestamp": t, "sumOpenInterest": str(v)} for t, v in zip(ts, oi)]).encode()
+            if "topLongShortPositionRatio" in url:
+                return 200, json.dumps([{"timestamp": t, "longShortRatio": str(v)} for t, v in zip(ts, large)]).encode()
+            if "globalLongShortAccountRatio" in url:
+                return 200, json.dumps([{"timestamp": t, "longShortRatio": str(v)} for t, v in zip(ts, crowd)]).encode()
+            if "takerlongshortRatio" in url and "period=4h" in url:
+                return 200, json.dumps([{"timestamp": t, "buyVol": "60", "sellVol": "40"} for t in ts]).encode()
+        if "/fapi/v1/fundingRate" in url and sym in self.kinds:
+            if sym in self.refuse:
+                return 451, b""
+            start = fms - 30 * AF_DAY
+            vals = af_cycle(90, [0.0001, 0.00005, 0.00015], 0.00016 if self.kinds[sym].endswith("+crowdlong") else 0.0001)
+            return 200, json.dumps([{"fundingTime": start + k * 8 * 3_600_000, "fundingRate": str(v)}
+                                    for k, v in enumerate(vals)]).encode()
+        if not self.deriv:
+            return 451, b""
+        if url == press.DERIV_URLS["binance_oi"]:
+            return 200, json.dumps({"openInterest": "100"}).encode()
+        if url == press.DERIV_URLS["binance_hist"]:
+            return 200, json.dumps([{"timestamp": fms - (24 - k) * 3_600_000, "sumOpenInterestValue": str(4.0e6 + k * 1e4)}
+                                    for k in range(25)]).encode()
+        if url == press.DERIV_URLS["binance_taker"]:
+            return 200, json.dumps([{"timestamp": fms - (23 - k) * 3_600_000, "buyVol": "40", "sellVol": "60"}
+                                    for k in range(24)]).encode()
+        if url.startswith(press.DERIV_URLS["okx_oi"]):
+            return 200, json.dumps({"code": "0", "data": [{"oiUsd": "6000000"}]}).encode()
+        if url.startswith(press.DERIV_URLS["okx_funding"]):
+            return 200, json.dumps({"code": "0", "data": [{"fundingRate": "0.0002"}]}).encode()
+        if url.startswith(press.DERIV_URLS["okx_hist"]):
+            return 200, json.dumps({"code": "0", "data": [[str(fms - k * 3_600_000), str(5.0e6), "1"]
+                                                          for k in range(30)]}).encode()
+        if url.startswith(press.DERIV_URLS["okx_taker"]):
+            return 200, json.dumps({"code": "0", "data": [[str(fms - k * 3_600_000), "30", "20"] for k in range(30)]}).encode()
+        if url.startswith(press.OKX_LIQ):
+            pages = self.okx_liq or []
+            k = sum(1 for u in self.urls if u.startswith(press.OKX_LIQ)) - 1
+            details = pages[k] if k < len(pages) else []
+            return 200, json.dumps({"code": "0", "data": [{"details": details}]}).encode()
+        return 451, b""
+
+
+def af_tree(tmp):
+    """A checkout of the press's inputs: the repository's index.html and owner channel, a payload, a structural file,
+    a log of the freeze's day and a gate that passes."""
+    tree = os.path.join(tmp, "tree")
+    for sub in ("analyst/log", "journal/data", "analyst/press"):
+        os.makedirs(os.path.join(tree, sub))
+    for rel in ("index.html", "analyst/owner.json", "ANALYST-INSTRUCTIONS.md"):
+        shutil.copyfile(os.path.join(REPO, rel), os.path.join(tree, rel))
+    gate = os.path.join(tree, "analyst", "live-gate.sh")
+    with open(gate, "w") as fh:
+        fh.write("#!/bin/sh\nexit 0\n")
+    os.chmod(gate, 0o755)
+    btc_last = AF_BARS["BTCUSDT"][0][-1][4]
+    c, x = [], []
+    for s in ("BTCUSDT", "AAAUSDT", "BBBUSDT", "CCCUSDT", "DDDUSDT", "IIIUSDT", "JJJUSDT"):
+        p = AF_PRICES[s] or "%.1f" % btc_last
+        c.append({"s": s, "p": p, "h": "%.4f" % (float(p) * 1.02), "l": "%.4f" % (float(p) * 0.97), "chg": "1.5",
+                  "qv": "5000000" if s == "BBBUSDT" else "50000000", "fr": "0.0001", "oi": "100", "mark": p})
+    for s, p, qv, chg in (("BTCUSDT", "%.1f" % btc_last, "9e9", "1.5"), ("AAAUSDT", "103.5", "5e7", "1.5"),
+                          ("BBBUSDT", "99.5", "5e7", "-0.5"), ("CCCUSDT", "89.2", "5e7", "-2.0"),
+                          ("DDDUSDT", "97.1", "5e7", "-3.0"), ("EEEUSDT", "97.0", "8e7", "-3.0"),
+                          ("IIIUSDT", "135.0", "5e7", "35.0"), ("JJJUSDT", "100.8", "5e7", "0.8"),
+                          ("FFFUSDT", "99.8", "3e7", "0.2"), ("GGGUSDT_270326", "5.0", "9e8", "9.0"),
+                          ("KKKUSDT", "97.0", "9e7", "-3.1"),
+                          ("HHHUSDT", "100.0", "1e6", "20.0"), ("QQQUSDT", "510.0", "2e7", "0.4"),
+                          ("XAUUSDT", "2500.0", "2e8", "0.1")):
+        x.append({"symbol": s, "lastPrice": p, "quoteVolume": qv, "priceChangePercent": chg, "openPrice": p})
+    with open(os.path.join(tree, "analyst", "live.json"), "w") as fh:
+        json.dump({"c": c, "n": len(c), "src": "fapi", "ts": press.iso_z(AF_FREEZE), "x": x}, fh)
+    day = AF_FREEZE.date()
+    with open(os.path.join(tree, "journal", "data", "%s.jsonl" % (day - timedelta(days=1))), "w") as fh:
+        fh.write(json.dumps({"k": "s", "btc": {"min_price": 40000.0, "max_price": 60000.0, "price_pos": 50.0,
+                                                "volatility": 0.005, "r7": -0.06, "r14": -0.12, "r30": -0.2}}) + "\n")
+    with open(os.path.join(tree, "analyst", "log", "%s.md" % day), "w") as fh:
+        fh.write("an earlier run of the day\n")
+    return tree
+
+
+def af_score(tmp):
+    """A score record and a held ledger: one target taken, one win and one loss in the week, one older trade."""
+    fms = press.ms_of(AF_FREEZE)
+    held = os.path.join(tmp, "held")
+    os.makedirs(held)
+    for name, row in (("AAAUSDT-1.json", dict(symbol="AAAUSDT", side=1, entry=90.0, t_exit=fms - 2 * AF_DAY, r=1.5, why="channel")),
+                      ("CCCUSDT-2.json", dict(symbol="CCCUSDT", side=-1, entry=80.0, t_exit=fms - 3 * AF_DAY, r=-1.0, why="stop")),
+                      ("DDDUSDT-3.json", dict(symbol="DDDUSDT", side=-1, entry=70.0, t_exit=fms - 30 * AF_DAY, r=2.0, why="stop"))):
+        with open(os.path.join(held, name), "w") as fh:
+            json.dump(dict(row, t_entry=1, stop=1.0, exit=1.0, seen="x"), fh)
+    doc = {"asof": "1970-01-02", "since": "1970-01-01", "closed": {"all": {"n": 3, "total": 2.5}},
+           "open": [{"symbol": "BBBUSDT", "state": "short", "entry": 110.0, "scale_date": "1970-01-01", "r_open": 1.2},
+                    {"symbol": "EEEUSDT", "state": "short", "entry": 100.0, "r_open": -0.2}]}
+    path = os.path.join(tmp, "score.json")
+    with open(path, "w") as fh:
+        json.dump(doc, fh)
+    return path, held
+
+
+def af_answer(rec, final_lines, cards, warned=()):
+    """An answer composed from the press's own lines, as the methodology's skeleton prints them."""
+    by = {(press.base_name(cd["sym"]), cd["side"]): cd for cd in rec["cards"]}
+    money = {}
+    cur = None
+    for line in final_lines:
+        if line.startswith("T"):
+            cur = int(line.split()[0][1:])
+            money[cur] = []
+        elif line.startswith("**") and cur is not None:
+            money[cur].append(line)
+    now = " · ".join("%s %s" % (coin, press.SIDE_RU[side]) for coin, side, kind in cards if kind == "now") or "нет"
+    wait = " · ".join("%s %s" % (coin, press.SIDE_RU[side]) for coin, side, kind in cards if kind == "wait") or "нет"
+    word = press.VERDICT_RU[rec["market"]["word"]].lower()
+    out = ["# 📊 АНАЛИЗ РЫНКА · Binance Futures"] + rec["head"] + ["", "# 🧭 ГЛАВНОЕ — ЧТО ДЕЛАТЬ",
+                                                                  "⚡ **Войти сейчас:** " + now,
+                                                                  "⏳ **Ждать сигнала:** " + wait,
+                                                                  "🌍 **Рынок:** ⚪ %s · перевеса нет" % word, "",
+                                                                  "# 🏆 ЛУЧШИЕ СДЕЛКИ"]
+    for rank, (coin, side, kind) in enumerate(cards, 1):
+        cd = by[(coin, side)]
+        p = cd["places"]
+        out.append("**%d. %s %s**" % (rank, "🟢 ЛОНГ" if side > 0 else "🔴 ШОРТ", coin))
+        if kind == "now":
+            out += ["⚡ **ВХОД СЕЙЧАС** — по рынку",
+                    "**Вход:** $`%s` или выше — не выше $`%s`" % (press.px(cd["anchor"], p), press.px(cd["void"], p)),
+                    "**Стоп:** $`%s` (%s%%)" % (press.px(cd["stop"], p), press.pct(cd["pct_stop"])),
+                    "**Цель:** $`%s` (%s%%)" % (press.px(cd["target"], p), press.pct(cd["pct_target"])),
+                    "**Остаток:** держать, пока день не закроется выше $`%s`" % press.px(cd["exit_level"], p)]
+        else:
+            out += ["⏳ **ЖДАТЬ** — вход ещё не подтверждён",
+                    "**Условие:** день закроется ниже $`%s`" % press.px(cd["anchor"], p),
+                    "**Стоп:** ≈ $`%s` (%s%%)" % (press.px(cd["stop"], p), press.pct(cd["pct_stop"])),
+                    "**Цель:** ≈ $`%s` (%s%%)" % (press.px(cd["target"], p), press.pct(cd["pct_target"]))]
+        out += money[rank] + (["⚠️ %s — риск уменьшен вдвое" % " · ".join(cd["warn"] or ["Толпа уже в шорте"])]
+                              if coin in warned else []) + [""]
+    mp = rec["btc"]["map"]
+    out += [press.BREAK, "# ₿ BTC — ПРОГНОЗ НА 24–48 ЧАСОВ", "```", " %s ◄ ЦЕНА СЕЙЧАС" % press.usd(mp["p"]), "```",
+            "**Коридор:** $%s – $%s" % (press.usd(mp["corridor"][0]), press.usd(mp["corridor"][1])),
+            "🔴 **Падение:** 4-часовая свеча закроется ниже $%s" % press.usd(mp["bull"]), "", "# 🌍 РЫНОК"]
+    out += rec["blocks"]["world"] + ["", "# 📈 ДЕРИВАТИВЫ BTC"] + rec["blocks"]["deriv"] + ["", "# 👥 ПОЗИЦИИ НА BINANCE"]
+    out += rec["blocks"]["positions"] + ["", "# 💵 ПОТОКИ В ETF США · млн $"] + rec["blocks"]["etf"]
+    out += ["", "# 📊 СЧЁТ СИСТЕМЫ — ЕЁ СДЕЛКИ"] + rec["score"] + [press.BREAK, "конец"]
+    return "\n".join(out) + "\n"
+
+
+def section_af(s):
+    html = open(os.path.join(REPO, "index.html"), encoding="utf-8").read()
+    consts, out = press.production(html, [["sigmaDay", 0.01], ["lStruct", 0.033957, 0.0021718],
+                                          ["liqPrice", 100.0, 4, True], ["liqPrice", 100.0, 4, False],
+                                          ["regime", {"volatility": 0.005, "r7": 0.0, "r14": 0.0}]])
+    for name in press.JS_VARS:
+        s.check("production's %s is index.html's own value" % name, consts[name] == common.cut_number(html, name))
+    s.check("sigmaDay scales with vol", out[0] > 0.01)
+    # Derived: the run of 26.11.2026 cut lStruct from this index.html and printed 16.997 for TRX (its appendix).
+    s.check("lStruct(0.033957, 0.0021718) is 16.997, as the run of 26.11.2026 cut it", abs(out[1] - 16.997) < 0.001)
+    s.check("a long's liquidation lies below its entry, a short's above", out[2] < 100.0 < out[3])
+    s.check("a quiet market is a range", out[4]["mode"] == "range")
+    # Derived: the run of 26.11.2026 -- the structural btc object of journal/data/2026-11-25.jsonl at the frozen
+    # 60 884.1 printed «BTC за неделю: −2.2%», «BTC за 2 недели: −18.1%» and «Режим: падение».
+    reg = press.regime_of({"min_price": 55711.45082202992, "max_price": 87158.43254422718,
+                           "price_pos": 14.390288741921612, "volatility": 0.004462711445196986,
+                           "r7": -0.03265061680240344, "r14": -0.18954570561238526}, 60884.1, html)
+    s.check("the regime of 26.11.2026: the week −2.2 %, two weeks −18.1 %, падение",
+            (round(reg["r7"] * 100, 1), round(reg["r14"] * 100, 1), reg["word"]) == (-2.2, -18.1, "down"))
+    for bad in ("function marketRegime(", "var VOL_HARD"):
+        broken = html.replace(bad, bad.replace("marketRegime", "marketRegimeX").replace("VOL_HARD", "VOL_HARDX"), 1)
+        try:
+            press.production(broken, [])
+            s.check("a missing definition fails the cut: %s" % bad, False)
+        except ValueError:
+            s.check("a missing definition fails the cut: %s" % bad, True)
+    # Rounding as the price reads it -- the run of 26.11.2026's TRX stop and BTC support (derived: its answer).
+    s.check("px(0.308295, 5) is 0.3083", press.px(0.308295, 5) == "0.3083")
+    s.check("usd(57256.5) is 57 257, grouped with U+00A0", press.usd(57256.5) == "57 257")
+    s.check("group(-1254) carries U+2212 and U+00A0", press.group(-1254) == "−1 254")
+    s.check("num1(-1254.36e0) is −1 254.4", press.num1(-1254.36) == "−1 254.4")
+    # The head of the run of 26.11.2026, derived from its answer as sent.
+    s.check("the head of 26.11.2026 08:53:50Z", press.head_lines(datetime(2026, 11, 26, 8, 53, 50, tzinfo=timezone.utc),
+                                                                 "2026-11-25") ==
+            ["Время анализа: чт 26.11 · 12:53 Тбилиси", "Уровни — по закрытию 25.11 · пересчёт пт 27.11 04:00"])
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-af.")
+    try:
+        tree = af_tree(tmp)
+        day = AF_FREEZE.strftime("%Y-%m-%d")
+        s.check("the stem skips a day whose log exists", press.stem_of(tree, day) == day + "-2")
+        open(os.path.join(tree, "analyst", "press", day + "-2.json"), "w").close()
+        s.check("the stem skips a day-N whose press record exists", press.stem_of(tree, day) == day + "-3")
+        os.unlink(os.path.join(tree, "analyst", "press", day + "-2.json"))
+        old = os.path.join(tmp, "old")
+        os.makedirs(os.path.join(old, "journal", "data"))
+        open(os.path.join(old, "journal", "data", "%s.jsonl" % (AF_FREEZE.date() - timedelta(days=2))), "w").close()
+        s.check("a structural file two days old is a GAP", press.structural(old, AF_FREEZE)[1] is None)
+        kinds = {"BTCUSDT": "flat", "AAAUSDT": "long", "BBBUSDT": "flat", "CCCUSDT": "short", "DDDUSDT": "flat",
+                 "EEEUSDT": "short", "FFFUSDT": "long", "IIIUSDT": "flat", "JJJUSDT": "flat", "KKKUSDT": "flat"}
+        score_json, held = af_score(tmp)
+        etf_path = os.path.join(tmp, "etf.json")
+        days = [{"date": str(AF_FREEZE.date() - timedelta(days=k)), "net": v} for k, v in ((1, -4.0e8), (2, -2.0e8), (3, -1.254e9))]
+        with open(etf_path, "w") as fh:
+            json.dump({"k": "etf", "ts": press.iso_z(AF_FREEZE - timedelta(minutes=30)), "provider": "SoSoValue",
+                       "host": "openapi.sosovalue.com", "refused": [],
+                       "types": {"us-btc-spot": {"date": days[0]["date"], "days": days},
+                                 "us-eth-spot": {"date": days[0]["date"], "days": [dict(d, net=d["net"] / 10) for d in days]}}}, fh)
+        liq = [[{"ts": str(press.ms_of(AF_FREEZE) - 3_600_000), "sz": "100", "bkPx": "50000", "posSide": "long"},
+                {"ts": str(press.ms_of(AF_FREEZE) - 7_200_000), "sz": "50", "bkPx": "50000", "posSide": "short"}],
+               [{"ts": str(press.ms_of(AF_FREEZE) - 25 * 3_600_000), "sz": "999", "bkPx": "50000", "posSide": "long"}]]
+        net = AfNet(kinds, refuse=(), shape=("DDDUSDT",), okx_liq=liq)
+        rec = press.press(tree, AF_FREEZE, net=net, day_of=af_day_of, score_paths=(score_json, held), etf_path=etf_path)
+        s.check("the record is the stem's", rec["stem"] == day + "-2" and rec["gate"] == 0)
+        cards = {(cd["sym"], cd["side"], cd["kind"]): cd for cd in rec["cards"]}
+        st = {sym: book.state_of(sym, *[(lambda b, t: (b, t[1]))(*af_day_of(sym, 0))][0])[0] for sym in AF_BARS}
+        s.check("AAA: the book enters long today and the press carries its card", ("AAAUSDT", 1, "now") in cards
+                and st["AAAUSDT"]["entry_due"] and st["AAAUSDT"]["state"] == "long")
+        aaa = cards.get(("AAAUSDT", 1, "now"), {})
+        bc = book.card_of(st["AAAUSDT"], 103.5, af_day_of("AAAUSDT", 0)[1])
+        s.check("AAA: stop, void and target are book.card_of's at the frozen price",
+                aaa.get("stop") == bc["stop"] and aaa.get("void") == bc["void"] and aaa.get("target") == bc["target"]
+                and aaa.get("anchor") == 103.5)
+        s.check("AAA: no refusal", aaa.get("refusal") is None)
+        s.check("BBB: a flat coin gives both triggers inside the week's reach",
+                ("BBBUSDT", 1, "wait") in cards and ("BBBUSDT", -1, "wait") in cards)
+        s.check("CCC: a hold gives no card", not any(k[0] == "CCCUSDT" for k in cards))
+        ddd = cards.get(("DDDUSDT", -1, "now"), {})
+        s.check("DDD: a forming day that reached the stop refuses the entry", ddd.get("refusal") == "forming-day")
+        s.check("JJJ: a frozen price inside half the stop's distance refuses the entry (the half-way test)",
+                cards.get(("JJJUSDT", 1, "now"), {}).get("refusal") == "half-way")
+        s.check("III: no leverage the owner trades refuses the entry (the liquidation test)",
+                cards.get(("IIIUSDT", 1, "now"), {}).get("refusal") == "liquidation")
+        s.check("DDD: the refusal reaches the record's refused list",
+                {"sym": "DDDUSDT", "side": -1, "why": "forming-day"} in rec["refused"])
+        s.check("EEE, KKK: outside entries are book rows of their lane, the large players on its side first",
+                "Book rows, short lane: EEEUSDT KKKUSDT" in rec["hunter"])
+        s.check("FFF: an outside trigger in reach is a forward row", "Forward rows, long lane: FFFUSDT" in rec["hunter"]
+                and "Forward rows, short lane: FFFUSDT" in rec["hunter"])
+        s.check("filters 1, 2 and 4: the dated, the thin (HHH, in the top 100) and the unlisted rows are no outside row",
+                "Outside rows: KKKUSDT EEEUSDT FFFUSDT" in rec["hunter"])
+        s.check("the hunter prompt opens with its stem and freeze",
+                rec["hunter"].startswith("You are the HUNTER of analysis run %s, freeze %s," % (rec["stem"], rec["freeze"])))
+        s.check("signal coins: the list's entries and triggers in reach, a refused one included, BTC never",
+                rec["hunter"].splitlines()[-3] == "Signal coins: AAAUSDT long, BBBUSDT long, BBBUSDT short, DDDUSDT short, "
+                "IIIUSDT long, JJJUSDT long")
+        s.check("the hunter is told whether the ETF record stands", rec["hunter"].splitlines()[-2] == "ETF record: stands")
+        s.check("a turnover under $10M warns the card: BBB", cards[("BBBUSDT", -1, "wait")]["warn"] == ["Мало ликвидности"])
+        s.check("no warning where none is due: AAA", aaa.get("warn") == [])
+        s.check("BTC carries no card", not any(cd["sym"] == "BTCUSDT" for cd in rec["cards"]))
+        pos = rec["positioning"]
+        s.check("positioning: AAA large long by construction", pos["AAAUSDT"]["large"] == "long")
+        s.check("positioning: CCC large short by construction", pos["CCCUSDT"]["large"] == "short")
+        s.check("positioning: BTC none", pos["BTCUSDT"]["large"] == "none" and pos["BTCUSDT"]["crowd"] == "none")
+        s.check("positioning: a changed shape is unread, never none", pos["DDDUSDT"]["large"] == "unread"
+                and pos["DDDUSDT"]["why"] == "shape")
+        s.check("flow: oi24 and the taker buy share of six rows", abs(pos["AAAUSDT"]["buy"] - 60.0) < 1e-9
+                and pos["AAAUSDT"]["oi24"] > 0)
+        dv = rec["deriv"]
+        s.check("deriv: binance and okx answered, bybit refused", sorted(dv["venues"]) == ["binance", "okx"])
+        btc_mark = float(next(r for r in json.load(open(os.path.join(tree, "analyst", "live.json")))["c"]
+                              if r["s"] == "BTCUSDT")["mark"])
+        s.check("deriv: binance now is its coins times the payload's mark",
+                abs(dv["venues"]["binance"]["now"] - 100 * btc_mark) < 1e-6)
+        s.check("deriv: the funding is weighted by open interest",
+                abs(dv["funding"] - (100 * btc_mark * 0.0001 + 6e6 * 0.0002) / (100 * btc_mark + 6e6)) < 1e-12)
+        s.check("deriv: the buy share is the venues' sums", abs(dv["buy"] - (24 * 40 + 24 * 20) / (24 * 100 + 24 * 50) * 100) < 1e-9)
+        s.check("deriv: liquidations of the 24 hours only, in USD at 0.01 BTC a contract",
+                dv["liq"]["long"] == 100 * 0.01 * 50000 and dv["liq"]["short"] == 50 * 0.01 * 50000 and dv["liq"]["complete"])
+        blk = rec["blocks"]["deriv"]
+        s.check("deriv block: the venues and the minute", blk[0].startswith("Binance · OKX · данные на "))
+        s.check("deriv block: a fenced table of its rows", blk[1] == "```" and "```" in blk[2:])
+        etf = rec["etf"]
+        s.check("etf: the record stands", etf["stands"] and etf["days"][0] == str(AF_FREEZE.date() - timedelta(days=1)))
+        late = json.load(open(etf_path))
+        for t in late["types"].values():
+            t["days"] = t["days"][1:]
+            t["date"] = t["days"][0]["date"]
+        with open(etf_path + ".late", "w") as fh:
+            json.dump(late, fh)
+        e_late = press.read_etf(etf_path + ".late", AF_FREEZE)
+        gap = [d for d in [str(AF_FREEZE.date() - timedelta(days=1))] if date.fromisoformat(d).weekday() < 5]
+        s.check("etf: a closed session the record has not caught is named for the hunt", e_late["stands"]
+                and e_late["missing"] == gap and press.etf_block(e_late)[1] == ("unread" if gap else "red"))
+        s.check("etf: the table groups −1 254.0", any("−1 254.0" in l for l in rec["blocks"]["etf"]))
+        s.check("etf: three outflows colour indicator 5 red", rec["market"]["ind"][4] == "red")
+        stale = json.load(open(etf_path))
+        stale["ts"] = press.iso_z(AF_FREEZE - timedelta(hours=2, minutes=1))
+        with open(etf_path + ".stale", "w") as fh:
+            json.dump(stale, fh)
+        s.check("etf: a record read more than two hours before the freeze does not stand",
+                press.read_etf(etf_path + ".stale", AF_FREEZE) == {"stands": False, "why": "record stale"})
+        m = rec["btc"].get("map") or {}
+        s.check("map: drawn, the corridor around P", m and m["corridor"][0] < m["p"] < m["corridor"][1])
+        s.check("map: every zone holds two levels or more and lies inside its width",
+                m and all(len(z["names"]) >= 1 and z["hi"] - z["lo"] <= m["width"] + 1e-9 for z in m["zones"]))
+        s.check("map: the cancel prices bracket P", m and m["bull"] <= m["p"] <= m["bear"])
+        sc = rec["btc"]["scale"]
+        s.check("scale: ordinary, two-day median and q75 of thirty closed days", sc and sc["two_q75"] >= sc["two_med"] > 0)
+        s.check("scale: under four instances two-day stands in", sc and sc["stand_in"])
+        bars = AF_BARS["BTCUSDT"][0]
+        days4 = [press.utc_day(b[0]) for b in bars[-60:-20:10]]
+        s.check("scale: four dated instances make the class", not press.scale_of(bars, days4)["stand_in"])
+        s.check("market: ten indicators", len(rec["market"]["ind"]) == 10)
+        s.check("market: a count of 5 red and 3 more than green is МЕДВЕЖИЙ 5/10",
+                press.market(["red"] * 5 + ["white"] * 5)[:2] == ("bear", "5/10"))
+        s.check("market: 5 red against 3 green is no verdict",
+                press.market(["red"] * 5 + ["green"] * 3 + ["white"] * 2)[:2] == ("flat", "перевеса нет"))
+        s.check("market: three unread is НЕЙТРАЛЬНЫЙ · данных мало",
+                press.market(["red"] * 6 + ["unread"] * 3 + ["white"])[:2] == ("flat", "данных мало"))
+        s.check("market: the gauge sorts 🔴 ⚪ 🟢", press.market(["green", "red", "white"])[2] == "🔴⚪🟢")
+        s.check("score: the target taken prints with the frozen price's move",
+                rec["score"][1] == "🔴 **BBB** · шорт от $110 → цель взята · сейчас $99.5 (−9.5%)")
+        s.check("score: the week's win and loss, the older trade out",
+                "🟢 **AAA** · лонг от $90 → закрыта с прибылью: +675 USDT" in rec["score"]
+                and "🔴 **CCC** · шорт от $80 → по стопу: −450 USDT" in rec["score"]
+                and not any("DDD" in l for l in rec["score"]))
+        s.check("score: the total in USDT at the first risk_other_pct",
+                rec["score"][-1] == "Итог с 01.01 (на 02.01): закрыто 3 (+1 125 USDT) · открыто 2 (+450 USDT по закрытию дня)")
+        s.check("score: an unread record prints its one line",
+                press.score_block(None, [], {}, {}, AF_FREEZE) == ["⚠️ Счёт недоступен: запись системы не прочитана"])
+        digest, size = press.write_press(tree, rec)
+        brief_text = open(os.path.join(tree, "analyst", "press", rec["stem"] + ".md"), encoding="utf-8").read()
+        for head in ("## HEAD", "## MARKET", "## BTC MAP", "## ДЕРИВАТИВЫ", "## ETF", "## ПОЗИЦИИ", "## CARDS",
+                     "## REFUSED", "## SCORE", "## HUNTER"):
+            s.check("the brief carries %s" % head, ("\n" + head) in brief_text)
+        short = press.brief(dict(rec, lanes=dict(rec["lanes"], coingecko="unread HTTPError"))).splitlines()[1]
+        s.check("brief: a lane that is short is named on the second line, a lane that is ok is not",
+                short.startswith("lanes short: ") and "coingecko unread HTTPError" in short and "production" not in short)
+        with contextlib.redirect_stdout(io.StringIO()) as out_h:
+            press.main(["hunter", "--tree", tree, rec["stem"]])
+        s.check("hunter: the prompt's lines from «List coins» to «ETF record»",
+                out_h.getvalue().splitlines()[0].startswith("List coins: ")
+                and out_h.getvalue().splitlines()[-2].startswith("ETF record: "))
+        s.check("the record is JSON with its stem", json.load(open(os.path.join(tree, "analyst", "press",
+                                                                               rec["stem"] + ".json")))["stem"] == rec["stem"])
+        owner = json.load(open(os.path.join(tree, "analyst", "owner.json")))
+        v5 = copy.deepcopy(owner)
+        v5["card"]["margin_other_usdt"], v5["card"]["risk_other_pct"] = [1000], [1.5]
+        trx = dict(sym="TRXUSDT", side=-1, kind="wait", anchor=0.29817, stop=0.308295, target=0.27792, places=5,
+                   atr20=0.0050625, lmax=15, refusal=None, dist=abs(0.29817 - 0.308295) / 0.29817)
+        sz = press.size_card(trx, "ПЕРСП", 1, True, v5, consts)
+        # Derived: the run of 26.11.2026's card 9 as sent -- margin 1000, L 6, 20100 TRX, 5 993, −210 (0.7 %), +201.
+        s.check("the ladder: TRX of 26.11.2026 to the last line",
+                press.money_lines(trx, sz) == ["**Маржа:** `1000` USDT · **плечо:** `6`×",
+                                               "**Позиция:** ≈ 5 993 USDT · `20100` TRX",
+                                               "**При стопе:** ≈ −210 USDT (−0.7% депозита)",
+                                               "**На цели:** ≈ +201 USDT, остаток — без риска"])
+        try:
+            press.parse_final("1|ПЕРСП|AAAUSDT|up|-\n")
+            s.check("final: a malformed line is refused", False)
+        except ValueError:
+            s.check("final: a malformed line is refused", True)
+        rows, etf_c = press.parse_final("1|ПЕРСП|AAAUSDT|long|-\n2|ПЕРСП|BBBUSDT|short|warn\n3|ПЕРСП|DDDUSDT|short|-\nMARKET|etf=green\n")
+        fl, problems, sized = press.final(rec, rows, etf_c, owner, html)
+        s.check("final: a card the press refused is named and never sized",
+                problems == ["DDDUSDT шорт: refused by the press (forming-day)"] and len(sized) == 2)
+        cl = [l for l in fl if l.startswith("CARD|")]
+        s.check("final: one CARD line a sized card, its sixteen fields", len(cl) == 2 and all(len(l.split("|")) == 16 for l in cl))
+        s.check("final: the CARD line names the stem, the rank, the kind and the book's fill",
+                cl and cl[0].split("|")[1] == rec["stem"] and cl[0].split("|")[3] == "1" and cl[0].split("|")[7] == "now"
+                and cl[0].split("|")[12] == press.px(aaa["fill"], aaa["places"]))
+        s.check("final: the market line takes the hunt's ETF colour", any(l.startswith("MARKET ") for l in fl))
+        head = [l for l in fl if l.startswith("head: ")]
+        want_m = press.group(press.whole(sum(sz["margin"] for _, _, sz in sized)))
+        s.check("final: the sheriff's head sums the sized cards' margins and counts the cards",
+                len(head) == 1 and ("portfolio margin %s USDT" % want_m) in head[0] and head[0].endswith("cards 2 (STRONG 0)")
+                and "book holds long 0 · short 1" in head[0])
+        answer = af_answer(rec, fl, [("AAA", 1, "now"), ("BBB", -1, "wait")], warned=("BBB",))
+        ok, bad = press.check(rec, answer, None, {"horizon": []}, owner, html)
+        s.check("check: the answer composed from the press passes every check", bad == [] and len(ok) >= 10)
+        mutations = (
+            ("a stop moved", lambda a: a.replace(press.px(aaa["stop"], aaa["places"]) + "`", "1.0`", 1)),
+            ("an ASCII-space number", lambda a: a + "\nПозиция 2 997 USDT\n"),
+            ("a banned phrase", lambda a: a + "\nинтересно\n"),
+            ("ГЛАВНОЕ out of rank order", lambda a: a.replace("⚡ **Войти сейчас:** AAA лонг", "⚡ **Войти сейчас:** нет")),
+            ("a break line lost", lambda a: a.replace(press.BREAK + "\nконец", "конец")),
+            ("the score altered", lambda a: a.replace(rec["score"][-1], rec["score"][-1] + " ")),
+            ("a money line altered", lambda a: a.replace("**Маржа:** `", "**Маржа:** `9", 1)),
+            ("the press's warning dropped", lambda a: a.replace("⚠️ Мало ликвидности", "⚠️ Событие", 1)),
+            ("a bare four-digit number", lambda a: a + "\nОборот 12345 USDT\n"),
+            ("the head altered", lambda a: a.replace(rec["head"][0], rec["head"][0] + "!")),
+            ("a BTC price drawn", lambda a: a.replace("**Коридор:** $", "**Коридор:** $12\u00a0345 – $", 1)),
+            ("a world row altered", lambda a: a.replace(rec["blocks"]["world"][2], rec["blocks"]["world"][2] + "0", 1)),
+            ("the market word moved", lambda a: a.replace(
+                "🌍 **Рынок:** ⚪ " + press.VERDICT_RU[rec["market"]["word"]].lower(),
+                "🌍 **Рынок:** ⚪ " + ("бычий" if rec["market"]["word"] != "bull" else "медвежий"), 1)))
+        for label, mut in mutations:
+            ok2, bad2 = press.check(rec, mut(answer), None, {"horizon": []}, owner, html)
+            s.check("check: %s fails" % label, len(bad2) > 0)
+        log = "\n".join(l for l in fl if l.startswith("CARD|")) + "\nVERDICT|MARKET|7d|x\n"
+        ok3, bad3 = press.check(rec, answer, log, {"horizon": [{"id": "old", "d": "1970-01-01"}], "cards": []},
+                                owner, html)
+        s.check("check: the log's CARD lines pass", not any("CARD" in b for b in bad3))
+        day_log = os.path.join(tmp, "day.md")
+        with open(day_log, "w", encoding="utf-8") as fh:
+            fh.write("# Analysis run %s\n\n## Answer as sent\n\n%s\n## Appendix\n\n%s" % (rec["stem"], answer, log))
+        with open(os.path.join(tree, "analyst", "state.json"), "w") as fh:
+            json.dump({"horizon": []}, fh)
+        with contextlib.redirect_stdout(io.StringIO()) as out_c:
+            code_c = press.main(["check", "--tree", tree, rec["stem"], day_log])
+        s.check("check: a day log alone, its answer and its lines read from the one file: exit 0",
+                code_c == 0 and out_c.getvalue().strip().endswith(" passed 0 failed"))
+        s.check("check: a passed date and a trade object in the state fail",
+                any("passed date" in b for b in bad3) and any("trade object" in b for b in bad3))
+        calls = []
+        n451 = press.Net(get=lambda url: (calls.append(url), (451, b""))[1])
+        for k in range(3):
+            try:
+                n451.json("https://fapi.binance.com/futures/data/openInterestHist?symbol=K%d" % k)
+            except press.Refused:
+                pass
+        s.check("a refusal ends that endpoint's reads: one request, then none", len(calls) == 1
+                and n451.refused == {"https://fapi.binance.com/futures/data/openInterestHist": 451})
+        rec3 = press.press(tree, AF_FREEZE, net=AfNet(dict(kinds, AAAUSDT="flat+crowdlong", EEEUSDT="long")),
+                           day_of=af_day_of, score_paths=("/nonexistent", "/nonexistent"), etf_path="/nonexistent")
+        c3 = {(cd["sym"], cd["side"], cd["kind"]): cd for cd in rec3["cards"]}
+        s.check("the crowd on the card's side warns it: AAA", c3[("AAAUSDT", 1, "now")]["warn"] == ["Толпа уже в лонге"]
+                and c3[("AAAUSDT", 1, "now")]["refusal"] is None)
+        s.check("an outside entry whose large players stand against it is refused and no book row: EEE",
+                c3[("EEEUSDT", -1, "now")]["refusal"] == "large" and "Book rows, short lane: KKKUSDT" in rec3["hunter"])
+        s.check("a record that does not stand reaches the hunter's prompt",
+                rec3["hunter"].splitlines()[-2].startswith("ETF record: does not stand: record unread"))
+        rec4 = press.press(tree, AF_FREEZE, net=AfNet(dict(kinds, AAAUSDT="short+crowdlong")), day_of=af_day_of,
+                           score_paths=("/nonexistent", "/nonexistent"), etf_path="/nonexistent")
+        c4 = {(cd["sym"], cd["side"], cd["kind"]): cd for cd in rec4["cards"]}
+        s.check("a list entry with the large players against it and the crowd on it is refused: AAA",
+                c4[("AAAUSDT", 1, "now")]["refusal"] == "large")
+        net2 = AfNet(kinds, refuse=("AAAUSDT",), deriv=False)
+        rec2 = press.press(tree, AF_FREEZE, net=net2, day_of=af_day_of, score_paths=("/nonexistent", "/nonexistent"),
+                           etf_path="/nonexistent")
+        s.check("a refused positioning read leaves its coin unread", rec2["positioning"]["AAAUSDT"]["large"] == "unread")
+        s.check("no venue answered: the derivatives' one line", rec2["blocks"]["deriv"] == ["⚠️ Деривативы: данные не получены"])
+        s.check("no record: indicators 5-7 unread", rec2["market"]["ind"][4:7] == ["unread"] * 3)
+        # The state, never opened by the trader: the lifecycle and the view (methodology section 11).
+        st0 = {"v": 2, "k": "state", "d": "1970-01-01", "ts": "x",
+               "horizon": [{"id": "gone", "sym": "AAA", "d": str(AF_FREEZE.date() - timedelta(days=1)), "dclass": "primary", "cls": "A"},
+                           {"id": "soon", "sym": None, "d": str(AF_FREEZE.date() + timedelta(days=2)), "dclass": "reported", "cls": "S"},
+                           {"id": "far", "sym": "BBB", "d": str(AF_FREEZE.date() + timedelta(days=30)), "dclass": "primary", "cls": "A"}],
+               "sweeps": {"coins": {"AAA": {"d": str(AF_FREEZE.date()), "sec6_md5": "old"},
+                                    "BBB": {"d": str(AF_FREEZE.date()), "sec6_md5": "now"}},
+                          "unlock": {"AAA": {"d": rec["freeze"], "status": "next", "ud": "x", "pct": 2.0, "to": "Team"},
+                                     "BBB": {"d": "1970-01-01T00:00:00Z", "status": "refused"}}}}
+        st1, deleted = press.state_write(copy.deepcopy(st0), rec, press.read_payload(tree)[1])
+        s.check("state: the passed entry is deleted and the others kept", deleted == ["gone"]
+                and [h["id"] for h in st1["horizon"]] == ["soon", "far"])
+        s.check("state: d and ts are the freeze's", st1["d"] == rec["freeze"][:10] and st1["ts"] == rec["freeze"])
+        s.check("state: oi per symbol from the payload", st1["oi"]["AAA"] == {"ts": rec["freeze"], "oi": 100.0})
+        s.check("state: the regime carries the map's two cancel prices",
+                st1["regime"]["cond_dn"] == round(m["bull"], 2) and st1["regime"]["cond_up"] == round(m["bear"], 2)
+                and st1["regime"]["btc"] == rec["btc"]["p"])
+        view = press.state_view(st1, rec, "now")
+        s.check("state view: the window holds one entry", any(l.startswith("horizon 2 · in the window 1:") for l in view)
+                and any(l.strip().startswith("soon ·") for l in view) and not any("far ·" in l for l in view))
+        s.check("state view: a lane read under another text is named", any("not: AAA(,md5)" in l for l in view))
+        s.check("state view: unlock statuses and a read older than this run",
+                any("next AAA x 2.0% Team" in l and "refused BBB" in l and "read before this run: BBB" in l for l in view))
+        meth_now = open(os.path.join(REPO, "ANALYST-INSTRUCTIONS.md"), encoding="utf-8").read()
+        ud = (AF_FREEZE + timedelta(days=3)).isoformat()
+        st2 = copy.deepcopy(st1)
+        st2["sweeps"].update(horizon={"outside-list": {"ts": rec["freeze"][:11] + "00:00:00Z"},
+                                      "exchange-info": {"ts": "9999"}},
+                             discovery={"AAA": {"d": rec["freeze"][:10]}})
+        st2["sweeps"]["unlock"]["AAA"].update(ud=ud, pct=2.0)
+        items = press.state_items(st2, rec, meth_now, ["AAA", "BBB"])
+        s.check("item 99: an exchange read before the freeze is short", items[0] == "item 99: short: outside-list")
+        s.check("item 104: a list coin read before this run, a material cliff in the window, a refused read",
+                "without this run's unlock read: BBB" in items[1] and "AAA %s 2.0%%" % ud[:10] in items[1]
+                and "a long needs its search: BBB" in items[1])
+        s.check("item 91: a coin with no discovery search this run and a lane read under another text",
+                "list coins without this run's discovery search: BBB" in items[2] and "another text: AAA" in items[2])
+        sed = subprocess.run(["sed", "-n", "/^## 6\\./,/^## 7\\./p", os.path.join(REPO, "ANALYST-INSTRUCTIONS.md")],
+                             capture_output=True).stdout
+        s.check("sec6_md5 is the md5 of methodology section 6a's own command",
+                press.sec6_md5(open(os.path.join(REPO, "ANALYST-INSTRUCTIONS.md"), encoding="utf-8").read())
+                == hashlib.md5(sed).hexdigest())
+        s.check("brief: the record of this payload is fresh", press.newest_press(tree, AF_FREEZE + timedelta(minutes=5))
+                == rec["stem"])
+        doc = json.load(open(os.path.join(tree, "analyst", "live.json")))
+        doc["ts"] = "2000-01-01T00:00:00+00:00"
+        with open(os.path.join(tree, "analyst", "live.json"), "w") as fh:
+            json.dump(doc, fh)
+        s.check("brief: a record of another payload is not", press.newest_press(tree, AF_FREEZE + timedelta(minutes=5)) is None)
+        meth = open(os.path.join(REPO, "ANALYST-INSTRUCTIONS.md"), encoding="utf-8").read()
+        for text in ("$10M", "per_page=100", "`1000000` or `1M`", "limit=181", "42 rows", "84 rows",
+                     "fourteen days", "0.01 %", "−1 %", "thirty closed days", "365 days", "four instances",
+                     "two hours", "four days", "0.01 BTC", "limit=25", "U+00A0"):
+            s.check("the methodology still states %s, which the press restates" % text, text in meth)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+# --- AG: the run unit around the press -- the press before the session, the record after it (TZ-87) -----------
+STUB_PRESS_AG = """#!/usr/bin/env python3
+import json, os, sys
+tree = sys.argv[sys.argv.index("--tree") + 1]
+os.makedirs(os.path.join(tree, "analyst", "press"), exist_ok=True)
+for ext, body in ((".json", json.dumps({"stem": "2099-01-01"})), (".md", "PRESS 2099-01-01\\n")):
+    with open(os.path.join(tree, "analyst", "press", "2099-01-01" + ext), "w") as fh:
+        fh.write(body)
+with open(os.environ["SELFTEST_AG_SAW"], "w") as fh:
+    json.dump(dict(os.environ), fh)
+print("press: stem=2099-01-01 gate=0 cards=1")
+"""
+
+
+def section_ag(s):
+    tmp = tempfile.mkdtemp(prefix="vps-selftest-ag.")
+    env_keys = ("CREDENTIALS_DIRECTORY", "RUNTIME_DIRECTORY", "SELFTEST_O_RESULT", "SELFTEST_O_CLAUDE_SAW",
+                "SELFTEST_O_WRITER_SAW", "SELFTEST_AG_SAW", "SELFTEST_O_MODELS")
+    saved_env = {k: os.environ.get(k) for k in env_keys}
+    patched = [(common, "OUTBOX_DIR"), (common, "REQUESTS_DIR"), (common, "STATE_DIR"), (run, "WRITER"),
+               (run, "PRESS"), (run, "own_memory_max"), (run, "own_swap_max"), (run, "CLAUDE")]
+    saved_attrs = [(mod, name, getattr(mod, name)) for mod, name in patched]
+    saved_term = signal.getsignal(signal.SIGTERM)
+    try:
+        planted = "sk-ant-oat01-selftest-planted-" + os.urandom(6).hex()
+        paths, tree, pushed = o_fixtures(tmp, STUB_CLAUDE, planted)
+        stub = os.path.join(paths["bin"], "press-stub.py")
+        with open(stub, "w") as fh:
+            fh.write(STUB_PRESS_AG)
+        state = os.path.join(tmp, "state")
+        for name in ("score-cards", "score-held"):
+            os.makedirs(os.path.join(state, name))
+        with open(os.path.join(state, "score-cards", "AAAUSDT-long-1.json"), "w") as fh:
+            fh.write('{"symbol": "AAAUSDT", "r": 1.0}')
+        with open(os.path.join(state, "score-held", "BBBUSDT-2.json"), "w") as fh:
+            fh.write('{"symbol": "BBBUSDT", "r": -1.0}')
+        with open(os.path.join(state, "score-held", "broken.json"), "w") as fh:
+            fh.write("{")
+        for key, value in (("user.name", "selftest"), ("user.email", "selftest@invalid"), ("commit.gpgsign", "false")):
+            _git(tree, "config", key, value)
+        saw = os.path.join(tmp, "press-saw")
+        os.environ.update({"CREDENTIALS_DIRECTORY": paths["creds"], "RUNTIME_DIRECTORY": paths["runtime"],
+                           "SELFTEST_O_CLAUDE_SAW": os.path.join(tmp, "claude-saw"),
+                           "SELFTEST_O_WRITER_SAW": os.path.join(tmp, "writer-saw"), "SELFTEST_AG_SAW": saw,
+                           "SELFTEST_O_RESULT": run.ANSWER_HEAD + " SELFTEST-AG",
+                           "SELFTEST_O_MODELS": json.dumps({"claude-opus-5-5": {"inputTokens": 7, "outputTokens": 8,
+                                                                                "costUSD": 0.5}})})
+        common.OUTBOX_DIR, common.REQUESTS_DIR, common.STATE_DIR = paths["outbox"], paths["requests"], state
+        run.WRITER = os.path.join(paths["bin"], "writer-stub.py")
+        run.PRESS = stub
+        run.CLAUDE = stub_cli(paths)
+        run.own_memory_max = run.own_swap_max = lambda: None
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = run.main(["--tree", tree])
+        summary = out.getvalue()
+        s.check("the run answered: exit 0", code == 0)
+        with open(saw) as fh:
+            press_env = json.load(fh)
+        s.check("the press never sees the Claude login", run.LOGIN_ENV not in press_env
+                and not any(planted in v for v in press_env.values()))
+        s.check("the press's line reaches the journal", "crypto-run: press: stem=2099-01-01 gate=0 cards=1" in summary)
+        s.check("the summary names the press, its push before the session and the record after it",
+                "crypto-run: press_exit=0 press_pushed=yes record=3" in summary)
+        clone = os.path.join(tmp, "clone")
+        _git(tmp, "clone", "-q", os.path.join(tmp, "origin.git"), clone)
+        names = sorted(os.path.relpath(os.path.join(d, f), clone) for d, _, fs in os.walk(clone) if ".git" not in d
+                       for f in fs)
+        s.check("main carries the press record, its brief, the usage and the two ledgers' trades",
+                names == ["README", "analyst/press/2099-01-01-usage.json", "analyst/press/2099-01-01.json",
+                          "analyst/press/2099-01-01.md", "analyst/score/cards/AAAUSDT-long-1.json",
+                          "analyst/score/held/BBBUSDT-2.json"])
+        with open(os.path.join(clone, "analyst", "press", "2099-01-01-usage.json")) as fh:
+            usage = json.load(fh)
+        s.check("the usage names the session's turns, tokens and cost and never the answer",
+                usage["num_turns"] == 3 and usage["output_tokens"] == 22 and usage["cost_usd"] == 0.5
+                and usage["models"]["claude-opus-5-5"]["output"] == 8 and "SELFTEST-AG" not in json.dumps(usage))
+        s.check("the press's commit precedes the session's usage",
+                subprocess.run(["git", "-C", clone, "log", "-2", "--format=%s"], capture_output=True,
+                               text=True).stdout.split("\n")[:2] == ["analyst: usage 2099-01-01", "analyst: press 2099-01-01"])
+        with open(os.path.join(tree, "analyst", "score", "held", "BBBUSDT-2.json"), "w") as fh:
+            fh.write("rewritten")
+        s.check("a trade main already holds is never copied again", run.ledger_files(tree, state) == [])
+        at = datetime(2099, 1, 3, 4, 5, 6, tzinfo=timezone.utc)
+        s.check("the usage is filed under the press's stem, else the session's day log's, else the run's moment",
+                run.record_stem("2099-01-01", {"analyst/log/2099-01-02.md"}, at) == "2099-01-01"
+                and run.record_stem(None, {"analyst/log/2099-01-02.md"}, at) == "2099-01-02"
+                and run.record_stem(None, set(), at) == "run-20990103T040506Z")
+        os.makedirs(os.path.join(tree, "analyst", "log"), exist_ok=True)
+        with open(os.path.join(tree, "analyst", "log", "2099-01-09.md"), "w") as fh:
+            fh.write("a day log the session failed to push\n")
+        _git(tree, "add", "analyst/log/2099-01-09.md")
+        _git(tree, "commit", "-q", "-m", "analyst: 2099-01-09")
+        with contextlib.redirect_stdout(io.StringIO()) as out_r:
+            filed = run.record_run(tree, None, set(), lambda stem: {"v": 1, "k": "usage", "stem": stem})
+        _git(clone, "pull", "-q")
+        filed_as = sorted(n for n in os.listdir(os.path.join(clone, "analyst", "press")) if n.startswith("run-"))
+        s.check("after the session the record goes on origin/main: a commit the session failed to push is logged and "
+                "never carried, and a run without a stem files its usage under its own moment",
+                filed == 1 and "commit absent from origin/main: analyst: 2099-01-09" in out_r.getvalue()
+                and not os.path.exists(os.path.join(clone, "analyst", "log", "2099-01-09.md"))
+                and len(filed_as) == 1 and re.fullmatch(r"run-\d{8}T\d{6}Z-usage\.json", filed_as[0]) is not None)
+        bare = os.path.join(tmp, "not-a-clone")
+        os.makedirs(os.path.join(bare, "analyst", "press"))
+        for ext in (".json", ".md"):
+            open(os.path.join(bare, "analyst", "press", "2099-01-02" + ext), "w").close()
+        git_dir = os.environ.get("GIT_DIR")
+        os.environ["GIT_DIR"] = os.path.join(bare, "no-repository")   # git finds no repository, here or above it
+        try:
+            refused = run.publish_press(bare, "2099-01-02")
+        finally:
+            if git_dir is None:
+                os.environ.pop("GIT_DIR", None)
+            else:
+                os.environ["GIT_DIR"] = git_dir
+        s.check("a press record that cannot be committed leaves the tree, so the session starts clean",
+                refused == "no" and os.listdir(os.path.join(bare, "analyst", "press")) == [])
+    finally:
+        for mod, name, value in saved_attrs:
+            setattr(mod, name, value)
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        signal.signal(signal.SIGTERM, saved_term)
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 SECTIONS = (("A", section_a), ("B", section_b), ("C", section_c), ("D", section_d), ("E", section_e),
             ("F", section_f), ("G", section_g), ("H", section_h), ("I", section_i), ("J", section_j),
             ("K", section_k), ("L", section_l), ("M", section_m), ("N", section_n), ("O", section_o),
             ("P", section_p), ("Q", section_q), ("R", section_r), ("S", section_s),
             ("T", section_t), ("U", section_u), ("V", section_v), ("W", section_w), ("X", section_x),
             ("Y", section_y), ("Z", section_z), ("AA", section_aa), ("AB", section_ab), ("AC", section_ac),
-            ("AD", section_ad), ("AE", section_ae))
+            ("AD", section_ad), ("AE", section_ae), ("AF", section_af), ("AG", section_ag))
 
 
 def main():
