@@ -1,15 +1,14 @@
 # ANALYST INSTRUCTIONS — Crypto Market Analysis Engine
 
-**Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root). **Revision 2026-11-26-b.**
+**Canonical path:** `ANALYST-INSTRUCTIONS.md` (repository root). **Revision 2026-11-26-c.**
 
 **Authority.** Authoritative in GitHub and read there alone; written by the Architect and delivered as the COMPLETE
 file the Boss uploads. The analyst never edits it, a TZ asking for an edit is defective (`EXECUTOR-INSTRUCTIONS.md` §7
 item 14), and a finding may force one. A rule not here is not in force, and a rule here is repeated nowhere else; where
 this methodology and the contract touch, the contract wins. English; Russian labels («…») are quoted verbatim.
 
-**`2026-11-26-b` withdraws the late card,** which the archive replay of 26.11.2026 found losing (§4), and repairs what
-the audit of run 2026-11-26 found: the venue and the main event, past items, «Ближе всех к STRONG», the order and the
-ПЕРСПЕКТИВНЫЕ ladder (§2, §4), the large players' last day (§16) and the sheriff's repair (§15). **§6 and §6a do not
+**`2026-11-26-c` repairs what the owner found on 27.11.2026:** `ПОЗИЦИИ` names every crowd coin, the verdict
+names a positioning fact's coin (§2), and the list's movers join the hunt's head (§16). **§6 and §6a do not
 move, so `sec6_md5` is unchanged;** an item they cite that §7 no longer carries means §14's check or the
 section named, and a retired form they name means §2's.
 
@@ -152,7 +151,7 @@ Funding, средний 8ч   ±X.XXXX%
 ━━━━━━━━━━━━━━━━━━━━━━━━
 # 👥 ПОЗИЦИИ НА BINANCE
 BTC: крупные игроки ⚪ без перекоса · толпа ⚪ без перекоса
-Монеты списка: толпа в шорте — **N из M** · в лонге — K
+Монеты списка: толпа в шорте — **N из M** (XXX, XXX) · в лонге — K (XXX)
 Крупные игроки набирают шорт: 🔴 XXX · XXX
 ⁣
 # 📅 СОБЫТИЯ — 7 ДНЕЙ
@@ -232,7 +231,8 @@ side and one word of reason («GRAM в лонг — разлок») — bare, or
 «📅 Главное событие» the item ahead whose range is widest on BTC or on a coin with a card — with none in the window,
 the nearest class B or S date of the horizon store beyond it, «— через N дн.»; never a past item or a date the run
 set. **«ВЕРДИКТ:» is the answer's one verdict** — two or three sentences: the market's state, what to do now, what to
-wait for, the main risk — no unprinted price and no code span.
+wait for, the main risk — no unprinted price and no code span; a positioning fact names its coin («крупные игроки
+набирают лонг по BTC»).
 
 **`# ЛУЧШИЕ СДЕЛКИ` carries every trade the engine offers, as cards:** a list entry due today (§4) · an outside-list
 candidate that passed §3B · a list trigger within the week's reach · a forward item of the hunt at its book trigger.
@@ -301,8 +301,8 @@ venue answered — and one fact line fixed by its class: «🔴 Новые де�
 выходят: OI падает, цена растёт», with «, лонги ликвидируют чаще» («шорты») where one side's liquidations exceed the
 other's.
 
-**`# ПОЗИЦИИ НА BINANCE`** prints this run's positioning read alone — BTC's two classes, the list's crowd breadth, up to
-three coins a side the large players build; `unread` counts nowhere, and a read refused whole drops the section.
+**`# ПОЗИЦИИ НА BINANCE`** prints this run's positioning read alone — BTC's two classes, the list's crowd breadth, each
+side's coins in brackets, up to three coins a side the large players build; `unread` counts nowhere, and a read refused whole drops the section.
 
 **`# СОБЫТИЯ — 7 ДНЕЙ`.** An item prints only where it names BTC or a list coin, acts on the whole market — a print, a
 proceeding, a venue's rule, a central bank, a mega-cap report — or names a coin that carries a card. **The window is
@@ -1866,8 +1866,7 @@ never opened** (§5), on the frozen payload the trader read: no read of yours is
   where it answers, its stream record first, and never an `ITEMS` line of a coin.
   **Your macro search names no event it expects:** its query is «economic calendar <D Month> – <D Month YYYY> central
   bank rate decisions», the window's first and last days, never a list of what the store already holds — a query
-  naming the FOMC, GDP and PCE finds the FOMC, GDP and PCE (measured 24.10.2026: the ECB's decision of 29.10, the Bank
-  of Japan's of 30.10 and three mega-cap reports of 28–29.10 reached no line). **Every rate decision of the Federal
+  naming the FOMC, GDP and PCE finds the FOMC, GDP and PCE and nothing else (item 125). **Every rate decision of the Federal
   Reserve, the ECB, the Bank of Japan and the Bank of England dated inside the window is an `ITEMS` line, each naming
   its priced outcome.** **Two searches follow §6's systemic four, each recorded in `sweeps.discovery` like them and a
   systemic lane for items 72 and 91:** `sys|earnings` — «earnings date <D Month> – <D Month YYYY> Nvidia Microsoft Apple
@@ -1980,12 +1979,13 @@ refused and named — and the hunt record records each step and the one the run 
    (§11);
 4. **every list coin's discovery search** (§6) — first the coins no channel serves, a coin with no
    row in §6a's channel table or one item 90 left `неохваченная`, because the search is their only
-   eye; then the rest in descending 24-hour turnover of the coin's row of `c`;
+   eye; then the rest in descending 24-hour turnover of the coin's row of `c`; **then item 98's list movers**,
+   each where the hunt so far holds nothing on it — the owner's moving coins are the head;
 5. **every list coin's stale lanes**, in step 4's order;
 6. **item 90's coverage measurement;**
 7. **§6's systemic searches, then its book searches**, every hit followed to its publisher — a cliff
    a book hit dates goes first to the unlock lane (§6a);
-8. **item 98's movers**, the list's before the book's — one search pair each (item 98) where the
+8. **item 98's book movers** — one search pair each (item 98) where the
    hunt so far holds nothing on the coin, and the coin's own records where that pair holds nothing
    either;
 9. **the owner's vectors** (§11), **then the stale type lanes.**
