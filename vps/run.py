@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1, TZ-60 B3, TZ-83, TZ-84): the writer, then one
-headless role-2 session, admitted only when the host's available memory less
+"""The run unit's program (TZ-54 B3, TZ-55 B2, TZ-56 B2, TZ-59 B1, TZ-60 B3, TZ-83, TZ-84, TZ-87): the writer, the
+press, then one headless role-2 session, admitted only when the host's available memory less
 RESERVE_BYTES covers this unit's ceiling and its free swap covers this unit's swap
 ceiling; the answer goes to the outbox. The run has its own user and its own clone.
 
@@ -14,7 +14,10 @@ handed to the outbox · 1 the session failed (notice S7, or S17 where the API an
 429) · 75 not admitted (notice S6; SuccessExitStatus=75). A SIGTERM while
 crypto-stop.service runs is the owner's stop (TZ-60 B3): logged, and no notice S7. An
 answer whose day log did not reach origin/main is followed by notice S16 (TZ-84): its
-cards are ones the card ledger never scores.
+cards are ones the card ledger never scores. TZ-87: the press (vps/press.py) writes the run's numbers into
+analyst/press/ and they reach main before the session starts, so the session's tree is clean and the record precedes
+the answer; after it, on origin/main, the session's usage and every closed trade the ledger holds that main does not
+are committed beside them (contract section 2, rows press record and score record).
 """
 import argparse
 import json
@@ -34,6 +37,12 @@ ADMISSION_POLL_S = 30
 ADMISSION_MAX_S = 1800
 EXIT_NOT_ADMITTED = 75
 WRITER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "writer.py")
+# TZ-87: the press, under its own ceiling inside this unit's; a press that fails or overruns starts the session anyway.
+PRESS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "press.py")
+PRESS_TIMEOUT_S = 600
+PRESS_DIR = "analyst/press"
+# TZ-87: the two ledgers the gate reads (map section 10), each closed trade a file written once, copied as it is.
+LEDGERS = (("score-cards", "analyst/score/cards"), ("score-held", "analyst/score/held"))
 LOGIN_CREDENTIAL = "claude-oauth-token"   # TZ-55 B2.3: the run's own Claude login
 LOGIN_ENV = "CLAUDE_CODE_OAUTH_TOKEN"
 # TZ-55 B2.4: categorical fields of result.json for the second summary line; never `result`.
@@ -236,6 +245,117 @@ def claude_env():
     return env
 
 
+def run_press(tree):
+    """TZ-87: the press on the clone, as this unit's user and without the Claude login. Returns (exit, stem, s):
+    the stem its line names, or None; any failure is logged and the session starts all the same."""
+    start = time.monotonic()
+    try:
+        proc = subprocess.run([sys.executable, PRESS, "--tree", tree], env=writer_env(), capture_output=True, text=True,
+                              timeout=PRESS_TIMEOUT_S)
+        out = proc.stdout.strip().splitlines()
+        if out:
+            common.log("crypto-run: " + out[-1])
+        m = re.search(r"\bstem=(\S+)", out[-1]) if out else None
+        return proc.returncode, (m.group(1) if m else None), round(time.monotonic() - start, 1)
+    except (OSError, subprocess.SubprocessError) as exc:
+        common.log("crypto-run: press failed %s" % exc.__class__.__name__)
+        return "-", None, round(time.monotonic() - start, 1)
+
+
+def usage_record(stem, line, doc, extra, press_exit, press_s):
+    """TZ-87: what the session spent, the run's own record of it: turns, time, tokens by model and cost."""
+    by_model = doc.get("modelUsage") if isinstance(doc.get("modelUsage"), dict) else {}
+    models = {}
+    for model_id in sorted(by_model):
+        entry = by_model[model_id] if isinstance(by_model[model_id], dict) else {}
+        models[category(model_id)] = dict({name: entry.get(key) if isinstance(entry.get(key), int) else None
+                                           for name, key in MODEL_FIELDS},
+                                          cost_usd=entry.get("costUSD") if finite(entry.get("costUSD")) != "-" else None)
+    tokens = doc.get("usage") if isinstance(doc.get("usage"), dict) else {}
+    return {"v": 1, "k": "usage", "stem": stem, "ts": common.utc_now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "model": MODEL, "effort": EFFORT, "press_exit": press_exit, "press_s": press_s,
+            "writer_exit": line["writer_exit"], "claude_exit": line["claude_exit"], "is_error": line["is_error"] == "true",
+            "num_turns": doc.get("num_turns"), "duration_ms": doc.get("duration_ms"),
+            "answer_chars": line["answer_chars"], "log": line["log"],
+            "input_tokens": tokens.get("input_tokens"), "output_tokens": tokens.get("output_tokens"),
+            "cache_read_tokens": tokens.get("cache_read_input_tokens"),
+            "cache_creation_tokens": tokens.get("cache_creation_input_tokens"),
+            "cost_usd": doc.get("total_cost_usd") if finite(doc.get("total_cost_usd")) != "-" else None,
+            "models": models, "subtype": extra.get("subtype"), "api_error_status": extra.get("api_error_status")}
+
+
+def ledger_files(tree, state_dir=None):
+    """TZ-87: every closed trade of the two ledgers that the clone does not carry, copied in: [relative paths]. A
+    file main already holds is never rewritten -- a record is written once (inv. 38)."""
+    state_dir = state_dir or common.STATE_DIR
+    copied = []
+    for src_name, dst_rel in LEDGERS:
+        src = os.path.join(state_dir, src_name)
+        try:
+            names = sorted(n for n in os.listdir(src) if n.endswith(".json") and not n.startswith("."))
+        except OSError:
+            continue
+        for name in names:
+            dst = os.path.join(tree, dst_rel, name)
+            if os.path.exists(dst):
+                continue
+            try:
+                with open(os.path.join(src, name), "rb") as fh:
+                    blob = fh.read()
+                json.loads(blob)
+            except (OSError, ValueError):
+                continue
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            common.atomic_write(dst, blob, mode=0o644)
+            copied.append(os.path.join(dst_rel, name))
+    return copied
+
+
+def publish_press(tree, stem):
+    """TZ-87: the press's record and brief on main before the session: `yes`, `no`, or `-` with no stem."""
+    if not stem:
+        return "-"
+    paths = [p for p in (os.path.join(PRESS_DIR, stem + ext) for ext in (".json", ".md"))
+             if os.path.exists(os.path.join(tree, p))]
+    if not paths:
+        return "-"
+    committed, pushed = common.publish(tree, paths, "analyst: press %s" % stem)
+    if not committed:
+        # The session starts on a clean tree (contract section 4b step 2): an uncommitted record leaves it, and the
+        # session presses in its own read (methodology section 15). A dropped commit has removed it already.
+        for rel in paths:
+            os.remove(os.path.join(tree, rel))
+    return "yes" if committed and pushed else "no"
+
+
+def publish_record(tree, stem, record):
+    """TZ-87: the usage and the ledger's new trades, one commit on main (contract section 8). Returns the published
+    file count, or `-` when nothing could be committed."""
+    usage = os.path.join(PRESS_DIR, stem + "-usage.json")
+    os.makedirs(os.path.join(tree, PRESS_DIR), exist_ok=True)
+    common.atomic_write(os.path.join(tree, usage), record, mode=0o644)
+    paths = [usage] + ledger_files(tree)
+    committed, pushed = common.publish(tree, paths, "analyst: usage %s" % stem)
+    return len(paths) if committed and pushed else "-"
+
+
+def record_stem(stem, new_logs, now):
+    """TZ-87: the stem the usage is filed under -- the press's; else that of the day log the session landed; else the
+    run's own moment -- so that every session's spend reaches main."""
+    if stem:
+        return stem
+    logs = sorted(os.path.basename(name)[:-len(".md")] for name in new_logs)
+    return logs[0] if logs else "run-" + now.strftime("%Y%m%dT%H%M%SZ")
+
+
+def record_run(tree, stem, logs_before, record_of):
+    """TZ-87: after the session, the clone back on origin/main -- a commit the session failed to push is logged and
+    left behind, never carried (prepare_tree) -- then the usage and the ledger's new trades committed on it."""
+    prepare_tree(tree)
+    filed = record_stem(stem, day_logs(tree) - logs_before, common.utc_now())
+    return publish_record(tree, filed, record_of(filed))
+
+
 def is_answer(result):
     """TZ-63: True when result is a market answer -- a string with a line that opens with
     ANSWER_HEAD once leading whitespace and markdown marks are set aside. A status, a plan,
@@ -278,7 +398,8 @@ def main(argv=None):
         return set_limits()
     tree = os.path.abspath(args.tree)
     line = {"requests": 0, "admitted": "no", "waited_s": 0, "writer_exit": "-", "claude_exit": "-",
-            "is_error": "true", "num_turns": 0, "duration_ms": 0, "denials": 0, "answer_chars": 0, "log": "-"}
+            "is_error": "true", "num_turns": 0, "duration_ms": 0, "denials": 0, "answer_chars": 0, "log": "-",
+            "press_exit": "-", "press_pushed": "-", "record": "-"}
     extra = {"models": "-", "unpinned": "-", "denied_tools": "-"}
     extra.update((name, "-") for name in RESULT_CATEGORIES)
     # TZ-56 12.4: the limits the run ran under, its peaks and its token usage.
@@ -310,6 +431,8 @@ def main(argv=None):
         # TZ-83: the tokens of each model the session and its subagents ran on.
         for entry in per_model:
             common.log(entry)
+        # TZ-87: the press and the record it left on main.
+        common.log("crypto-run: press_exit=%(press_exit)s press_pushed=%(press_pushed)s record=%(record)s" % line)
 
     def on_term(signum, frame):
         if os.path.exists(common.STOP_ACTIVE):
@@ -333,6 +456,11 @@ def main(argv=None):
     prepare_tree(tree)
     logs_before = day_logs(tree)
     line["writer_exit"] = subprocess.run([sys.executable, WRITER, "--tree", tree], env=writer_env()).returncode
+    line["press_exit"], stem, press_s = run_press(tree)
+    try:
+        line["press_pushed"] = publish_press(tree, stem)
+    except Exception as exc:
+        common.log("crypto-run: press record not published %s" % exc.__class__.__name__)
 
     runtime_dir = os.environ.get("RUNTIME_DIRECTORY") or tempfile.mkdtemp(prefix="crypto-run.")
     result_path = os.path.join(runtime_dir, "result.json")
@@ -401,6 +529,12 @@ def main(argv=None):
         common.write_outbox("notice", common.S17)
     else:
         common.write_outbox("notice", common.S7)
+    # TZ-87: what the session spent and the ledger's new trades reach main, on origin/main; never the answer.
+    try:
+        line["record"] = record_run(tree, stem, logs_before,
+                                    lambda filed: usage_record(filed, line, doc, extra, line["press_exit"], press_s))
+    except Exception as exc:
+        common.log("crypto-run: record not published %s" % exc.__class__.__name__)
 
     # Step 7: the run's own scratch; commits stay where the session put them.
     git(tree, "clean", "-q", "-fdx")
