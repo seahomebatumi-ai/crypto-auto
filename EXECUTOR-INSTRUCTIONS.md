@@ -1,15 +1,14 @@
 # EXECUTOR INSTRUCTIONS — Pro Crypto Tool
 
-**Version 33.** Permanent operating contract for the Claude Code Executor. It lives at the repository root, is read
+**Version 34.** Permanent operating contract for the Claude Code Executor. It lives at the repository root, is read
 from the repository and supersedes every earlier version; it is never attached to a session, never re-sent and never
-restated in a TZ — if you are waiting for it, you are already wrong. **Role 1 reads all of it at the start of every
+restated in a TZ. **Role 1 reads all of it at the start of every
 task, before the TZ; role 2 reads Part A alone (§4b step 1).**
 
 **Kit:** `EXECUTOR-KIT.py`, SHA-256 `3716dc4b6b98de3021615f87e8803abfb6b7503d9b77ee5ea23b02d96f6cd531`.
 
-**v33 runs from a linked worktree** — TZ-82's block of 26.11.2026: a session started in a worktree of its own cannot
-check out the `main` the primary clone holds, so `kit ready` takes a detached `HEAD` at `origin/main` there and the
-report reaches `main` by `git push origin HEAD:main` (§4a). No rule of v32 is withdrawn.
+**v34 moves into Part B what binds implementation alone, numbers unchanged, and classes the run unit's records (§2,
+§8).** No rule of v33 is withdrawn.
 
 A clause that names no role governs role 1. Role 2 is granted only what this file grants it by name and is otherwise
 bound by the same hard floor, repository rules and evidence standard.
@@ -35,7 +34,7 @@ comment inside them stay English, `analyst/live-gate.sh` included.
 
 # PART A — BOTH ROLES
 
-§1, §2, §4, §7, §12, §13 and §14. An analysis run reads this part and nothing below it.
+§1, §4 with §4b, §7 and §13. An analysis run reads this part and nothing below it.
 
 ## 1. Roles
 
@@ -67,8 +66,7 @@ under the methodology, never an answer it forwards.
 
 **The authority boundary.** The Architect owns the methodology; you execute it. You decide **what today's market means
 under the approved method**, never **what the method is**. A rule you believe wrong, missing or self-contradictory is a
-finding routed to the Architect (§12) — never a judgement call inside a run and never an edit. An unapproved method is
-advice nobody specified and nobody can audit.
+finding routed to the Architect (§12) — never a judgement call inside a run and never an edit.
 
 **The roles never run in one turn.** An analysis run writes no production code and opens no branch or pull request;
 an implementation run publishes no market advice and writes nothing under `analyst/`. A program under `vps/` writes
@@ -76,48 +74,6 @@ an implementation run publishes no market advice and writes nothing under `analy
 process and a separate turn (§4): an implementation session that starts either for a measurement its TZ names never
 reads, relays or edits what that run publishes, and edits nothing it writes. A turn that seems to call for both runs
 role 1 and refuses the analysis in one line.
-
----
-
-## 2. Canonical repository structure
-
-Every file belongs to exactly one class. Nothing outside this table is created without a TZ that names it.
-
-| Class | Path | Owner | Arrives by | Retention |
-|---|---|---|---|---|
-| System Map | `SYSTEM-MAP-CRYPTOCALCUL.md` | Architect | Boss upload to `main` | one copy, replaced in place |
-| Executor contract | `EXECUTOR-INSTRUCTIONS.md` | Architect | Boss upload to `main` | one copy, replaced in place |
-| Executor kit | `EXECUTOR-KIT.py` | Architect | Boss upload to `main`, with the contract that pins it | one copy, replaced in place |
-| Specifications | `CryptoTZ/TZ-NN-<short-name>.md` | Architect | Boss upload to `CryptoTZ/` | **permanent, immutable** |
-| Shipped files | `CryptoTZ/TZ-NN-<short-name>.patch`, and `CryptoTZ/TZ-NN-<short-name>-<part>.<ext>` a TZ's Shipped section names | Architect | Boss upload to `CryptoTZ/`, beside the TZ | **permanent, immutable** |
-| Reports | `CryptoReports/TZ-NN-<short-name>-report.md` | you | you, direct to `main` | **permanent, immutable** |
-| Production logic | `index.html`, `main.py` | you | branch + PR | live |
-| Benches | `bench/**` | you | branch + PR | live |
-| Workflows | `.github/workflows/**` | you | branch + PR | live |
-| Catalyst registry | `catalysts.json` | Architect (content) / you (schema) | branch + PR | live, one copy |
-| Journal code | `journal/write.js`, `journal/README.md` | you | branch + PR | live |
-| Journal records | `journal/data/**`, `journal/out/**`, `journal/runs.jsonl` | `journal.yml` | machine, direct to `main` | **permanent, immutable** |
-| Analyst methodology | `ANALYST-INSTRUCTIONS.md` | Architect | Boss upload to `main` | one copy, replaced in place |
-| Live payload | `analyst/live.json` | Boss's Shortcut · the VPS writer (`vps/writer.py`) | machine, direct to `main` | one copy, replaced in place |
-| Analytical state | `analyst/state.json` | you (role 2) | you, direct to `main` | one copy, replaced in place |
-| Day log | `analyst/log/**` | you (role 2) | you, direct to `main` | **permanent, immutable** |
-| Paper-test record | `analyst/paper/**` | the paper-test recorder (`vps/paper.py`) | machine, direct to `main` | **permanent, immutable** |
-| Owner channel | `analyst/owner.json` | Architect | Boss upload to `main` | one copy, replaced in place |
-| Live-data gate | `analyst/live-gate.sh` | you | branch + PR | live |
-| Analyst README | `analyst/README.md` | you | branch + PR | live |
-| VPS programs | `vps/**` | you | branch + PR; installed on the VPS from `main` only (item 15) | live |
-| Assets | `image.PNG`, `README.md` (root) | you | branch + PR | live |
-| Hygiene | `.gitignore` | you | branch + PR | live |
-| Claude Code project settings | `.claude/settings.json` | you | branch + PR | live |
-| Generated artifacts | `bench/_*`, `bench/cache/`, `__pycache__/` | — | tooling | ignored, never committed |
-
-**`.claude/settings.json` holds `"autoMemoryEnabled": false` and is the one Claude Code setting this repository
-carries:** auto memory would feed a later session an earlier one's notes, which the owner's decision of 24.09.2026
-forbids. A TZ that adds a key to this file names it and says why.
-
-`CryptoTZ/` and `CryptoReports/` are created by you on first use; the Boss never creates a directory or types a path.
-A file that fits no class is reported, never removed — `image.PNG` reads as debris and is the PWA icon `index.html`
-references. **Naming:** hyphens, never underscores or spaces; TZ IDs strictly increasing and never reused.
 
 ---
 
@@ -146,32 +102,6 @@ unit delivers the notice «Анализ не завершён.» in its place.**
 this clause and the unit's code, in the order map inv. 59 fixes.
 
 An unrecognised trigger is not guessed: say in one line which triggers exist, and stop.
-
-### 4a. Implementation run
-
-The Boss clears the conversation and sends `EXECUTE TZ-NN` and nothing else — but for the credentials a TZ names
-(item 6). On receipt:
-
-1. **`git fetch --all --prune`, then `git merge --ff-only origin/main` on a clean `main` — in a linked worktree whose
-   `main` another checkout holds, a clean detached `HEAD` at `origin/main`, which `kit ready` takes —** so that this
-   file, the kit and the TZ you read next are the ones the Boss uploaded; a session that found the TZ first reads it
-   now.
-2. Read this file in full.
-3. **`python3 -I EXECUTOR-KIT.py open TZ-NN`** — the blocks §15 runs before any work: fetch, the TZ located and its
-   number, the fingerprint gate (§5), the repository's state, the host where the TZ names one, the shipped files'
-   bytes. **Any FAIL: STOP**, write a BLOCKED report (§10) and the closing message, and do no work — never guess a
-   scope.
-4. Read the TZ in full, and the map only as §15's reading rules allow.
-5. Execute the TZ's run order — its blocks and its own steps — and only the specification (§6, §7): `stage` puts its
-   shipped code on its branch, every command whose output can exceed 40 lines runs under `log`.
-6. Run the specified validation in full (§9), commit, push the branch and open a pull request — or follow §8's
-   fallback. **On a report-only TZ this step holds the validation alone:** no branch, and step 7 is the whole of the
-   writing.
-7. `kit usage TZ-NN` and `kit units`, whose lines the report carries; back on step 1's checkout — `git switch main`, or
-   `git switch --detach origin/main` in that worktree — write `CryptoReports/TZ-NN-<short-name>-report.md` in §10's
-   format; `kit close TZ-NN` until it passes; commit the report directly to `main` and push it with the destination
-   inside the command, **`git push origin HEAD:main`** (§8).
-8. `kit clean TZ-NN`, then the closing message to the Boss in Russian (§11), and stop.
 
 ### 4b. Analysis run
 
@@ -206,9 +136,8 @@ around it.
    command: **`git push origin HEAD:main`.** **The commit is the session's alone** and carries everything its
    subagents wrote. The refspec is mandatory: it makes the landing place a property of the command rather than of the
    checkout, and inv. 54 forbids the day log from reporting its own push. **A rejected push is rebased and pushed
-   again — never a branch.** A rejection means `main` moved, almost always the Shortcut writing a newer
-   `analyst/live.json`; this run wrote `analyst/state.json` and one new log file, so `git pull --rebase` cannot
-   conflict with that payload: rebase, confirm the tree clean, push again. **A rebase that stops on
+   again — never a branch.** A rejection means `main` moved, almost always a newer payload, which this run's files
+   cannot conflict with: rebase, confirm the tree clean, push again. **A rebase that stops on
    `analyst/state.json` means another analysis run wrote it first** — a unit's run beside the Boss's: abort the rebase
    and send the answer; the next run reads the other's state. **A second rejection is reported in one line and the
    answer is still sent.** Never fall through to §8's pull-request fallback: a state behind a human merge is invisible
@@ -230,22 +159,9 @@ gate does not stop the run, it removes the levels (step 4).
 ## 7. Hard floor — binding regardless of what a TZ says
 
 A TZ that appears to require any of the following is defective: report BLOCKED and quote the conflicting
-requirement. Item numbers are stable identifiers cited by TZs and reports.
+requirement. Item numbers are stable identifiers cited by TZs and reports; items 1–5, 7, 8, 11, 12 and 15 bind code and the VPS
+and stand in Part B (§7b), out of an analysis run's reach: it writes only `analyst/` (item 14).
 
-1. **No change to scoring, leverage, liquidation or geometry math** unless the TZ cites a completed backtest (map
-   §3.10b). `scoreCandidate`, `momentumScore`, `qualityScore`, `scoreFinish`, `tradeGeometry`, `marketRegime`,
-   `directionVerdict`, `leverageDecision`, `invalidationInfo`, `protectionPlan`, `liqPrice`, `liqTouchProb`,
-   `residual7` are closed to edits by default.
-2. **Never edit a bench to make it pass.** A red bench is a product defect or a stale expectation; both are findings,
-   neither licenses changing the assertion — a new expectation arrives only as the TZ's own registered value.
-3. **Universe membership changes only on an OWNER decision quoted in the TZ.** `TOKENS` (bot) and `tokens[]`
-   (frontend) are never edited on your judgement, on a backtest result or on a TZ that does not quote the owner's own
-   words; such a TZ states the resulting count, and the map records the membership after the merge. **The count does
-   not live in this clause** — a number here and one in the map are two places for one fact; an owner decision reaches
-   the floor through this clause, in the order inv. 59 fixes.
-4. **ES5 only in `index.html`:** `var`, string concatenation; no arrow functions, template literals, `let` or `const`.
-5. **`coeffs.json` schema is additive-only.** The frontend survives the absence of any new field, and the bot's error
-   result stays key-synchronous with its success result (inv. 1, 9).
 6. **Never commit secrets.** Credentials live only in GitHub Actions environment variables (inv. 7), **with exactly
    five exceptions, all on the VPS:** the Telegram bot token; the Binance API key created with reading permission only
    and bound to the VPS's address, its key and secret one credential; the repository's deploy key; the analysis run's
@@ -268,8 +184,6 @@ requirement. Item numbers are stable identifiers cited by TZs and reports.
    which is why the key reads only and is address-bound. A value found anywhere else is revoked and replaced, never
    cleaned up, and any further credential on the VPS — a key with trading rights above all — is a contract version,
    never a TZ.
-7. **Russian UI strings inside JavaScript are `\uXXXX` escapes.** Never raw Cyrillic in a JS string literal.
-8. **Never modify `.github/workflows/backtest_bench.yml`** unless the TZ names it.
 9. **Binance production hosts return HTTP 451 from GitHub Actions** (inv. 24): only `data.binance.vision` and
    `data-api.binance.vision` work from a runner, and new CI code calling `api.binance.com` fails — report, never
    retry. **A session fetch may not stand behind a product fact** (inv. 44): a stage that needs an external fact — a
@@ -294,12 +208,6 @@ requirement. Item numbers are stable identifiers cited by TZs and reports.
     direct push is authorised only while the tree it touches can neither start a workflow nor change what Pages
     executes;** §8 states the two facts this rests on and requires them verified, and a path whose filter does not hold
     is reported, not pushed.
-11. **Venue flags are declarations, not observations** (map §3.14, inv. 41). The declared set is whatever carries
-    `fut:true` in `tokens[]`, never enumerated here. A host answering for a delisted spot pair revokes no flag and is
-    never a reason to reclassify an asset or "correct" the list; the declaration wins and the disagreement is reported.
-12. **Never remove, skip, comment out or `continue-on-error` a bench step to make CI green** — deleting an assertion is
-    editing it (item 2); a step that cannot pass is a finding. Never add a bench file without wiring it into
-    `.github/workflows/bench.yml` in the same change: a bench outside the gate never executes (inv. 37).
 13. **The catalyst registry's `PRIMARY` list is a trust root.** The host allow-list in `bench/catalyst_bench.js` grants
     an entry the right to veto a trade (inv. 39): never add, remove or loosen a host, never relax the dot-boundary
     match, unless the TZ names the change — one added host converts an aggregator into an authority. The registry's
@@ -314,6 +222,133 @@ requirement. Item numbers are stable identifiers cited by TZs and reports.
     **And no session of either role writes a file §2 gives to the Architect** — the map, this file, the kit, the
     methodology, the owner channel, a TZ or its shipped files: they are read or run, never edited, a rule you believe
     wrong is a finding, and a TZ asking you to write one is defective and BLOCKED.
+
+---
+
+## 13. File lifecycle and ownership
+
+The class table is §2. Retention follows the class:
+
+- **A TZ, its shipped files and a report are never deleted, edited or overwritten:** they are the audit trail. A
+  re-run writes `-report-2.md`; a correction takes the next TZ number.
+- **A TZ has executed if and only if `CryptoReports/` holds a report with its number** — the Architect's mechanical
+  audit check, which is why a report is never renamed, moved or written anywhere else. A specification that never ran
+  stays in `CryptoTZ/` as evidence, never a pending task you execute on your own reading.
+- **A journal file, once written, is never reopened** (inv. 38) — not to append an outcome, fix a typo or re-run a
+  day; a re-run that finds an existing file writes `dup` and exits zero; a wrong record is a finding.
+- **A day log, once written, is never reopened** — the evidence of what the Boss was told and why; a second run on one
+  date writes a second file. `analyst/state.json` is the opposite class by design: one copy, replaced every run,
+  carrying only what is currently true.
+- Everything else is replaced in place, or deleted only when a TZ names it under `Files to Delete`. Leave no scratch
+  file, duplicate or superseded copy at the end of a task, and **never sweep the repository on your own initiative** —
+  a sweep is where evidence is deleted by accident.
+- **The monthly repository audit is the Architect's;** what it removes reaches you as an ordinary TZ. `CryptoTZ/**`,
+  `CryptoReports/**` and `journal/**` are never on that list, and a TZ proposing them is defective.
+
+---
+
+# PART B — ROLE 1 ONLY
+
+§2, §3, §4a, §5, §6, §7b, §8, §9, §10, §11, §12, §14 and §15: what binds implementation alone.
+
+## 2. Canonical repository structure
+
+Every file belongs to exactly one class. Nothing outside this table is created without a TZ that names it.
+
+| Class | Path | Owner | Arrives by | Retention |
+|---|---|---|---|---|
+| System Map | `SYSTEM-MAP-CRYPTOCALCUL.md` | Architect | Boss upload to `main` | one copy, replaced in place |
+| Executor contract | `EXECUTOR-INSTRUCTIONS.md` | Architect | Boss upload to `main` | one copy, replaced in place |
+| Executor kit | `EXECUTOR-KIT.py` | Architect | Boss upload to `main`, with the contract that pins it | one copy, replaced in place |
+| Specifications | `CryptoTZ/TZ-NN-<short-name>.md` | Architect | Boss upload to `CryptoTZ/` | **permanent, immutable** |
+| Shipped files | `CryptoTZ/TZ-NN-<short-name>.patch`, and `CryptoTZ/TZ-NN-<short-name>-<part>.<ext>` a TZ's Shipped section names | Architect | Boss upload to `CryptoTZ/`, beside the TZ | **permanent, immutable** |
+| Reports | `CryptoReports/TZ-NN-<short-name>-report.md` | you | you, direct to `main` | **permanent, immutable** |
+| Production logic | `index.html`, `main.py` | you | branch + PR | live |
+| Benches | `bench/**` | you | branch + PR | live |
+| Workflows | `.github/workflows/**` | you | branch + PR | live |
+| Catalyst registry | `catalysts.json` | Architect (content) / you (schema) | branch + PR | live, one copy |
+| Journal code | `journal/write.js`, `journal/README.md` | you | branch + PR | live |
+| Journal records | `journal/data/**`, `journal/out/**`, `journal/runs.jsonl` | `journal.yml` | machine, direct to `main` | **permanent, immutable** |
+| Analyst methodology | `ANALYST-INSTRUCTIONS.md` | Architect | Boss upload to `main` | one copy, replaced in place |
+| Live payload | `analyst/live.json` | Boss's Shortcut · the VPS writer (`vps/writer.py`) | machine, direct to `main` | one copy, replaced in place |
+| Analytical state | `analyst/state.json` | you (role 2) | you, direct to `main` | one copy, replaced in place |
+| Day log | `analyst/log/**` | you (role 2) | you, direct to `main` | **permanent, immutable** |
+| Paper-test record | `analyst/paper/**` | the paper-test recorder (`vps/paper.py`) | machine, direct to `main` | **permanent, immutable** |
+| Press record | `analyst/press/**` | the run unit (`vps/press.py`, `vps/run.py`) | machine, direct to `main` | **permanent, immutable** |
+| Score record | `analyst/score/**` | the run unit (`vps/run.py`), copying the scorecard's closed trades | machine, direct to `main` | **permanent, immutable** |
+| Owner channel | `analyst/owner.json` | Architect | Boss upload to `main` | one copy, replaced in place |
+| Live-data gate | `analyst/live-gate.sh` | you | branch + PR | live |
+| Analyst README | `analyst/README.md` | you | branch + PR | live |
+| VPS programs | `vps/**` | you | branch + PR; installed on the VPS from `main` only (item 15) | live |
+| Assets | `image.PNG`, `README.md` (root) | you | branch + PR | live |
+| Hygiene | `.gitignore` | you | branch + PR | live |
+| Claude Code project settings | `.claude/settings.json` | you | branch + PR | live |
+| Generated artifacts | `bench/_*`, `bench/cache/`, `__pycache__/` | — | tooling | ignored, never committed |
+
+**`.claude/settings.json` holds `"autoMemoryEnabled": false` and is the one Claude Code setting this repository
+carries:** auto memory would feed a later session an earlier one's notes, which the owner's decision of 24.09.2026
+forbids. A TZ that adds a key to this file names it and says why.
+
+`CryptoTZ/` and `CryptoReports/` are created by you on first use; the Boss never creates a directory or types a path.
+A file that fits no class is reported, never removed — `image.PNG` reads as debris and is the PWA icon `index.html`
+references. **Naming:** hyphens, never underscores or spaces; TZ IDs strictly increasing and never reused.
+
+---
+
+## 4a. Implementation run
+
+The Boss clears the conversation and sends `EXECUTE TZ-NN` and nothing else — but for the credentials a TZ names
+(item 6). On receipt:
+
+1. **`git fetch --all --prune`, then `git merge --ff-only origin/main` on a clean `main` — in a linked worktree whose
+   `main` another checkout holds, a clean detached `HEAD` at `origin/main`, which `kit ready` takes —** so that this
+   file, the kit and the TZ you read next are the ones the Boss uploaded; a session that found the TZ first reads it
+   now.
+2. Read this file in full.
+3. **`python3 -I EXECUTOR-KIT.py open TZ-NN`** — the blocks §15 runs before any work: fetch, the TZ located and its
+   number, the fingerprint gate (§5), the repository's state, the host where the TZ names one, the shipped files'
+   bytes. **Any FAIL: STOP**, write a BLOCKED report (§10) and the closing message, and do no work — never guess a
+   scope.
+4. Read the TZ in full, and the map only as §15's reading rules allow.
+5. Execute the TZ's run order — its blocks and its own steps — and only the specification (§6, §7): `stage` puts its
+   shipped code on its branch, every command whose output can exceed 40 lines runs under `log`.
+6. Run the specified validation in full (§9), commit, push the branch and open a pull request — or follow §8's
+   fallback. **On a report-only TZ this step holds the validation alone:** no branch, and step 7 is the whole of the
+   writing.
+7. `kit usage TZ-NN` and `kit units`, whose lines the report carries; back on step 1's checkout — `git switch main`, or
+   `git switch --detach origin/main` in that worktree — write `CryptoReports/TZ-NN-<short-name>-report.md` in §10's
+   format; `kit close TZ-NN` until it passes; commit the report directly to `main` and push it with the destination
+   inside the command, **`git push origin HEAD:main`** (§8).
+8. `kit clean TZ-NN`, then the closing message to the Boss in Russian (§11), and stop.
+
+---
+
+## 7b. Hard floor — the items that bind code
+
+§7's rule, for the items an analysis run cannot reach.
+
+1. **No change to scoring, leverage, liquidation or geometry math** unless the TZ cites a completed backtest (map
+   §3.10b). `scoreCandidate`, `momentumScore`, `qualityScore`, `scoreFinish`, `tradeGeometry`, `marketRegime`,
+   `directionVerdict`, `leverageDecision`, `invalidationInfo`, `protectionPlan`, `liqPrice`, `liqTouchProb`,
+   `residual7` are closed to edits by default.
+2. **Never edit a bench to make it pass.** A red bench is a product defect or a stale expectation; both are findings,
+   neither licenses changing the assertion — a new expectation arrives only as the TZ's own registered value.
+3. **Universe membership changes only on an OWNER decision quoted in the TZ.** `TOKENS` (bot) and `tokens[]`
+   (frontend) are never edited on your judgement, on a backtest result or on a TZ that does not quote the owner's own
+   words; such a TZ states the resulting count, and the map records the membership after the merge. **The count does
+   not live in this clause** — a number here and one in the map are two places for one fact; an owner decision reaches
+   the floor through this clause, in the order inv. 59 fixes.
+4. **ES5 only in `index.html`:** `var`, string concatenation; no arrow functions, template literals, `let` or `const`.
+5. **`coeffs.json` schema is additive-only.** The frontend survives the absence of any new field, and the bot's error
+   result stays key-synchronous with its success result (inv. 1, 9).
+7. **Russian UI strings inside JavaScript are `\uXXXX` escapes.** Never raw Cyrillic in a JS string literal.
+8. **Never modify `.github/workflows/backtest_bench.yml`** unless the TZ names it.
+11. **Venue flags are declarations, not observations** (map §3.14, inv. 41). The declared set is whatever carries
+    `fut:true` in `tokens[]`, never enumerated here. A host answering for a delisted spot pair revokes no flag and is
+    never a reason to reclassify an asset or "correct" the list; the declaration wins and the disagreement is reported.
+12. **Never remove, skip, comment out or `continue-on-error` a bench step to make CI green** — deleting an assertion is
+    editing it (item 2); a step that cannot pass is a finding. Never add a bench file without wiring it into
+    `.github/workflows/bench.yml` in the same change: a bench outside the gate never executes (inv. 37).
 15. **Merge is deployment on the VPS as it is on Pages.** Code under `vps/` runs on the VPS only from `main`: the
     deployer fast-forwards its own clone and installs what changed, and nothing else installs anything. An
     implementation session never enables, starts or leaves running a persistent unit, timer or service from a branch;
@@ -348,29 +383,6 @@ execution begins and you never edit one (§13).
 
 ---
 
-## 13. File lifecycle and ownership
-
-The class table is §2. Retention follows the class:
-
-- **A TZ, its shipped files and a report are never deleted, edited or overwritten:** they are the audit trail. A
-  re-run writes `-report-2.md`; a correction takes the next TZ number.
-- **A TZ has executed if and only if `CryptoReports/` holds a report with its number** — the Architect's mechanical
-  audit check, which is why a report is never renamed, moved or written anywhere else. A specification that never ran
-  stays in `CryptoTZ/` as evidence, never a pending task you execute on your own reading.
-- **A journal file, once written, is never reopened** (inv. 38) — not to append an outcome, fix a typo or re-run a
-  day; a re-run that finds an existing file writes `dup` and exits zero; a wrong record is a finding.
-- **A day log, once written, is never reopened** — the evidence of what the Boss was told and why; a second run on one
-  date writes a second file. `analyst/state.json` is the opposite class by design: one copy, replaced every run,
-  carrying only what is currently true; merging the two would make the working set unbounded and the evidence
-  rewritable.
-- Everything else is replaced in place, or deleted only when a TZ names it under `Files to Delete`. Leave no scratch
-  file, duplicate or superseded copy at the end of a task, and **never sweep the repository on your own initiative** —
-  a sweep is where evidence is deleted by accident.
-- **The monthly repository audit is the Architect's;** what it removes reaches you as an ordinary TZ. `CryptoTZ/**`,
-  `CryptoReports/**` and `journal/**` are never on that list, and a TZ proposing them is defective.
-
----
-
 ## 14. Standing quality bar
 
 - Minimal diff through existing structures — a hard rule, earned by two breakages.
@@ -381,10 +393,6 @@ The class table is §2. Retention follows the class:
 
 ---
 
-# PART B — ROLE 1 ONLY
-
-§3, §5, §6, §8, §9, §10, §11 and §15: TZ machinery an analysis run has no TZ to reach.
-
 ## 3. Where a TZ comes from
 
 **The Boss uploads each TZ once into `CryptoTZ/` through the GitHub web interface, with the files its Shipped section
@@ -394,8 +402,7 @@ a TZ names, under the trigger line (item 6).
 **Nothing is missing until it has been fetched:** a session clone is a snapshot and the upload is a later commit, so
 "not in my working tree" is not "not in the repository", and a shallow clone must be unshallowed before anything
 historical is assessed — `kit ready` does both. Challenge a suspiciously small result before building on it, and never
-rely on `git log --follow` alone — `main.yml` was deleted and recreated, which breaks the rename chain; use `git log
---all -- <path>` on a complete clone.
+rely on `git log --follow` alone: use `git log --all -- <path>` on a complete clone.
 
 The search order is `CryptoTZ/` on `origin/main`, the repository root, then every other branch — `kit number` reads all
 three; only when all are empty is the TZ absent: BLOCKED, naming the path expected. **Filenames degrade in transit**
@@ -471,7 +478,8 @@ report-only TZ — and that silence is never a deviation.
   writer pushes `analyst/live.json` on this path under the same rules** — `git push origin HEAD:main`, a rebase on
   rejection, never a branch or a force — and a rebase that conflicts with the Shortcut's payload discards the writer's
   commit, the payload on `main` being gated on `ts` like its own (inv. 51). **The paper-test recorder pushes
-  `analyst/paper/**` the same way;** it adds only files `main` does not hold, so its rebase cannot conflict.
+  `analyst/paper/**` the same way, and the run unit `analyst/press/**` and `analyst/score/**`;** each adds only files
+  `main` does not hold, so its rebase cannot conflict.
 - The report is on `main` **before** the closing message, so its path resolves when the Boss opens it — one report,
   one path, one copy, never also on the branch or under another name.
 - **A TZ is one of two classes, and the report names it in `## Scope Executed`.** A **branch TZ** authorises at least
@@ -643,4 +651,4 @@ names and its own steps · `## 4. Validation`, written by the Architect · `## 5
 TZ, `Use` being `apply` for a patch and `run` for a script, then a table `| Path | Lines | SHA-256 |` of every file the
 patches write, `deleted` in `Lines` for one they remove. A patch is a `git diff` against `**Base:**`; a patch that
 arrived with other bytes still passes when every result file matches, because the result is what ships; a `run` file
-must arrive exact. **A TZ begun in the old form is finished in its own form, never converted midway.**
+must arrive exact.
